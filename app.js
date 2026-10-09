@@ -4,7 +4,7 @@ import { craftFlips } from './craft.js';
 import { loadItems, fallbackName } from './names.js';
 import { loadStats, loadRecipes, loadHistory } from './data.js';
 import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission } from './native.js';
-import { flipCard, npcCard, craftCard, parseRoute, detailView, coins, percent, PLACEHOLDER_ICON } from './render.js';
+import { flipCard, npcCard, craftCard, parseRoute, detailView, swipeTab, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
 
 const API = 'https://api.hypixel.net/v2/skyblock/bazaar';
@@ -268,6 +268,22 @@ addEventListener('touchend', () => {
   if (pullStart !== null && pulled > PULL_PX) refresh();
   pullStart = null;
 });
+
+// Swipe left or right on a list to change tabs. Not on the detail page, and not from the screen
+// edge, where Android's own back gesture starts.
+const EDGE_PX = 24;
+let swipeStart = null;
+$('list').addEventListener('touchstart', (e) => {
+  const { clientX: x, clientY: y } = e.touches[0];
+  swipeStart = e.touches.length === 1 && x > EDGE_PX && x < innerWidth - EDGE_PX ? { x, y } : null;
+}, { passive: true });
+$('list').addEventListener('touchend', (e) => {
+  if (!swipeStart) return;
+  const { clientX: x, clientY: y } = e.changedTouches[0];
+  const tab = swipeTab(view(), x - swipeStart.x, y - swipeStart.y);
+  swipeStart = null;
+  if (tab) location.hash = `#/${tab}`;
+}, { passive: true });
 
 // Background alerts exist only in the Android app.
 function bindAlertToggle(key, hint) {

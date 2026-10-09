@@ -100,7 +100,16 @@ export function parseRoute(hash) {
   if (view === 'item' && arg) {
     try { return { view, id: decodeURIComponent(arg) }; } catch {}
   }
-  return { view: ['npc', 'craft', 'opps'].includes(view) ? view : 'flips' };
+  return { view: TABS.includes(view) ? view : 'flips' };
+}
+
+// Tab a horizontal swipe leads to, or null. A swipe to the left opens the tab on the right, like turning a page.
+// It has to be long enough and clearly more sideways than up or down, so scrolling the list never switches tabs.
+export const TABS = ['flips', 'opps', 'npc', 'craft'];
+const SWIPE_MIN_PX = 60;
+export function swipeTab(view, dx, dy) {
+  if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < 2 * Math.abs(dy)) return null;
+  return TABS[TABS.indexOf(view) + (dx < 0 ? 1 : -1)] ?? null;
 }
 
 const RANGES = [['24h', '24 h'], ['7d', '7 days']];

@@ -130,3 +130,17 @@ test('cards carry a known rarity and the picture sits on a tile', async () => {
   assert.match(flipCard(flip, false), /<span class="tile"><img class="icon"/);
   assert.match(detailView({ id: 'A', name: 'Name', tier: 'mythic', flip: null, isFav: false, range: '24h', tax: 0.0125, points: [] }), /class="detail-head" data-rarity="mythic"/);
 });
+
+test('swipeTab: left opens the next tab, right the previous one, no wrap around', async () => {
+  const { swipeTab, TABS } = await import('../render.js');
+  assert.deepEqual(TABS, ['flips', 'opps', 'npc', 'craft']);
+  assert.equal(swipeTab('flips', -80, 5), 'opps');
+  assert.equal(swipeTab('opps', 80, -5), 'flips');
+  assert.equal(swipeTab('npc', -200, 30), 'craft');
+  assert.equal(swipeTab('flips', 80, 0), null);
+  assert.equal(swipeTab('craft', -80, 0), null);
+  // too short, or more of a scroll than a swipe
+  assert.equal(swipeTab('flips', -59, 0), null);
+  assert.equal(swipeTab('flips', -80, 41), null);
+  assert.equal(swipeTab('flips', -80, 40), 'opps');
+});

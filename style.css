@@ -114,7 +114,7 @@ main { padding-block: 8px 24px; }
 footer { padding-bottom: calc(24px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))); font-size: 11px; color: var(--muted); }
 footer a { color: inherit; }
 #count { margin: 0 0 8px; }
-#list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+#list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; min-height: 60vh; align-content: start; }
 #list > .muted { padding: 8px 0; }
 
 /* cards: two big numbers, everything else small */
