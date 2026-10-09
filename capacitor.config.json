@@ -2,5 +2,10 @@
   "appId": "com.tsaitunq.bazaarflip",
   "appName": "Bazaar Flip Helper",
   "webDir": "www",
-  "backgroundColor": "#0f1115"
+  "backgroundColor": "#0f1115",
+  "plugins": {
+    "SystemBars": {
+      "style": "DARK"
+    }
+  }
 }

@@ -69,6 +69,16 @@ public class AlertLogicTest {
     }
 
     @Test
+    public void linesAreSortedByMarginAndFallBackToTheId() {
+        Map<String, double[]> prices = new HashMap<>();
+        prices.put("A", new double[] { 100, 120 });
+        prices.put("B", new double[] { 100, 200 });
+        Map<String, String> names = new HashMap<>();
+        names.put("B", "Item B");
+        assertEquals(Arrays.asList("Item B: 97,5 %", "A: 18,5 %"), AlertLogic.lines(set("A", "B"), prices, names, 0.0125));
+    }
+
+    @Test
     public void textsAreGerman() {
         assertEquals("2 Favoriten über 5 % Marge", AlertLogic.title(2, 5));
         assertEquals("1 Favorit über 7,5 % Marge", AlertLogic.title(1, 7.5));

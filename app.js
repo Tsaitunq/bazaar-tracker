@@ -3,6 +3,7 @@ import { npcFlips } from './npc.js';
 import { craftFlips } from './craft.js';
 import { loadItems, fallbackName } from './names.js';
 import { loadScores, loadRecipes, loadHistory } from './data.js';
+import { plugin, syncAlerts, requestAlertPermission } from './native.js';
 import { flipCard, npcCard, craftCard, parseRoute, detailView, PLACEHOLDER_ICON } from './render.js';
 
 const API = 'https://api.hypixel.net/v2/skyblock/bazaar';
@@ -10,7 +11,7 @@ const MAX_ROWS = 100;
 const PULL_PX = 70;
 const SCORES_TTL = 20 * 60000;
 const CARDS = { flips: flipCard, npc: npcCard, craft: craftCard };
-const DEFAULTS = { tax: 1.25, minVolume: 100000, maxCapital: 5000000, interval: 2, share: 5, sort: 'profitHour', favOnly: false };
+const DEFAULTS = { tax: 1.25, minVolume: 100000, maxCapital: 5000000, interval: 2, share: 5, sort: 'profitHour', favOnly: false, alerts: false, alertMargin: 5 };
 
 const $ = (id) => document.getElementById(id);
 const load = (key, fallback) => { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } };
@@ -26,6 +27,8 @@ function sanitize() {
     if (!(settings[key] >= 0)) settings[key] = DEFAULTS[key];
   }
   if (!(settings.share > 0 && settings.share <= 100)) settings.share = DEFAULTS.share;
+  if (!(settings.alertMargin > 0 && settings.alertMargin <= 1000)) settings.alertMargin = DEFAULTS.alertMargin;
+  settings.alerts = settings.alerts === true;
 }
 sanitize();
 const storedFavs = load('bt.favs', []);
@@ -136,11 +139,12 @@ async function refreshScores() {
 function applySettings() {
   save('bt.settings', settings);
   $('fav-only').setAttribute('aria-pressed', settings.favOnly);
+  syncAlerts(settings, favs, names);
   recompute();
   render();
 }
 
-for (const key of ['tax', 'interval', 'share', 'sort', 'minVolume', 'maxCapital']) {
+for (const key of ['tax', 'interval', 'share', 'sort', 'minVolume', 'maxCapital', 'alertMargin']) {
   $(key).value = settings[key];
   $(key).addEventListener('change', (e) => {
     settings[key] = key === 'sort' ? e.target.value : Math.max(0, Number(e.target.value) || 0);
@@ -178,6 +182,7 @@ document.querySelector('main').addEventListener('click', (e) => {
   if (!id) return;
   if (!favs.delete(id)) favs.add(id);
   save('bt.favs', [...favs]);
+  syncAlerts(settings, favs, names);
   recompute();
   render();
 });
@@ -211,10 +216,23 @@ addEventListener('touchend', () => {
   pullStart = null;
 });
 
+// Background alerts exist only in the Android app.
+if (plugin()) {
+  $('alert-settings').hidden = false;
+  $('alerts').checked = settings.alerts;
+  $('alerts').addEventListener('change', async (e) => {
+    const wanted = e.target.checked;
+    settings.alerts = wanted && await requestAlertPermission();
+    e.target.checked = settings.alerts;
+    $('alert-hint').hidden = !wanted || settings.alerts;
+    applySettings();
+  });
+}
+
 $('fav-only').setAttribute('aria-pressed', settings.favOnly);
 refresh();
 refreshScores();
-loadItems().then((items) => { names = items.names; npc = items.npc; recompute(); render(); });
+loadItems().then((items) => { names = items.names; npc = items.npc; syncAlerts(settings, favs, names); recompute(); render(); });
 loadRecipes().then((r) => { recipes = r; recompute(); render(); });
 // The Android app ships its files inside the APK and needs no service worker.
 if ('serviceWorker' in navigator && !window.Capacitor?.isNativePlatform?.()) navigator.serviceWorker.register('sw.js');

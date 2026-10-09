@@ -6,8 +6,10 @@ import java.io.IOException;
 import java.io.Reader;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -103,6 +105,19 @@ final class AlertLogic {
     static String title(int count, double minMarginPercent) {
         return count + (count == 1 ? " Favorit" : " Favoriten") + " über "
             + new DecimalFormat("#.#", DE).format(minMarginPercent) + " % Marge";
+    }
+
+    /** One line per id, best margin first; falls back to the id when no name is known. */
+    static List<String> lines(Set<String> ids, Map<String, double[]> prices, Map<String, String> names, double tax) {
+        List<String> sorted = new ArrayList<>(ids);
+        sorted.sort((a, b) -> Double.compare(
+            margin(prices.get(b)[0], prices.get(b)[1], tax), margin(prices.get(a)[0], prices.get(a)[1], tax)));
+        List<String> out = new ArrayList<>();
+        for (String id : sorted) {
+            String name = names.get(id);
+            out.add(line(name == null || name.isEmpty() ? id : name, margin(prices.get(id)[0], prices.get(id)[1], tax)));
+        }
+        return out;
     }
 
     static String line(String name, double margin) {
