@@ -1,0 +1,58 @@
+/* Variant C "Forge": structured, with a pattern and rarity stripes. Loaded after style.css. */
+:root {
+  --bg: #110C09;
+  --card: #1C1410;
+  --raised: #291E18;
+  --line: #3F3027;
+  --text: #F6F0EB;
+  --muted: #BBAca0;
+  /* rarity: stripe on the card, tile behind the picture and a small label */
+  --r-common: #BBACA0;
+  --r-uncommon: #7FD99A;
+  --r-rare: #7AA7FF;
+  --r-epic: #C494FF;
+  --r-legendary: #FFC14D;
+  --r-mythic: #FF8FD6;
+  --r-divine: #6FE0F2;
+  --r-special: #FF8585;
+  --rarity: var(--r-common);
+}
+
+/* fine dot grid, fading out towards the bottom */
+body { background: radial-gradient(rgba(255, 138, 0, .10) 1px, transparent 1.5px) 0 0 / 22px 22px fixed, linear-gradient(180deg, #1A110B 0%, var(--bg) 480px) fixed var(--bg); }
+
+header { background: #0E0907; border-bottom: 2px solid var(--accent); }
+
+/* tabs as underlined labels instead of filled buttons */
+#tabs a { border-color: transparent; border-radius: 0; border-bottom: 2px solid var(--line); }
+#tabs a[aria-current="page"] { background: none; color: var(--accent); border-color: transparent; border-bottom: 2px solid var(--accent); }
+
+[data-rarity="uncommon"] { --rarity: var(--r-uncommon); }
+[data-rarity="rare"] { --rarity: var(--r-rare); }
+[data-rarity="epic"] { --rarity: var(--r-epic); }
+[data-rarity="legendary"] { --rarity: var(--r-legendary); }
+[data-rarity="mythic"] { --rarity: var(--r-mythic); }
+[data-rarity="divine"] { --rarity: var(--r-divine); }
+[data-rarity="special"], [data-rarity="very_special"] { --rarity: var(--r-special); }
+
+.card { background: var(--card); border-left: 3px solid var(--rarity); border-radius: 6px 12px 12px 6px; transition: background-color .15s; }
+.card:hover { background: #241A14; }
+.card .body:hover { outline: none; }
+/* the rarity as a word, so it does not depend on colour alone */
+.card::after { content: attr(data-rarity); position: absolute; right: 44px; top: 14px; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--rarity); }
+.card[data-rarity="very_special"]::after { content: "very special"; }
+.card .name { padding-right: 120px; }
+
+.tile { width: 40px; height: 40px; border-radius: 10px; background: var(--raised); border: 1px solid var(--line); align-items: center; justify-content: center; }
+.tile .icon { width: 28px; height: 28px; }
+.detail-head .tile { width: 60px; height: 60px; border-color: var(--rarity); }
+.detail-head .tile .icon { width: 42px; height: 42px; }
+
+.key { padding-bottom: 8px; border-bottom: 1px solid var(--accent); }
+.facts { border-top: 0; padding-top: 0; }
+.chart { background: var(--card); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .card { animation: rise .2s ease-out both; }
+  @keyframes rise { from { opacity: 0; } }
+}

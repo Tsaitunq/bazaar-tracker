@@ -42,6 +42,7 @@ const favs = new Set(Array.isArray(storedFavs) ? storedFavs : []);
 let products = null;
 let names = {};
 let npc = {};
+let tiers = {}; // rarity per item id
 let stats = null; // score, median and hours of history per item; null until loaded
 let recipes;
 let lastStats = 0;
@@ -71,6 +72,7 @@ function recompute() {
   const name = (id) => names[id] ?? fallbackName(id);
   for (const f of flips) {
     f.name = name(f.id);
+    f.tier = tiers[f.id];
     for (const i of f.ingredients ?? []) i.name = name(i.id);
   }
 }
@@ -85,7 +87,7 @@ function renderDetail() {
   const points = hist.points && (range === '24h' ? hist.points.filter(([t]) => t >= nowMin - 1440) : hist.points);
   const stat = statOf(stats, id);
   const flip = products?.[id] ? computeFlip(id, products[id], settings.tax / 100, settings.maxCapital, settings.share / 100, stat.median) : null;
-  $('detail').innerHTML = detailView({ id, name: names[id] ?? fallbackName(id), flip, ...stat, back: lastList, isFav: favs.has(id), range, points, tax: settings.tax / 100 });
+  $('detail').innerHTML = detailView({ id, name: names[id] ?? fallbackName(id), tier: tiers[id], flip, ...stat, back: lastList, isFav: favs.has(id), range, points, tax: settings.tax / 100 });
 }
 
 function render() {
@@ -284,6 +286,7 @@ refreshStats();
 loadItems().then((items) => {
   names = items.names;
   npc = items.npc;
+  tiers = items.tiers;
   itemsLoaded = true;
   syncAlerts(settings, favs, names);
   sendNames();

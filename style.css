@@ -107,6 +107,7 @@ footer a { color: inherit; }
 .star[aria-pressed="true"] { color: var(--accent); }
 .name { display: flex; gap: 8px; align-items: center; font-weight: 600; overflow-wrap: anywhere; }
 .card .name { padding-right: 40px; }
+.tile { display: flex; flex: none; }
 .icon { width: 32px; height: 32px; flex: none; image-rendering: pixelated; }
 
 .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }

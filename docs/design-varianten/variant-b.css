@@ -1,0 +1,61 @@
+/* Variant B "Glow": lively, with light and colour. Loaded after style.css. */
+:root {
+  --bg: #120D0A;
+  --card: #1E1611;
+  --raised: #2C2019;
+  --line: #44332A;
+  --text: #F7F1EC;
+  --muted: #BDAEA2;
+  /* rarity: item names and the tile behind the picture */
+  --r-common: #F7F1EC;
+  --r-uncommon: #9BE8A8;
+  --r-rare: #86AEFF;
+  --r-epic: #CB9BFF;
+  --r-legendary: #FFC65A;
+  --r-mythic: #FF96DA;
+  --r-divine: #78E4F5;
+  --r-special: #FF9494;
+  --glow: rgba(255, 138, 0, .35);
+}
+
+/* orange haze at the top, darker towards the edges */
+body { background: radial-gradient(90% 45% at 50% 0%, rgba(255, 138, 0, .16) 0%, transparent 70%) fixed, radial-gradient(140% 100% at 50% 40%, #17100C 0%, #0B0806 100%) fixed #120D0A; }
+
+header { background: linear-gradient(180deg, #2B1A0C 0%, #160F0B 100%); border-bottom: 1px solid #6B3F12; box-shadow: 0 6px 24px rgba(0, 0, 0, .45); }
+
+#tabs a[aria-current="page"] { box-shadow: 0 0 18px var(--glow); }
+button[aria-pressed="true"] { box-shadow: 0 0 12px var(--glow); }
+
+.card { background: linear-gradient(160deg, #2A1E17 0%, var(--card) 55%); box-shadow: 0 2px 10px rgba(0, 0, 0, .35); transition: transform .15s, box-shadow .15s, border-color .15s; }
+.card:hover { border-color: var(--accent); box-shadow: 0 0 22px var(--glow); transform: translateY(-2px); }
+.card .body:hover { outline: none; }
+/* cards in the Opportunities tab keep a soft glow */
+.opps .card { border-color: #7A4A14; box-shadow: 0 0 16px rgba(255, 138, 0, .18); }
+
+.name { color: var(--r-common); }
+[data-rarity="uncommon"] .name { color: var(--r-uncommon); }
+[data-rarity="rare"] .name { color: var(--r-rare); }
+[data-rarity="epic"] .name { color: var(--r-epic); }
+[data-rarity="legendary"] .name { color: var(--r-legendary); }
+[data-rarity="mythic"] .name { color: var(--r-mythic); }
+[data-rarity="divine"] .name { color: var(--r-divine); }
+[data-rarity="special"] .name, [data-rarity="very_special"] .name { color: var(--r-special); }
+
+.tile { width: 42px; height: 42px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #3A2A20 0%, #1A120E 100%); border: 1px solid var(--line); align-items: center; justify-content: center; box-shadow: inset 0 0 10px rgba(0, 0, 0, .5); }
+.tile .icon { width: 28px; height: 28px; }
+.detail-head .tile { width: 64px; height: 64px; }
+.detail-head .tile .icon { width: 42px; height: 42px; }
+
+.chart { background: linear-gradient(160deg, #2A1E17 0%, var(--card) 55%); }
+.chart .line-a { filter: drop-shadow(0 0 3px var(--glow)); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .card { animation: rise .3s ease-out both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+  /* app.js adds .flash to a number when its value changes */
+  .flash { animation: flash .8s ease-out; }
+  @keyframes flash { from { text-shadow: 0 0 12px currentColor; } }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card, .card:hover { transition: none; transform: none; }
+}

@@ -25,6 +25,12 @@ export const PLACEHOLDER_ICON = 'data:image/svg+xml,' + encodeURIComponent(
 export const icon = (id, size = 32) =>
   `<img class="icon" src="${esc(iconUrl(id))}" width="${size}" height="${size}" alt="" loading="lazy" decoding="async" crossorigin="anonymous">`;
 
+// Hypixel rarities; anything else (or none) counts as common
+const RARITIES = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'divine', 'special', 'very_special'];
+export const rarity = (tier) => (RARITIES.includes(tier) ? tier : 'common');
+// the item picture on a small tile that can carry the rarity colour
+const tile = (id, size) => `<span class="tile">${icon(id, size)}</span>`;
+
 // Line icons drawn for this app; index.html carries the same shapes for the static buttons.
 const svg = (body) => `<svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
 const ICONS = {
@@ -57,10 +63,10 @@ const fact = (label, value, cls = '') => `<div><dt>${label}</dt><dd${cls ? ` cla
 // sell price with its 7 day median next to it, so an unusual price stands out
 const sellFact = (f) => fact('Sell offer', num(f.sell) + (f.median > 0 ? ` <span class="normal">normal: ${num(f.median)}</span>` : ''));
 
-const card = (f, isFav, warn, facts, extra = '') => `<li class="card">
+const card = (f, isFav, warn, facts, extra = '') => `<li class="card" data-rarity="${rarity(f.tier)}">
   ${star(f.id, f.name, isFav)}
   <a class="body" href="${esc(itemHref(f.id))}">
-    <div class="name">${icon(f.id)}<span>${esc(f.name)}</span></div>
+    <div class="name">${tile(f.id, 32)}<span>${esc(f.name)}</span></div>
     ${badges(f, warn)}
     ${keyStats(f)}
     <dl class="facts">${facts.join('')}</dl>${extra}
@@ -100,7 +106,7 @@ export function parseRoute(hash) {
 const RANGES = [['24h', '24 h'], ['7d', '7 days']];
 
 // flip is the item's bazaar flip or null while prices are unknown; points are already cut to the range.
-export function detailView({ id, name, flip, score, median, provisional, back = 'flips', isFav, range, points, tax }) {
+export function detailView({ id, name, tier, flip, score, median, provisional, back = 'flips', isFav, range, points, tax }) {
   const stat = { score, provisional, median };
   const current = flip ? `${keyStats(flip)}<dl class="facts">${[
     fact('Buy order', num(flip.buy)),
@@ -117,8 +123,8 @@ export function detailView({ id, name, flip, score, median, provisional, back = 
     ], { format: num, kind: 'coins' })}</section><section><h3>Margin</h3><p class="legend"><span class="buy">Margin after tax</span></p>${lineChart(
       [{ label: 'Margin', cls: 'line-a', points: marginSeries(points, tax) }], { format: (v) => percent.format(v), kind: 'percent' })}</section></div>`;
   return `<a class="back" href="#/${back}">${ICONS.back}Back</a>
-<div class="detail-head">${star(id, name, isFav)}
-${icon(id, 48)}<h2 class="name">${esc(name)}</h2></div>
+<div class="detail-head" data-rarity="${rarity(tier)}">${star(id, name, isFav)}
+${tile(id, 48)}<h2 class="name">${esc(name)}</h2></div>
 ${badges(stat, flip?.suspicious)}
 ${current}<div class="bar ranges">${buttons}</div>${charts}`;
 }

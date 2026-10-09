@@ -119,3 +119,14 @@ test('profit per hour and margin are the big numbers on a card', () => {
   // a favourite that loses money is red, not accent coloured
   assert.match(flipCard({ ...flip, profit: -5, profitHour: -50 }, true), /class="big loss">-50</);
 });
+
+test('cards carry a known rarity and the picture sits on a tile', async () => {
+  const { rarity, detailView } = await import('../render.js');
+  assert.equal(rarity('epic'), 'epic');
+  assert.equal(rarity(undefined), 'common');
+  assert.equal(rarity('"><script>'), 'common');
+  assert.match(flipCard({ ...flip, tier: 'legendary' }, false), /<li class="card" data-rarity="legendary">/);
+  assert.match(flipCard(flip, false), /data-rarity="common"/);
+  assert.match(flipCard(flip, false), /<span class="tile"><img class="icon"/);
+  assert.match(detailView({ id: 'A', name: 'Name', tier: 'mythic', flip: null, isFav: false, range: '24h', tax: 0.0125, points: [] }), /class="detail-head" data-rarity="mythic"/);
+});

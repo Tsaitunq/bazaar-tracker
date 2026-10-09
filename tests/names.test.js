@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { fallbackName, nameMap, npcMap } from '../names.js';
+import { fallbackName, nameMap, npcMap, tierMap } from '../names.js';
 
 test('fallbackName derives a readable name from the id', () => {
   assert.equal(fallbackName('ENCHANTMENT_ULTIMATE_WISE_5'), 'Ultimate Wise 5');
@@ -15,4 +15,8 @@ test('nameMap maps id to name and strips colour codes', () => {
 
 test('npcMap keeps only positive npc prices', () => {
   assert.deepEqual(npcMap([{ id: 'A', npc_sell_price: 5 }, { id: 'B' }, { id: 'C', npc_sell_price: 0 }]), { A: 5 });
+});
+
+test('tierMap gives the rarity in lower case and skips items without one', () => {
+  assert.deepEqual(tierMap([{ id: 'A', tier: 'EPIC' }, { id: 'B' }, { id: 'C', tier: 'VERY_SPECIAL' }]), { A: 'epic', C: 'very_special' });
 });

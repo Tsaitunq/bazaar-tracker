@@ -1,0 +1,46 @@
+/* Variant A "Ember": warm and calm. Loaded after style.css. */
+:root {
+  --bg: #120D0A;
+  --card: #1D1612;
+  --raised: #2A201A;
+  --line: #3D2F26;
+  --text: #F5EFEA;
+  --muted: #B9AA9E;
+  /* rarity: only used for the ring around the item picture */
+  --r-common: #B9AA9E;
+  --r-uncommon: #7FD99A;
+  --r-rare: #7AA7FF;
+  --r-epic: #C494FF;
+  --r-legendary: #FFC14D;
+  --r-mythic: #FF8FD6;
+  --r-divine: #6FE0F2;
+  --r-special: #FF8585;
+}
+
+body { background: radial-gradient(120% 60% at 50% 0%, #1E140E 0%, var(--bg) 70%) fixed var(--bg); }
+
+/* a fine orange line that fades out to both sides */
+header { border-bottom: 1px solid transparent; border-image: linear-gradient(90deg, transparent, var(--accent) 20%, var(--accent) 80%, transparent) 1; }
+
+.card { background: linear-gradient(180deg, #241B16 0%, var(--card) 100%); transition: border-color .15s; }
+.card:hover { border-color: var(--accent); }
+.card .body:hover { outline: none; }
+
+.tile { width: 40px; height: 40px; border-radius: 50%; background: var(--raised); border: 2px solid var(--r-common); align-items: center; justify-content: center; }
+.tile .icon { width: 26px; height: 26px; }
+.detail-head .tile { width: 60px; height: 60px; }
+.detail-head .tile .icon { width: 40px; height: 40px; }
+[data-rarity="uncommon"] .tile { border-color: var(--r-uncommon); }
+[data-rarity="rare"] .tile { border-color: var(--r-rare); }
+[data-rarity="epic"] .tile { border-color: var(--r-epic); }
+[data-rarity="legendary"] .tile { border-color: var(--r-legendary); }
+[data-rarity="mythic"] .tile { border-color: var(--r-mythic); }
+[data-rarity="divine"] .tile { border-color: var(--r-divine); }
+[data-rarity="special"] .tile, [data-rarity="very_special"] .tile { border-color: var(--r-special); }
+
+.chart { background: linear-gradient(180deg, #241B16 0%, var(--card) 100%); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .card { animation: rise .25s ease-out both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+}
