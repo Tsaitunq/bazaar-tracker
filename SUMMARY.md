@@ -1,130 +1,156 @@
-# Version 2 – Zusammenfassung
+# Bazaar Flip Helper (Android) – Zusammenfassung
 
-Stand: 2026-10-09. Alles liegt auf dem lokalen Branch `v2` (13 Commits vor
-`main`). Nichts ist gepusht, `main` und die Live-Seite sind unverändert.
+Stand: 2026-10-09. Alles liegt auf dem lokalen Branch `android` (6 Commits vor
+`main`). Nichts ist gepusht. Die Zusammenfassung von Version 2 liegt jetzt in
+`docs/summary-v2.md`.
+
+## Die APK
+
+```
+android\app\build\outputs\apk\debug\app-debug.apk
+```
+
+Der Pfad ist relativ zum Projektordner.
+
+- 8,0 MB, Paket-ID `com.tsaitunq.bazaarflip`, Name „Bazaar Flip Helper“,
+  Version 1.0, läuft ab Android 7 (API 24).
+- Signiert mit dem Standard-Debug-Schlüssel (`CN=Android Debug`).
+- Die APK ist nicht eingecheckt. Neu bauen: `npm run android:build`.
+
+## Installation aufs Handy
+
+### Per Datei
+
+1. APK aufs Handy bringen (USB-Kabel als Dateiübertragung, Cloud, Mail an dich
+   selbst).
+2. Am Handy die Datei im Dateimanager antippen.
+3. Android fragt, ob diese App (Dateimanager oder Browser) unbekannte Apps
+   installieren darf: „Einstellungen“ → „Dieser Quelle vertrauen“ erlauben,
+   zurück, „Installieren“.
+4. Meldet Play Protect „Unbekannter Entwickler“: „Trotzdem installieren“.
+
+### Per USB
+
+1. Am Handy: Einstellungen → Über das Telefon → siebenmal auf „Build-Nummer“
+   tippen. Dann Einstellungen → System → Entwickleroptionen →
+   „USB-Debugging“ einschalten.
+2. Handy per USB anschließen, die Abfrage „USB-Debugging zulassen?“ bestätigen.
+3. In PowerShell im Projektordner:
+
+```
+& "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" devices
+& "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" install -r "android\app\build\outputs\apk\debug\app-debug.apk"
+```
+
+`devices` muss dein Gerät mit dem Status `device` zeigen; `install` endet mit
+`Success`.
 
 ## Fertig
 
-| Nr. | Feature | Kern-Dateien |
+| Nr. | Punkt | Stand |
 |---|---|---|
-| 1 | Snapshot alle 20 Min in den Branch `data`, Daten älter als 7 Tage werden gelöscht | `.github/workflows/snapshot.yml`, `scripts/snapshot.mjs`, `history.js` |
-| 2 | Detailseite pro Item mit Preis- und Marge-Chart (24h / 7d), eigenes SVG ohne Library | `chart.js`, `render.js`, `app.js` |
-| 3 | Stabilitäts-Score (0–100) als Badge und Sortieroption „Stabilität“ | `history.js`, `scripts/snapshot.mjs`, `data.js` |
-| 4 | Tab „NPC“: im Bazaar kaufen, an NPC verkaufen | `npc.js`, `names.js` |
-| 5 | Tab „Craft“: Rezepte aus dem NEU-Repo, mit Zutatenliste und Gewinn | `scripts/recipes.mjs`, `craft.js` |
-| 6 | Item-Bilder von sky.coflnet.com, Lazy-Loading, Platzhalter, Cache im Service Worker | `render.js`, `sw.js` |
+| 0 | Werkzeuge | JDK 21, Android SDK (Plattform 36, Build-Tools 36.0.0), Emulator, Android Studio installiert |
+| 1 | PWA per Capacitor 8 eingebettet, derselbe Web-Code | fertig |
+| 2 | Hintergrund-Check alle 15 Min mit Benachrichtigung, Schalter und Mindestmarge, Berechtigungsabfrage | fertig |
+| 3 | App-Icon, Splashscreen, dunkles Theme | fertig |
+| 4 | `gradlew assembleDebug` | läuft fehlerfrei |
 
-Dazu: Tabs und Routen (`#/flips`, `#/npc`, `#/craft`, `#/item/<id>`), Fußzeile
-mit Quellenangaben, Entwicklungsserver `scripts/serve.mjs`.
+Kern-Dateien: `capacitor.config.json`, `native.js`, `scripts/copy-web.mjs`,
+`scripts/android-build.mjs`, `scripts/android-icons.mjs` und unter
+`android/app/src/main/java/com/tsaitunq/bazaarflip/` die Klassen
+`MainActivity`, `AlertsPlugin`, `AlertWorker`, `AlertLogic`.
 
 ## Wie geprüft wurde
 
-- `node --test`: 60 Tests, alle grün (V1 hatte 11).
-- Jeder der 8 Tasks: eigener Implementierer, danach eigener Reviewer. Am Ende
-  ein Review über den ganzen Branch: keine kritischen oder wichtigen Befunde.
-- Echte Läufe: `scripts/snapshot.mjs` gegen die Hypixel-API (1803 Produkte,
-  ca. 77 KB pro Snapshot) und gegen das NEU-Repo (314 Rezepte, 20 KB).
-- Browser (Edge headless, 500 px breit) gegen die echte API: alle drei Tabs
-  und die Detailseite, mit Screenshots.
-- Die Git-Schritte des Workflows liefen lokal gegen ein Test-Repo: erster Lauf
-  ohne Branch, zweiter Lauf mit Branch (weiterhin genau 1 Commit, alte Dateien
-  bleiben), dritter Lauf mit kaputtem Remote (bricht ab, veröffentlicht nichts).
+- `node --test`: 65 Tests grün (vorher 60).
+- `gradlew testDebugUnitTest`: 7 Java-Tests grün (Preise auslesen, Marge,
+  Schwelle, Überschreitung, Texte).
+- APK: Paket-ID, Name und Berechtigungen per `aapt2`, Signatur per
+  `apksigner`, Suche nach Windows-Benutzername und Klarnamen in allen 451
+  Dateien der APK: 0 Treffer.
+- Im Emulator (Android 15, Pixel 6):
+  - App startet mit Splash (Münze auf dunklem Grund), lädt die Flip-Liste mit
+    Bildern, Statusleiste dunkel, nichts verdeckt.
+  - Favorit gesetzt, Schalter eingeschaltet: Berechtigungsdialog erscheint.
+    „Nicht zulassen“ → Schalter bleibt aus, Hinweistext erscheint. Erneut
+    eingeschaltet und zugelassen → der Hintergrund-Lauf meldete `SUCCESS` und
+    die Benachrichtigung „1 Favorit über 5 % Marge – Fine Ruby Gemstone:
+    117,7 %“ erschien.
+  - Einstellungen und Favorit überleben einen Neustart der App; der
+    Hintergrund-Auftrag ist danach und nach einer Neuinstallation weiter
+    eingeplant.
+  - Detailseite zeigt Charts mit echten Daten aus dem Branch `data`.
+  - Zurück-Taste: von der Detailseite zur Liste, von der Liste aus der App.
+- Die PWA im Browser läuft unverändert; der neue Einstellungsbereich ist dort
+  unsichtbar.
 
-## Reviews haben drei echte Fehler gefunden (alle behoben)
-
-1. Der Workflow hätte bei einem fehlgeschlagenen Clone des `data`-Branches den
-   ganzen Verlauf mit einem fast leeren Stand überschrieben. Jetzt bricht er ab.
-2. Die Detailseite blieb leer, solange oder falls die Hypixel-API nicht antwortete.
-3. Nach „Zurück“ blieb der Inhalt der Detailseite unter der Liste stehen.
+Dabei gefunden und behoben: Die Zurück-Taste schloss die App auch auf der
+Detailseite.
 
 ## Nicht geprüft
 
-- **Der Workflow ist nie auf GitHub gelaufen** (kein Push erlaubt). Geprüft
-  sind das Skript und die Git-Schritte einzeln, nicht das Zusammenspiel auf
-  einem GitHub-Runner.
-- Wie viel der Workflow pro Lauf tatsächlich hochlädt, ist nicht gemessen.
-  Geprüft ist nur, dass er mit einem flachen Clone arbeitet und dabei ein
-  einziger Commit mit allen alten Dateien entsteht.
-- Service Worker und Icon-Cache liefen in keinem Browser (brauchen HTTPS).
-- Nichts wurde auf einem echten Handy angetippt: Stern, 24h/7d-Umschalter,
-  Tabs, Pull-to-Refresh.
-- Score und 7-Tage-Chart sind nur mit künstlichen Daten geprüft. Echte Scores
-  gibt es erst nach 12 Snapshots (ca. 4 Stunden).
+- **Kein echtes Handy.** Alles lief nur im Emulator.
+- **Wiederholter Lauf:** Dass ein zweiter Lauf für denselben Favoriten nicht
+  erneut meldet, ist nur per Unit-Test belegt. Den zweiten Lauf konnte ich im
+  Emulator nicht erzwingen (WorkManager verschob ihn auf das nächste
+  15-Minuten-Fenster).
+- Verhalten über Stunden, im Stromsparmodus und nach einem Geräte-Neustart.
+- Tipp auf die Benachrichtigung öffnet die App: nicht angetippt.
+- Hersteller mit eigener Akku-Verwaltung (Xiaomi, Huawei, Samsung, OnePlus)
+  beenden Hintergrund-Aufträge oft trotzdem.
+- Android-Versionen unter 15.
 
-## Offen
+## Testliste
 
-- **Push und Merge** (siehe unten).
-- Score-Schwellen (stabil ab 70, mittel ab 40) sind geschätzt. Nach ein paar
-  Tagen echter Daten ansehen und bei Bedarf anpassen.
-- Der Craft-Tab hat kein Mindestvolumen. Sortiert nach Marge oder
-  Gewinn/Craft stehen kaum handelbare Items oben. Sortiert nach Gewinn/h
-  (Standard) nicht.
-- NPC- und Craft-Tab zeigen keinen eigenen Hinweis, wenn sie leer sind.
-- „7 Tage“ umfasst bis zu 8 Kalendertage (heute plus 7).
-- Fehlende Icons (404) werden bei jedem Refresh erneut angefragt.
-- Kein Tooltip mit Einzelwerten im Chart.
-- GitHub schaltet geplante Workflows nach 60 Tagen ohne Aktivität im Repo ab.
-  Ob die Pushes des Workflows auf `data` als Aktivität zählen, ist unklar.
-  Falls die Snapshots aufhören: unter Actions wieder aktivieren.
-- Weitere 20 kleine Punkte aus den Reviews (fehlende Tests für Randfälle,
-  doppelte Konstanten) sind bewusst nicht behoben; keiner blockiert.
+1. APK installieren, App öffnen: Splash, dann die Liste. Tabs Flips, NPC,
+   Craft und eine Detailseite durchgehen.
+2. Zwei bis drei Favoriten setzen. Einstellungen (Zahnrad) → „Benachrichtigung
+   bei Favoriten“ einschalten → Berechtigung zulassen.
+3. Mindestmarge so wählen, dass mindestens ein Favorit darüber liegt (die
+   Marge steht auf jeder Karte). Innerhalb weniger Sekunden sollte die erste
+   Benachrichtigung kommen.
+4. Benachrichtigung antippen: Die App öffnet sich.
+5. App schließen (aus der Übersicht wischen), Handy weglegen. In den nächsten
+   Stunden darf für dieselben Favoriten **keine** weitere Meldung kommen.
+6. Mindestmarge senken, sodass ein weiterer Favorit darüber liegt: Beim
+   nächsten Lauf (bis zu 15 Minuten, im Stromsparmodus länger) kommt eine
+   Meldung nur für diesen.
+7. Schalter aus: keine Meldungen mehr. Wieder an: aktuelle Treffer werden
+   einmal gemeldet.
+8. Berechtigung in den Android-Einstellungen entziehen, Schalter einschalten:
+   Der Schalter springt zurück, der rote Hinweis erscheint.
+9. Handy neu starten, App **nicht** öffnen: Meldungen kommen weiterhin (Test
+   wie in Schritt 6 vorbereiten).
+10. Zurück-Taste oder Zurück-Geste auf der Detailseite: zurück zur Liste.
 
-## Veröffentlichen
+## Offene Punkte
 
-1. Dein Token darf noch keine Workflow-Dateien pushen. Einmalig:
-   `gh auth refresh -h github.com -s workflow`
-2. `git switch main`, dann `git merge --ff-only v2`, dann `git push`.
-3. Auf GitHub: Actions → „snapshot“ → „Run workflow“. Der Lauf legt den Branch
-   `data` an. Danach läuft er alle 20 Minuten von selbst.
-4. Die Seite baut GitHub Pages wie bisher aus `main`.
-
-Die Daten-URL in `data.js` ist fest auf
-`Tsaitunq/bazaar-tracker` eingestellt. Das Repo muss öffentlich
-bleiben.
-
-## Was du testen solltest
-
-Lokal vor dem Push (`node scripts/serve.mjs`, dann http://127.0.0.1:8123):
-
-1. Tabs Flips, NPC, Craft: je eine Liste mit Bildern. Lokale Daten für
-   Craft-Tab und Charts erzeugt `node scripts/snapshot.mjs data`.
-2. Karte antippen: Detailseite mit Werten. „Zurück“ führt in den Tab, aus dem
-   du kamst.
-3. Stern in Liste und Detailseite, „nur Favoriten“ in allen Tabs.
-4. Einstellungen ändern (Steuer, Marktanteil, Kapital): Werte in allen Tabs
-   ändern sich und bleiben nach Neuladen erhalten.
-
-Nach dem Push, am Handy:
-
-5. Erster Workflow-Lauf ist grün und der Branch `data` existiert mit genau
-   einem Commit. Nach dem zweiten Lauf weiterhin genau ein Commit.
-6. Craft-Tab zeigt Flips (vorher: Hinweis „Noch keine Rezeptdaten“).
-7. Nach etwa 4 Stunden: Badges „stabil / mittel / instabil“ erscheinen,
-   Sortierung „Stabilität“ ordnet danach.
-8. Nach einem Tag: 24h-Chart einer Detailseite zeigt eine plausible Kurve;
-   Vergleich mit dem Preis im Spiel.
-9. Bilder laden; im Flugmodus erscheinen bereits gesehene Bilder weiter, neue
-   zeigen den Platzhalter.
-10. App aktualisiert sich nach dem Deploy (einmal schließen und öffnen).
-11. NPC-Flip stichprobenartig im Spiel prüfen: stimmt der NPC-Verkaufspreis?
-12. Craft-Flip stichprobenartig prüfen: stimmen Zutaten und Mengen?
-
-## Entscheidungen, die ich für dich getroffen habe
-
-Fachliche Entscheidungen stehen in `DECISIONS.md`. Dazu kamen während der
-Umsetzung:
-
-- **Arbeit auf Branch `v2`, nicht gemergt.** Grund: `main` ist die Live-Seite.
-  Kosten, falls falsch: ein Merge mehr.
-- **`parseRoute` liegt in `render.js`, nicht in `app.js`.** Grund: so in Node
-  testbar. Kosten: keine.
-- **Commits der Agenten tragen die Co-Author-Zeile ihres eigenen Modells
-  (Sonnet).** Grund: das ist die zutreffende Angabe. Kosten: uneinheitliche
-  Zeilen zwischen den Commits.
-- **Workflow bricht ab, wenn der `data`-Branch nicht geholt werden kann.**
-  Grund: sonst Datenverlust. Kosten: ein roter Lauf statt eines falschen.
-- **Eine zusätzliche Korrekturrunde nach dem Gesamt-Review**, obwohl es
-  „merge-bereit“ meldete: Zurück-Link in den richtigen Tab, Scores schon beim
-  Start, kein aufblitzender Craft-Hinweis, profitable Karten nicht rot,
-  Daten-Push lädt nur Geändertes hoch. Kosten, falls falsch: ein Commit
-  (`c7b036a`) zum Zurücknehmen.
+- **Android Studio ist installiert, aber noch nie gestartet.** Für den Build
+  brauchst du es nicht. Beim ersten Start klickst du im Assistenten:
+  1. „Do not import settings“ → OK
+  2. Datenfreigabe: „Don't send“
+  3. Welcome → Next
+  4. Install Type: „Standard“ → Next
+  5. Verify Settings: Der SDK-Pfad muss
+     `%LOCALAPPDATA%\Android\Sdk` (ausgeschrieben) zeigen (dort liegt das SDK
+     schon) → Next
+  6. License Agreement: links jede Lizenz anklicken, jeweils „Accept“ → Finish
+  7. Projekt öffnen: „Open“ → Ordner
+     `android`
+- Die Android-SDK-Lizenzen habe ich für den Kommandozeilen-Build per
+  `sdkmanager --licenses` in deinem Namen angenommen.
+- Der Hinweis bei abgelehnter Berechtigung sagt immer „in den
+  Android-Einstellungen blockiert“, auch wenn du nur einmal „Nicht zulassen“
+  getippt hast und der Dialog beim nächsten Versuch nochmal käme.
+- Die App aktualisiert sich nicht von selbst. Änderungen am Web-Code kommen
+  erst mit einer neu gebauten APK an.
+- Keine Release-Signatur. Für eine Weitergabe an andere oder den Play Store
+  braucht es einen eigenen Schlüssel; ein Wechsel des Schlüssels erfordert
+  eine Deinstallation (Favoriten gehen dabei verloren).
+- Der Check meldet nur Bazaar-Flips von Favoriten, mit einer gemeinsamen
+  Schwelle. NPC- und Craft-Flips werden nicht überwacht.
+- Wird `android` nach `main` gemergt, liegt auch `android/` im öffentlichen
+  Repo und auf GitHub Pages (als Quelltext, ohne Wirkung auf die PWA).
+- Platzbedarf der Werkzeuge: rund 9 GB (SDK und Emulator). Der Emulator lässt
+  sich mit `sdkmanager --uninstall "emulator" "system-images;android-35;google_apis;x86_64"`
+  und Löschen von `%USERPROFILE%\.android\avd` wieder entfernen.

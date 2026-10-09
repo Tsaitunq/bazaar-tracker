@@ -144,3 +144,23 @@ Selbstständig getroffen (Auftrag: ohne Rückfragen).
   (`CN=Android Debug`).** Grund: enthält keinen Namen. Kosten: Eine später
   anders signierte Version lässt sich nicht darüber installieren; dann vorher
   deinstallieren (Favoriten gehen dabei verloren).
+
+## Während der Umsetzung (Android)
+
+- **Auftrag wird mit `KEEP` eingeplant, nicht mit `UPDATE`.** Grund: Die App
+  ruft `configure` bei jedem Start auf; `KEEP` lässt einen laufenden Zeitplan
+  unangetastet. Die Einstellungen liest der Worker bei jedem Lauf frisch.
+- **Zurück-Taste selbst behandelt.** Grund: Im Emulator schloss sie die App
+  auch auf der Detailseite. Jetzt geht sie erst in der Seitenhistorie zurück
+  und schließt die App nur auf der Startansicht.
+- **Inhalt weicht den Systemleisten per CSS aus** (`viewport-fit=cover`,
+  Abstand über `safe-area-inset`). Grund: Ab Android 15 zeichnen Apps unter
+  Status- und Navigationsleiste. Im Browser sind die Abstände 0.
+- **Emulator (Android 15, Pixel 6) installiert und für den Test benutzt.**
+  Grund: Ohne ihn wäre nur der Build geprüft, nicht die laufende App. Kosten:
+  ca. 9 GB unter `%LOCALAPPDATA%\Android\Sdk` und `%USERPROFILE%\.android`.
+- **`npm run android:build` sucht JDK 21 selbst**, wenn `JAVA_HOME` nicht
+  gesetzt ist. Grund: Im PATH liegt weiter Java 8; eine globale Umstellung
+  könnte andere Programme treffen.
+- **Die bisherige `SUMMARY.md` (Version 2) liegt jetzt unter
+  `docs/summary-v2.md`.**
