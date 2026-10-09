@@ -1,5 +1,5 @@
 import { buildFlips } from './flips.js';
-import { loadNames, fallbackName } from './names.js';
+import { loadItems, fallbackName } from './names.js';
 
 const API = 'https://api.hypixel.net/v2/skyblock/bazaar';
 const MAX_ROWS = 100;
@@ -156,5 +156,5 @@ addEventListener('touchend', () => {
 
 $('fav-only').setAttribute('aria-pressed', settings.favOnly);
 refresh();
-loadNames().then((m) => { names = m; recompute(); render(); });
+loadItems().then((items) => { names = items.names; recompute(); render(); });
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');

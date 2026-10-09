@@ -73,3 +73,11 @@ test('buildFlips filters and sorts descending', () => {
   assert.deepEqual(buildFlips(products, { ...opts, maxCapital: 0, sort: 'margin' }).map((f) => f.id), ['PRICEY', 'BIG', 'SMALL']);
   assert.deepEqual(buildFlips(products, { ...opts, maxCapital: 0, sort: 'profitHour' })[0].id, 'PRICEY');
 });
+
+test('scores and sort by score, missing last', () => {
+  const products = { A: product(100, 200), BIG: product(100, 200), C: product(100, 200) };
+  const r = buildFlips(products, { tax: 0.0125, minVolume: 0, maxCapital: 0, sort: 'score', scores: { BIG: 80, C: 10 } });
+  assert.deepEqual(r.map((f) => f.id), ['BIG', 'C', 'A']);
+  assert.equal(r[0].score, 80);
+  assert.equal(r[2].score, null);
+});

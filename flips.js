@@ -28,10 +28,13 @@ export function computeFlip(id, product, tax, maxCapital, share = 1) {
   };
 }
 
+// descending by a[sort]; null/undefined last
+export const bySort = (sort) => (a, b) => (a[sort] == null) - (b[sort] == null) || b[sort] - a[sort];
+
 // favs are kept even when they fail the filters
-export function buildFlips(products, { tax, minVolume, maxCapital, sort, share = 1, favs = new Set() }) {
+export function buildFlips(products, { tax, minVolume, maxCapital, sort, share = 1, favs = new Set(), scores = {} }) {
   return Object.entries(products)
-    .map(([id, p]) => computeFlip(id, p, tax, maxCapital, share))
+    .map(([id, p]) => { const f = computeFlip(id, p, tax, maxCapital, share); return f && { ...f, score: scores[id] ?? null }; })
     .filter((f) => f && (favs.has(f.id) || (f.profit > 0 && f.weekVol >= minVolume && !(maxCapital > 0 && f.buy > maxCapital))))
-    .sort((a, b) => b[sort] - a[sort]);
+    .sort(bySort(sort));
 }
