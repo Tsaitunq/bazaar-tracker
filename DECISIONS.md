@@ -180,3 +180,36 @@ Selbstständig getroffen (Auftrag: ohne Rückfragen).
   Seitentitel); die Überschrift in der App bleibt kurz „Bazaar Flips“.
 - **Dokumentation (`docs/`, `DECISIONS.md`, `SUMMARY.md`) bleibt deutsch.**
   Grund: Der Auftrag betraf die Oberfläche.
+
+# Entscheidungen Market Alerts
+
+- **Gleiche Regeln in App-Hintergrund und Oberfläche.** Der Tab
+  „Opportunities“ (PWA und App) und der Hintergrund-Check prüfen dasselbe:
+  Marge ≥ Schwelle, Score ≥ 70 („stable“), kein „suspicious“, Wochenvolumen,
+  Gewinn/h, Kaufpreis innerhalb der Kapitalgrenze. Die Logik gibt es zweimal
+  (`flips.js` und `AlertLogic.java`), mit denselben Testfällen in beiden
+  Sprachen.
+- **Standards:** Mindestmarge 10 %, Mindestvolumen 100 000 pro Woche,
+  Mindest-Gewinn 100 000 Coins pro Stunde, Cooldown 6 h. Gewinn/h rechnet wie
+  überall mit Marktanteil und Kapitalgrenze.
+- **Kapitalgrenze und Marktanteil kommen aus den bestehenden Einstellungen**,
+  nicht aus eigenen Feldern.
+- **Die Schwellen stehen in einem eigenen Bereich „Opportunities“, sichtbar
+  auch in der PWA.** Der Schalter „Market alerts“ und der Cooldown erscheinen
+  nur in der App.
+- **„Neu qualifizierend“ und Cooldown gelten beide:** Gemeldet wird ein Item
+  nur, wenn es im vorigen Lauf nicht qualifiziert war und in den letzten
+  6 Stunden nicht gemeldet wurde. Ein Item, das dauerhaft qualifiziert bleibt,
+  wird nie wiederholt.
+- **Ohne Scores keine Market Alerts.** Ist `scores.json` nicht erreichbar oder
+  leer, meldet der Lauf nichts für den Markt; Favoriten-Alerts laufen weiter.
+- **Tipp auf die Meldung:** ein Treffer öffnet die Detailseite, mehrere den Tab
+  „Opportunities“. Favoriten-Meldungen öffnen jetzt den Tab „Flips“.
+- **Namen für alle Produkte werden einmal pro App-Start an die App übergeben**
+  (Datei `names.json`, ca. 85 KB). Grund: Der Hintergrund-Check kann die
+  Web-Oberfläche nicht fragen. Ohne die Datei zeigt die Meldung Item-IDs.
+- **Der erste Markt-Check läuft sofort nur, wenn noch kein Hintergrund-Auftrag
+  lief.** Sind Favoriten-Alerts schon aktiv, kommt er mit dem nächsten
+  15-Minuten-Lauf.
+- **Der Kurzname im Tab heißt „Opportunities“; die Tabs wurden dafür etwas
+  schmaler gesetzt.**

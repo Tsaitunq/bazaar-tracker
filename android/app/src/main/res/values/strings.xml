@@ -5,4 +5,5 @@
     <string name="package_name">com.tsaitunq.bazaarflip</string>
     <string name="custom_url_scheme">com.tsaitunq.bazaarflip</string>
     <string name="alert_channel">Favorite flips</string>
+    <string name="market_channel">Market alerts</string>
 </resources>

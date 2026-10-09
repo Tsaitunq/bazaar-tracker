@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { computeFlip, buildFlips } from '../flips.js';
+import { opportunities, computeFlip, buildFlips } from '../flips.js';
 
 const product = (buy, sell, qs = {}) => ({
   sell_summary: buy == null ? [] : [{ pricePerUnit: buy }],
@@ -80,4 +80,31 @@ test('scores and sort by score, missing last', () => {
   assert.deepEqual(r.map((f) => f.id), ['BIG', 'C', 'A']);
   assert.equal(r[0].score, 80);
   assert.equal(r[2].score, null);
+});
+
+test('opportunities need every condition', () => {
+  // same market as AlertLogicTest.opportunitiesNeedEveryCondition
+  const products = {
+    GOOD: product(100, 120),
+    BEST: product(1000, 1300),
+    LOW_MARGIN: product(100, 105),
+    UNSTABLE: product(100, 120),
+    NO_SCORE: product(100, 120),
+    SUSPICIOUS: product(100, 400),
+    THIN: product(100, 120, { buyMovingWeek: 50000, sellMovingWeek: 50000 }),
+    PRICEY: product(9000, 12000),
+  };
+  const scores = Object.fromEntries(Object.keys(products).map((id) => [id, 90]));
+  scores.UNSTABLE = 69;
+  delete scores.NO_SCORE;
+  const opts = { tax: 0.0125, maxCapital: 5000, share: 1, sort: 'profitHour', scores, minMargin: 0.1, minVolume: 100000, minProfitHour: 900 };
+  const ids = (o) => opportunities(products, o).map((f) => f.id);
+
+  assert.deepEqual(ids(opts), ['BEST', 'GOOD']);
+  // the profit per hour floor applies after the capital cap: GOOD makes 50 x 18.5 = 925
+  assert.deepEqual(ids({ ...opts, minProfitHour: 926 }), ['BEST']);
+  assert.deepEqual(ids({ ...opts, scores: {} }), []);
+  // exactly at the stable threshold counts; no capital limit lets the pricey one in
+  assert.deepEqual(ids({ ...opts, maxCapital: 0, scores: { ...scores, UNSTABLE: 70 } }).sort(), ['BEST', 'GOOD', 'PRICEY', 'UNSTABLE']);
+  assert.equal(opportunities(products, opts)[0].score, 90);
 });

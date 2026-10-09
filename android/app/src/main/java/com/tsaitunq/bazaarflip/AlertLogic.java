@@ -4,6 +4,7 @@ import com.google.gson.stream.JsonReader;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
@@ -14,25 +15,66 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-/** Pure logic of the background check. No Android classes, so it runs in JVM unit tests. */
+/**
+ * Pure logic of the background check. No Android classes, so it runs in JVM unit tests.
+ * The flip maths mirrors flips.js; change both together.
+ */
 final class AlertLogic {
+    /** Stability score from which the app shows the "stable" badge. */
+    static final int STABLE = 70;
+    static final int MAX_LINES = 3;
+    private static final double HOURS_PER_WEEK = 168;
     private static final DecimalFormatSymbols EN = new DecimalFormatSymbols(Locale.US);
 
     private AlertLogic() {}
 
-    /**
-     * Streams the bazaar response and returns {buyOrder, sellOffer} for the requested ids.
-     * Ids missing from the response or without both order book sides are left out.
-     */
-    static Map<String, double[]> readPrices(Reader json, Set<String> ids) throws IOException {
-        Map<String, double[]> out = new HashMap<>();
+    /** One bazaar product: top of both order book sides plus weekly volume and order counts. */
+    static final class Product {
+        final double buy;
+        final double sell;
+        final double buyWeek;
+        final double sellWeek;
+        final double buyOrders;
+        final double sellOrders;
+
+        Product(double buy, double sell, double buyWeek, double sellWeek, double buyOrders, double sellOrders) {
+            this.buy = buy;
+            this.sell = sell;
+            this.buyWeek = buyWeek;
+            this.sellWeek = sellWeek;
+            this.buyOrders = buyOrders;
+            this.sellOrders = sellOrders;
+        }
+    }
+
+    static final class Flip {
+        final String id;
+        final double buy;
+        final double margin;
+        final double weekVol;
+        final double profitHour;
+        final boolean suspicious;
+
+        Flip(String id, double buy, double margin, double weekVol, double profitHour, boolean suspicious) {
+            this.id = id;
+            this.buy = buy;
+            this.margin = margin;
+            this.weekVol = weekVol;
+            this.profitHour = profitHour;
+            this.suspicious = suspicious;
+        }
+    }
+
+    /** Streams the bazaar response. Products without both order book sides are left out. */
+    static Map<String, Product> readMarket(Reader json) throws IOException {
+        Map<String, Product> out = new HashMap<>();
         boolean success = false;
         try (JsonReader r = new JsonReader(json)) {
             r.beginObject();
             while (r.hasNext()) {
                 String key = r.nextName();
                 if (key.equals("success")) success = r.nextBoolean();
-                else if (key.equals("products")) readProducts(r, ids, out);
+                else if (key.equals("products")) readProducts(r, out);
                 else r.skipValue();
             }
             r.endObject();
@@ -43,26 +85,24 @@ final class AlertLogic {
         return out;
     }
 
-    private static void readProducts(JsonReader r, Set<String> ids, Map<String, double[]> out) throws IOException {
+    private static void readProducts(JsonReader r, Map<String, Product> out) throws IOException {
         r.beginObject();
         while (r.hasNext()) {
             String id = r.nextName();
-            if (!ids.contains(id)) {
-                r.skipValue();
-                continue;
-            }
             double buy = Double.NaN;
             double sell = Double.NaN;
+            double[] status = new double[4];
             r.beginObject();
             while (r.hasNext()) {
                 String key = r.nextName();
                 // API names are from the instant buyer's view: sell_summary holds buy orders.
                 if (key.equals("sell_summary")) buy = firstPrice(r);
                 else if (key.equals("buy_summary")) sell = firstPrice(r);
+                else if (key.equals("quick_status")) status = quickStatus(r);
                 else r.skipValue();
             }
             r.endObject();
-            if (buy > 0 && sell > 0) out.put(id, new double[] { buy, sell });
+            if (buy > 0 && sell > 0) out.put(id, new Product(buy, sell, status[0], status[1], status[2], status[3]));
         }
         r.endObject();
     }
@@ -83,8 +123,102 @@ final class AlertLogic {
         return price;
     }
 
+    /** {buyMovingWeek, sellMovingWeek, buyOrders, sellOrders}; missing fields stay 0. */
+    private static double[] quickStatus(JsonReader r) throws IOException {
+        double[] out = new double[4];
+        r.beginObject();
+        while (r.hasNext()) {
+            switch (r.nextName()) {
+                case "buyMovingWeek": out[0] = r.nextDouble(); break;
+                case "sellMovingWeek": out[1] = r.nextDouble(); break;
+                case "buyOrders": out[2] = r.nextDouble(); break;
+                case "sellOrders": out[3] = r.nextDouble(); break;
+                default: r.skipValue();
+            }
+        }
+        r.endObject();
+        return out;
+    }
+
+    /** Reads scores.json of the data branch: {"t": minutes, "s": {id: score}}. */
+    static Map<String, Integer> readScores(Reader json) throws IOException {
+        Map<String, Integer> out = new HashMap<>();
+        try (JsonReader r = new JsonReader(json)) {
+            r.beginObject();
+            while (r.hasNext()) {
+                if (!r.nextName().equals("s")) {
+                    r.skipValue();
+                    continue;
+                }
+                r.beginObject();
+                while (r.hasNext()) out.put(r.nextName(), (int) Math.round(r.nextDouble()));
+                r.endObject();
+            }
+            r.endObject();
+        } catch (IllegalStateException | NumberFormatException e) {
+            throw new IOException("unexpected scores file", e);
+        }
+        return out;
+    }
+
+    /** {buyOrder, sellOffer} for the requested ids that are on the market. */
+    static Map<String, double[]> prices(Map<String, Product> market, Set<String> ids) {
+        Map<String, double[]> out = new HashMap<>();
+        for (String id : ids) {
+            Product p = market.get(id);
+            if (p != null) out.put(id, new double[] { p.buy, p.sell });
+        }
+        return out;
+    }
+
     static double margin(double buy, double sell, double tax) {
         return (sell * (1 - tax) - buy) / buy;
+    }
+
+    /** Same result as computeFlip in flips.js. share and tax are fractions; maxCapital 0 means no limit. */
+    static Flip flip(String id, Product p, double tax, double maxCapital, double share) {
+        double weekVol = Math.min(p.buyWeek, p.sellWeek);
+        double hourVol = weekVol / HOURS_PER_WEEK;
+        double reach = hourVol * share;
+        double units = maxCapital > 0 ? Math.min(reach, Math.floor(maxCapital / p.buy)) : reach;
+        double profit = p.sell * (1 - tax) - p.buy;
+        double margin = profit / p.buy;
+        boolean suspicious = margin > 2 || (margin > 0.5 && hourVol < 100) || p.buyOrders < 3 || p.sellOrders < 3;
+        return new Flip(id, p.buy, margin, weekVol, units * profit, suspicious);
+    }
+
+    /**
+     * Flips that meet every market alert condition, best profit per hour first: margin, a stable
+     * score, no suspicious flag, weekly volume, profit per hour, and a price within the capital limit.
+     */
+    static List<Flip> opportunities(Map<String, Product> market, Map<String, Integer> scores, double tax,
+            double maxCapital, double share, double minMargin, double minVolume, double minProfitHour) {
+        List<Flip> out = new ArrayList<>();
+        for (Map.Entry<String, Product> e : market.entrySet()) {
+            Integer score = scores.get(e.getKey());
+            if (score == null || score < STABLE) continue;
+            Flip f = flip(e.getKey(), e.getValue(), tax, maxCapital, share);
+            if (!f.suspicious && f.margin >= minMargin && f.weekVol >= minVolume && f.profitHour >= minProfitHour
+                    && !(maxCapital > 0 && f.buy > maxCapital)) {
+                out.add(f);
+            }
+        }
+        out.sort((a, b) -> Double.compare(b.profitHour, a.profitHour));
+        return out;
+    }
+
+    /**
+     * Ids to notify about: qualifying now, not qualifying in the previous run, and not notified
+     * within the cooldown. Keeps the order of {@code qualifying}.
+     */
+    static List<String> due(List<String> qualifying, Set<String> qualifiedBefore, Map<String, Long> lastNotified,
+            long now, long cooldownMs) {
+        List<String> out = new ArrayList<>();
+        for (String id : qualifying) {
+            Long last = lastNotified.get(id);
+            if (!qualifiedBefore.contains(id) && (last == null || now - last >= cooldownMs)) out.add(id);
+        }
+        return out;
     }
 
     static Set<String> above(Map<String, double[]> prices, double tax, double minMargin) {
@@ -114,13 +248,46 @@ final class AlertLogic {
             margin(prices.get(b)[0], prices.get(b)[1], tax), margin(prices.get(a)[0], prices.get(a)[1], tax)));
         List<String> out = new ArrayList<>();
         for (String id : sorted) {
-            String name = names.get(id);
-            out.add(line(name == null || name.isEmpty() ? id : name, margin(prices.get(id)[0], prices.get(id)[1], tax)));
+            out.add(line(name(names, id), margin(prices.get(id)[0], prices.get(id)[1], tax)));
         }
         return out;
     }
 
     static String line(String name, double margin) {
-        return name + ": " + new DecimalFormat("0.0", EN).format(margin * 100) + "%";
+        return name + ": " + percent(margin);
+    }
+
+    static String marketTitle(int count) {
+        return count + (count == 1 ? " market opportunity" : " market opportunities");
+    }
+
+    /** The first three hits with margin and profit per hour, then "+N more". */
+    static List<String> marketLines(List<Flip> hits, Map<String, String> names) {
+        List<String> out = new ArrayList<>();
+        for (Flip f : hits.subList(0, Math.min(MAX_LINES, hits.size()))) {
+            out.add(name(names, f.id) + ": " + percent(f.margin) + " · " + coins(f.profitHour) + "/h");
+        }
+        if (hits.size() > MAX_LINES) out.add("+" + (hits.size() - MAX_LINES) + " more");
+        return out;
+    }
+
+    private static String name(Map<String, String> names, String id) {
+        String name = names.get(id);
+        return name == null || name.isEmpty() ? id : name;
+    }
+
+    private static String percent(double fraction) {
+        return new DecimalFormat("0.0", EN).format(fraction * 100) + "%";
+    }
+
+    /** Same format as coins() in render.js: 1,234.5 below ten thousand, then 350k, 1.2M, 3.4B. */
+    static String coins(double v) {
+        DecimalFormat plain = new DecimalFormat("#,##0.#", EN);
+        plain.setRoundingMode(RoundingMode.HALF_UP);
+        double abs = Math.abs(v);
+        if (abs < 9999.95) return plain.format(v);
+        if (abs >= 1e9 * 0.99995) return plain.format(v / 1e9) + "B";
+        if (abs >= 1e6 * 0.99995) return plain.format(v / 1e6) + "M";
+        return plain.format(v / 1e3) + "k";
     }
 }

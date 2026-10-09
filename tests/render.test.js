@@ -93,3 +93,7 @@ test('coins formats in Hypixel style with English separators', () => {
 test('percent uses an English decimal point', () => {
   assert.equal(percent.format(1.1774), '117.7%');
 });
+
+test('parseRoute knows the opportunities tab', () => {
+  assert.deepEqual(parseRoute('#/opps'), { view: 'opps' });
+});

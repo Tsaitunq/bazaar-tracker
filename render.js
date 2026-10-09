@@ -73,7 +73,7 @@ export function parseRoute(hash) {
   if (view === 'item' && arg) {
     try { return { view, id: decodeURIComponent(arg) }; } catch {}
   }
-  return { view: view === 'npc' || view === 'craft' ? view : 'flips' };
+  return { view: ['npc', 'craft', 'opps'].includes(view) ? view : 'flips' };
 }
 
 const RANGES = [['24h', '24 h'], ['7d', '7 days']];

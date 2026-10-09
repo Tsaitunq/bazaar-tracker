@@ -1,17 +1,18 @@
-import { buildFlips, computeFlip } from './flips.js';
+import { buildFlips, computeFlip, opportunities } from './flips.js';
 import { npcFlips } from './npc.js';
 import { craftFlips } from './craft.js';
 import { loadItems, fallbackName } from './names.js';
 import { loadScores, loadRecipes, loadHistory } from './data.js';
-import { plugin, syncAlerts, requestAlertPermission } from './native.js';
+import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission } from './native.js';
 import { flipCard, npcCard, craftCard, parseRoute, detailView, PLACEHOLDER_ICON } from './render.js';
 
 const API = 'https://api.hypixel.net/v2/skyblock/bazaar';
 const MAX_ROWS = 100;
 const PULL_PX = 70;
 const SCORES_TTL = 20 * 60000;
-const CARDS = { flips: flipCard, npc: npcCard, craft: craftCard };
-const DEFAULTS = { tax: 1.25, minVolume: 100000, maxCapital: 5000000, interval: 2, share: 5, sort: 'profitHour', favOnly: false, alerts: false, alertMargin: 5 };
+const CARDS = { flips: flipCard, opps: flipCard, npc: npcCard, craft: craftCard };
+const DEFAULTS = { tax: 1.25, minVolume: 100000, maxCapital: 5000000, interval: 2, share: 5, sort: 'profitHour', favOnly: false, alerts: false, alertMargin: 5,
+  marketAlerts: false, marketMargin: 10, marketMinVolume: 100000, marketMinProfit: 100000, marketCooldown: 6 };
 
 const $ = (id) => document.getElementById(id);
 const load = (key, fallback) => { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } };
@@ -23,12 +24,15 @@ function sanitize() {
   for (const key of ['tax', 'interval', 'sort']) {
     if (![...$(key).options].some((o) => o.value === String(settings[key]))) settings[key] = DEFAULTS[key];
   }
-  for (const key of ['minVolume', 'maxCapital']) {
+  for (const key of ['minVolume', 'maxCapital', 'marketMinVolume', 'marketMinProfit']) {
     if (!(settings[key] >= 0)) settings[key] = DEFAULTS[key];
   }
   if (!(settings.share > 0 && settings.share <= 100)) settings.share = DEFAULTS.share;
   if (!(settings.alertMargin > 0 && settings.alertMargin <= 1000)) settings.alertMargin = DEFAULTS.alertMargin;
   settings.alerts = settings.alerts === true;
+  if (!(settings.marketMargin > 0 && settings.marketMargin <= 1000)) settings.marketMargin = DEFAULTS.marketMargin;
+  if (!(settings.marketCooldown > 0 && settings.marketCooldown <= 168)) settings.marketCooldown = DEFAULTS.marketCooldown;
+  settings.marketAlerts = settings.marketAlerts === true;
 }
 sanitize();
 const storedFavs = load('bt.favs', []);
@@ -56,6 +60,11 @@ function recompute() {
   const opts = { ...settings, tax: settings.tax / 100, share: settings.share / 100, scores };
   const v = view();
   if (v === 'flips') flips = buildFlips(products, { ...opts, favs });
+  else if (v === 'opps') {
+    flips = opportunities(products, {
+      ...opts, minMargin: settings.marketMargin / 100, minVolume: settings.marketMinVolume, minProfitHour: settings.marketMinProfit,
+    });
+  }
   else if (v === 'npc') flips = npcFlips(products, npc, opts);
   else flips = recipes ? craftFlips(products, recipes, opts) : [];
   const name = (id) => names[id] ?? fallbackName(id);
@@ -96,6 +105,11 @@ function render() {
   const rows = flips.filter((f) => (!settings.favOnly || favs.has(f.id)) && f.name.toLowerCase().includes(q));
   $('count').textContent = `${Math.min(rows.length, MAX_ROWS)} of ${rows.length} flips`;
   $('list').innerHTML = rows.slice(0, MAX_ROWS).map((f) => CARDS[view()](f, favs.has(f.id))).join('');
+  if (view() === 'opps' && !flips.length) {
+    $('list').innerHTML = `<li class="muted">${Object.keys(scores).length
+      ? 'No item meets all conditions right now.'
+      : 'No stability data yet. Scores appear after about 4 hours of snapshots.'}</li>`;
+  }
 }
 
 function schedule() {
@@ -113,6 +127,7 @@ async function refresh() {
     const data = await res.json();
     if (!data.success) throw new Error(data.cause || 'the API reported an error');
     products = data.products;
+    sendNames();
     $('stamp').textContent = `Updated ${new Date(data.lastUpdated).toLocaleTimeString('en-GB')}`;
     $('error').hidden = true;
     recompute();
@@ -144,7 +159,7 @@ function applySettings() {
   render();
 }
 
-for (const key of ['tax', 'interval', 'share', 'sort', 'minVolume', 'maxCapital', 'alertMargin']) {
+for (const key of ['tax', 'interval', 'share', 'sort', 'minVolume', 'maxCapital', 'alertMargin', 'marketMargin', 'marketMinVolume', 'marketMinProfit', 'marketCooldown']) {
   $(key).value = settings[key];
   $(key).addEventListener('change', (e) => {
     settings[key] = key === 'sort' ? e.target.value : Math.max(0, Number(e.target.value) || 0);
@@ -217,22 +232,45 @@ addEventListener('touchend', () => {
 });
 
 // Background alerts exist only in the Android app.
-if (plugin()) {
-  $('alert-settings').hidden = false;
-  $('alerts').checked = settings.alerts;
-  $('alerts').addEventListener('change', async (e) => {
+function bindAlertToggle(key, hint) {
+  $(key).checked = settings[key];
+  $(key).addEventListener('change', async (e) => {
     const wanted = e.target.checked;
-    settings.alerts = wanted && await requestAlertPermission();
-    e.target.checked = settings.alerts;
-    $('alert-hint').hidden = !wanted || settings.alerts;
+    settings[key] = wanted && await requestAlertPermission();
+    e.target.checked = settings[key];
+    $(hint).hidden = !wanted || settings[key];
     applySettings();
   });
+}
+if (plugin()) {
+  $('alert-settings').hidden = false;
+  $('market-alert-settings').hidden = false;
+  bindAlertToggle('alerts', 'alert-hint');
+  bindAlertToggle('marketAlerts', 'market-hint');
+  onRoute((hash) => { location.hash = hash; });
+}
+
+// The worker needs a name for every product; send them once both lists are there.
+let itemsLoaded = false;
+let namesSent = false;
+function sendNames() {
+  if (namesSent || !itemsLoaded || !products) return;
+  namesSent = true;
+  syncNames(Object.keys(products), names);
 }
 
 $('fav-only').setAttribute('aria-pressed', settings.favOnly);
 refresh();
 refreshScores();
-loadItems().then((items) => { names = items.names; npc = items.npc; syncAlerts(settings, favs, names); recompute(); render(); });
+loadItems().then((items) => {
+  names = items.names;
+  npc = items.npc;
+  itemsLoaded = true;
+  syncAlerts(settings, favs, names);
+  sendNames();
+  recompute();
+  render();
+});
 loadRecipes().then((r) => { recipes = r; recompute(); render(); });
 // The Android app ships its files inside the APK and needs no service worker.
 if ('serviceWorker' in navigator && !window.Capacitor?.isNativePlatform?.()) navigator.serviceWorker.register('sw.js');

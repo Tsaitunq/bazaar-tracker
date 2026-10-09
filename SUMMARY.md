@@ -160,3 +160,23 @@ Detailseite.
 Seit der Umstellung sind alle Texte in PWA und App englisch. Die
 Benachrichtigung lautet jetzt z. B. „1 favorite above 5% margin“, der
 Schalter „Notify me about favorites“. Die Testliste oben gilt unverändert.
+
+## Nachtrag: Market alerts
+
+Neu sind der Tab „Opportunities“ (PWA und App) und in der App der Schalter
+„Market alerts“ mit eigenem Benachrichtigungskanal. Zusätzliche Tests:
+
+1. Tab „Opportunities“: zeigt nur Items mit Badge „stable“ und ohne
+   „suspicious“. Solange es noch keine Scores gibt (erste 4 Stunden), steht
+   dort ein Hinweis.
+2. Einstellungen → „Market alerts“ einschalten. Sind Favoriten-Alerts schon
+   an, kommt der erste Markt-Check mit dem nächsten 15-Minuten-Lauf.
+3. Meldung „N market opportunities“ zeigt höchstens drei Items und „+N more“.
+   Tipp darauf öffnet den Tab „Opportunities“, bei genau einem Treffer dessen
+   Detailseite.
+4. In den folgenden Stunden: dieselben Items werden nicht erneut gemeldet.
+
+Nicht geprüft: Market Alerts mit echten Scores (der Branch `data` hatte zum
+Testzeitpunkt noch keine); im Emulator lief der Test mit künstlich gesetzten
+Scores. Cooldown und „nur neue Items“ sind per Unit-Test belegt, nicht über
+mehrere echte Läufe.

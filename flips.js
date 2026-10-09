@@ -38,3 +38,19 @@ export function buildFlips(products, { tax, minVolume, maxCapital, sort, share =
     .filter((f) => f && (favs.has(f.id) || (f.profit > 0 && f.weekVol >= minVolume && !(maxCapital > 0 && f.buy > maxCapital))))
     .sort(bySort(sort));
 }
+
+export const STABLE = 70;
+
+// Flips worth acting on without checking them by hand: every condition must hold.
+// The Android background check applies the same rules (AlertLogic.opportunities).
+export function opportunities(products, { tax, maxCapital, share = 1, sort, scores = {}, minMargin, minVolume, minProfitHour }) {
+  return Object.entries(products)
+    .map(([id, p]) => {
+      const flip = computeFlip(id, p, tax, maxCapital, share);
+      if (flip) flip.score = scores[id] ?? null;
+      return flip;
+    })
+    .filter((f) => f && !f.suspicious && f.score >= STABLE && f.margin >= minMargin && f.weekVol >= minVolume
+      && f.profitHour >= minProfitHour && !(maxCapital > 0 && f.buy > maxCapital))
+    .sort(bySort(sort));
+}
