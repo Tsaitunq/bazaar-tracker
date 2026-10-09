@@ -77,3 +77,12 @@ dt { color: var(--muted); font-size: 11px; }
 dd { margin: 0; font-variant-numeric: tabular-nums; }
 dd.gain { color: var(--green); }
 dd.loss { color: var(--warn); }
+
+.icon { width: 32px; height: 32px; flex: none; image-rendering: pixelated; }
+.name { display: flex; gap: 8px; align-items: center; }
+a.body { color: var(--text); text-decoration: none; }
+.badge { display: inline-block; padding: 0 6px; border-radius: 8px; border: 1px solid; font-size: 11px; font-weight: 400; white-space: nowrap; }
+.badge-good { color: var(--green); }
+.badge-mid { color: var(--gold); }
+.badge-bad { color: var(--warn); }
+.ingredients { margin: 6px 0 0; padding-left: 18px; color: var(--muted); font-size: 12px; }

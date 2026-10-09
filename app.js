@@ -1,5 +1,6 @@
 import { buildFlips } from './flips.js';
 import { loadItems, fallbackName } from './names.js';
+import { flipCard, PLACEHOLDER_ICON } from './render.js';
 
 const API = 'https://api.hypixel.net/v2/skyblock/bazaar';
 const MAX_ROWS = 100;
@@ -9,9 +10,6 @@ const DEFAULTS = { tax: 1.25, minVolume: 100000, maxCapital: 5000000, interval: 
 const $ = (id) => document.getElementById(id);
 const load = (key, fallback) => { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } };
 const save = (key, value) => { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} };
-const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
-const compact = new Intl.NumberFormat('de-DE', { notation: 'compact', maximumFractionDigits: 1 });
-const percent = new Intl.NumberFormat('de-DE', { style: 'percent', maximumFractionDigits: 1 });
 
 const settings = { ...DEFAULTS, ...load('bt.settings', {}) };
 // A stored interval of 0 would refresh in a tight loop, so bad values fall back to defaults.
@@ -41,27 +39,12 @@ function recompute() {
   for (const f of flips) f.name = names[f.id] ?? fallbackName(f.id);
 }
 
-const card = (f) => `<li class="card">
-  <button class="star" type="button" data-id="${esc(f.id)}" aria-pressed="${favs.has(f.id)}" aria-label="Favorit: ${esc(f.name)}">★</button>
-  <div class="body">
-    <div class="name">${esc(f.name)}${f.suspicious ? ' <span class="warn">⚠ verdächtig</span>' : ''}</div>
-    <dl>
-      <div><dt>Buy-Order</dt><dd>${compact.format(f.buy)}</dd></div>
-      <div><dt>Sell-Offer</dt><dd>${compact.format(f.sell)}</dd></div>
-      <div><dt>Vol./Woche</dt><dd>${compact.format(f.weekVol)}</dd></div>
-      <div><dt>Gewinn/Stück</dt><dd class="${f.profit > 0 ? 'gain' : 'loss'}">${compact.format(f.profit)}</dd></div>
-      <div><dt>Marge</dt><dd>${percent.format(f.margin)}</dd></div>
-      <div><dt>Gewinn/h</dt><dd class="${f.profit > 0 ? 'gain' : 'loss'}">${compact.format(f.profitHour)}</dd></div>
-    </dl>
-  </div>
-</li>`;
-
 function render() {
   if (!products) return;
   const q = $('search').value.trim().toLowerCase();
   const rows = flips.filter((f) => (!settings.favOnly || favs.has(f.id)) && f.name.toLowerCase().includes(q));
   $('count').textContent = `${Math.min(rows.length, MAX_ROWS)} von ${rows.length} Flips`;
-  $('list').innerHTML = rows.slice(0, MAX_ROWS).map(card).join('');
+  $('list').innerHTML = rows.slice(0, MAX_ROWS).map((f) => flipCard(f, favs.has(f.id))).join('');
 }
 
 function schedule() {
@@ -123,6 +106,11 @@ $('toggle-settings').addEventListener('click', (e) => {
   $('settings').hidden = !open;
   e.currentTarget.setAttribute('aria-expanded', open);
 });
+// Image errors do not bubble, so listen in the capture phase.
+document.addEventListener('error', (e) => {
+  const img = e.target;
+  if (img.matches?.('img.icon') && img.src !== PLACEHOLDER_ICON) img.src = PLACEHOLDER_ICON;
+}, true);
 $('list').addEventListener('click', (e) => {
   const id = e.target.closest('.star')?.dataset.id;
   if (!id) return;
