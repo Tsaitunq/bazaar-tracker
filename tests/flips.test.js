@@ -44,6 +44,21 @@ test('suspicious: big margin with low volume, or few orders', () => {
   assert.equal(computeFlip('X', product(100, 110, { sellOrders: 2 }), 0.0125, 0).suspicious, true);
 });
 
+test('margin above 200 % is suspicious even with high volume', () => {
+  assert.equal(computeFlip('X', product(100, 400), 0.0125, 0).suspicious, true);
+});
+
+test('market share scales volume before the capital cap', () => {
+  near(computeFlip('X', product(100, 200), 0.0125, 0, 0.05).profitHour, 48750);
+  near(computeFlip('X', product(100, 200), 0.0125, 5000, 0.05).profitHour, 4875);
+});
+
+test('favourites bypass all filters', () => {
+  const products = { LOSS: product(100, 100), THIN: product(100, 200, { buyMovingWeek: 10 }), OK: product(100, 200) };
+  const opts = { tax: 0.0125, minVolume: 1000, maxCapital: 50, sort: 'profit', favs: new Set(['LOSS', 'THIN']) };
+  assert.deepEqual(buildFlips(products, opts).map((f) => f.id).sort(), ['LOSS', 'THIN']);
+});
+
 test('buildFlips filters and sorts descending', () => {
   const products = {
     LOSS: product(100, 100),

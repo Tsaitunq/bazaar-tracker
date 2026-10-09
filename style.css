@@ -76,3 +76,4 @@ dl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 8px; margin:
 dt { color: var(--muted); font-size: 11px; }
 dd { margin: 0; font-variant-numeric: tabular-nums; }
 dd.gain { color: var(--green); }
+dd.loss { color: var(--warn); }

@@ -4,7 +4,7 @@ import { loadNames, fallbackName } from './names.js';
 const API = 'https://api.hypixel.net/v2/skyblock/bazaar';
 const MAX_ROWS = 100;
 const PULL_PX = 70;
-const DEFAULTS = { tax: 1.25, minVolume: 100000, maxCapital: 5000000, interval: 2, sort: 'profitHour', favOnly: false };
+const DEFAULTS = { tax: 1.25, minVolume: 100000, maxCapital: 5000000, interval: 2, share: 5, sort: 'profitHour', favOnly: false };
 
 const $ = (id) => document.getElementById(id);
 const load = (key, fallback) => { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } };
@@ -15,12 +15,16 @@ const percent = new Intl.NumberFormat('de-DE', { style: 'percent', maximumFracti
 
 const settings = { ...DEFAULTS, ...load('bt.settings', {}) };
 // A stored interval of 0 would refresh in a tight loop, so bad values fall back to defaults.
-for (const key of ['tax', 'interval', 'sort']) {
-  if (![...$(key).options].some((o) => o.value === String(settings[key]))) settings[key] = DEFAULTS[key];
+function sanitize() {
+  for (const key of ['tax', 'interval', 'sort']) {
+    if (![...$(key).options].some((o) => o.value === String(settings[key]))) settings[key] = DEFAULTS[key];
+  }
+  for (const key of ['minVolume', 'maxCapital']) {
+    if (!(settings[key] >= 0)) settings[key] = DEFAULTS[key];
+  }
+  if (!(settings.share > 0 && settings.share <= 100)) settings.share = DEFAULTS.share;
 }
-for (const key of ['minVolume', 'maxCapital']) {
-  if (!(settings[key] >= 0)) settings[key] = DEFAULTS[key];
-}
+sanitize();
 const storedFavs = load('bt.favs', []);
 const favs = new Set(Array.isArray(storedFavs) ? storedFavs : []);
 
@@ -33,7 +37,7 @@ let busy = false;
 
 function recompute() {
   if (!products) return;
-  flips = buildFlips(products, { ...settings, tax: settings.tax / 100 });
+  flips = buildFlips(products, { ...settings, tax: settings.tax / 100, share: settings.share / 100, favs });
   for (const f of flips) f.name = names[f.id] ?? fallbackName(f.id);
 }
 
@@ -45,9 +49,9 @@ const card = (f) => `<li class="card">
       <div><dt>Buy-Order</dt><dd>${compact.format(f.buy)}</dd></div>
       <div><dt>Sell-Offer</dt><dd>${compact.format(f.sell)}</dd></div>
       <div><dt>Vol./Woche</dt><dd>${compact.format(f.weekVol)}</dd></div>
-      <div><dt>Gewinn/Stück</dt><dd class="gain">${compact.format(f.profit)}</dd></div>
+      <div><dt>Gewinn/Stück</dt><dd class="${f.profit > 0 ? 'gain' : 'loss'}">${compact.format(f.profit)}</dd></div>
       <div><dt>Marge</dt><dd>${percent.format(f.margin)}</dd></div>
-      <div><dt>Gewinn/h</dt><dd class="gain">${compact.format(f.profitHour)}</dd></div>
+      <div><dt>Gewinn/h</dt><dd class="${f.profit > 0 ? 'gain' : 'loss'}">${compact.format(f.profitHour)}</dd></div>
     </dl>
   </div>
 </li>`;
@@ -97,10 +101,12 @@ function applySettings() {
   render();
 }
 
-for (const key of ['tax', 'interval', 'sort', 'minVolume', 'maxCapital']) {
+for (const key of ['tax', 'interval', 'share', 'sort', 'minVolume', 'maxCapital']) {
   $(key).value = settings[key];
   $(key).addEventListener('change', (e) => {
     settings[key] = key === 'sort' ? e.target.value : Math.max(0, Number(e.target.value) || 0);
+    sanitize();
+    e.target.value = settings[key];
     applySettings();
     if (key === 'interval') schedule();
   });
@@ -122,6 +128,7 @@ $('list').addEventListener('click', (e) => {
   if (!id) return;
   if (!favs.delete(id)) favs.add(id);
   save('bt.favs', [...favs]);
+  recompute();
   render();
 });
 

@@ -42,9 +42,15 @@ Produkte ohne Eintrag auf einer der beiden Orderbuch-Seiten werden übersprungen
 gewinn      = sell × (1 − steuer) − buy
 marge       = gewinn / buy
 stundenVol  = min(buyMovingWeek, sellMovingWeek) / 168
-stueck      = maxKapital > 0 ? min(stundenVol, floor(maxKapital / buy)) : stundenVol
+reichweite  = stundenVol × marktanteil
+stueck      = maxKapital > 0 ? min(reichweite, floor(maxKapital / buy)) : reichweite
 gewinnStd   = stueck × gewinn
 ```
+
+- Marktanteil: einstellbar 1–100 %, Standard 5 %.
+- Favoriten erscheinen immer, auch wenn sie Mindestvolumen, Kapitalgrenze oder
+  `gewinn > 0` nicht erfüllen. Die Namenssuche gilt weiterhin.
+- Zusätzliche Warnregel: Marge > 200 %, unabhängig vom Volumen.
 
 - Steuer: Auswahl 1,25 % (Standard) / 1,125 % / 1,0 %.
 - Wochenvolumen eines Flips = `min(buyMovingWeek, sellMovingWeek)`.
