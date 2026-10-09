@@ -5,7 +5,7 @@
   "scripts": {
     "test": "node --test",
     "android:sync": "node scripts/copy-web.mjs && cap sync android",
-    "android:build": "npm run android:sync && cd android && gradlew.bat assembleDebug"
+    "android:build": "node scripts/android-build.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.3",
