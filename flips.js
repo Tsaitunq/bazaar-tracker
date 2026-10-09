@@ -1,10 +1,16 @@
 const HOURS_PER_WEEK = 168;
 
 // API names are from the instant buyer's view: sell_summary holds buy orders, buy_summary holds sell offers.
-export function computeFlip(id, product, tax, maxCapital, share = 1) {
+export function bookPrices(product) {
   const buy = product.sell_summary?.[0]?.pricePerUnit;
   const sell = product.buy_summary?.[0]?.pricePerUnit;
-  if (!(buy > 0) || !(sell > 0)) return null;
+  return buy > 0 && sell > 0 ? { buy, sell } : null;
+}
+
+export function computeFlip(id, product, tax, maxCapital, share = 1) {
+  const prices = bookPrices(product);
+  if (!prices) return null;
+  const { buy, sell } = prices;
 
   const qs = product.quick_status ?? {};
   const weekVol = Math.min(qs.buyMovingWeek, qs.sellMovingWeek) || 0;
