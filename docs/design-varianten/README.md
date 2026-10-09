@@ -7,6 +7,10 @@ die nach `style.css` geladen wird; E zeigt D mit breiterer Detailseite.
 der breiteren Desktop-Detailseite aus E. Die Dateien hier bleiben als
 Vergleich liegen; maßgeblich ist `style.css`.
 
+Die Screenshots der nicht gewählten Varianten A, B, D und E wurden entfernt;
+ihre CSS-Dateien und die Beschreibungen unten bleiben als Notiz. Vorhanden
+sind nur noch die Bilder von C.
+
 | Datei | Inhalt |
 |---|---|
 | `<x>-handy-liste.png`, `<x>-handy-detail.png` | Layout bei 360 px Breite (Bild auf 500 px vergrößert) |
@@ -53,7 +57,7 @@ Bilder zeigen den Zwischenstand, als D eingebaut war.
 ## Eingebaut: C mit breiter Detailseite
 
 - Aussehen wie in den Bildern `c-*.png`.
-- Die Detailseite am Desktop nutzt die volle Breite wie in `e-desktop-detail.png`.
+- Die Detailseite am Desktop nutzt die volle Breite (große Zahlen und Preistabelle in einer Zeile).
 - Karten im Tab „Opportunities“ haben einen orangen Rahmen (C kennt kein
   Leuchten).
 - Eine große Zahl leuchtet kurz auf, wenn sich ihr Wert bei einem Refresh
