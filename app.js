@@ -67,10 +67,9 @@ function renderDetail() {
     hist = { id, points: null };
     loadHistory(id, 7).then((points) => { if (hist.id === id) { hist.points = points; render(); } });
   }
-  if (!products) return;
   const nowMin = Date.now() / 60000;
   const points = hist.points && (range === '24h' ? hist.points.filter(([t]) => t >= nowMin - 1440) : hist.points);
-  const flip = products[id] ? computeFlip(id, products[id], settings.tax / 100, settings.maxCapital, settings.share / 100) : null;
+  const flip = products?.[id] ? computeFlip(id, products[id], settings.tax / 100, settings.maxCapital, settings.share / 100) : null;
   $('detail').innerHTML = detailView({ id, name: names[id] ?? fallbackName(id), flip, score: scores[id], isFav: favs.has(id), range, points, tax: settings.tax / 100 });
 }
 
@@ -78,6 +77,7 @@ function render() {
   const item = route.view === 'item';
   document.body.classList.toggle('detail', item);
   if (item) return renderDetail();
+  $('detail').innerHTML = '';
   for (const a of document.querySelectorAll('#tabs a')) {
     if (a.getAttribute('href') === `#/${view()}`) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
