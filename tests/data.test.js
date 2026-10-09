@@ -8,9 +8,12 @@ const ok = (body) => ({ ok: true, json: async () => body });
 const notFound = { ok: false, status: 404 };
 
 test('dataUrl', () => {
-  assert.equal(dataUrl('localhost'), './data/');
-  assert.equal(dataUrl('127.0.0.1'), './data/');
-  assert.equal(dataUrl('Tsaitunq.github.io'), 'https://raw.githubusercontent.com/Tsaitunq/bazaar-tracker/data/');
+  const raw = 'https://raw.githubusercontent.com/Tsaitunq/bazaar-tracker/data/';
+  assert.equal(dataUrl('localhost', 'http:'), './data/');
+  assert.equal(dataUrl('127.0.0.1', 'http:'), './data/');
+  // the Android app runs on https://localhost and must read the published data
+  assert.equal(dataUrl('localhost', 'https:'), raw);
+  assert.equal(dataUrl('Tsaitunq.github.io', 'https:'), 'https://raw.githubusercontent.com/Tsaitunq/bazaar-tracker/data/');
 });
 
 test('loadScores', async () => {

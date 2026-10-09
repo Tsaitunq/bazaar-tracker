@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Bazaar Flip Helper</string>
+    <string name="title_activity_main">Bazaar Flip Helper</string>
+    <string name="package_name">com.tsaitunq.bazaarflip</string>
+    <string name="custom_url_scheme">com.tsaitunq.bazaarflip</string>
+</resources>

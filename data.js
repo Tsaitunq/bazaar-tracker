@@ -2,10 +2,13 @@ import { dayKeys, shardOf, seriesFor } from './history.js';
 
 const RAW = 'https://raw.githubusercontent.com/Tsaitunq/bazaar-tracker/data/';
 
-export const dataUrl = (hostname) => (hostname === 'localhost' || hostname === '127.0.0.1' ? './data/' : RAW);
+// The Android app is served from https://localhost, so only plain http counts as the dev server.
+export const dataUrl = (hostname, protocol) =>
+  (protocol === 'http:' && (hostname === 'localhost' || hostname === '127.0.0.1') ? './data/' : RAW);
 
 async function fetchJson(path) {
-  const res = await fetch(dataUrl(globalThis.location?.hostname) + path, { cache: 'no-store' });
+  const { hostname, protocol } = globalThis.location ?? {};
+  const res = await fetch(dataUrl(hostname, protocol) + path, { cache: 'no-store' });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }

@@ -216,4 +216,5 @@ refresh();
 refreshScores();
 loadItems().then((items) => { names = items.names; npc = items.npc; recompute(); render(); });
 loadRecipes().then((r) => { recipes = r; recompute(); render(); });
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+// The Android app ships its files inside the APK and needs no service worker.
+if ('serviceWorker' in navigator && !window.Capacitor?.isNativePlatform?.()) navigator.serviceWorker.register('sw.js');
