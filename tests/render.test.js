@@ -63,7 +63,7 @@ test('detailView shows history states, charts, escaping and range', async () => 
   const points = [[29000000, 10, 20], [29000020, 11, 22], [29000040, 12, 21]];
   assert.ok(detailView({ ...base, points: [] }).includes('No history yet'));
   assert.ok(detailView({ ...base, points: null }).includes('Loading history…'));
-  assert.equal(detailView({ ...base, points }).match(/<svg/g).length, 2);
+  assert.equal(detailView({ ...base, points }).match(/class="chart"/g).length, 2);
   assert.ok(!detailView({ ...base, name: '<i>', points }).includes('<i>'));
   assert.match(detailView({ ...base, range: '7d', points }), /data-range="7d"[^>]*aria-pressed="true"|aria-pressed="true"[^>]*data-range="7d"/);
   assert.match(detailView({ ...base, points }), /href="#\/flips"/);
@@ -96,4 +96,26 @@ test('percent uses an English decimal point', () => {
 
 test('parseRoute knows the opportunities tab', () => {
   assert.deepEqual(parseRoute('#/opps'), { view: 'opps' });
+});
+
+test('provisional replaces the stability badge', () => {
+  assert.match(scoreBadge(82, true), /provisional/);
+  assert.ok(!scoreBadge(82, true).includes('stable'));
+  assert.match(flipCard({ ...flip, score: null, provisional: true }, false), /badge-prov/);
+});
+
+test('cards and detail page show the median as "normal"', async () => {
+  const { detailView } = await import('../render.js');
+  assert.ok(flipCard({ ...flip, median: 12345 }, false).includes('normal: 12.3k'));
+  assert.ok(!flipCard({ ...flip, median: null }, false).includes('normal:'));
+  const detail = detailView({ id: 'A', name: 'Name', flip, score: 80, median: 12345, provisional: false, isFav: false, range: '24h', tax: 0.0125, points: [] });
+  assert.ok(detail.includes('normal: 12.3k'));
+});
+
+test('profit per hour and margin are the big numbers on a card', () => {
+  const html = flipCard(flip, false);
+  assert.match(html, /class="big gain">50<\/span><span class="lbl">Profit\/h/);
+  assert.match(html, /class="big">10%<\/span><span class="lbl">Margin/);
+  // a favourite that loses money is red, not accent coloured
+  assert.match(flipCard({ ...flip, profit: -5, profitHour: -50 }, true), /class="big loss">-50</);
 });

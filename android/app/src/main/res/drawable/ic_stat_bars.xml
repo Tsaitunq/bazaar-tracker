@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Status bar icons are drawn as a white silhouette, so this is shape only. -->
+<!-- Status bar icons are drawn as a white silhouette, so this is shape only: the app's three bars. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
@@ -7,6 +7,5 @@
     android:viewportHeight="24">
     <path
         android:fillColor="#FFFFFFFF"
-        android:fillType="evenOdd"
-        android:pathData="M12,2a10,10 0 1,0 0,20a10,10 0 1,0 0,-20zM12,5a7,7 0 1,1 0,14a7,7 0 1,1 0,-14zM12,7.5a4.5,4.5 0 1,0 0,9a4.5,4.5 0 1,0 0,-9z" />
+        android:pathData="M4,13h4v7h-4zM10,9h4v11h-4zM16,4h4v16h-4z" />
 </vector>

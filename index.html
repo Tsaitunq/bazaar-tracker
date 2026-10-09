@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0f1115">
+  <meta name="theme-color" content="#0D0D0D">
   <meta name="color-scheme" content="dark">
   <title>Bazaar Flip Helper</title>
   <link rel="manifest" href="manifest.webmanifest">
@@ -13,13 +13,17 @@
 <body>
   <div id="ptr" aria-hidden="true"></div>
   <header>
-    <div class="bar">
-      <h1>Bazaar Flips</h1>
+    <div class="bar top">
+      <h1>Bazaar Flip Helper</h1>
       <span id="stamp" class="muted">–</span>
-      <button id="refresh" type="button" aria-label="Refresh">↻</button>
-      <button id="toggle-settings" type="button" aria-label="Settings" aria-expanded="false" aria-controls="settings">⚙</button>
+      <button id="refresh" type="button" aria-label="Refresh">
+        <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+      </button>
+      <button id="toggle-settings" type="button" aria-label="Settings" aria-expanded="false" aria-controls="settings">
+        <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h8M18 6h2M4 12h2M12 12h8M4 18h10M20 18h0"/><circle cx="15" cy="6" r="2.5"/><circle cx="9" cy="12" r="2.5"/><circle cx="17" cy="18" r="2.5"/></svg>
+      </button>
     </div>
-    <div class="bar">
+    <div class="bar filters">
       <input id="search" type="search" placeholder="Search item" aria-label="Search item" autocomplete="off">
       <select id="sort" aria-label="Sort by">
         <option value="profitHour">Profit/h</option>
@@ -27,7 +31,9 @@
         <option value="margin">Margin %</option>
         <option value="score">Stability</option>
       </select>
-      <button id="fav-only" type="button" aria-pressed="false" aria-label="Favorites only">★</button>
+      <button id="fav-only" type="button" aria-pressed="false" aria-label="Favorites only">
+        <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.6l1-5.8L3.5 9.7l5.9-.9z"/></svg>
+      </button>
     </div>
     <nav id="tabs">
       <a href="#/flips">Flips</a>
@@ -35,13 +41,35 @@
       <a href="#/npc">NPC</a>
       <a href="#/craft">Craft</a>
     </nav>
-    <form id="settings" hidden>
+    <p id="error" role="alert" hidden></p>
+  </header>
+
+  <form id="settings" hidden>
+    <fieldset>
+      <legend>Calculation</legend>
       <label>Tax
         <select id="tax">
           <option value="1.25">1.25%</option>
           <option value="1.125">1.125%</option>
           <option value="1">1.0%</option>
         </select>
+        <small>Bazaar tax taken from every sell offer. It gets lower with the Bazaar Flipper upgrade.</small>
+      </label>
+      <label>Market share %
+        <input id="share" type="number" min="1" max="100" step="1" inputmode="numeric">
+        <small>The part of an item's hourly volume you expect to get. Other players flip too, so 5% is a careful guess. Used for Profit/h.</small>
+      </label>
+      <label>Max. capital per flip
+        <input id="maxCapital" type="number" min="0" step="1" inputmode="numeric">
+        <small>Coins you are willing to put into one item. Limits the units per hour and hides items that cost more. 0 means no limit.</small>
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>List</legend>
+      <label>Min. volume/week
+        <input id="minVolume" type="number" min="0" step="1" inputmode="numeric">
+        <small>Hides items that trade less than this per week in the Flips and NPC tabs.</small>
       </label>
       <label>Refresh
         <select id="interval">
@@ -49,46 +77,48 @@
           <option value="2">2 min</option>
           <option value="5">5 min</option>
         </select>
+        <small>How often prices reload while the app is open.</small>
       </label>
-      <label>Market share % (for profit/h)
-        <input id="share" type="number" min="1" max="100" step="1" inputmode="numeric">
+    </fieldset>
+
+    <fieldset id="market-settings">
+      <legend>Opportunities</legend>
+      <p class="intro">Only flips that are stable, not suspicious, have at least 24 hours of price history and fit your max. capital.</p>
+      <label>Min. margin %
+        <input id="marketMargin" type="number" min="0.1" max="1000" step="0.1" inputmode="decimal">
+        <small>Profit after tax as a share of the buy price.</small>
       </label>
       <label>Min. volume/week
-        <input id="minVolume" type="number" min="0" step="1" inputmode="numeric">
+        <input id="marketMinVolume" type="number" min="0" step="1" inputmode="numeric">
+        <small>Weekly volume an item needs so your orders actually fill.</small>
       </label>
-      <label>Max. capital per flip (0 = any)
-        <input id="maxCapital" type="number" min="0" step="1" inputmode="numeric">
+      <label>Min. profit/h
+        <input id="marketMinProfit" type="number" min="0" step="1" inputmode="numeric">
+        <small>Estimated coins per hour, based on your market share and max. capital.</small>
       </label>
-      <fieldset id="market-settings">
-        <legend>Opportunities (stable, not suspicious, within max. capital)</legend>
-        <label>Min. margin %
-          <input id="marketMargin" type="number" min="0.1" max="1000" step="0.1" inputmode="decimal">
+      <div id="market-alert-settings" hidden>
+        <label class="check"><input id="marketAlerts" type="checkbox"> Market alerts</label>
+        <small>Sends a notification when an item newly meets all conditions. Checked about every 15 minutes, also when the app is closed.</small>
+        <label>Cooldown per item (hours)
+          <input id="marketCooldown" type="number" min="0.5" max="168" step="0.5" inputmode="decimal">
+          <small>Shortest time before the same item is reported again.</small>
         </label>
-        <label>Min. volume/week
-          <input id="marketMinVolume" type="number" min="0" step="1" inputmode="numeric">
-        </label>
-        <label>Min. profit/h
-          <input id="marketMinProfit" type="number" min="0" step="1" inputmode="numeric">
-        </label>
-        <div id="market-alert-settings" hidden>
-          <label class="check"><input id="marketAlerts" type="checkbox"> Market alerts</label>
-          <label>Cooldown per item (hours)
-            <input id="marketCooldown" type="number" min="0.5" max="168" step="0.5" inputmode="decimal">
-          </label>
-          <p id="market-hint" class="hint" role="alert" hidden>Notifications for this app are blocked in the Android settings.</p>
-        </div>
-      </fieldset>
-      <fieldset id="alert-settings" hidden>
-        <legend>Favorite alerts (checked about every 15 min)</legend>
-        <label class="check"><input id="alerts" type="checkbox"> Notify me about favorites</label>
-        <label>Min. margin %
-          <input id="alertMargin" type="number" min="0.1" max="1000" step="0.1" inputmode="decimal">
-        </label>
-        <p id="alert-hint" class="hint" role="alert" hidden>Notifications for this app are blocked in the Android settings.</p>
-      </fieldset>
-    </form>
-    <p id="error" role="alert" hidden></p>
-  </header>
+        <p id="market-hint" class="hint" role="alert" hidden>Notifications for this app are blocked in the Android settings.</p>
+      </div>
+    </fieldset>
+
+    <fieldset id="alert-settings" hidden>
+      <legend>Favorite alerts</legend>
+      <label class="check"><input id="alerts" type="checkbox"> Notify me about favorites</label>
+      <small>Sends a notification when a favorite newly rises above the margin below. Checked about every 15 minutes.</small>
+      <label>Min. margin %
+        <input id="alertMargin" type="number" min="0.1" max="1000" step="0.1" inputmode="decimal">
+        <small>Margin after tax a favorite has to reach.</small>
+      </label>
+      <p id="alert-hint" class="hint" role="alert" hidden>Notifications for this app are blocked in the Android settings.</p>
+    </fieldset>
+  </form>
+
   <main>
     <p id="count" class="muted">Loading…</p>
     <ul id="list"></ul>

@@ -1,6 +1,8 @@
 import { lineChart } from './chart.js';
 import { marginSeries } from './history.js';
+
 export const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+
 const plain = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
 const UNITS = [[1e9, 'B'], [1e6, 'M'], [1e3, 'k']];
 // Hypixel style: 1,234.5 below ten thousand, then 350k, 1.2M, 3.4B
@@ -18,54 +20,73 @@ export const iconUrl = (id) => ICON_BASE + encodeURIComponent(id);
 export const itemHref = (id) => '#/item/' + encodeURIComponent(id);
 
 export const PLACEHOLDER_ICON = 'data:image/svg+xml,' + encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect x="3" y="3" width="26" height="26" rx="6" fill="#2a2f3a"/></svg>');
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect x="3" y="3" width="26" height="26" rx="6" fill="#2e2e2e"/></svg>');
 
 export const icon = (id, size = 32) =>
   `<img class="icon" src="${esc(iconUrl(id))}" width="${size}" height="${size}" alt="" loading="lazy" decoding="async" crossorigin="anonymous">`;
 
-export function scoreBadge(score) {
+// Line icons drawn for this app; index.html carries the same shapes for the static buttons.
+const svg = (body) => `<svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+const ICONS = {
+  star: svg('<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.6l1-5.8L3.5 9.7l5.9-.9z"/>'),
+  back: svg('<path d="M15 5l-7 7 7 7"/>'),
+  warn: svg('<path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.4v.1"/>'),
+};
+
+export function scoreBadge(score, provisional = false) {
+  if (provisional) return '<span class="badge badge-prov">provisional</span>';
   if (score == null) return '';
   const [cls, label] = score >= 70 ? ['good', 'stable'] : score >= 40 ? ['mid', 'medium'] : ['bad', 'unstable'];
   return `<span class="badge badge-${cls}">${label} ${Math.round(score)}</span>`;
 }
 
-const cell = (label, value, cls = '') => `<div><dt>${label}</dt><dd${cls ? ` class="${cls}"` : ''}>${value}</dd></div>`;
 const gain = (v) => (v > 0 ? 'gain' : 'loss');
 const num = coins;
+const star = (id, name, isFav) =>
+  `<button class="star" type="button" data-id="${esc(id)}" aria-pressed="${isFav}" aria-label="Favorite: ${esc(name)}">${ICONS.star}</button>`;
+const badges = (f, warn) => {
+  const html = (warn ? `<span class="badge badge-warn">${ICONS.warn}suspicious</span>` : '') + scoreBadge(f.score, f.provisional);
+  return html && `<div class="badges">${html}</div>`;
+};
+// the two numbers a flip is judged by
+const keyStats = (f) => `<div class="key">
+      <div><span class="big ${gain(f.profit)}">${num(f.profitHour)}</span><span class="lbl">Profit/h</span></div>
+      <div><span class="big">${percent.format(f.margin)}</span><span class="lbl">Margin</span></div>
+    </div>`;
+const fact = (label, value, cls = '') => `<div><dt>${label}</dt><dd${cls ? ` class="${cls}"` : ''}>${value}</dd></div>`;
+// sell price with its 7 day median next to it, so an unusual price stands out
+const sellFact = (f) => fact('Sell offer', num(f.sell) + (f.median > 0 ? ` <span class="normal">normal: ${num(f.median)}</span>` : ''));
 
-const card = (f, isFav, warn, cells, extra = '') => `<li class="card">
-  <button class="star" type="button" data-id="${esc(f.id)}" aria-pressed="${isFav}" aria-label="Favorite: ${esc(f.name)}">★</button>
+const card = (f, isFav, warn, facts, extra = '') => `<li class="card">
+  ${star(f.id, f.name, isFav)}
   <a class="body" href="${esc(itemHref(f.id))}">
-    <div class="name">${icon(f.id)}<span>${esc(f.name)}${warn ? ' <span class="warn">⚠ suspicious</span>' : ''} ${scoreBadge(f.score)}</span></div>
-    <dl>${cells.join('')}</dl>${extra}
+    <div class="name">${icon(f.id)}<span>${esc(f.name)}</span></div>
+    ${badges(f, warn)}
+    ${keyStats(f)}
+    <dl class="facts">${facts.join('')}</dl>${extra}
   </a>
 </li>`;
 
 export const flipCard = (f, isFav) => card(f, isFav, f.suspicious, [
-  cell('Buy order', num(f.buy)),
-  cell('Sell offer', num(f.sell)),
-  cell('Vol./week', num(f.weekVol)),
-  cell('Profit/item', num(f.profit), gain(f.profit)),
-  cell('Margin', percent.format(f.margin)),
-  cell('Profit/h', num(f.profitHour), gain(f.profit)),
+  fact('Buy order', num(f.buy)),
+  sellFact(f),
+  fact('Profit/item', num(f.profit), gain(f.profit)),
+  fact('Vol./week', num(f.weekVol)),
 ]);
 
 export const npcCard = (f, isFav) => card(f, isFav, false, [
-  cell('Buy order', num(f.buy)),
-  cell('NPC price', num(f.npc)),
-  cell('Vol./week', num(f.weekVol)),
-  cell('Profit/item', num(f.profit), gain(f.profit)),
-  cell('Profit (instant buy)', num(f.profitInstant), gain(f.profitInstant)),
-  cell('Profit/h', num(f.profitHour), gain(f.profit)),
+  fact('Buy order', num(f.buy)),
+  fact('NPC price', num(f.npc)),
+  fact('Profit/item', num(f.profit), gain(f.profit)),
+  fact('Profit (instant buy)', num(f.profitInstant), gain(f.profitInstant)),
+  fact('Vol./week', num(f.weekVol)),
 ]);
 
 export const craftCard = (f, isFav) => card(f, isFav, false, [
-  cell('Cost', num(f.cost)),
-  cell('Revenue', num(f.revenue)),
-  cell('Margin', percent.format(f.margin)),
-  cell('Profit/craft', num(f.profit), gain(f.profit)),
-  cell('Crafts/h', num(f.craftsHour)),
-  cell('Profit/h', num(f.profitHour), gain(f.profit)),
+  fact('Cost', num(f.cost)),
+  fact('Revenue', num(f.revenue)),
+  fact('Profit/craft', num(f.profit), gain(f.profit)),
+  fact('Crafts/h', num(f.craftsHour)),
 ], `<ul class="ingredients">${f.ingredients.map((i) => `<li>${num(i.qty)}× ${esc(i.name)} @ ${num(i.price)}</li>`).join('')}</ul>`);
 
 export function parseRoute(hash) {
@@ -78,18 +99,26 @@ export function parseRoute(hash) {
 
 const RANGES = [['24h', '24 h'], ['7d', '7 days']];
 
-export function detailView({ id, name, flip, score, back = 'flips', isFav, range, points, tax }) {
-  const stat = (label, value) => `<div><dt>${label}</dt><dd>${value}</dd></div>`;
-  const current = flip ? `<dl>${stat('Buy order', num(flip.buy))}${stat('Sell offer', num(flip.sell))}${stat('Margin', percent.format(flip.margin))}${stat('Profit/item', num(flip.profit))}${stat('Vol./week', num(flip.weekVol))}${stat('Profit/h', num(flip.profitHour))}</dl>` : '';
+// flip is the item's bazaar flip or null while prices are unknown; points are already cut to the range.
+export function detailView({ id, name, flip, score, median, provisional, back = 'flips', isFav, range, points, tax }) {
+  const stat = { score, provisional, median };
+  const current = flip ? `${keyStats(flip)}<dl class="facts">${[
+    fact('Buy order', num(flip.buy)),
+    sellFact({ ...flip, median }),
+    fact('Profit/item', num(flip.profit), gain(flip.profit)),
+    fact('Vol./week', num(flip.weekVol)),
+  ].join('')}</dl>` : '';
   const buttons = RANGES.map(([r, label]) => `<button type="button" data-range="${r}" aria-pressed="${r === range}">${label}</button>`).join('');
   const charts = points === null ? '<p class="muted">Loading history…</p>'
     : !points.length ? '<p class="muted">No history yet</p>'
-    : `<h3>Prices</h3><p class="legend"><span class="buy">Buy order</span> <span class="sell">Sell offer</span></p>${lineChart([
-      { color: 'var(--gold)', points: points.map(([t, b]) => [t, b]) },
-      { color: 'var(--green)', points: points.map(([t, , s]) => [t, s]) },
-    ], { format: num })}<h3>Margin</h3>${lineChart([{ color: 'var(--text)', points: marginSeries(points, tax) }], { format: (v) => percent.format(v) })}`;
-  return `<a class="back" href="#/${back}">← Back</a>
-<div class="detail-head"><button class="star" type="button" data-id="${esc(id)}" aria-pressed="${isFav}" aria-label="Favorite: ${esc(name)}">★</button>
-${icon(id, 48)}<h2 class="name">${esc(name)} ${scoreBadge(score)}</h2></div>
+    : `<div class="charts"><section><h3>Prices</h3><p class="legend"><span class="buy">Buy order</span> <span class="sell">Sell offer</span></p>${lineChart([
+      { label: 'Buy order', cls: 'line-a', points: points.map(([t, b]) => [t, b]) },
+      { label: 'Sell offer', cls: 'line-b', points: points.map(([t, , s]) => [t, s]) },
+    ], { format: num, kind: 'coins' })}</section><section><h3>Margin</h3><p class="legend"><span class="buy">Margin after tax</span></p>${lineChart(
+      [{ label: 'Margin', cls: 'line-a', points: marginSeries(points, tax) }], { format: (v) => percent.format(v), kind: 'percent' })}</section></div>`;
+  return `<a class="back" href="#/${back}">${ICONS.back}Back</a>
+<div class="detail-head">${star(id, name, isFav)}
+${icon(id, 48)}<h2 class="name">${esc(name)}</h2></div>
+${badges(stat, flip?.suspicious)}
 ${current}<div class="bar ranges">${buttons}</div>${charts}`;
 }

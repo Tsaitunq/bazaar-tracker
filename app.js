@@ -1,15 +1,16 @@
-import { buildFlips, computeFlip, opportunities } from './flips.js';
+import { buildFlips, computeFlip, opportunities, statOf } from './flips.js';
 import { npcFlips } from './npc.js';
 import { craftFlips } from './craft.js';
 import { loadItems, fallbackName } from './names.js';
-import { loadScores, loadRecipes, loadHistory } from './data.js';
+import { loadStats, loadRecipes, loadHistory } from './data.js';
 import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission } from './native.js';
-import { flipCard, npcCard, craftCard, parseRoute, detailView, PLACEHOLDER_ICON } from './render.js';
+import { flipCard, npcCard, craftCard, parseRoute, detailView, coins, percent, PLACEHOLDER_ICON } from './render.js';
+import { chartHit, when } from './chart.js';
 
 const API = 'https://api.hypixel.net/v2/skyblock/bazaar';
 const MAX_ROWS = 100;
 const PULL_PX = 70;
-const SCORES_TTL = 20 * 60000;
+const STATS_TTL = 20 * 60000;
 const CARDS = { flips: flipCard, opps: flipCard, npc: npcCard, craft: craftCard };
 const DEFAULTS = { tax: 1.25, minVolume: 100000, maxCapital: 5000000, interval: 2, share: 5, sort: 'profitHour', favOnly: false, alerts: false, alertMargin: 5,
   marketAlerts: false, marketMargin: 10, marketMinVolume: 100000, marketMinProfit: 100000, marketCooldown: 6 };
@@ -41,9 +42,9 @@ const favs = new Set(Array.isArray(storedFavs) ? storedFavs : []);
 let products = null;
 let names = {};
 let npc = {};
-let scores = {};
+let stats = null; // score, median and hours of history per item; null until loaded
 let recipes;
-let lastScores = 0;
+let lastStats = 0;
 let route = parseRoute(location.hash);
 let lastList = route.view === 'item' ? 'flips' : route.view; // where the detail page's back link goes
 let flips = [];
@@ -57,7 +58,7 @@ const view = () => (route.view === 'item' ? 'flips' : route.view);
 
 function recompute() {
   if (!products || route.view === 'item') return;
-  const opts = { ...settings, tax: settings.tax / 100, share: settings.share / 100, scores };
+  const opts = { ...settings, tax: settings.tax / 100, share: settings.share / 100, stats };
   const v = view();
   if (v === 'flips') flips = buildFlips(products, { ...opts, favs });
   else if (v === 'opps') {
@@ -82,8 +83,9 @@ function renderDetail() {
   }
   const nowMin = Date.now() / 60000;
   const points = hist.points && (range === '24h' ? hist.points.filter(([t]) => t >= nowMin - 1440) : hist.points);
-  const flip = products?.[id] ? computeFlip(id, products[id], settings.tax / 100, settings.maxCapital, settings.share / 100) : null;
-  $('detail').innerHTML = detailView({ id, name: names[id] ?? fallbackName(id), flip, score: scores[id], back: lastList, isFav: favs.has(id), range, points, tax: settings.tax / 100 });
+  const stat = statOf(stats, id);
+  const flip = products?.[id] ? computeFlip(id, products[id], settings.tax / 100, settings.maxCapital, settings.share / 100, stat.median) : null;
+  $('detail').innerHTML = detailView({ id, name: names[id] ?? fallbackName(id), flip, ...stat, back: lastList, isFav: favs.has(id), range, points, tax: settings.tax / 100 });
 }
 
 function render() {
@@ -106,9 +108,9 @@ function render() {
   $('count').textContent = `${Math.min(rows.length, MAX_ROWS)} of ${rows.length} flips`;
   $('list').innerHTML = rows.slice(0, MAX_ROWS).map((f) => CARDS[view()](f, favs.has(f.id))).join('');
   if (view() === 'opps' && !flips.length) {
-    $('list').innerHTML = `<li class="muted">${Object.keys(scores).length
-      ? 'No item meets all conditions right now.'
-      : 'No stability data yet. Scores appear after about 4 hours of snapshots.'}</li>`;
+    $('list').innerHTML = `<li class="muted">${stats
+      ? 'No item meets all conditions right now. Items need 24 hours of price history before they can show up here.'
+      : 'Price history could not be loaded, so stability cannot be checked right now.'}</li>`;
   }
 }
 
@@ -132,7 +134,7 @@ async function refresh() {
     $('error').hidden = true;
     recompute();
     render();
-    if (Date.now() - lastScores > SCORES_TTL) refreshScores();
+    if (Date.now() - lastStats > STATS_TTL) refreshStats();
   } catch (e) {
     $('error').textContent = `Update failed: ${e.message}`;
     $('error').hidden = false;
@@ -144,9 +146,9 @@ async function refresh() {
   schedule();
 }
 
-async function refreshScores() {
-  lastScores = Date.now();
-  scores = await loadScores();
+async function refreshStats() {
+  lastStats = Date.now();
+  stats = await loadStats();
   recompute();
   render();
 }
@@ -192,6 +194,23 @@ $('detail').addEventListener('click', (e) => {
   range = r;
   render();
 });
+// Chart readout: the values of the point nearest to the pointer or finger.
+const FORMATS = { coins, percent: (v) => percent.format(v) };
+function chartPointer(e) {
+  const box = e.target.closest?.('.chart-box');
+  if (!box) return;
+  const chart = box.querySelector('svg');
+  const rect = chart.getBoundingClientRect();
+  const hit = chartHit(JSON.parse(box.dataset.chart), (e.clientX - rect.left) / rect.width);
+  const format = FORMATS[box.dataset.kind] ?? String;
+  box.querySelector('.readout').textContent = [when(hit.time), ...hit.values.map((v) => `${v.label} ${format(v.value)}`)].join(' · ');
+  const cursor = chart.querySelector('.cursor');
+  cursor.setAttribute('x1', hit.x);
+  cursor.setAttribute('x2', hit.x);
+  cursor.setAttribute('visibility', 'visible');
+}
+$('detail').addEventListener('pointermove', chartPointer);
+$('detail').addEventListener('pointerdown', chartPointer);
 document.querySelector('main').addEventListener('click', (e) => {
   const id = e.target.closest('.star')?.dataset.id;
   if (!id) return;
@@ -261,7 +280,7 @@ function sendNames() {
 
 $('fav-only').setAttribute('aria-pressed', settings.favOnly);
 refresh();
-refreshScores();
+refreshStats();
 loadItems().then((items) => {
   names = items.names;
   npc = items.npc;

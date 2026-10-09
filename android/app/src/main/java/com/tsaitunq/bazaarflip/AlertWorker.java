@@ -178,8 +178,8 @@ public class AlertWorker extends Worker {
         PendingIntent tap = PendingIntent.getActivity(
             context, id, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         manager.notify(id, new NotificationCompat.Builder(context, channel)
-            .setSmallIcon(R.drawable.ic_stat_coin)
-            .setColor(context.getColor(R.color.gold))
+            .setSmallIcon(R.drawable.ic_stat_bars)
+            .setColor(context.getColor(R.color.accent))
             .setContentTitle(title)
             .setContentText(lines.get(0))
             .setStyle(new NotificationCompat.BigTextStyle().bigText(String.join("\n", lines)))
