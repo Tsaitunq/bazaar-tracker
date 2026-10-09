@@ -22,7 +22,15 @@ jobs:
         with:
           node-version: 22
       - name: Restore data branch
-        run: git clone --quiet --depth 1 --branch data "https://github.com/${GITHUB_REPOSITORY}.git" data || mkdir -p data
+        run: |
+          if git ls-remote --exit-code --heads origin data >/dev/null; then
+            git clone --quiet --depth 1 --branch data "https://github.com/${GITHUB_REPOSITORY}.git" data
+          else
+            code=$?
+            # exit code 2 means the branch does not exist yet; anything else is a real failure
+            if [ "$code" -ne 2 ]; then exit "$code"; fi
+            mkdir -p data
+          fi
       - name: Take snapshot
         run: node scripts/snapshot.mjs data
       - name: Publish data branch as a single commit
