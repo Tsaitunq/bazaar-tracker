@@ -267,17 +267,24 @@ Selbstständig getroffen (Auftrag: ohne Rückfragen).
 
 # Entscheidungen Design-Feinschliff
 
-- **Gewählt: Variante D (warmes Schwarz, Verlauf, Leuchten, Kopf mit Verlauf),
-  eingebaut als „E“ mit breiterer Desktop-Detailseite.** Die Vergleichsbilder
-  aller Varianten liegen in `docs/design-varianten/`.
-- **Seltenheit nur als Ring um das Item-Bild, Namen bleiben weiß.** Grund:
-  Grüner Text soll eindeutig Gewinn bedeuten.
+- **Gewählt: Variante C („Forge“)**: warmes Schwarz mit feinem Punktraster,
+  Tabs als unterstrichene Beschriftung, orange Linie unter dem Kopf und
+  zwischen den großen Zahlen und den Details. Zwischenzeitlich war D
+  eingebaut; die Vergleichsbilder aller Varianten liegen in
+  `docs/design-varianten/`.
+- **Die breitere Desktop-Detailseite bleibt.** Sie war als Ergänzung zu D
+  gewünscht, ist aber Layout und keine Farbfrage; mit C steht sie genauso.
+- **Seltenheit als Streifen links an der Karte plus Wort in der Ecke, Namen
+  bleiben weiß.** Grund: Grüner Text soll eindeutig Gewinn bedeuten, und das
+  Wort macht die Seltenheit unabhängig von der Farbe lesbar.
 - **Rarity-Töne sind gegenüber dem Spiel aufgehellt**, damit sie auf dunklem
   Grund mindestens 4,5 : 1 erreichen.
-- **Farbverläufe und Ringfarben sind Tokens in `:root`** und Teil des
+- **Opportunities-Karten bekommen einen orangen Rahmen statt eines
+  Leuchtens.** Grund: C arbeitet mit Linien, nicht mit Schein.
+- **Farben für Flächen und Seltenheit sind Tokens in `:root`** und Teil des
   Kontrasttests; in den Regeln selbst steht weiterhin keine Hex-Farbe.
 - **Das Aufleuchten einer Zahl vergleicht den angezeigten Text mit dem letzten
   Stand je Ansicht und Item.** Folge: Auch eine Änderung der Steuer oder des
   Marktanteils lässt Zahlen aufleuchten.
 - **App-Hintergrund, Manifest, Android-Systemleisten und Icon-Grund folgen dem
-  warmen Schwarz `#120D0A`.**
+  warmen Schwarz `#110C09`.**

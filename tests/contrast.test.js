@@ -17,9 +17,9 @@ const contrast = (a, b) => {
 };
 
 const AA = 4.5;
-const SURFACES = ['bg', 'page-mid', 'page-edge', 'card', 'card-top', 'raised', 'tile-top', 'tile-bottom', 'header-top', 'header-bottom'];
+const SURFACES = ['bg', 'page-top', 'header-bg', 'card', 'card-hover', 'raised'];
 const TEXT_COLOURS = ['text', 'muted', 'accent', 'gain', 'loss', 'warn', 'stable', 'medium', 'unstable'];
-// rings around item pictures: checked like text, although 3 : 1 would do for a shape
+// the rarity word on a card is text; the stripe and tile border use the same colours
 const RARITY_COLOURS = ['r-common', 'r-uncommon', 'r-rare', 'r-epic', 'r-legendary', 'r-mythic', 'r-divine', 'r-special'];
 
 test('the contrast helper matches known values', () => {
@@ -44,7 +44,7 @@ test('text on the accent colour reaches WCAG AA', () => {
 
 test('every colour used in the stylesheet is a checked token', () => {
   const used = new Set([...css.matchAll(/var\(--([a-z-]+)/g)].map((m) => m[1]));
-  const known = new Set([...SURFACES, ...TEXT_COLOURS, ...RARITY_COLOURS, 'on-accent', 'line', 'header-line', 'opps-line', 'glow', 'page', 'safe-area-inset-top', 'safe-area-inset-bottom']);
+  const known = new Set([...SURFACES, ...TEXT_COLOURS, ...RARITY_COLOURS, 'on-accent', 'line', 'rarity', 'page', 'safe-area-inset-top', 'safe-area-inset-bottom']);
   assert.deepEqual([...used].filter((t) => !known.has(t)), []);
   // no colour is written directly into a rule
   const rules = css.slice(css.indexOf('}') + 1);

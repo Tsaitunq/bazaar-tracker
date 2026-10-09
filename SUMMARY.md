@@ -144,3 +144,18 @@ Nach dem Push:
 - Die Einstellungen sind am Handy lang (vier Gruppen untereinander).
 - Kein Light Mode, kein Verlauf über 7 Tage hinaus, kein Volumen-Chart.
 - NPC- und Craft-Karten haben weiterhin kein Suspicious-Badge.
+
+## Nachtrag: Design-Feinschliff
+
+Eingebaut ist Variante C („Forge“): warmes Schwarz mit Punktraster,
+unterstrichene Tabs, Seltenheit als farbiger Streifen und Wort auf jeder
+Karte, breitere Detailseite am Desktop. Zusätzlich zu testen:
+
+1. Karten zeigen links einen farbigen Streifen und oben rechts die Seltenheit
+   (COMMON, UNCOMMON, RARE …); Item-Namen sind weiß.
+2. Detailseite am PC: große Zahlen und Preistabelle stehen in einer Zeile.
+3. Tab „Opportunities“: Karten haben einen orangen Rahmen.
+4. Nach einem Refresh leuchten geänderte große Zahlen kurz auf. Mit
+   „Bewegung reduzieren“ in den Systemeinstellungen passiert das nicht.
+
+Vergleichsbilder aller Varianten: `docs/design-varianten/`.

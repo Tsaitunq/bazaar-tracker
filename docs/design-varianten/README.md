@@ -1,10 +1,11 @@
 # Design-Varianten
 
 Vorschläge für ein wärmeres Schwarz/Orange. A bis D sind je eine CSS-Datei,
-die nach `style.css` geladen wird. **E ist die gewählte Fassung (D plus
-breitere Detailseite) und auf dem Branch `design` in die App eingebaut**;
-ihre Bilder stammen aus der App selbst, eine eigene CSS-Datei gibt es dafür
-nicht.
+die nach `style.css` geladen wird; E zeigt D mit breiterer Detailseite.
+
+**Gewählt und in die App eingebaut ist Variante C („Forge“)**, zusammen mit
+der breiteren Desktop-Detailseite aus E. Die Dateien hier bleiben als
+Vergleich liegen; maßgeblich ist `style.css`.
 
 | Datei | Inhalt |
 |---|---|
@@ -42,15 +43,22 @@ Wie B: oranger Dunst, Kopf mit Verlauf, Leuchten an aktiven Elementen und an
 der Chart-Linie. Die Item-Namen sind weiß; die Seltenheit zeigt wie in A ein
 farbiger Ring um das runde Item-Bild, in Liste und Detailseite.
 
-## E – D, eingebaut, mit breiter Detailseite
+## E – D mit breiter Detailseite
 
 Wie D. Auf der Desktop-Detailseite stehen die beiden großen Zahlen und die
 Preistabelle (Buy order, Sell offer mit „normal“, Profit/item, Vol./week) in
-einer Zeile über die volle Breite; am Handy bleibt alles untereinander.
+einer Zeile über die volle Breite; am Handy bleibt alles untereinander. Die
+Bilder zeigen den Zwischenstand, als D eingebaut war.
 
-Zusätzlich gebaut: Karten im Tab „Opportunities“ leuchten dauerhaft leicht,
-und eine große Zahl leuchtet kurz auf, wenn sich ihr Wert bei einem Refresh
-ändert.
+## Eingebaut: C mit breiter Detailseite
+
+- Aussehen wie in den Bildern `c-*.png`.
+- Die Detailseite am Desktop nutzt die volle Breite wie in `e-desktop-detail.png`.
+- Karten im Tab „Opportunities“ haben einen orangen Rahmen (C kennt kein
+  Leuchten).
+- Eine große Zahl leuchtet kurz auf, wenn sich ihr Wert bei einem Refresh
+  ändert; Karten blenden beim Laden ein. Beides ist bei „Bewegung reduzieren“
+  aus.
 
 ## Geprüft
 
