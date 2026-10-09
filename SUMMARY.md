@@ -1,182 +1,151 @@
-# Bazaar Flip Helper (Android) – Zusammenfassung
+# Version 3 (Qualität + Design) – Zusammenfassung
 
-Stand: 2026-10-09. Alles liegt auf dem lokalen Branch `android` (6 Commits vor
-`main`). Nichts ist gepusht. Die Zusammenfassung von Version 2 liegt jetzt in
-`docs/summary-v2.md`.
+Stand: 2026-10-09. Alles liegt auf dem lokalen Branch `v3`. Nichts ist
+gepusht; `main` und die Live-Seite sind unverändert. Die früheren
+Zusammenfassungen liegen in `docs/summary-v2.md` und
+`docs/summary-android.md`.
 
-## Die APK
+## Fertig
+
+### Datenqualität
+
+| Nr. | Punkt | Umsetzung |
+|---|---|---|
+| 1 | Suspicious über den Median | Sell-Preis mehr als 30 % über dem 7-Tage-Median → „suspicious“ (`MEDIAN_SPIKE = 0.3`) |
+| 2 | Orderbuch-Tiefe | Preis = gewichteter Durchschnitt der ersten 1000 Stück je Seite (`DEPTH_UNITS = 1000`) |
+| 3 | „provisional“ | unter 24 h Verlauf: eigenes Badge, kein Score, nicht in Opportunities, keine Market Alerts (`PROVISIONAL_HOURS = 24`) |
+| 4 | Median als Kontext | „normal: X“ neben dem Sell-Preis auf Karte und Detailseite |
+
+Die Regeln stehen mit denselben Konstanten und denselben Testfällen in
+`flips.js` und `AlertLogic.java`. Der Workflow schreibt dafür die neue Datei
+`stats.json` (Score, Median, Stunden Verlauf pro Item).
+
+### Design
+
+| Nr. | Punkt | Umsetzung |
+|---|---|---|
+| 5 | Kartenhierarchie | Profit/h und Margin groß, übrige Werte klein und gedämpft |
+| 6 | Desktop | ab 900 px mehrspaltiges Raster, Charts nebeneinander, Einstellungen in Spalten |
+| 7 | Icons | eigene Inline-SVGs (Refresh, Settings, Stern, Zurück, Warnung) |
+| 8 | Einstellungen | vier Gruppen (Calculation, List, Opportunities, Favorite alerts), Erklärsatz unter jeder Option |
+| 9 | Charts | vier Hilfslinien mit Werten; Antippen oder Überfahren zeigt Zeit und Werte |
+| 10 | Name | überall „Bazaar Flip Helper“ |
+| 11 | Farben | Schwarz `#0D0D0D`, Karten `#1A1A1A`, Akzent Orange `#FF8A00`; Gewinn grün, Verlust rot, suspicious gelb; Badges grün / blau / rosa / grau gestrichelt |
+| 11 | Icon und Splash | drei aufsteigende orange Balken auf Schwarz, für PWA und Android |
+| 11 | Systemfarben | Manifest, Android-Theme, Statusleisten-Symbol angepasst |
+
+Nebenbei behoben: Die Einstellungen lagen im festgehefteten Kopf und waren am
+Handy unten abgeschnitten (das Feld „Min. margin %“ der Favoriten-Alerts war
+nicht erreichbar). Sie liegen jetzt darunter und scrollen mit.
+
+## Wie geprüft wurde
+
+- `node --test`: 90 Tests grün (vorher 70). Neu: Orderbuch-Tiefe,
+  Median-Regel, provisional, `stats.json`, Chart-Hilfslinien und Trefferpunkt,
+  Kontrast.
+- `gradlew testDebugUnitTest`: 19 Java-Tests grün (vorher 15), mit denselben
+  Zahlen wie die Web-Tests.
+- Kontrast: Jede Textfarbe erreicht auf jeder Fläche mindestens 4,5 : 1
+  (WCAG AA); der Test schlägt auch fehl, wenn eine Farbe direkt in eine
+  CSS-Regel geschrieben wird oder der Akzent als Bedeutungsfarbe auftaucht.
+- `npm run android:build` (führt `gradlew assembleDebug` aus) läuft fehlerfrei.
+- Screenshots, selbst angesehen:
+  - Desktop 1440 px: Liste (vier Spalten), Detailseite, offene Einstellungen.
+  - Handy 360 px (Emulator, Android 15): Splash, Liste, Detailseite,
+    Einstellungen.
+  - Dabei behoben: Der Titel brach bei 360 px in zwei Zeilen um; der Stern auf
+    der Detailseite stand am Desktop weit rechts außen.
+- Chart am Handy: Berühren zeigt die gestrichelte Linie und z. B.
+  „9 Oct, 16:50 · Buy order 1,031.1 · Sell offer 1,348.9“.
+- Kein Deutsch in den 30 ausgelieferten Dateien; alter Name „Bazaar Flips“
+  kommt nicht mehr vor.
+
+## Wichtig zu wissen
+
+- **Orderbuch-Tiefe macht Spannen eher größer.** Mit Live-Daten gemessen: 368
+  statt 364 Flips, bei 228 von 364 ist die Marge höher als mit der obersten
+  Order, der Median der Marge bleibt praktisch gleich (41,4 % statt 41,3 %).
+  Die Regel ignoriert Mini-Orders an der Spitze richtig, zeigt bei dünnen
+  Büchern aber einen Preis, zu dem du nicht sofort oben stehst. Details in
+  `DECISIONS.md`.
+- **Badges und „normal: X“ erscheinen erst nach dem Push.** Die App liest
+  `stats.json` aus dem Branch `data`; die Datei entsteht erst, wenn der
+  Workflow mit dem neuen Skript von `main` gelaufen ist. Bis dahin zeigt die
+  neue Fassung keine Badges, und „Opportunities“ bleibt leer.
+- **Danach sind zunächst alle Items „provisional“**, bis 24 Stunden Verlauf
+  da sind. Opportunities und Market Alerts liefern also frühestens einen Tag
+  nach dem ersten Snapshot etwas.
+- Der Verlauf bekommt am Umstellungstag einen kleinen Sprung, weil Snapshots
+  ab dann den Tiefenpreis speichern.
+
+## Nicht geprüft
+
+- Kein echtes Handy, nur Emulator.
+- Badges, „normal: X“ und die Median-Regel in der App: im Browser mit
+  künstlich gemischten Kennzahlen gesehen, in der Android-App nicht (dort gibt
+  es noch keine `stats.json`).
+- Market Alerts mit den neuen Regeln: nur per Unit-Test.
+- Chart-Anzeige mit der Maus (Desktop): nur die Rechenfunktion ist getestet,
+  das Überfahren selbst nicht.
+- Die Liste bei 360 px im Desktop-Browser; geprüft wurde 360 px im Emulator.
+- Die installierte PWA nach dem Update (neues Icon, neue Farben).
+
+## APK
 
 ```
 android\app\build\outputs\apk\debug\app-debug.apk
 ```
 
-Der Pfad ist relativ zum Projektordner.
+Relativ zum Projektordner, rund 8 MB. Sie lässt sich über die bestehende App
+installieren; Favoriten und Einstellungen bleiben erhalten.
 
-- 8,0 MB, Paket-ID `com.tsaitunq.bazaarflip`, Name „Bazaar Flip Helper“,
-  Version 1.0, läuft ab Android 7 (API 24).
-- Signiert mit dem Standard-Debug-Schlüssel (`CN=Android Debug`).
-- Die APK ist nicht eingecheckt. Neu bauen: `npm run android:build`.
+## Veröffentlichen
 
-## Installation aufs Handy
-
-### Per Datei
-
-1. APK aufs Handy bringen (USB-Kabel als Dateiübertragung, Cloud, Mail an dich
-   selbst).
-2. Am Handy die Datei im Dateimanager antippen.
-3. Android fragt, ob diese App (Dateimanager oder Browser) unbekannte Apps
-   installieren darf: „Einstellungen“ → „Dieser Quelle vertrauen“ erlauben,
-   zurück, „Installieren“.
-4. Meldet Play Protect „Unbekannter Entwickler“: „Trotzdem installieren“.
-
-### Per USB
-
-1. Am Handy: Einstellungen → Über das Telefon → siebenmal auf „Build-Nummer“
-   tippen. Dann Einstellungen → System → Entwickleroptionen →
-   „USB-Debugging“ einschalten.
-2. Handy per USB anschließen, die Abfrage „USB-Debugging zulassen?“ bestätigen.
-3. In PowerShell im Projektordner:
-
-```
-& "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" devices
-& "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" install -r "android\app\build\outputs\apk\debug\app-debug.apk"
-```
-
-`devices` muss dein Gerät mit dem Status `device` zeigen; `install` endet mit
-`Success`.
-
-## Fertig
-
-| Nr. | Punkt | Stand |
-|---|---|---|
-| 0 | Werkzeuge | JDK 21, Android SDK (Plattform 36, Build-Tools 36.0.0), Emulator, Android Studio installiert |
-| 1 | PWA per Capacitor 8 eingebettet, derselbe Web-Code | fertig |
-| 2 | Hintergrund-Check alle 15 Min mit Benachrichtigung, Schalter und Mindestmarge, Berechtigungsabfrage | fertig |
-| 3 | App-Icon, Splashscreen, dunkles Theme | fertig |
-| 4 | `gradlew assembleDebug` | läuft fehlerfrei |
-
-Kern-Dateien: `capacitor.config.json`, `native.js`, `scripts/copy-web.mjs`,
-`scripts/android-build.mjs`, `scripts/android-icons.mjs` und unter
-`android/app/src/main/java/com/tsaitunq/bazaarflip/` die Klassen
-`MainActivity`, `AlertsPlugin`, `AlertWorker`, `AlertLogic`.
-
-## Wie geprüft wurde
-
-- `node --test`: 65 Tests grün (vorher 60).
-- `gradlew testDebugUnitTest`: 7 Java-Tests grün (Preise auslesen, Marge,
-  Schwelle, Überschreitung, Texte).
-- APK: Paket-ID, Name und Berechtigungen per `aapt2`, Signatur per
-  `apksigner`, Suche nach Windows-Benutzername und Klarnamen in allen 451
-  Dateien der APK: 0 Treffer.
-- Im Emulator (Android 15, Pixel 6):
-  - App startet mit Splash (Münze auf dunklem Grund), lädt die Flip-Liste mit
-    Bildern, Statusleiste dunkel, nichts verdeckt.
-  - Favorit gesetzt, Schalter eingeschaltet: Berechtigungsdialog erscheint.
-    „Nicht zulassen“ → Schalter bleibt aus, Hinweistext erscheint. Erneut
-    eingeschaltet und zugelassen → der Hintergrund-Lauf meldete `SUCCESS` und
-    die Benachrichtigung „1 Favorit über 5 % Marge – Fine Ruby Gemstone:
-    117,7 %“ erschien.
-  - Einstellungen und Favorit überleben einen Neustart der App; der
-    Hintergrund-Auftrag ist danach und nach einer Neuinstallation weiter
-    eingeplant.
-  - Detailseite zeigt Charts mit echten Daten aus dem Branch `data`.
-  - Zurück-Taste: von der Detailseite zur Liste, von der Liste aus der App.
-- Die PWA im Browser läuft unverändert; der neue Einstellungsbereich ist dort
-  unsichtbar.
-
-Dabei gefunden und behoben: Die Zurück-Taste schloss die App auch auf der
-Detailseite.
-
-## Nicht geprüft
-
-- **Kein echtes Handy.** Alles lief nur im Emulator.
-- **Wiederholter Lauf:** Dass ein zweiter Lauf für denselben Favoriten nicht
-  erneut meldet, ist nur per Unit-Test belegt. Den zweiten Lauf konnte ich im
-  Emulator nicht erzwingen (WorkManager verschob ihn auf das nächste
-  15-Minuten-Fenster).
-- Verhalten über Stunden, im Stromsparmodus und nach einem Geräte-Neustart.
-- Tipp auf die Benachrichtigung öffnet die App: nicht angetippt.
-- Hersteller mit eigener Akku-Verwaltung (Xiaomi, Huawei, Samsung, OnePlus)
-  beenden Hintergrund-Aufträge oft trotzdem.
-- Android-Versionen unter 15.
+1. `git switch main`, `git merge --ff-only v3`, `git push`
+2. Unter Actions den Workflow „snapshot“ einmal von Hand starten (oder bis zu
+   20 Minuten warten). Danach gibt es `stats.json`.
 
 ## Testliste
 
-1. APK installieren, App öffnen: Splash, dann die Liste. Tabs Flips, NPC,
-   Craft und eine Detailseite durchgehen.
-2. Zwei bis drei Favoriten setzen. Einstellungen (Zahnrad) → „Benachrichtigung
-   bei Favoriten“ einschalten → Berechtigung zulassen.
-3. Mindestmarge so wählen, dass mindestens ein Favorit darüber liegt (die
-   Marge steht auf jeder Karte). Innerhalb weniger Sekunden sollte die erste
-   Benachrichtigung kommen.
-4. Benachrichtigung antippen: Die App öffnet sich.
-5. App schließen (aus der Übersicht wischen), Handy weglegen. In den nächsten
-   Stunden darf für dieselben Favoriten **keine** weitere Meldung kommen.
-6. Mindestmarge senken, sodass ein weiterer Favorit darüber liegt: Beim
-   nächsten Lauf (bis zu 15 Minuten, im Stromsparmodus länger) kommt eine
-   Meldung nur für diesen.
-7. Schalter aus: keine Meldungen mehr. Wieder an: aktuelle Treffer werden
-   einmal gemeldet.
-8. Berechtigung in den Android-Einstellungen entziehen, Schalter einschalten:
-   Der Schalter springt zurück, der rote Hinweis erscheint.
-9. Handy neu starten, App **nicht** öffnen: Meldungen kommen weiterhin (Test
-   wie in Schritt 6 vorbereiten).
-10. Zurück-Taste oder Zurück-Geste auf der Detailseite: zurück zur Liste.
+Sofort, lokal (`node scripts/serve.mjs`, dann http://127.0.0.1:8123, vorher
+`node scripts/snapshot.mjs data`):
 
-## Offene Punkte
+1. Liste am PC: mehrere Spalten, große Zahlen Profit/h und Margin, kleine
+   Zeile darunter.
+2. Fenster schmal ziehen: unter 900 px eine Spalte, Titel bleibt einzeilig.
+3. Einstellungen öffnen: vier Gruppen, unter jedem Feld ein Erklärsatz; am
+   Handy bis zum letzten Feld scrollbar.
+4. Detailseite: zwei Charts mit Hilfslinien. Mit der Maus darüberfahren: Zeile
+   über dem Chart zeigt Zeit und Werte, gestrichelte Linie folgt.
+5. Favorit mit Verlust (Stern setzen bei einem Item mit negativer Marge, z. B.
+   über die Suche): Zahlen sind rot, nicht orange.
 
-- **Android Studio ist installiert, aber noch nie gestartet.** Für den Build
-  brauchst du es nicht. Beim ersten Start klickst du im Assistenten:
-  1. „Do not import settings“ → OK
-  2. Datenfreigabe: „Don't send“
-  3. Welcome → Next
-  4. Install Type: „Standard“ → Next
-  5. Verify Settings: Der SDK-Pfad muss
-     `%LOCALAPPDATA%\Android\Sdk` (ausgeschrieben) zeigen (dort liegt das SDK
-     schon) → Next
-  6. License Agreement: links jede Lizenz anklicken, jeweils „Accept“ → Finish
-  7. Projekt öffnen: „Open“ → Ordner
-     `android`
-- Die Android-SDK-Lizenzen habe ich für den Kommandozeilen-Build per
-  `sdkmanager --licenses` in deinem Namen angenommen.
-- Der Hinweis bei abgelehnter Berechtigung sagt immer „in den
-  Android-Einstellungen blockiert“, auch wenn du nur einmal „Nicht zulassen“
-  getippt hast und der Dialog beim nächsten Versuch nochmal käme.
-- Die App aktualisiert sich nicht von selbst. Änderungen am Web-Code kommen
-  erst mit einer neu gebauten APK an.
-- Keine Release-Signatur. Für eine Weitergabe an andere oder den Play Store
-  braucht es einen eigenen Schlüssel; ein Wechsel des Schlüssels erfordert
-  eine Deinstallation (Favoriten gehen dabei verloren).
-- Der Check meldet nur Bazaar-Flips von Favoriten, mit einer gemeinsamen
-  Schwelle. NPC- und Craft-Flips werden nicht überwacht.
-- Wird `android` nach `main` gemergt, liegt auch `android/` im öffentlichen
-  Repo und auf GitHub Pages (als Quelltext, ohne Wirkung auf die PWA).
-- Platzbedarf der Werkzeuge: rund 9 GB (SDK und Emulator). Der Emulator lässt
-  sich mit `sdkmanager --uninstall "emulator" "system-images;android-35;google_apis;x86_64"`
-  und Löschen von `%USERPROFILE%\.android\avd` wieder entfernen.
+In der App (neue APK):
 
-## Nachtrag: Oberfläche auf Englisch
+6. Neues Icon (orange Balken) und neuer Splash; Statusleiste schwarz.
+7. Chart antippen und Finger ziehen: Werte ändern sich.
+8. Benachrichtigung zeigt das neue Balken-Symbol.
 
-Seit der Umstellung sind alle Texte in PWA und App englisch. Die
-Benachrichtigung lautet jetzt z. B. „1 favorite above 5% margin“, der
-Schalter „Notify me about favorites“. Die Testliste oben gilt unverändert.
+Nach dem Push:
 
-## Nachtrag: Market alerts
+9. Erster Workflow-Lauf grün, `stats.json` liegt im Branch `data`.
+10. Karten zeigen „provisional“ und „normal: X“.
+11. Nach 24 Stunden: Badges stable / medium / unstable erscheinen,
+    „Opportunities“ füllt sich.
+12. Ein Item mit Preissprung prüfen: Liegt der Sell-Preis klar über
+    „normal“, trägt es „suspicious“.
+13. Stichprobe im Spiel: Passt der angezeigte Buy-Order-Preis ungefähr zu
+    dem, was du im Bazaar siehst? Bei Abweichungen liegt es an der
+    Orderbuch-Tiefe.
 
-Neu sind der Tab „Opportunities“ (PWA und App) und in der App der Schalter
-„Market alerts“ mit eigenem Benachrichtigungskanal. Zusätzliche Tests:
+## Offen
 
-1. Tab „Opportunities“: zeigt nur Items mit Badge „stable“ und ohne
-   „suspicious“. Solange es noch keine Scores gibt (erste 4 Stunden), steht
-   dort ein Hinweis.
-2. Einstellungen → „Market alerts“ einschalten. Sind Favoriten-Alerts schon
-   an, kommt der erste Markt-Check mit dem nächsten 15-Minuten-Lauf.
-3. Meldung „N market opportunities“ zeigt höchstens drei Items und „+N more“.
-   Tipp darauf öffnet den Tab „Opportunities“, bei genau einem Treffer dessen
-   Detailseite.
-4. In den folgenden Stunden: dieselben Items werden nicht erneut gemeldet.
-
-Nicht geprüft: Market Alerts mit echten Scores (der Branch `data` hatte zum
-Testzeitpunkt noch keine); im Emulator lief der Test mit künstlich gesetzten
-Scores. Cooldown und „nur neue Items“ sind per Unit-Test belegt, nicht über
-mehrere echte Läufe.
+- Schwellen sind Annahmen: 30 % über Median, 1000 Stück Tiefe, 24 h,
+  Score 70. Nach ein paar Tagen echter Daten ansehen.
+- Bei teuren Items mit wenigen Stück im Buch mittelt die Tiefe über das ganze
+  sichtbare Buch. Wenn das stört, wäre eine Tiefe passend zum Kapital die
+  nächste Stufe.
+- Im Chart skaliert die Schrift am Desktop mit und wirkt dort groß.
+- Die Einstellungen sind am Handy lang (vier Gruppen untereinander).
+- Kein Light Mode, kein Verlauf über 7 Tage hinaus, kein Volumen-Chart.
+- NPC- und Craft-Karten haben weiterhin kein Suspicious-Badge.

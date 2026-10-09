@@ -130,7 +130,7 @@ async function refresh() {
     if (!data.success) throw new Error(data.cause || 'the API reported an error');
     products = data.products;
     sendNames();
-    $('stamp').textContent = `Updated ${new Date(data.lastUpdated).toLocaleTimeString('en-GB')}`;
+    $('stamp-time').textContent = new Date(data.lastUpdated).toLocaleTimeString('en-GB');
     $('error').hidden = true;
     recompute();
     render();

@@ -48,7 +48,9 @@ header {
 .bar { display: flex; align-items: center; gap: 8px; }
 .bar + .bar { margin-top: 8px; }
 
-h1 { font-size: 17px; margin: 0; flex: 1; }
+h1 { font-size: 17px; margin: 0; flex: 1; white-space: nowrap; }
+/* on a narrow phone the time alone has to do */
+@media (max-width: 420px) { .stamp-label { display: none; } }
 .muted { color: var(--muted); font-size: 13px; }
 
 button, select, input {
