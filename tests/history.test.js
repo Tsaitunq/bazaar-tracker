@@ -58,3 +58,21 @@ test('stabilityScore', () => {
   assert.equal(stabilityScore(pts(12, (i) => (i % 2 ? [100, 100] : [100, 200]))), 33);
   assert.equal(stabilityScore(pts(11, () => [100, 200])), null);
 });
+
+test('median', async () => {
+  const { median } = await import('../history.js');
+  assert.equal(median([3, 1, 2]), 2);
+  assert.equal(median([1, 2, 3, 4]), 2.5);
+  assert.equal(median([]), null);
+});
+
+test('itemStats gives score, median sell price and hours of history', async () => {
+  const { itemStats } = await import('../history.js');
+  // 13 points, 20 minutes apart: 4 hours
+  const points = Array.from({ length: 13 }, (_, i) => [1000 + i * 20, 100, i === 12 ? 500 : 200]);
+  const [score, med, hours] = itemStats(points);
+  assert.equal(typeof score, 'number');
+  assert.equal(med, 200);
+  assert.equal(hours, 4);
+  assert.deepEqual(itemStats([[1000, 100, 123.44]]), [null, 123.4, 0]);
+});

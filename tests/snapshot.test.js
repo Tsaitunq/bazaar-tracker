@@ -43,3 +43,12 @@ test('scores need 12 points', () => withDir((dir) => {
   for (let i = 2; i < 12; i++) runSnapshot(dir, { X: prod() }, T0 + i * 20 * 60000);
   assert.equal(readJson(dir, 'scores.json').s.X, 100);
 }));
+
+test('stats.json has score, median and hours; scores.json is still written', () => withDir((dir) => {
+  const base = Date.UTC(2026, 9, 9, 6);
+  for (let i = 0; i < 13; i++) runSnapshot(dir, { X: prod() }, base + i * 20 * 60000);
+  const stats = readJson(dir, 'stats.json');
+  assert.deepEqual(stats.i.X, [100, 200, 4]);
+  assert.equal(stats.t, Math.round((base + 12 * 20 * 60000) / 60000));
+  assert.equal(readJson(dir, 'scores.json').s.X, 100);
+}));

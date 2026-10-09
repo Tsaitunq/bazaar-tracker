@@ -1,6 +1,6 @@
 import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { dataUrl, loadScores, loadRecipes, loadHistory } from '../data.js';
+import { dataUrl, loadStats, loadRecipes, loadHistory } from '../data.js';
 
 const realFetch = globalThis.fetch;
 afterEach(() => { globalThis.fetch = realFetch; });
@@ -16,11 +16,11 @@ test('dataUrl', () => {
   assert.equal(dataUrl('Tsaitunq.github.io', 'https:'), 'https://raw.githubusercontent.com/Tsaitunq/bazaar-tracker/data/');
 });
 
-test('loadScores', async () => {
+test('loadStats', async () => {
   globalThis.fetch = async () => notFound;
-  assert.deepEqual(await loadScores(), {});
-  globalThis.fetch = async () => ok({ t: 1, s: { A: 5 } });
-  assert.deepEqual(await loadScores(), { A: 5 });
+  assert.equal(await loadStats(), null);
+  globalThis.fetch = async () => ok({ t: 1, i: { A: [82, 100.5, 30] } });
+  assert.deepEqual(await loadStats(), { A: [82, 100.5, 30] });
 });
 
 test('loadRecipes returns null on network error', async () => {

@@ -1,6 +1,6 @@
-import { bookPrices, bySort } from './flips.js';
+import { bookPrices, bySort, statOf } from './flips.js';
 
-export function craftFlips(products, recipes, { tax, maxCapital, share = 1, sort, scores = {} }) {
+export function craftFlips(products, recipes, { tax, maxCapital, share = 1, sort, stats = null }) {
   const out = [];
   for (const [id, r] of Object.entries(recipes)) {
     const res = products[id] && bookPrices(products[id]);
@@ -22,7 +22,7 @@ export function craftFlips(products, recipes, { tax, maxCapital, share = 1, sort
     const craftsHour = maxCapital > 0 ? Math.min(reach, Math.floor(maxCapital / cost)) : reach;
     out.push({
       id, n: r.n, cost, revenue, profit, margin: profit / cost, craftsHour,
-      profitHour: craftsHour * profit, score: scores[id] ?? null, ingredients,
+      profitHour: craftsHour * profit, ...statOf(stats, id), ingredients,
     });
   }
   return out.sort(bySort(sort));

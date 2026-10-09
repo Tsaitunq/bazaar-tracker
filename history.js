@@ -58,3 +58,17 @@ export function stabilityScore(points) {
   const swing = (cv(points.map((p) => p[1])) + cv(points.map((p) => p[2]))) / 2;
   return Math.round(100 * positive * Math.max(0, 1 - 2 * swing));
 }
+
+export function median(values) {
+  if (!values.length) return null;
+  const s = [...values].sort((a, b) => a - b);
+  const mid = s.length >> 1;
+  return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+}
+
+// [score | null, median sell price, hours between first and last point] for stats.json
+export function itemStats(points) {
+  const hours = points.length ? (points[points.length - 1][0] - points[0][0]) / 60 : 0;
+  const round = (v) => Math.round(v * 10) / 10;
+  return [stabilityScore(points), round(median(points.map((p) => p[2])) ?? 0), round(hours)];
+}

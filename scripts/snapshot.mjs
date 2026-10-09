@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { recipesStale, refreshRecipes } from './recipes.mjs';
-import { SHARDS, KEEP_DAYS, shardOf, dayKey, dayKeys, compactPrices, appendSnapshot, seriesFor, stabilityScore } from '../history.js';
+import { SHARDS, KEEP_DAYS, shardOf, dayKey, dayKeys, compactPrices, appendSnapshot, seriesFor, itemStats } from '../history.js';
 
 const readChunk = (file) => (fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : null);
 
@@ -25,10 +25,13 @@ export function runSnapshot(dataDir, products, nowMs) {
   const chunks = days.flatMap((d) => Array.from({ length: SHARDS }, (_, s) => readChunk(path.join(hDir, d, `${s}.json`))));
   const ids = new Set(chunks.flatMap((c) => Object.keys(c?.p ?? {})));
   const scores = {};
+  const stats = {};
   for (const id of ids) {
-    const score = stabilityScore(seriesFor(chunks, id));
-    if (score != null) scores[id] = score;
+    stats[id] = itemStats(seriesFor(chunks, id));
+    if (stats[id][0] != null) scores[id] = stats[id][0];
   }
+  fs.writeFileSync(path.join(dataDir, 'stats.json'), JSON.stringify({ t: tMin, i: stats }));
+  // app versions before 3 read only this file
   fs.writeFileSync(path.join(dataDir, 'scores.json'), JSON.stringify({ t: tMin, s: scores }));
   return { day, count: Object.keys(prices).length };
 }

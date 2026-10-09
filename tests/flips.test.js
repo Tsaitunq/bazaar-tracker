@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { opportunities, computeFlip, buildFlips } from '../flips.js';
+import { opportunities, computeFlip, buildFlips, depthPrice, bookPrices, statOf, DEPTH_UNITS, MEDIAN_SPIKE, PROVISIONAL_HOURS } from '../flips.js';
 
 const product = (buy, sell, qs = {}) => ({
   sell_summary: buy == null ? [] : [{ pricePerUnit: buy }],
@@ -76,7 +76,7 @@ test('buildFlips filters and sorts descending', () => {
 
 test('scores and sort by score, missing last', () => {
   const products = { A: product(100, 200), BIG: product(100, 200), C: product(100, 200) };
-  const r = buildFlips(products, { tax: 0.0125, minVolume: 0, maxCapital: 0, sort: 'score', scores: { BIG: 80, C: 10 } });
+  const r = buildFlips(products, { tax: 0.0125, minVolume: 0, maxCapital: 0, sort: 'score', stats: { BIG: [80, 150, 48], C: [10, 150, 48] } });
   assert.deepEqual(r.map((f) => f.id), ['BIG', 'C', 'A']);
   assert.equal(r[0].score, 80);
   assert.equal(r[2].score, null);
@@ -94,17 +94,81 @@ test('opportunities need every condition', () => {
     THIN: product(100, 120, { buyMovingWeek: 50000, sellMovingWeek: 50000 }),
     PRICEY: product(9000, 12000),
   };
-  const scores = Object.fromEntries(Object.keys(products).map((id) => [id, 90]));
-  scores.UNSTABLE = 69;
-  delete scores.NO_SCORE;
-  const opts = { tax: 0.0125, maxCapital: 5000, share: 1, sort: 'profitHour', scores, minMargin: 0.1, minVolume: 100000, minProfitHour: 900 };
+  // [score, median sell, hours]; the median equals the current sell price so the spike rule stays quiet
+  const stats = Object.fromEntries(Object.entries(products).map(([id, p]) => [id, [90, p.buy_summary[0].pricePerUnit, 48]]));
+  stats.UNSTABLE[0] = 69;
+  delete stats.NO_SCORE;
+  const opts = { tax: 0.0125, maxCapital: 5000, share: 1, sort: 'profitHour', stats, minMargin: 0.1, minVolume: 100000, minProfitHour: 900 };
   const ids = (o) => opportunities(products, o).map((f) => f.id);
 
   assert.deepEqual(ids(opts), ['BEST', 'GOOD']);
   // the profit per hour floor applies after the capital cap: GOOD makes 50 x 18.5 = 925
   assert.deepEqual(ids({ ...opts, minProfitHour: 926 }), ['BEST']);
-  assert.deepEqual(ids({ ...opts, scores: {} }), []);
+  assert.deepEqual(ids({ ...opts, stats: {} }), []);
+  assert.deepEqual(ids({ ...opts, stats: null }), []);
   // exactly at the stable threshold counts; no capital limit lets the pricey one in
-  assert.deepEqual(ids({ ...opts, maxCapital: 0, scores: { ...scores, UNSTABLE: 70 } }).sort(), ['BEST', 'GOOD', 'PRICEY', 'UNSTABLE']);
+  assert.deepEqual(ids({ ...opts, maxCapital: 0, stats: { ...stats, UNSTABLE: [70, 120, 48] } }).sort(), ['BEST', 'GOOD', 'PRICEY', 'UNSTABLE']);
   assert.equal(opportunities(products, opts)[0].score, 90);
+});
+
+test('constants match AlertLogic.java', () => {
+  assert.deepEqual([DEPTH_UNITS, MEDIAN_SPIKE, PROVISIONAL_HOURS], [1000, 0.3, 24]);
+});
+
+test('depthPrice averages the first 1000 units', () => {
+  const o = (amount, pricePerUnit) => ({ amount, pricePerUnit });
+  // a 10 unit order at the top barely moves the price
+  near(depthPrice([o(10, 100), o(990, 90), o(5000, 50)]), 90.1);
+  // the last order counts only with the part that fills the 1000
+  near(depthPrice([o(500, 10), o(2000, 20)]), 15);
+  // a book with fewer than 1000 units: everything counts
+  near(depthPrice([o(1, 10), o(2, 40)]), 30);
+  near(depthPrice([o(5000, 7)]), 7);
+  // orders without an amount do not count; with none counting the top order sets the price
+  near(depthPrice([o(5, 100), { pricePerUnit: 99 }]), 100);
+  near(depthPrice([{ pricePerUnit: 42 }, { pricePerUnit: 41 }]), 42);
+  assert.ok(Number.isNaN(depthPrice([])));
+  assert.ok(Number.isNaN(depthPrice(undefined)));
+});
+
+test('bookPrices uses the depth price on both sides', () => {
+  const p = {
+    sell_summary: [{ amount: 10, pricePerUnit: 100 }, { amount: 990, pricePerUnit: 90 }],
+    buy_summary: [{ amount: 10, pricePerUnit: 110 }, { amount: 990, pricePerUnit: 120 }],
+  };
+  const { buy, sell } = bookPrices(p);
+  near(buy, 90.1);
+  near(sell, 119.9);
+  assert.equal(bookPrices({ sell_summary: [], buy_summary: [{ amount: 1, pricePerUnit: 5 }] }), null);
+});
+
+test('a sell price more than 30 % above its median is suspicious', () => {
+  const flip = (sell, median) => computeFlip('X', product(100, sell), 0.0125, 0, 1, median);
+  assert.equal(flip(131, 100).suspicious, true);
+  assert.equal(flip(130, 100).suspicious, false);
+  assert.equal(flip(131, null).suspicious, false);
+  assert.equal(flip(131, 0).suspicious, false);
+  assert.equal(flip(131).suspicious, false);
+});
+
+test('statOf: provisional below 24 hours of history', () => {
+  assert.deepEqual(statOf({ X: [82, 150, 23.9] }, 'X'), { score: null, median: 150, provisional: true });
+  assert.deepEqual(statOf({ X: [82, 150, 24] }, 'X'), { score: 82, median: 150, provisional: false });
+  assert.deepEqual(statOf({ X: [null, 150, 30] }, 'X'), { score: null, median: 150, provisional: false });
+  // not in the loaded stats: no history yet
+  assert.deepEqual(statOf({}, 'X'), { score: null, median: null, provisional: true });
+  // stats not loaded at all: unknown, so no badge
+  assert.deepEqual(statOf(null, 'X'), { score: null, median: null, provisional: false });
+});
+
+test('flips carry score, median and provisional; opportunities skip provisional and spiking items', () => {
+  const products = { OLD: product(100, 120), NEW: product(100, 120), SPIKE: product(100, 120), NONE: product(100, 120) };
+  const stats = { OLD: [90, 118, 48], NEW: [90, 118, 5], SPIKE: [90, 90, 48] };
+  const opts = { tax: 0.0125, minVolume: 0, maxCapital: 0, share: 1, sort: 'profitHour', stats, minMargin: 0.1, minProfitHour: 0 };
+  const byId = Object.fromEntries(buildFlips(products, opts).map((f) => [f.id, f]));
+  assert.deepEqual([byId.OLD.score, byId.OLD.median, byId.OLD.provisional, byId.OLD.suspicious], [90, 118, false, false]);
+  assert.deepEqual([byId.NEW.score, byId.NEW.provisional], [null, true]);
+  assert.equal(byId.SPIKE.suspicious, true);
+  assert.equal(byId.NONE.provisional, true);
+  assert.deepEqual(opportunities(products, opts).map((f) => f.id), ['OLD']);
 });

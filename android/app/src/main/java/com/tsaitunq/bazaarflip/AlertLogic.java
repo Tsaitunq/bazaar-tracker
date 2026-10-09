@@ -1,6 +1,7 @@
 package com.tsaitunq.bazaarflip;
 
 import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -20,6 +21,10 @@ import java.util.Set;
  * The flip maths mirrors flips.js; change both together.
  */
 final class AlertLogic {
+    // Same names and values as the constants in flips.js.
+    static final int DEPTH_UNITS = 1000;
+    static final double MEDIAN_SPIKE = 0.3;
+    static final double PROVISIONAL_HOURS = 24;
     /** Stability score from which the app shows the "stable" badge. */
     static final int STABLE = 70;
     static final int MAX_LINES = 3;
@@ -28,7 +33,7 @@ final class AlertLogic {
 
     private AlertLogic() {}
 
-    /** One bazaar product: top of both order book sides plus weekly volume and order counts. */
+    /** One bazaar product: depth price of both order book sides plus weekly volume and order counts. */
     static final class Product {
         final double buy;
         final double sell;
@@ -44,6 +49,23 @@ final class AlertLogic {
             this.sellWeek = sellWeek;
             this.buyOrders = buyOrders;
             this.sellOrders = sellOrders;
+        }
+    }
+
+    /** One entry of stats.json. score is NaN when the item has too few points for one. */
+    static final class Stat {
+        final double score;
+        final double median;
+        final double hours;
+
+        Stat(double score, double median, double hours) {
+            this.score = score;
+            this.median = median;
+            this.hours = hours;
+        }
+
+        boolean provisional() {
+            return !(hours >= PROVISIONAL_HOURS);
         }
     }
 
@@ -96,8 +118,8 @@ final class AlertLogic {
             while (r.hasNext()) {
                 String key = r.nextName();
                 // API names are from the instant buyer's view: sell_summary holds buy orders.
-                if (key.equals("sell_summary")) buy = firstPrice(r);
-                else if (key.equals("buy_summary")) sell = firstPrice(r);
+                if (key.equals("sell_summary")) buy = depthPrice(r);
+                else if (key.equals("buy_summary")) sell = depthPrice(r);
                 else if (key.equals("quick_status")) status = quickStatus(r);
                 else r.skipValue();
             }
@@ -107,20 +129,37 @@ final class AlertLogic {
         r.endObject();
     }
 
-    private static double firstPrice(JsonReader r) throws IOException {
-        double price = Double.NaN;
+    /**
+     * Volume weighted price of the best DEPTH_UNITS units, so a tiny order at the top does not set
+     * the price. Orders without an amount do not count; if none counts, the top order's price is used.
+     */
+    private static double depthPrice(JsonReader r) throws IOException {
+        double top = Double.NaN;
+        double units = 0;
+        double total = 0;
+        boolean first = true;
         r.beginArray();
-        if (r.hasNext()) {
+        while (r.hasNext()) {
+            double amount = 0;
+            double price = Double.NaN;
             r.beginObject();
             while (r.hasNext()) {
-                if (r.nextName().equals("pricePerUnit")) price = r.nextDouble();
+                String key = r.nextName();
+                if (key.equals("pricePerUnit")) price = r.nextDouble();
+                else if (key.equals("amount")) amount = r.nextDouble();
                 else r.skipValue();
             }
             r.endObject();
+            if (first) top = price;
+            first = false;
+            double take = Math.min(amount, DEPTH_UNITS - units);
+            if (take > 0) {
+                units += take;
+                total += take * price;
+            }
         }
-        while (r.hasNext()) r.skipValue();
         r.endArray();
-        return price;
+        return units > 0 ? total / units : top;
     }
 
     /** {buyMovingWeek, sellMovingWeek, buyOrders, sellOrders}; missing fields stay 0. */
@@ -140,23 +179,33 @@ final class AlertLogic {
         return out;
     }
 
-    /** Reads scores.json of the data branch: {"t": minutes, "s": {id: score}}. */
-    static Map<String, Integer> readScores(Reader json) throws IOException {
-        Map<String, Integer> out = new HashMap<>();
+    /** Reads stats.json of the data branch: {"t": minutes, "i": {id: [score | null, medianSell, hours]}}. */
+    static Map<String, Stat> readStats(Reader json) throws IOException {
+        Map<String, Stat> out = new HashMap<>();
         try (JsonReader r = new JsonReader(json)) {
             r.beginObject();
             while (r.hasNext()) {
-                if (!r.nextName().equals("s")) {
+                if (!r.nextName().equals("i")) {
                     r.skipValue();
                     continue;
                 }
                 r.beginObject();
-                while (r.hasNext()) out.put(r.nextName(), (int) Math.round(r.nextDouble()));
+                while (r.hasNext()) {
+                    String id = r.nextName();
+                    double[] v = { Double.NaN, Double.NaN, 0 };
+                    r.beginArray();
+                    for (int i = 0; r.hasNext(); i++) {
+                        if (i < v.length && r.peek() != JsonToken.NULL) v[i] = r.nextDouble();
+                        else r.skipValue();
+                    }
+                    r.endArray();
+                    out.put(id, new Stat(v[0], v[1], v[2]));
+                }
                 r.endObject();
             }
             r.endObject();
         } catch (IllegalStateException | NumberFormatException e) {
-            throw new IOException("unexpected scores file", e);
+            throw new IOException("unexpected stats file", e);
         }
         return out;
     }
@@ -175,29 +224,34 @@ final class AlertLogic {
         return (sell * (1 - tax) - buy) / buy;
     }
 
-    /** Same result as computeFlip in flips.js. share and tax are fractions; maxCapital 0 means no limit. */
-    static Flip flip(String id, Product p, double tax, double maxCapital, double share) {
+    /**
+     * Same result as computeFlip in flips.js. share and tax are fractions; maxCapital 0 means no limit;
+     * median is the 7 day median sell price, or NaN when unknown.
+     */
+    static Flip flip(String id, Product p, double tax, double maxCapital, double share, double median) {
         double weekVol = Math.min(p.buyWeek, p.sellWeek);
         double hourVol = weekVol / HOURS_PER_WEEK;
         double reach = hourVol * share;
         double units = maxCapital > 0 ? Math.min(reach, Math.floor(maxCapital / p.buy)) : reach;
         double profit = p.sell * (1 - tax) - p.buy;
         double margin = profit / p.buy;
-        boolean suspicious = margin > 2 || (margin > 0.5 && hourVol < 100) || p.buyOrders < 3 || p.sellOrders < 3;
+        boolean suspicious = margin > 2 || (margin > 0.5 && hourVol < 100) || p.buyOrders < 3 || p.sellOrders < 3
+            || (median > 0 && p.sell > median * (1 + MEDIAN_SPIKE));
         return new Flip(id, p.buy, margin, weekVol, units * profit, suspicious);
     }
 
     /**
-     * Flips that meet every market alert condition, best profit per hour first: margin, a stable
-     * score, no suspicious flag, weekly volume, profit per hour, and a price within the capital limit.
+     * Flips that meet every market alert condition, best profit per hour first: at least a day of
+     * history, a stable score, no suspicious flag, margin, weekly volume, profit per hour, and a
+     * price within the capital limit. Same rules as opportunities in flips.js.
      */
-    static List<Flip> opportunities(Map<String, Product> market, Map<String, Integer> scores, double tax,
+    static List<Flip> opportunities(Map<String, Product> market, Map<String, Stat> stats, double tax,
             double maxCapital, double share, double minMargin, double minVolume, double minProfitHour) {
         List<Flip> out = new ArrayList<>();
         for (Map.Entry<String, Product> e : market.entrySet()) {
-            Integer score = scores.get(e.getKey());
-            if (score == null || score < STABLE) continue;
-            Flip f = flip(e.getKey(), e.getValue(), tax, maxCapital, share);
+            Stat stat = stats.get(e.getKey());
+            if (stat == null || stat.provisional() || !(stat.score >= STABLE)) continue;
+            Flip f = flip(e.getKey(), e.getValue(), tax, maxCapital, share, stat.median);
             if (!f.suspicious && f.margin >= minMargin && f.weekVol >= minVolume && f.profitHour >= minProfitHour
                     && !(maxCapital > 0 && f.buy > maxCapital)) {
                 out.add(f);

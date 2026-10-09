@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.tsaitunq.bazaarflip.AlertLogic.Flip;
 import com.tsaitunq.bazaarflip.AlertLogic.Product;
+import com.tsaitunq.bazaarflip.AlertLogic.Stat;
 
 import org.junit.Test;
 
@@ -24,6 +25,7 @@ import java.util.Set;
 public class AlertLogicTest {
     private static final double TAX = 0.0125;
     private static final long HOUR = 3_600_000L;
+    private static final double NONE = Double.NaN;
 
     private static final String RESPONSE = "{\"success\":true,\"lastUpdated\":1,\"products\":{"
         + "\"FULL\":{\"product_id\":\"FULL\",\"sell_summary\":[{\"amount\":5,\"pricePerUnit\":100.0,\"orders\":1},{\"pricePerUnit\":99.0}],"
@@ -64,12 +66,63 @@ public class AlertLogicTest {
     }
 
     @Test
-    public void readScoresReadsTheScoreMap() throws IOException {
-        Map<String, Integer> scores = AlertLogic.readScores(new StringReader("{\"t\":29338000,\"s\":{\"A\":82,\"INK_SACK:4\":40}}"));
-        assertEquals(Integer.valueOf(82), scores.get("A"));
-        assertEquals(Integer.valueOf(40), scores.get("INK_SACK:4"));
-        assertTrue(AlertLogic.readScores(new StringReader("{\"t\":1,\"s\":{}}")).isEmpty());
-        assertThrows(IOException.class, () -> AlertLogic.readScores(new StringReader("404: Not Found")));
+    public void constantsMatchFlipsJs() {
+        assertEquals(1000, AlertLogic.DEPTH_UNITS);
+        assertEquals(0.3, AlertLogic.MEDIAN_SPIKE, 0);
+        assertEquals(24, AlertLogic.PROVISIONAL_HOURS, 0);
+        assertEquals(70, AlertLogic.STABLE);
+    }
+
+    private static double depth(String orders) throws IOException {
+        String json = "{\"success\":true,\"products\":{\"X\":{\"sell_summary\":" + orders
+            + ",\"buy_summary\":[{\"amount\":1,\"pricePerUnit\":1.0}]}}}";
+        Product p = AlertLogic.readMarket(new StringReader(json)).get("X");
+        return p == null ? Double.NaN : p.buy;
+    }
+
+    private static String o(int amount, double price) {
+        return "{\"amount\":" + amount + ",\"pricePerUnit\":" + price + ",\"orders\":1}";
+    }
+
+    @Test
+    public void depthPriceAveragesTheFirstThousandUnits() throws IOException {
+        // same cases as tests/flips.test.js
+        assertEquals(90.1, depth("[" + o(10, 100) + "," + o(990, 90) + "," + o(5000, 50) + "]"), 1e-9);
+        assertEquals(15, depth("[" + o(500, 10) + "," + o(2000, 20) + "]"), 1e-9);
+        assertEquals(30, depth("[" + o(1, 10) + "," + o(2, 40) + "]"), 1e-9);
+        assertEquals(7, depth("[" + o(5000, 7) + "]"), 1e-9);
+        assertEquals(100, depth("[" + o(5, 100) + ",{\"pricePerUnit\":99}]"), 1e-9);
+        assertEquals(42, depth("[{\"pricePerUnit\":42},{\"pricePerUnit\":41}]"), 1e-9);
+        assertTrue(Double.isNaN(depth("[]")));
+    }
+
+    @Test
+    public void readStatsReadsScoreMedianAndHours() throws IOException {
+        Map<String, Stat> stats = AlertLogic.readStats(new StringReader(
+            "{\"t\":29338000,\"i\":{\"A\":[82,150.5,48],\"INK_SACK:4\":[null,3.5,2.3],\"SHORT\":[90]}}"));
+        assertEquals(82, stats.get("A").score, 0);
+        assertEquals(150.5, stats.get("A").median, 0);
+        assertFalse(stats.get("A").provisional());
+        assertTrue(Double.isNaN(stats.get("INK_SACK:4").score));
+        assertTrue(stats.get("INK_SACK:4").provisional());
+        assertTrue(stats.get("SHORT").provisional());
+        assertTrue(AlertLogic.readStats(new StringReader("{\"t\":1,\"i\":{}}")).isEmpty());
+        assertThrows(IOException.class, () -> AlertLogic.readStats(new StringReader("404: Not Found")));
+    }
+
+    @Test
+    public void provisionalBelowTwentyFourHours() {
+        assertTrue(new Stat(82, 150, 23.9).provisional());
+        assertFalse(new Stat(82, 150, 24).provisional());
+    }
+
+    @Test
+    public void sellPriceFarAboveItsMedianIsSuspicious() {
+        // same cases as tests/flips.test.js
+        assertTrue(AlertLogic.flip("X", product(100, 131), TAX, 0, 1, 100).suspicious);
+        assertFalse(AlertLogic.flip("X", product(100, 130), TAX, 0, 1, 100).suspicious);
+        assertFalse(AlertLogic.flip("X", product(100, 131), TAX, 0, 1, Double.NaN).suspicious);
+        assertFalse(AlertLogic.flip("X", product(100, 131), TAX, 0, 1, 0).suspicious);
     }
 
     @Test
@@ -88,22 +141,22 @@ public class AlertLogicTest {
     @Test
     public void flipMatchesComputeFlipInTheWebApp() {
         // same numbers as tests/flips.test.js
-        Flip free = AlertLogic.flip("X", product(100, 200), TAX, 0, 1);
+        Flip free = AlertLogic.flip("X", product(100, 200), TAX, 0, 1, NONE);
         assertEquals(0.975, free.margin, 1e-9);
         assertEquals(1_680_000, free.weekVol, 1e-9);
         assertEquals(975_000, free.profitHour, 1e-6);
         assertFalse(free.suspicious);
-        assertEquals(4875, AlertLogic.flip("X", product(100, 200), TAX, 5000, 1).profitHour, 1e-6);
-        assertEquals(48_750, AlertLogic.flip("X", product(100, 200), TAX, 0, 0.05).profitHour, 1e-6);
+        assertEquals(4875, AlertLogic.flip("X", product(100, 200), TAX, 5000, 1, NONE).profitHour, 1e-6);
+        assertEquals(48_750, AlertLogic.flip("X", product(100, 200), TAX, 0, 0.05, NONE).profitHour, 1e-6);
     }
 
     @Test
     public void flipFlagsSuspiciousProducts() {
-        assertTrue(AlertLogic.flip("X", product(100, 400), TAX, 0, 1).suspicious);
-        assertTrue(AlertLogic.flip("X", new Product(100, 200, 1680, 1680, 50, 50), TAX, 0, 1).suspicious);
-        assertTrue(AlertLogic.flip("X", new Product(100, 110, 1_680_000, 3_360_000, 2, 50), TAX, 0, 1).suspicious);
-        assertTrue(AlertLogic.flip("X", new Product(100, 110, 1_680_000, 3_360_000, 50, 2), TAX, 0, 1).suspicious);
-        assertFalse(AlertLogic.flip("X", product(100, 110), TAX, 0, 1).suspicious);
+        assertTrue(AlertLogic.flip("X", product(100, 400), TAX, 0, 1, NONE).suspicious);
+        assertTrue(AlertLogic.flip("X", new Product(100, 200, 1680, 1680, 50, 50), TAX, 0, 1, NONE).suspicious);
+        assertTrue(AlertLogic.flip("X", new Product(100, 110, 1_680_000, 3_360_000, 2, 50), TAX, 0, 1, NONE).suspicious);
+        assertTrue(AlertLogic.flip("X", new Product(100, 110, 1_680_000, 3_360_000, 50, 2), TAX, 0, 1, NONE).suspicious);
+        assertFalse(AlertLogic.flip("X", product(100, 110), TAX, 0, 1, NONE).suspicious);
     }
 
     @Test
@@ -117,17 +170,22 @@ public class AlertLogicTest {
         market.put("SUSPICIOUS", product(100, 400));
         market.put("THIN", new Product(100, 120, 50_000, 50_000, 50, 50));
         market.put("PRICEY", product(9000, 12000));
-        Map<String, Integer> scores = new HashMap<>();
-        for (String id : market.keySet()) scores.put(id, 90);
-        scores.put("UNSTABLE", 69);
+        // the median equals the current sell price so the spike rule stays quiet
+        Map<String, Stat> scores = new HashMap<>();
+        for (Map.Entry<String, Product> e : market.entrySet()) scores.put(e.getKey(), new Stat(90, e.getValue().sell, 48));
+        scores.put("UNSTABLE", new Stat(69, 120, 48));
         scores.remove("NO_SCORE");
+        market.put("NEW", product(100, 120));           // good numbers, but only 5 hours of history
+        scores.put("NEW", new Stat(90, 120, 5));
+        market.put("SPIKE", product(100, 120));         // sell price 33 % above its median
+        scores.put("SPIKE", new Stat(90, 90, 48));
 
         // GOOD: 50 x 18.5 = 925 per hour; BEST: 5 x 283.75 = 1418.75 per hour
         assertEquals(Arrays.asList("BEST", "GOOD"), ids(AlertLogic.opportunities(market, scores, TAX, 5000, 1, 0.10, 100_000, 900)));
         // the profit per hour floor applies after the capital cap
         assertEquals(Arrays.asList("BEST"), ids(AlertLogic.opportunities(market, scores, TAX, 5000, 1, 0.10, 100_000, 926)));
         // exactly at the stable threshold counts; no capital limit lets the pricey one in
-        scores.put("UNSTABLE", 70);
+        scores.put("UNSTABLE", new Stat(70, 120, 48));
         assertEquals(set("BEST", "GOOD", "UNSTABLE", "PRICEY"),
             new HashSet<>(ids(AlertLogic.opportunities(market, scores, TAX, 0, 1, 0.10, 100_000, 900))));
     }

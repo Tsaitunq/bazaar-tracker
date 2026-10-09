@@ -1,6 +1,6 @@
-import { bookPrices, bySort } from './flips.js';
+import { bookPrices, bySort, statOf } from './flips.js';
 
-export function npcFlips(products, npcPrices, { minVolume, maxCapital, share = 1, sort, scores = {} }) {
+export function npcFlips(products, npcPrices, { minVolume, maxCapital, share = 1, sort, stats = null }) {
   const out = [];
   for (const [id, p] of Object.entries(products)) {
     const npc = npcPrices[id];
@@ -15,7 +15,7 @@ export function npcFlips(products, npcPrices, { minVolume, maxCapital, share = 1
     const units = maxCapital > 0 ? Math.min(reach, Math.floor(maxCapital / buy)) : reach;
     out.push({
       id, buy, sell, npc, profit, profitInstant: npc - sell, margin: profit / buy, weekVol, hourVol,
-      profitHour: units * profit, score: scores[id] ?? null,
+      profitHour: units * profit, ...statOf(stats, id),
     });
   }
   return out.sort(bySort(sort));

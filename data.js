@@ -13,7 +13,8 @@ async function fetchJson(path) {
   return res.json();
 }
 
-export const loadScores = () => fetchJson('scores.json').then((d) => d.s ?? {}, () => ({}));
+// null when the file cannot be loaded, so the app can tell that apart from an item without history
+export const loadStats = () => fetchJson('stats.json').then((d) => d.i ?? null, () => null);
 export const loadRecipes = () => fetchJson('recipes.json').then((d) => d.r ?? null, () => null);
 
 export async function loadHistory(id, days, nowMs = Date.now()) {

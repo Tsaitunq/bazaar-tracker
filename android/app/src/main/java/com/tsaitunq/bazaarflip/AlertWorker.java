@@ -16,6 +16,7 @@ import androidx.work.WorkerParameters;
 
 import com.tsaitunq.bazaarflip.AlertLogic.Flip;
 import com.tsaitunq.bazaarflip.AlertLogic.Product;
+import com.tsaitunq.bazaarflip.AlertLogic.Stat;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -42,7 +43,7 @@ import java.util.Set;
  */
 public class AlertWorker extends Worker {
     private static final String API = "https://api.hypixel.net/v2/skyblock/bazaar";
-    private static final String SCORES = "https://raw.githubusercontent.com/Tsaitunq/bazaar-tracker/data/scores.json";
+    private static final String STATS = "https://raw.githubusercontent.com/Tsaitunq/bazaar-tracker/data/stats.json";
     private static final int TIMEOUT_MS = 30_000;
     private static final long HOUR_MS = 3_600_000L;
     // channel id, channel name, notification id
@@ -76,7 +77,7 @@ public class AlertWorker extends Worker {
                 try {
                     checkMarket(prefs, products, market, tax);
                 } catch (IOException e) {
-                    // Without scores "stable" cannot be verified; skip this round, favourites are done.
+                    // Without the stats file "stable" cannot be verified; skip this round, favourites are done.
                 }
             }
             return Result.success();
@@ -102,8 +103,8 @@ public class AlertWorker extends Worker {
 
     private void checkMarket(SharedPreferences prefs, Map<String, Product> products, JSONObject market, double tax)
             throws IOException, JSONException {
-        Map<String, Integer> scores = fetch(SCORES, AlertLogic::readScores);
-        List<Flip> hits = AlertLogic.opportunities(products, scores, tax,
+        Map<String, Stat> stats = fetch(STATS, AlertLogic::readStats);
+        List<Flip> hits = AlertLogic.opportunities(products, stats, tax,
             market.optDouble("maxCapital", 0), market.optDouble("share", 1), market.optDouble("minMargin", 0.10),
             market.optDouble("minVolume", 0), market.optDouble("minProfitHour", 0));
         List<String> qualifying = new ArrayList<>();
