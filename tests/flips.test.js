@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { opportunities, computeFlip, buildFlips, depthPrice, bookPrices, statOf, DEPTH_UNITS, MEDIAN_SPIKE, PROVISIONAL_HOURS } from '../flips.js';
+import fs from 'node:fs';
+import { opportunities, computeFlip, buildFlips, bookPrices, statOf, MEDIAN_SPIKE, PROVISIONAL_HOURS, STABLE } from '../flips.js';
 
 const product = (buy, sell, qs = {}) => ({
   sell_summary: buy == null ? [] : [{ pricePerUnit: buy }],
@@ -112,34 +113,35 @@ test('opportunities need every condition', () => {
 });
 
 test('constants match AlertLogic.java', () => {
-  assert.deepEqual([DEPTH_UNITS, MEDIAN_SPIKE, PROVISIONAL_HOURS], [1000, 0.3, 24]);
+  assert.deepEqual([MEDIAN_SPIKE, PROVISIONAL_HOURS, STABLE], [0.3, 24, 70]);
 });
 
-test('depthPrice averages the first 1000 units', () => {
-  const o = (amount, pricePerUnit) => ({ amount, pricePerUnit });
-  // a 10 unit order at the top barely moves the price
-  near(depthPrice([o(10, 100), o(990, 90), o(5000, 50)]), 90.1);
-  // the last order counts only with the part that fills the 1000
-  near(depthPrice([o(500, 10), o(2000, 20)]), 15);
-  // a book with fewer than 1000 units: everything counts
-  near(depthPrice([o(1, 10), o(2, 40)]), 30);
-  near(depthPrice([o(5000, 7)]), 7);
-  // orders without an amount do not count; with none counting the top order sets the price
-  near(depthPrice([o(5, 100), { pricePerUnit: 99 }]), 100);
-  near(depthPrice([{ pricePerUnit: 42 }, { pricePerUnit: 41 }]), 42);
-  assert.ok(Number.isNaN(depthPrice([])));
-  assert.ok(Number.isNaN(depthPrice(undefined)));
-});
-
-test('bookPrices uses the depth price on both sides', () => {
+test('the price is the top order, however small it is', () => {
   const p = {
-    sell_summary: [{ amount: 10, pricePerUnit: 100 }, { amount: 990, pricePerUnit: 90 }],
-    buy_summary: [{ amount: 10, pricePerUnit: 110 }, { amount: 990, pricePerUnit: 120 }],
+    sell_summary: [{ amount: 1, pricePerUnit: 100 }, { amount: 5000, pricePerUnit: 90 }],
+    buy_summary: [{ amount: 1, pricePerUnit: 110 }, { amount: 5000, pricePerUnit: 120 }],
   };
-  const { buy, sell } = bookPrices(p);
-  near(buy, 90.1);
-  near(sell, 119.9);
+  assert.deepEqual(bookPrices(p), { buy: 100, sell: 110 });
   assert.equal(bookPrices({ sell_summary: [], buy_summary: [{ amount: 1, pricePerUnit: 5 }] }), null);
+  assert.equal(bookPrices({}), null);
+});
+
+// Real order books, saved from the live API. Guards against any price rule that looks deeper into
+// the book: that can only raise the margin above what a flipper at the top of the book gets.
+test('for real order books the margin never exceeds the top-of-book margin', () => {
+  const products = JSON.parse(fs.readFileSync('tests/fixtures/bazaar-sample.json', 'utf8'));
+  assert.ok(Object.keys(products).length >= 20);
+  let withSmallTopOrder = 0;
+  for (const [id, p] of Object.entries(products)) {
+    const top = { buy: p.sell_summary[0].pricePerUnit, sell: p.buy_summary[0].pricePerUnit };
+    const topMargin = (top.sell * (1 - 0.0125) - top.buy) / top.buy;
+    const flip = computeFlip(id, p, 0.0125, 0);
+    assert.deepEqual({ buy: flip.buy, sell: flip.sell }, top, id);
+    assert.ok(flip.margin <= topMargin + 1e-12, `${id}: ${flip.margin} > ${topMargin}`);
+    if (p.sell_summary[0].amount < 64 || p.buy_summary[0].amount < 64) withSmallTopOrder++;
+  }
+  // the sample must contain the case the rule is about
+  assert.ok(withSmallTopOrder >= 5, `only ${withSmallTopOrder} products with a small top order`);
 });
 
 test('a sell price more than 30 % above its median is suspicious', () => {

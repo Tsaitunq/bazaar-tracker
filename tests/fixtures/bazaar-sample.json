@@ -1,0 +1,2537 @@
+{
+ "ABSOLUTE_ENDER_PEARL": {
+  "sell_summary": [
+   {
+    "amount": 357,
+    "pricePerUnit": 12501.2,
+    "orders": 2
+   },
+   {
+    "amount": 9812,
+    "pricePerUnit": 12501.1,
+    "orders": 1
+   },
+   {
+    "amount": 5453,
+    "pricePerUnit": 12500.8,
+    "orders": 1
+   },
+   {
+    "amount": 402,
+    "pricePerUnit": 12500.7,
+    "orders": 1
+   },
+   {
+    "amount": 71535,
+    "pricePerUnit": 12500.5,
+    "orders": 1
+   },
+   {
+    "amount": 61710,
+    "pricePerUnit": 12500,
+    "orders": 1
+   },
+   {
+    "amount": 46,
+    "pricePerUnit": 12379.7,
+    "orders": 1
+   }
+  ],
+  "buy_summary": [
+   {
+    "amount": 43,
+    "pricePerUnit": 14351.9,
+    "orders": 1
+   },
+   {
+    "amount": 127,
+    "pricePerUnit": 14352,
+    "orders": 1
+   },
+   {
+    "amount": 48,
+    "pricePerUnit": 14352.1,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 14557.8,
+    "orders": 1
+   },
+   {
+    "amount": 1812,
+    "pricePerUnit": 14557.9,
+    "orders": 2
+   },
+   {
+    "amount": 79,
+    "pricePerUnit": 14558.1,
+    "orders": 1
+   },
+   {
+    "amount": 270,
+    "pricePerUnit": 14558.2,
+    "orders": 1
+   },
+   {
+    "amount": 272,
+    "pricePerUnit": 14558.3,
+    "orders": 1
+   }
+  ],
+  "quick_status": {
+   "buyMovingWeek": 220624,
+   "sellMovingWeek": 398808,
+   "buyOrders": 279,
+   "sellOrders": 22
+  }
+ },
+ "CROPSHOT_GARDEN_CHIP": {
+  "sell_summary": [
+   {
+    "amount": 4,
+    "pricePerUnit": 391670.1,
+    "orders": 1
+   },
+   {
+    "amount": 16,
+    "pricePerUnit": 386566.2,
+    "orders": 1
+   },
+   {
+    "amount": 4,
+    "pricePerUnit": 386566.1,
+    "orders": 1
+   },
+   {
+    "amount": 16,
+    "pricePerUnit": 386566,
+    "orders": 1
+   },
+   {
+    "amount": 16,
+    "pricePerUnit": 386565.9,
+    "orders": 1
+   },
+   {
+    "amount": 12,
+    "pricePerUnit": 386565.8,
+    "orders": 1
+   },
+   {
+    "amount": 200,
+    "pricePerUnit": 386565.7,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 386565.6,
+    "orders": 1
+   }
+  ],
+  "buy_summary": [
+   {
+    "amount": 12,
+    "pricePerUnit": 488643.3,
+    "orders": 1
+   },
+   {
+    "amount": 605,
+    "pricePerUnit": 488643.4,
+    "orders": 1
+   },
+   {
+    "amount": 584,
+    "pricePerUnit": 488643.6,
+    "orders": 1
+   },
+   {
+    "amount": 11,
+    "pricePerUnit": 488644,
+    "orders": 1
+   },
+   {
+    "amount": 10,
+    "pricePerUnit": 488644.2,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 488644.4,
+    "orders": 1
+   },
+   {
+    "amount": 16,
+    "pricePerUnit": 488644.5,
+    "orders": 1
+   },
+   {
+    "amount": 3,
+    "pricePerUnit": 488644.9,
+    "orders": 1
+   }
+  ],
+  "quick_status": {
+   "buyMovingWeek": 22189,
+   "sellMovingWeek": 3986,
+   "buyOrders": 77,
+   "sellOrders": 32
+  }
+ },
+ "ENCHANTED_VINESAP": {
+  "sell_summary": [
+   {
+    "amount": 74,
+    "pricePerUnit": 388500.8,
+    "orders": 1
+   },
+   {
+    "amount": 58,
+    "pricePerUnit": 388500.7,
+    "orders": 1
+   },
+   {
+    "amount": 70,
+    "pricePerUnit": 388500.3,
+    "orders": 1
+   },
+   {
+    "amount": 32,
+    "pricePerUnit": 375000,
+    "orders": 1
+   },
+   {
+    "amount": 475,
+    "pricePerUnit": 272608.1,
+    "orders": 1
+   },
+   {
+    "amount": 462,
+    "pricePerUnit": 272607.9,
+    "orders": 1
+   },
+   {
+    "amount": 12,
+    "pricePerUnit": 272607.8,
+    "orders": 1
+   },
+   {
+    "amount": 47,
+    "pricePerUnit": 272607.7,
+    "orders": 1
+   }
+  ],
+  "buy_summary": [
+   {
+    "amount": 7,
+    "pricePerUnit": 619348.3,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 619348.4,
+    "orders": 1
+   },
+   {
+    "amount": 17,
+    "pricePerUnit": 619348.5,
+    "orders": 1
+   },
+   {
+    "amount": 323,
+    "pricePerUnit": 619348.6,
+    "orders": 1
+   },
+   {
+    "amount": 11,
+    "pricePerUnit": 619349,
+    "orders": 1
+   },
+   {
+    "amount": 3,
+    "pricePerUnit": 644998.8,
+    "orders": 1
+   },
+   {
+    "amount": 6,
+    "pricePerUnit": 644999,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 644999.2,
+    "orders": 1
+   }
+  ],
+  "quick_status": {
+   "buyMovingWeek": 10985,
+   "sellMovingWeek": 4594,
+   "buyOrders": 12,
+   "sellOrders": 10
+  }
+ },
+ "ENCHANTMENT_HARDENED_MANA_6": {
+  "sell_summary": [
+   {
+    "amount": 32,
+    "pricePerUnit": 78580.8,
+    "orders": 1
+   },
+   {
+    "amount": 4,
+    "pricePerUnit": 78580.7,
+    "orders": 1
+   },
+   {
+    "amount": 3,
+    "pricePerUnit": 78580.6,
+    "orders": 1
+   },
+   {
+    "amount": 4,
+    "pricePerUnit": 78580.4,
+    "orders": 1
+   }
+  ],
+  "buy_summary": [
+   {
+    "amount": 4,
+    "pricePerUnit": 799998,
+    "orders": 1
+   },
+   {
+    "amount": 8,
+    "pricePerUnit": 799998.4,
+    "orders": 1
+   },
+   {
+    "amount": 5,
+    "pricePerUnit": 799998.9,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 899996.9,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 1111110.4,
+    "orders": 1
+   },
+   {
+    "amount": 2,
+    "pricePerUnit": 1111111,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 1199997.2,
+    "orders": 1
+   }
+  ],
+  "quick_status": {
+   "buyMovingWeek": 182,
+   "sellMovingWeek": 7,
+   "buyOrders": 7,
+   "sellOrders": 4
+  }
+ },
+ "ENCHANTMENT_QUICK_BITE_5": {
+  "sell_summary": [
+   {
+    "amount": 2,
+    "pricePerUnit": 41000000,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 40000000.4,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 40000000.3,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 40000000.1,
+    "orders": 2
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 36027778.6,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 31350000,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 28613401.4,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 27812524.3,
+    "orders": 1
+   }
+  ],
+  "buy_summary": [
+   {
+    "amount": 1,
+    "pricePerUnit": 52999998.2,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 52999998.3,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 52999998.5,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 52999998.6,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 52999998.8,
+    "orders": 1
+   }
+  ],
+  "quick_status": {
+   "buyMovingWeek": 468,
+   "sellMovingWeek": 5,
+   "buyOrders": 6,
+   "sellOrders": 32
+  }
+ },
+ "ENCHANTMENT_TURBO_MOONFLOWER_3": {
+  "sell_summary": [
+   {
+    "amount": 2,
+    "pricePerUnit": 308200.4,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 308200.2,
+    "orders": 1
+   }
+  ],
+  "buy_summary": [
+   {
+    "amount": 1,
+    "pricePerUnit": 5430817.9,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 5430818,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 5999999.4,
+    "orders": 1
+   }
+  ],
+  "quick_status": {
+   "buyMovingWeek": 16,
+   "sellMovingWeek": 12,
+   "buyOrders": 3,
+   "sellOrders": 13
+  }
+ },
+ "ENCHANTMENT_ULTIMATE_REITERATE_5": {
+  "sell_summary": [
+   {
+    "amount": 4,
+    "pricePerUnit": 12200014.9,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 12200014.8,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 12200014.3,
+    "orders": 1
+   },
+   {
+    "amount": 3,
+    "pricePerUnit": 11346734.8,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 11346734.3,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 11148211.9,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 11148211.4,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 10000002.5,
+    "orders": 1
+   }
+  ],
+  "buy_summary": [
+   {
+    "amount": 1,
+    "pricePerUnit": 15099996.8,
+    "orders": 1
+   },
+   {
+    "amount": 3,
+    "pricePerUnit": 15099996.9,
+    "orders": 1
+   },
+   {
+    "amount": 2,
+    "pricePerUnit": 15099997,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 15099997.1,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 15099997.2,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 15099997.4,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 15099998.9,
+    "orders": 1
+   },
+   {
+    "amount": 3,
+    "pricePerUnit": 15099999.9,
+    "orders": 1
+   }
+  ],
+  "quick_status": {
+   "buyMovingWeek": 450,
+   "sellMovingWeek": 13,
+   "buyOrders": 108,
+   "sellOrders": 30
+  }
+ },
+ "FACTION_RABBIT_TIMBER": {
+  "sell_summary": [
+   {
+    "amount": 26,
+    "pricePerUnit": 39521.9,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 39521.7,
+    "orders": 1
+   }
+  ],
+  "buy_summary": [
+   {
+    "amount": 1,
+    "pricePerUnit": 499999.8,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 499999.9,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 500000,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 589997.9,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 589998.1,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 589998.2,
+    "orders": 1
+   },
+   {
+    "amount": 2,
+    "pricePerUnit": 589998.3,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 589998.5,
+    "orders": 1
+   }
+  ],
+  "quick_status": {
+   "buyMovingWeek": 68,
+   "sellMovingWeek": 29,
+   "buyOrders": 23,
+   "sellOrders": 5
+  }
+ },
+ "GENERATOR_UPGRADE_STONE_LILY_PAD_12": {
+  "sell_summary": [
+   {
+    "amount": 1,
+    "pricePerUnit": 14974432.7,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 14974432.6,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 14974432.5,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 14974432.4,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 14974432.3,
+    "orders": 1
+   },
+   {
+    "amount": 3,
+    "pricePerUnit": 14183613,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 14183612.9,
+    "orders": 1
+   },
+   {
+    "amount": 4,
+    "pricePerUnit": 14183612.5,
+    "orders": 1
+   }
+  ],
+  "buy_summary": [
+   {
+    "amount": 1,
+    "pricePerUnit": 29999999.4,
+    "orders": 1
+   },
+   {
+    "amount": 2,
+    "pricePerUnit": 29999999.5,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 29999999.6,
+    "orders": 2
+   },
+   {
+    "amount": 9,
+    "pricePerUnit": 29999999.8,
+    "orders": 4
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 29999999.9,
+    "orders": 1
+   },
+   {
+    "amount": 32,
+    "pricePerUnit": 30000000,
+    "orders": 1
+   }
+  ],
+  "quick_status": {
+   "buyMovingWeek": 65,
+   "sellMovingWeek": 31,
+   "buyOrders": 11,
+   "sellOrders": 17
+  }
+ },
+ "KELVIN_INVERTER": {
+  "sell_summary": [
+   {
+    "amount": 2000,
+    "pricePerUnit": 90053,
+    "orders": 1
+   },
+   {
+    "amount": 44,
+    "pricePerUnit": 90052.9,
+    "orders": 1
+   },
+   {
+    "amount": 35,
+    "pricePerUnit": 90052.8,
+    "orders": 1
+   },
+   {
+    "amount": 717,
+    "pricePerUnit": 90051.3,
+    "orders": 1
+   },
+   {
+    "amount": 664,
+    "pricePerUnit": 90046.5,
+    "orders": 1
+   },
+   {
+    "amount": 143,
+    "pricePerUnit": 90046.2,
+    "orders": 1
+   },
+   {
+    "amount": 414,
+    "pricePerUnit": 90044.9,
+    "orders": 1
+   },
+   {
+    "amount": 381,
+    "pricePerUnit": 90044.5,
+    "orders": 1
+   }
+  ],
+  "buy_summary": [
+   {
+    "amount": 15,
+    "pricePerUnit": 104357.9,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 104358,
+    "orders": 1
+   },
+   {
+    "amount": 2,
+    "pricePerUnit": 104358.1,
+    "orders": 1
+   },
+   {
+    "amount": 32,
+    "pricePerUnit": 104358.2,
+    "orders": 1
+   },
+   {
+    "amount": 7,
+    "pricePerUnit": 104358.3,
+    "orders": 1
+   },
+   {
+    "amount": 4,
+    "pricePerUnit": 104358.5,
+    "orders": 1
+   },
+   {
+    "amount": 13,
+    "pricePerUnit": 104358.6,
+    "orders": 1
+   },
+   {
+    "amount": 2,
+    "pricePerUnit": 104358.8,
+    "orders": 1
+   }
+  ],
+  "quick_status": {
+   "buyMovingWeek": 1096,
+   "sellMovingWeek": 14933,
+   "buyOrders": 38,
+   "sellOrders": 22
+  }
+ },
+ "PERFECT_SAPPHIRE_GEM": {
+  "sell_summary": [
+   {
+    "amount": 4,
+    "pricePerUnit": 15544959,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 15544958.8,
+    "orders": 1
+   },
+   {
+    "amount": 4,
+    "pricePerUnit": 15544958.7,
+    "orders": 2
+   },
+   {
+    "amount": 4,
+    "pricePerUnit": 15544958.6,
+    "orders": 1
+   },
+   {
+    "amount": 3,
+    "pricePerUnit": 15544958.1,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 15200001,
+    "orders": 1
+   },
+   {
+    "amount": 10,
+    "pricePerUnit": 15200000.5,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 15026216.5,
+    "orders": 1
+   }
+  ],
+  "buy_summary": [
+   {
+    "amount": 28,
+    "pricePerUnit": 15999989.5,
+    "orders": 3
+   },
+   {
+    "amount": 2,
+    "pricePerUnit": 15999989.8,
+    "orders": 1
+   },
+   {
+    "amount": 13,
+    "pricePerUnit": 15999990,
+    "orders": 1
+   },
+   {
+    "amount": 7,
+    "pricePerUnit": 15999990.4,
+    "orders": 1
+   },
+   {
+    "amount": 3,
+    "pricePerUnit": 15999990.5,
+    "orders": 1
+   },
+   {
+    "amount": 7,
+    "pricePerUnit": 15999990.6,
+    "orders": 1
+   },
+   {
+    "amount": 31,
+    "pricePerUnit": 15999991,
+    "orders": 1
+   },
+   {
+    "amount": 4,
+    "pricePerUnit": 15999991.7,
+    "orders": 1
+   }
+  ],
+  "quick_status": {
+   "buyMovingWeek": 4347,
+   "sellMovingWeek": 959,
+   "buyOrders": 84,
+   "sellOrders": 300
+  }
+ },
+ "SHARD_ALLIGATOR": {
+  "sell_summary": [
+   {
+    "amount": 194,
+    "pricePerUnit": 25201.1,
+    "orders": 1
+   },
+   {
+    "amount": 3393,
+    "pricePerUnit": 25200.9,
+    "orders": 1
+   },
+   {
+    "amount": 2305,
+    "pricePerUnit": 25000.9,
+    "orders": 1
+   },
+   {
+    "amount": 525,
+    "pricePerUnit": 25000.8,
+    "orders": 1
+   },
+   {
+    "amount": 900,
+    "pricePerUnit": 25000.7,
+    "orders": 1
+   },
+   {
+    "amount": 547,
+    "pricePerUnit": 20005.1,
+    "orders": 1
+   },
+   {
+    "amount": 15,
+    "pricePerUnit": 20004.1,
+    "orders": 1
+   },
+   {
+    "amount": 5,
+    "pricePerUnit": 16001.3,
+    "orders": 1
+   }
+  ],
+  "buy_summary": [
+   {
+    "amount": 1,
+    "pricePerUnit": 30318,
+    "orders": 1
+   },
+   {
+    "amount": 293,
+    "pricePerUnit": 30318.1,
+    "orders": 2
+   },
+   {
+    "amount": 3,
+    "pricePerUnit": 30318.2,
+    "orders": 1
+   },
+   {
+    "amount": 24,
+    "pricePerUnit": 30318.4,
+    "orders": 1
+   },
+   {
+    "amount": 14,
+    "pricePerUnit": 30318.7,
+    "orders": 1
+   },
+   {
+    "amount": 200,
+    "pricePerUnit": 30318.8,
+    "orders": 1
+   },
+   {
+    "amount": 4,
+    "pricePerUnit": 30318.9,
+    "orders": 1
+   },
+   {
+    "amount": 9,
+    "pricePerUnit": 30319.1,
+    "orders": 1
+   }
+  ],
+  "quick_status": {
+   "buyMovingWeek": 129996,
+   "sellMovingWeek": 114596,
+   "buyOrders": 173,
+   "sellOrders": 142
+  }
+ },
+ "SHARD_HIDEONGEON": {
+  "sell_summary": [
+   {
+    "amount": 38,
+    "pricePerUnit": 773952.1,
+    "orders": 1
+   },
+   {
+    "amount": 48,
+    "pricePerUnit": 773952,
+    "orders": 1
+   },
+   {
+    "amount": 30,
+    "pricePerUnit": 750000.3,
+    "orders": 1
+   },
+   {
+    "amount": 47,
+    "pricePerUnit": 750000.2,
+    "orders": 1
+   },
+   {
+    "amount": 30,
+    "pricePerUnit": 750000.1,
+    "orders": 1
+   },
+   {
+    "amount": 16,
+    "pricePerUnit": 750000,
+    "orders": 1
+   },
+   {
+    "amount": 47,
+    "pricePerUnit": 583952.9,
+    "orders": 1
+   },
+   {
+    "amount": 400,
+    "pricePerUnit": 550001.1,
+    "orders": 1
+   }
+  ],
+  "buy_summary": [
+   {
+    "amount": 3,
+    "pricePerUnit": 1229034.6,
+    "orders": 1
+   },
+   {
+    "amount": 89,
+    "pricePerUnit": 1229034.7,
+    "orders": 1
+   },
+   {
+    "amount": 34,
+    "pricePerUnit": 1229034.8,
+    "orders": 3
+   },
+   {
+    "amount": 59,
+    "pricePerUnit": 1229035,
+    "orders": 1
+   },
+   {
+    "amount": 89,
+    "pricePerUnit": 1229035.1,
+    "orders": 1
+   },
+   {
+    "amount": 96,
+    "pricePerUnit": 1229035.3,
+    "orders": 1
+   },
+   {
+    "amount": 239,
+    "pricePerUnit": 1229035.4,
+    "orders": 1
+   },
+   {
+    "amount": 11,
+    "pricePerUnit": 1229035.9,
+    "orders": 1
+   }
+  ],
+  "quick_status": {
+   "buyMovingWeek": 9744,
+   "sellMovingWeek": 1778,
+   "buyOrders": 18,
+   "sellOrders": 72
+  }
+ },
+ "SHARD_SEA_WITCH": {
+  "sell_summary": [
+   {
+    "amount": 58,
+    "pricePerUnit": 41355.2,
+    "orders": 1
+   },
+   {
+    "amount": 64,
+    "pricePerUnit": 41355.1,
+    "orders": 1
+   },
+   {
+    "amount": 60,
+    "pricePerUnit": 41354.9,
+    "orders": 1
+   },
+   {
+    "amount": 64,
+    "pricePerUnit": 39754.6,
+    "orders": 1
+   },
+   {
+    "amount": 51,
+    "pricePerUnit": 39754.4,
+    "orders": 1
+   },
+   {
+    "amount": 37,
+    "pricePerUnit": 39754.3,
+    "orders": 1
+   },
+   {
+    "amount": 64,
+    "pricePerUnit": 37685.6,
+    "orders": 1
+   },
+   {
+    "amount": 22,
+    "pricePerUnit": 37685.3,
+    "orders": 1
+   }
+  ],
+  "buy_summary": [
+   {
+    "amount": 14,
+    "pricePerUnit": 71761.2,
+    "orders": 1
+   },
+   {
+    "amount": 128,
+    "pricePerUnit": 71761.3,
+    "orders": 1
+   },
+   {
+    "amount": 23,
+    "pricePerUnit": 71761.4,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 75317.8,
+    "orders": 1
+   },
+   {
+    "amount": 19,
+    "pricePerUnit": 75317.9,
+    "orders": 1
+   },
+   {
+    "amount": 21,
+    "pricePerUnit": 79051.1,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 79051.2,
+    "orders": 1
+   },
+   {
+    "amount": 105,
+    "pricePerUnit": 79051.3,
+    "orders": 1
+   }
+  ],
+  "quick_status": {
+   "buyMovingWeek": 12623,
+   "sellMovingWeek": 4874,
+   "buyOrders": 182,
+   "sellOrders": 144
+  }
+ },
+ "SPOTLITE": {
+  "sell_summary": [
+   {
+    "amount": 1,
+    "pricePerUnit": 26350002.3,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 26350001.8,
+    "orders": 1
+   },
+   {
+    "amount": 3,
+    "pricePerUnit": 26000001.6,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 26000000.9,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 21000000,
+    "orders": 1
+   },
+   {
+    "amount": 20,
+    "pricePerUnit": 8800000,
+    "orders": 1
+   }
+  ],
+  "buy_summary": [
+   {
+    "amount": 9,
+    "pricePerUnit": 28110796.9,
+    "orders": 2
+   },
+   {
+    "amount": 3,
+    "pricePerUnit": 28110797,
+    "orders": 1
+   },
+   {
+    "amount": 7,
+    "pricePerUnit": 28110797.1,
+    "orders": 1
+   },
+   {
+    "amount": 3,
+    "pricePerUnit": 28110797.2,
+    "orders": 1
+   },
+   {
+    "amount": 6,
+    "pricePerUnit": 28110797.3,
+    "orders": 1
+   },
+   {
+    "amount": 2,
+    "pricePerUnit": 28306441.1,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 28306441.2,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 28523823.4,
+    "orders": 1
+   }
+  ],
+  "quick_status": {
+   "buyMovingWeek": 115,
+   "sellMovingWeek": 10,
+   "buyOrders": 21,
+   "sellOrders": 6
+  }
+ },
+ "AGARIMOO_TONGUE": {
+  "sell_summary": [
+   {
+    "amount": 214,
+    "pricePerUnit": 7624.5,
+    "orders": 1
+   },
+   {
+    "amount": 14433,
+    "pricePerUnit": 7624.4,
+    "orders": 1
+   },
+   {
+    "amount": 831,
+    "pricePerUnit": 7624.3,
+    "orders": 1
+   },
+   {
+    "amount": 290,
+    "pricePerUnit": 7623.4,
+    "orders": 1
+   },
+   {
+    "amount": 260,
+    "pricePerUnit": 7623.1,
+    "orders": 1
+   },
+   {
+    "amount": 4998,
+    "pricePerUnit": 7623,
+    "orders": 1
+   },
+   {
+    "amount": 617,
+    "pricePerUnit": 7622.6,
+    "orders": 1
+   },
+   {
+    "amount": 616,
+    "pricePerUnit": 7601.4,
+    "orders": 1
+   }
+  ],
+  "buy_summary": [
+   {
+    "amount": 1197,
+    "pricePerUnit": 8799.4,
+    "orders": 1
+   },
+   {
+    "amount": 1129,
+    "pricePerUnit": 8799.5,
+    "orders": 1
+   },
+   {
+    "amount": 343,
+    "pricePerUnit": 8799.6,
+    "orders": 1
+   },
+   {
+    "amount": 960,
+    "pricePerUnit": 8799.7,
+    "orders": 1
+   },
+   {
+    "amount": 351,
+    "pricePerUnit": 8799.9,
+    "orders": 1
+   },
+   {
+    "amount": 5199,
+    "pricePerUnit": 8800,
+    "orders": 4
+   },
+   {
+    "amount": 408,
+    "pricePerUnit": 8861.7,
+    "orders": 1
+   },
+   {
+    "amount": 132,
+    "pricePerUnit": 8861.9,
+    "orders": 1
+   }
+  ],
+  "quick_status": {
+   "buyMovingWeek": 223431,
+   "sellMovingWeek": 488782,
+   "buyOrders": 229,
+   "sellOrders": 11
+  }
+ },
+ "CREAMBLOOM": {
+  "sell_summary": [
+   {
+    "amount": 159,
+    "pricePerUnit": 52542.4,
+    "orders": 1
+   },
+   {
+    "amount": 13,
+    "pricePerUnit": 52542.3,
+    "orders": 1
+   },
+   {
+    "amount": 85,
+    "pricePerUnit": 52542,
+    "orders": 1
+   },
+   {
+    "amount": 115,
+    "pricePerUnit": 52541.9,
+    "orders": 1
+   },
+   {
+    "amount": 4,
+    "pricePerUnit": 52541.5,
+    "orders": 1
+   },
+   {
+    "amount": 59,
+    "pricePerUnit": 50000.1,
+    "orders": 1
+   },
+   {
+    "amount": 10918,
+    "pricePerUnit": 50000,
+    "orders": 2
+   },
+   {
+    "amount": 98,
+    "pricePerUnit": 36352,
+    "orders": 1
+   }
+  ],
+  "buy_summary": [
+   {
+    "amount": 70,
+    "pricePerUnit": 79999.6,
+    "orders": 1
+   },
+   {
+    "amount": 138,
+    "pricePerUnit": 79999.7,
+    "orders": 1
+   },
+   {
+    "amount": 19,
+    "pricePerUnit": 79999.9,
+    "orders": 1
+   },
+   {
+    "amount": 95,
+    "pricePerUnit": 80000,
+    "orders": 1
+   },
+   {
+    "amount": 2,
+    "pricePerUnit": 99994,
+    "orders": 2
+   },
+   {
+    "amount": 54,
+    "pricePerUnit": 99994.1,
+    "orders": 1
+   },
+   {
+    "amount": 18,
+    "pricePerUnit": 99994.2,
+    "orders": 1
+   },
+   {
+    "amount": 138,
+    "pricePerUnit": 99994.3,
+    "orders": 1
+   }
+  ],
+  "quick_status": {
+   "buyMovingWeek": 27248,
+   "sellMovingWeek": 13201,
+   "buyOrders": 385,
+   "sellOrders": 15
+  }
+ },
+ "ENCHANTED_CLOWNFISH": {
+  "sell_summary": [
+   {
+    "amount": 530,
+    "pricePerUnit": 3079,
+    "orders": 1
+   },
+   {
+    "amount": 62306,
+    "pricePerUnit": 3078.9,
+    "orders": 1
+   },
+   {
+    "amount": 38131,
+    "pricePerUnit": 3078.7,
+    "orders": 1
+   },
+   {
+    "amount": 543,
+    "pricePerUnit": 3078.6,
+    "orders": 1
+   },
+   {
+    "amount": 834,
+    "pricePerUnit": 2945.3,
+    "orders": 1
+   },
+   {
+    "amount": 71570,
+    "pricePerUnit": 2941.8,
+    "orders": 1
+   },
+   {
+    "amount": 61506,
+    "pricePerUnit": 2922.5,
+    "orders": 1
+   },
+   {
+    "amount": 16000,
+    "pricePerUnit": 2711.9,
+    "orders": 1
+   }
+  ],
+  "buy_summary": [
+   {
+    "amount": 167,
+    "pricePerUnit": 4321.7,
+    "orders": 1
+   },
+   {
+    "amount": 1184,
+    "pricePerUnit": 4321.8,
+    "orders": 1
+   },
+   {
+    "amount": 376,
+    "pricePerUnit": 4321.9,
+    "orders": 1
+   },
+   {
+    "amount": 296,
+    "pricePerUnit": 4322.2,
+    "orders": 1
+   },
+   {
+    "amount": 1040,
+    "pricePerUnit": 4322.4,
+    "orders": 1
+   },
+   {
+    "amount": 2240,
+    "pricePerUnit": 4322.5,
+    "orders": 1
+   },
+   {
+    "amount": 2240,
+    "pricePerUnit": 4322.6,
+    "orders": 1
+   },
+   {
+    "amount": 2240,
+    "pricePerUnit": 4322.7,
+    "orders": 1
+   }
+  ],
+  "quick_status": {
+   "buyMovingWeek": 192736,
+   "sellMovingWeek": 1602090,
+   "buyOrders": 164,
+   "sellOrders": 145
+  }
+ },
+ "ENCHANTED_IRON": {
+  "sell_summary": [
+   {
+    "amount": 8837,
+    "pricePerUnit": 522.6,
+    "orders": 1
+   },
+   {
+    "amount": 8151,
+    "pricePerUnit": 522.5,
+    "orders": 1
+   },
+   {
+    "amount": 43151,
+    "pricePerUnit": 522.4,
+    "orders": 1
+   },
+   {
+    "amount": 8147,
+    "pricePerUnit": 522,
+    "orders": 1
+   },
+   {
+    "amount": 5267,
+    "pricePerUnit": 521.6,
+    "orders": 1
+   },
+   {
+    "amount": 50221,
+    "pricePerUnit": 520.7,
+    "orders": 2
+   },
+   {
+    "amount": 480,
+    "pricePerUnit": 520.6,
+    "orders": 2
+   },
+   {
+    "amount": 415,
+    "pricePerUnit": 520.4,
+    "orders": 1
+   }
+  ],
+  "buy_summary": [
+   {
+    "amount": 1543,
+    "pricePerUnit": 792.7,
+    "orders": 1
+   },
+   {
+    "amount": 1981,
+    "pricePerUnit": 792.9,
+    "orders": 1
+   },
+   {
+    "amount": 1936,
+    "pricePerUnit": 793,
+    "orders": 1
+   },
+   {
+    "amount": 2048,
+    "pricePerUnit": 793.1,
+    "orders": 1
+   },
+   {
+    "amount": 2048,
+    "pricePerUnit": 793.2,
+    "orders": 1
+   },
+   {
+    "amount": 1975,
+    "pricePerUnit": 793.3,
+    "orders": 1
+   },
+   {
+    "amount": 1920,
+    "pricePerUnit": 793.8,
+    "orders": 1
+   },
+   {
+    "amount": 628,
+    "pricePerUnit": 794.2,
+    "orders": 3
+   }
+  ],
+  "quick_status": {
+   "buyMovingWeek": 3373163,
+   "sellMovingWeek": 3822501,
+   "buyOrders": 529,
+   "sellOrders": 143
+  }
+ },
+ "ENCHANTED_SEEDS": {
+  "sell_summary": [
+   {
+    "amount": 306934,
+    "pricePerUnit": 460,
+    "orders": 5
+   },
+   {
+    "amount": 485626,
+    "pricePerUnit": 457,
+    "orders": 8
+   },
+   {
+    "amount": 353068,
+    "pricePerUnit": 456.2,
+    "orders": 5
+   },
+   {
+    "amount": 703609,
+    "pricePerUnit": 456.1,
+    "orders": 10
+   },
+   {
+    "amount": 10605,
+    "pricePerUnit": 446.9,
+    "orders": 1
+   },
+   {
+    "amount": 42018,
+    "pricePerUnit": 445.8,
+    "orders": 1
+   },
+   {
+    "amount": 210915,
+    "pricePerUnit": 440.4,
+    "orders": 4
+   },
+   {
+    "amount": 215040,
+    "pricePerUnit": 438.1,
+    "orders": 4
+   }
+  ],
+  "buy_summary": [
+   {
+    "amount": 74,
+    "pricePerUnit": 475.8,
+    "orders": 1
+   },
+   {
+    "amount": 67,
+    "pricePerUnit": 476,
+    "orders": 1
+   },
+   {
+    "amount": 1080,
+    "pricePerUnit": 476.2,
+    "orders": 1
+   },
+   {
+    "amount": 639,
+    "pricePerUnit": 476.3,
+    "orders": 1
+   },
+   {
+    "amount": 1728,
+    "pricePerUnit": 476.4,
+    "orders": 1
+   },
+   {
+    "amount": 19,
+    "pricePerUnit": 476.6,
+    "orders": 1
+   },
+   {
+    "amount": 138,
+    "pricePerUnit": 476.7,
+    "orders": 1
+   },
+   {
+    "amount": 164,
+    "pricePerUnit": 476.8,
+    "orders": 1
+   }
+  ],
+  "quick_status": {
+   "buyMovingWeek": 1896667,
+   "sellMovingWeek": 249326454,
+   "buyOrders": 701,
+   "sellOrders": 270
+  }
+ },
+ "EXPORTABLE_CARROTS": {
+  "sell_summary": [
+   {
+    "amount": 2023,
+    "pricePerUnit": 6928.4,
+    "orders": 1
+   },
+   {
+    "amount": 2926,
+    "pricePerUnit": 6925.1,
+    "orders": 1
+   },
+   {
+    "amount": 384,
+    "pricePerUnit": 6923.7,
+    "orders": 1
+   },
+   {
+    "amount": 174,
+    "pricePerUnit": 5307.9,
+    "orders": 1
+   }
+  ],
+  "buy_summary": [
+   {
+    "amount": 6720,
+    "pricePerUnit": 9730.9,
+    "orders": 3
+   },
+   {
+    "amount": 648,
+    "pricePerUnit": 9731,
+    "orders": 1
+   },
+   {
+    "amount": 1088,
+    "pricePerUnit": 9731.1,
+    "orders": 1
+   },
+   {
+    "amount": 1088,
+    "pricePerUnit": 9731.2,
+    "orders": 1
+   },
+   {
+    "amount": 1088,
+    "pricePerUnit": 9731.3,
+    "orders": 1
+   },
+   {
+    "amount": 1088,
+    "pricePerUnit": 9731.4,
+    "orders": 1
+   },
+   {
+    "amount": 1152,
+    "pricePerUnit": 9731.5,
+    "orders": 1
+   },
+   {
+    "amount": 1152,
+    "pricePerUnit": 9731.6,
+    "orders": 1
+   }
+  ],
+  "quick_status": {
+   "buyMovingWeek": 264144,
+   "sellMovingWeek": 195292,
+   "buyOrders": 108,
+   "sellOrders": 26
+  }
+ },
+ "GOBLIN_EGG": {
+  "sell_summary": [
+   {
+    "amount": 3387,
+    "pricePerUnit": 1877.7,
+    "orders": 1
+   },
+   {
+    "amount": 2563,
+    "pricePerUnit": 1877.6,
+    "orders": 1
+   },
+   {
+    "amount": 64,
+    "pricePerUnit": 1877.5,
+    "orders": 1
+   },
+   {
+    "amount": 471,
+    "pricePerUnit": 1838.3,
+    "orders": 1
+   },
+   {
+    "amount": 4065,
+    "pricePerUnit": 1838.1,
+    "orders": 1
+   },
+   {
+    "amount": 666,
+    "pricePerUnit": 1837.9,
+    "orders": 2
+   },
+   {
+    "amount": 101,
+    "pricePerUnit": 1837.2,
+    "orders": 1
+   },
+   {
+    "amount": 3928,
+    "pricePerUnit": 1837,
+    "orders": 1
+   }
+  ],
+  "buy_summary": [
+   {
+    "amount": 90,
+    "pricePerUnit": 2686.4,
+    "orders": 1
+   },
+   {
+    "amount": 26,
+    "pricePerUnit": 2686.5,
+    "orders": 1
+   },
+   {
+    "amount": 715,
+    "pricePerUnit": 2686.6,
+    "orders": 2
+   },
+   {
+    "amount": 503,
+    "pricePerUnit": 2686.7,
+    "orders": 1
+   },
+   {
+    "amount": 9,
+    "pricePerUnit": 2686.8,
+    "orders": 1
+   },
+   {
+    "amount": 964,
+    "pricePerUnit": 2687,
+    "orders": 1
+   },
+   {
+    "amount": 5,
+    "pricePerUnit": 2687.3,
+    "orders": 1
+   },
+   {
+    "amount": 1,
+    "pricePerUnit": 2687.5,
+    "orders": 1
+   }
+  ],
+  "quick_status": {
+   "buyMovingWeek": 372553,
+   "sellMovingWeek": 475255,
+   "buyOrders": 138,
+   "sellOrders": 39
+  }
+ },
+ "KUUDRA_TEETH": {
+  "sell_summary": [
+   {
+    "amount": 19575,
+    "pricePerUnit": 5002.2,
+    "orders": 1
+   },
+   {
+    "amount": 3971,
+    "pricePerUnit": 5001.7,
+    "orders": 1
+   },
+   {
+    "amount": 71178,
+    "pricePerUnit": 5001.3,
+    "orders": 1
+   },
+   {
+    "amount": 17,
+    "pricePerUnit": 5000.5,
+    "orders": 1
+   },
+   {
+    "amount": 1203,
+    "pricePerUnit": 3249.7,
+    "orders": 1
+   },
+   {
+    "amount": 9688,
+    "pricePerUnit": 3249.6,
+    "orders": 1
+   }
+  ],
+  "buy_summary": [
+   {
+    "amount": 564,
+    "pricePerUnit": 7394.8,
+    "orders": 1
+   },
+   {
+    "amount": 2556,
+    "pricePerUnit": 7395.1,
+    "orders": 2
+   },
+   {
+    "amount": 1586,
+    "pricePerUnit": 7396,
+    "orders": 2
+   },
+   {
+    "amount": 193,
+    "pricePerUnit": 7396.1,
+    "orders": 1
+   },
+   {
+    "amount": 13,
+    "pricePerUnit": 7396.5,
+    "orders": 1
+   },
+   {
+    "amount": 603,
+    "pricePerUnit": 7396.6,
+    "orders": 4
+   },
+   {
+    "amount": 832,
+    "pricePerUnit": 7396.7,
+    "orders": 1
+   },
+   {
+    "amount": 704,
+    "pricePerUnit": 7396.8,
+    "orders": 1
+   }
+  ],
+  "quick_status": {
+   "buyMovingWeek": 311769,
+   "sellMovingWeek": 348290,
+   "buyOrders": 846,
+   "sellOrders": 11
+  }
+ },
+ "MOLTEN_POWDER": {
+  "sell_summary": [
+   {
+    "amount": 96,
+    "pricePerUnit": 350000.2,
+    "orders": 1
+   },
+   {
+    "amount": 96,
+    "pricePerUnit": 350000.1,
+    "orders": 1
+   },
+   {
+    "amount": 1906,
+    "pricePerUnit": 350000,
+    "orders": 1
+   },
+   {
+    "amount": 830,
+    "pricePerUnit": 319392.8,
+    "orders": 1
+   },
+   {
+    "amount": 1547,
+    "pricePerUnit": 318833.2,
+    "orders": 1
+   },
+   {
+    "amount": 74,
+    "pricePerUnit": 318829.8,
+    "orders": 1
+   },
+   {
+    "amount": 64,
+    "pricePerUnit": 318030.3,
+    "orders": 1
+   },
+   {
+    "amount": 128,
+    "pricePerUnit": 318029.7,
+    "orders": 1
+   }
+  ],
+  "buy_summary": [
+   {
+    "amount": 261,
+    "pricePerUnit": 379519.9,
+    "orders": 1
+   },
+   {
+    "amount": 168,
+    "pricePerUnit": 379520,
+    "orders": 1
+   },
+   {
+    "amount": 290,
+    "pricePerUnit": 382800,
+    "orders": 1
+   },
+   {
+    "amount": 13,
+    "pricePerUnit": 382800.1,
+    "orders": 1
+   },
+   {
+    "amount": 632,
+    "pricePerUnit": 382800.2,
+    "orders": 1
+   },
+   {
+    "amount": 1120,
+    "pricePerUnit": 382800.3,
+    "orders": 1
+   },
+   {
+    "amount": 161,
+    "pricePerUnit": 382800.4,
+    "orders": 1
+   },
+   {
+    "amount": 64,
+    "pricePerUnit": 382800.6,
+    "orders": 1
+   }
+  ],
+  "quick_status": {
+   "buyMovingWeek": 226437,
+   "sellMovingWeek": 40507,
+   "buyOrders": 46,
+   "sellOrders": 24
+  }
+ },
+ "RABBIT_FOOT": {
+  "sell_summary": [
+   {
+    "amount": 8108,
+    "pricePerUnit": 0.3,
+    "orders": 1
+   },
+   {
+    "amount": 33513,
+    "pricePerUnit": 0.2,
+    "orders": 1
+   },
+   {
+    "amount": 112836,
+    "pricePerUnit": 0.1,
+    "orders": 2
+   }
+  ],
+  "buy_summary": [
+   {
+    "amount": 1152,
+    "pricePerUnit": 19.5,
+    "orders": 1
+   },
+   {
+    "amount": 54300,
+    "pricePerUnit": 19.6,
+    "orders": 1
+   },
+   {
+    "amount": 382,
+    "pricePerUnit": 19.7,
+    "orders": 1
+   },
+   {
+    "amount": 638,
+    "pricePerUnit": 19.8,
+    "orders": 1
+   },
+   {
+    "amount": 46870,
+    "pricePerUnit": 19.9,
+    "orders": 1
+   },
+   {
+    "amount": 66352,
+    "pricePerUnit": 20,
+    "orders": 1
+   },
+   {
+    "amount": 71680,
+    "pricePerUnit": 24.9,
+    "orders": 1
+   },
+   {
+    "amount": 1536,
+    "pricePerUnit": 25,
+    "orders": 1
+   }
+  ],
+  "quick_status": {
+   "buyMovingWeek": 615357,
+   "sellMovingWeek": 2426002,
+   "buyOrders": 70,
+   "sellOrders": 4
+  }
+ },
+ "SHARD_ANTEATER": {
+  "sell_summary": [
+   {
+    "amount": 78,
+    "pricePerUnit": 200000.9,
+    "orders": 1
+   },
+   {
+    "amount": 156,
+    "pricePerUnit": 200000.8,
+    "orders": 1
+   },
+   {
+    "amount": 48,
+    "pricePerUnit": 200000.7,
+    "orders": 1
+   },
+   {
+    "amount": 48,
+    "pricePerUnit": 200000.6,
+    "orders": 1
+   },
+   {
+    "amount": 22,
+    "pricePerUnit": 200000,
+    "orders": 1
+   },
+   {
+    "amount": 48,
+    "pricePerUnit": 190000.6,
+    "orders": 1
+   },
+   {
+    "amount": 48,
+    "pricePerUnit": 190000.5,
+    "orders": 1
+   },
+   {
+    "amount": 160,
+    "pricePerUnit": 190000.4,
+    "orders": 1
+   }
+  ],
+  "buy_summary": [
+   {
+    "amount": 140,
+    "pricePerUnit": 399999.6,
+    "orders": 1
+   },
+   {
+    "amount": 148,
+    "pricePerUnit": 399999.7,
+    "orders": 1
+   },
+   {
+    "amount": 6,
+    "pricePerUnit": 651999.1,
+    "orders": 1
+   },
+   {
+    "amount": 437,
+    "pricePerUnit": 651999.5,
+    "orders": 1
+   },
+   {
+    "amount": 40,
+    "pricePerUnit": 651999.8,
+    "orders": 1
+   }
+  ],
+  "quick_status": {
+   "buyMovingWeek": 8266,
+   "sellMovingWeek": 3508,
+   "buyOrders": 6,
+   "sellOrders": 136
+  }
+ },
+ "SHARD_HAGGARD": {
+  "sell_summary": [
+   {
+    "amount": 347,
+    "pricePerUnit": 3017.7,
+    "orders": 1
+   },
+   {
+    "amount": 4988,
+    "pricePerUnit": 3017.6,
+    "orders": 1
+   },
+   {
+    "amount": 1012,
+    "pricePerUnit": 3017.4,
+    "orders": 1
+   },
+   {
+    "amount": 67,
+    "pricePerUnit": 3017.1,
+    "orders": 1
+   },
+   {
+    "amount": 7,
+    "pricePerUnit": 2387,
+    "orders": 1
+   },
+   {
+    "amount": 82,
+    "pricePerUnit": 2386.9,
+    "orders": 1
+   },
+   {
+    "amount": 2,
+    "pricePerUnit": 2082.2,
+    "orders": 1
+   },
+   {
+    "amount": 61,
+    "pricePerUnit": 2082,
+    "orders": 1
+   }
+  ],
+  "buy_summary": [
+   {
+    "amount": 190,
+    "pricePerUnit": 8940.6,
+    "orders": 1
+   },
+   {
+    "amount": 7,
+    "pricePerUnit": 8940.7,
+    "orders": 1
+   },
+   {
+    "amount": 603,
+    "pricePerUnit": 8940.8,
+    "orders": 1
+   },
+   {
+    "amount": 282,
+    "pricePerUnit": 8941.4,
+    "orders": 1
+   },
+   {
+    "amount": 378,
+    "pricePerUnit": 9599.7,
+    "orders": 1
+   },
+   {
+    "amount": 597,
+    "pricePerUnit": 9600,
+    "orders": 1
+   },
+   {
+    "amount": 419,
+    "pricePerUnit": 9631.6,
+    "orders": 1
+   },
+   {
+    "amount": 93,
+    "pricePerUnit": 9634.3,
+    "orders": 1
+   }
+  ],
+  "quick_status": {
+   "buyMovingWeek": 72512,
+   "sellMovingWeek": 31762,
+   "buyOrders": 181,
+   "sellOrders": 42
+  }
+ },
+ "SHARD_QUEEN_ANT": {
+  "sell_summary": [
+   {
+    "amount": 725,
+    "pricePerUnit": 17360.9,
+    "orders": 1
+   },
+   {
+    "amount": 971,
+    "pricePerUnit": 17360.8,
+    "orders": 1
+   },
+   {
+    "amount": 63,
+    "pricePerUnit": 17360.7,
+    "orders": 1
+   },
+   {
+    "amount": 43,
+    "pricePerUnit": 17360.5,
+    "orders": 1
+   },
+   {
+    "amount": 64,
+    "pricePerUnit": 16003.7,
+    "orders": 1
+   },
+   {
+    "amount": 1894,
+    "pricePerUnit": 16002.8,
+    "orders": 1
+   },
+   {
+    "amount": 27,
+    "pricePerUnit": 16001.8,
+    "orders": 1
+   },
+   {
+    "amount": 64,
+    "pricePerUnit": 16001.5,
+    "orders": 1
+   }
+  ],
+  "buy_summary": [
+   {
+    "amount": 64,
+    "pricePerUnit": 34999.3,
+    "orders": 3
+   },
+   {
+    "amount": 32,
+    "pricePerUnit": 34999.4,
+    "orders": 1
+   },
+   {
+    "amount": 457,
+    "pricePerUnit": 34999.5,
+    "orders": 1
+   },
+   {
+    "amount": 40,
+    "pricePerUnit": 34999.6,
+    "orders": 1
+   },
+   {
+    "amount": 350,
+    "pricePerUnit": 34999.9,
+    "orders": 1
+   },
+   {
+    "amount": 49,
+    "pricePerUnit": 35000,
+    "orders": 1
+   },
+   {
+    "amount": 329,
+    "pricePerUnit": 43000,
+    "orders": 1
+   },
+   {
+    "amount": 11,
+    "pricePerUnit": 43098.8,
+    "orders": 1
+   }
+  ],
+  "quick_status": {
+   "buyMovingWeek": 84375,
+   "sellMovingWeek": 34412,
+   "buyOrders": 76,
+   "sellOrders": 53
+  }
+ },
+ "SHARD_ZEALOT": {
+  "sell_summary": [
+   {
+    "amount": 319,
+    "pricePerUnit": 6298.7,
+    "orders": 1
+   },
+   {
+    "amount": 83,
+    "pricePerUnit": 6298.6,
+    "orders": 1
+   },
+   {
+    "amount": 19532,
+    "pricePerUnit": 6298.5,
+    "orders": 2
+   },
+   {
+    "amount": 60,
+    "pricePerUnit": 6298.4,
+    "orders": 1
+   },
+   {
+    "amount": 18,
+    "pricePerUnit": 6298.2,
+    "orders": 1
+   },
+   {
+    "amount": 17,
+    "pricePerUnit": 6297.8,
+    "orders": 2
+   },
+   {
+    "amount": 24,
+    "pricePerUnit": 6045.7,
+    "orders": 1
+   },
+   {
+    "amount": 872,
+    "pricePerUnit": 5779.3,
+    "orders": 1
+   }
+  ],
+  "buy_summary": [
+   {
+    "amount": 345,
+    "pricePerUnit": 7678.7,
+    "orders": 1
+   },
+   {
+    "amount": 1855,
+    "pricePerUnit": 7678.8,
+    "orders": 1
+   },
+   {
+    "amount": 1856,
+    "pricePerUnit": 7678.9,
+    "orders": 1
+   },
+   {
+    "amount": 808,
+    "pricePerUnit": 7679,
+    "orders": 1
+   },
+   {
+    "amount": 482,
+    "pricePerUnit": 7679.6,
+    "orders": 1
+   },
+   {
+    "amount": 224,
+    "pricePerUnit": 7679.8,
+    "orders": 1
+   },
+   {
+    "amount": 3,
+    "pricePerUnit": 7680,
+    "orders": 1
+   },
+   {
+    "amount": 223,
+    "pricePerUnit": 7680.2,
+    "orders": 1
+   }
+  ],
+  "quick_status": {
+   "buyMovingWeek": 112087,
+   "sellMovingWeek": 86476,
+   "buyOrders": 338,
+   "sellOrders": 23
+  }
+ },
+ "TARANTULA_CATALYST": {
+  "sell_summary": [
+   {
+    "amount": 524,
+    "pricePerUnit": 39302.2,
+    "orders": 1
+   },
+   {
+    "amount": 97,
+    "pricePerUnit": 39302.1,
+    "orders": 1
+   },
+   {
+    "amount": 32,
+    "pricePerUnit": 39302,
+    "orders": 1
+   },
+   {
+    "amount": 50,
+    "pricePerUnit": 39301.8,
+    "orders": 1
+   },
+   {
+    "amount": 611,
+    "pricePerUnit": 39301.7,
+    "orders": 1
+   },
+   {
+    "amount": 217,
+    "pricePerUnit": 39301.2,
+    "orders": 1
+   },
+   {
+    "amount": 4000,
+    "pricePerUnit": 26000,
+    "orders": 1
+   }
+  ],
+  "buy_summary": [
+   {
+    "amount": 205,
+    "pricePerUnit": 99457.2,
+    "orders": 1
+   },
+   {
+    "amount": 14,
+    "pricePerUnit": 99457.3,
+    "orders": 1
+   },
+   {
+    "amount": 49,
+    "pricePerUnit": 99457.4,
+    "orders": 1
+   },
+   {
+    "amount": 158,
+    "pricePerUnit": 99457.5,
+    "orders": 1
+   },
+   {
+    "amount": 62,
+    "pricePerUnit": 99457.7,
+    "orders": 1
+   },
+   {
+    "amount": 5,
+    "pricePerUnit": 99457.8,
+    "orders": 1
+   },
+   {
+    "amount": 41,
+    "pricePerUnit": 99458,
+    "orders": 1
+   },
+   {
+    "amount": 439,
+    "pricePerUnit": 99458.7,
+    "orders": 1
+   }
+  ],
+  "quick_status": {
+   "buyMovingWeek": 4642,
+   "sellMovingWeek": 7327,
+   "buyOrders": 82,
+   "sellOrders": 12
+  }
+ }
+}

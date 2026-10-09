@@ -22,7 +22,6 @@ import java.util.Set;
  */
 final class AlertLogic {
     // Same names and values as the constants in flips.js.
-    static final int DEPTH_UNITS = 1000;
     static final double MEDIAN_SPIKE = 0.3;
     static final double PROVISIONAL_HOURS = 24;
     /** Stability score from which the app shows the "stable" badge. */
@@ -33,7 +32,7 @@ final class AlertLogic {
 
     private AlertLogic() {}
 
-    /** One bazaar product: depth price of both order book sides plus weekly volume and order counts. */
+    /** One bazaar product: top of both order book sides plus weekly volume and order counts. */
     static final class Product {
         final double buy;
         final double sell;
@@ -118,8 +117,8 @@ final class AlertLogic {
             while (r.hasNext()) {
                 String key = r.nextName();
                 // API names are from the instant buyer's view: sell_summary holds buy orders.
-                if (key.equals("sell_summary")) buy = depthPrice(r);
-                else if (key.equals("buy_summary")) sell = depthPrice(r);
+                if (key.equals("sell_summary")) buy = topPrice(r);
+                else if (key.equals("buy_summary")) sell = topPrice(r);
                 else if (key.equals("quick_status")) status = quickStatus(r);
                 else r.skipValue();
             }
@@ -130,36 +129,23 @@ final class AlertLogic {
     }
 
     /**
-     * Volume weighted price of the best DEPTH_UNITS units, so a tiny order at the top does not set
-     * the price. Orders without an amount do not count; if none counts, the top order's price is used.
+     * Price of the best order, however small it is. A flipper trades at the top of the book;
+     * looking deeper can only widen the spread and overstate the margin. Same rule as bookPrices in flips.js.
      */
-    private static double depthPrice(JsonReader r) throws IOException {
-        double top = Double.NaN;
-        double units = 0;
-        double total = 0;
-        boolean first = true;
+    private static double topPrice(JsonReader r) throws IOException {
+        double price = Double.NaN;
         r.beginArray();
-        while (r.hasNext()) {
-            double amount = 0;
-            double price = Double.NaN;
+        if (r.hasNext()) {
             r.beginObject();
             while (r.hasNext()) {
-                String key = r.nextName();
-                if (key.equals("pricePerUnit")) price = r.nextDouble();
-                else if (key.equals("amount")) amount = r.nextDouble();
+                if (r.nextName().equals("pricePerUnit")) price = r.nextDouble();
                 else r.skipValue();
             }
             r.endObject();
-            if (first) top = price;
-            first = false;
-            double take = Math.min(amount, DEPTH_UNITS - units);
-            if (take > 0) {
-                units += take;
-                total += take * price;
-            }
         }
+        while (r.hasNext()) r.skipValue();
         r.endArray();
-        return units > 0 ? total / units : top;
+        return price;
     }
 
     /** {buyMovingWeek, sellMovingWeek, buyOrders, sellOrders}; missing fields stay 0. */

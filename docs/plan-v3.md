@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- Konstanten in `flips.js` und `AlertLogic.java` gleich: `DEPTH_UNITS = 1000`, `MEDIAN_SPIKE = 0.3`, `PROVISIONAL_HOURS = 24`, `STABLE = 70`.
+- Konstanten in `flips.js` und `AlertLogic.java` gleich: `MEDIAN_SPIKE = 0.3`, `PROVISIONAL_HOURS = 24`, `STABLE = 70`. (`DEPTH_UNITS` wurde vor dem Merge wieder entfernt, siehe `DECISIONS.md`.)
 - Oberfläche englisch, Zahlenformat wie bisher (`coins`, `percent`).
 - Farben: `#0D0D0D`, `#1A1A1A`, Akzent `#FF8A00`; Kontrast mindestens 4,5 : 1.
 - Kein Name außer „Tsaitunq“ in Dateien, Commits, APK.

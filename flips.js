@@ -1,29 +1,15 @@
 // The Android background check repeats this maths in AlertLogic.java. Change both together.
 const HOURS_PER_WEEK = 168;
-export const DEPTH_UNITS = 1000;      // a price is the average over this many units of the order book
 export const MEDIAN_SPIKE = 0.3;      // sell price this far above its 7 day median is suspicious
 export const PROVISIONAL_HOURS = 24;  // less price history than this: no score, no opportunity
 export const STABLE = 70;
 
-// Volume weighted price of the best DEPTH_UNITS units, so a tiny order at the top does not set the price.
-// Orders without an amount do not count; if none counts, the top order's price is used.
-export function depthPrice(orders) {
-  let units = 0;
-  let total = 0;
-  for (const o of orders ?? []) {
-    const take = Math.min(o.amount, DEPTH_UNITS - units);
-    if (!(take > 0)) continue;
-    units += take;
-    total += take * o.pricePerUnit;
-    if (units >= DEPTH_UNITS) break;
-  }
-  return units > 0 ? total / units : orders?.[0]?.pricePerUnit ?? NaN;
-}
-
+// A flipper trades at the top of the book, so the price is always the best order, however small it is.
+// Looking deeper into the book can only widen the spread and overstate the margin.
 // API names are from the instant buyer's view: sell_summary holds buy orders, buy_summary holds sell offers.
 export function bookPrices(product) {
-  const buy = depthPrice(product.sell_summary);
-  const sell = depthPrice(product.buy_summary);
+  const buy = product.sell_summary?.[0]?.pricePerUnit;
+  const sell = product.buy_summary?.[0]?.pricePerUnit;
   return buy > 0 && sell > 0 ? { buy, sell } : null;
 }
 

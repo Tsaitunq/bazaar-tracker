@@ -12,7 +12,7 @@ Zusammenfassungen liegen in `docs/summary-v2.md` und
 | Nr. | Punkt | Umsetzung |
 |---|---|---|
 | 1 | Suspicious über den Median | Sell-Preis mehr als 30 % über dem 7-Tage-Median → „suspicious“ (`MEDIAN_SPIKE = 0.3`) |
-| 2 | Orderbuch-Tiefe | Preis = gewichteter Durchschnitt der ersten 1000 Stück je Seite (`DEPTH_UNITS = 1000`) |
+| 2 | Orderbuch-Tiefe | verworfen: Preis bleibt die oberste Order, per Test mit echten Orderbüchern abgesichert |
 | 3 | „provisional“ | unter 24 h Verlauf: eigenes Badge, kein Score, nicht in Opportunities, keine Market Alerts (`PROVISIONAL_HOURS = 24`) |
 | 4 | Median als Kontext | „normal: X“ neben dem Sell-Preis auf Karte und Detailseite |
 
@@ -40,7 +40,7 @@ nicht erreichbar). Sie liegen jetzt darunter und scrollen mit.
 
 ## Wie geprüft wurde
 
-- `node --test`: 90 Tests grün (vorher 70). Neu: Orderbuch-Tiefe,
+- `node --test`: 90 Tests grün (vorher 70). Neu: Preis der obersten Order,
   Median-Regel, provisional, `stats.json`, Chart-Hilfslinien und Trefferpunkt,
   Kontrast.
 - `gradlew testDebugUnitTest`: 19 Java-Tests grün (vorher 15), mit denselben
@@ -62,12 +62,11 @@ nicht erreichbar). Sie liegen jetzt darunter und scrollen mit.
 
 ## Wichtig zu wissen
 
-- **Orderbuch-Tiefe macht Spannen eher größer.** Mit Live-Daten gemessen: 368
-  statt 364 Flips, bei 228 von 364 ist die Marge höher als mit der obersten
-  Order, der Median der Marge bleibt praktisch gleich (41,4 % statt 41,3 %).
-  Die Regel ignoriert Mini-Orders an der Spitze richtig, zeigt bei dünnen
-  Büchern aber einen Preis, zu dem du nicht sofort oben stehst. Details in
-  `DECISIONS.md`.
+- **Die Orderbuch-Tiefe ist wieder draußen.** Der zuerst gebaute
+  1000-Stück-Durchschnitt überschätzte die Marge (bei 251 von 367 Flips höher
+  als mit der obersten Order). Der Preis ist wieder die oberste Order. Ein
+  Test mit 30 echten Orderbüchern sichert in Web und Java ab, dass die Marge
+  nie darüber liegt. Details in `DECISIONS.md`.
 - **Badges und „normal: X“ erscheinen erst nach dem Push.** Die App liest
   `stats.json` aus dem Branch `data`; die Datei entsteht erst, wenn der
   Workflow mit dem neuen Skript von `main` gelaufen ist. Bis dahin zeigt die
@@ -134,17 +133,13 @@ Nach dem Push:
     „Opportunities“ füllt sich.
 12. Ein Item mit Preissprung prüfen: Liegt der Sell-Preis klar über
     „normal“, trägt es „suspicious“.
-13. Stichprobe im Spiel: Passt der angezeigte Buy-Order-Preis ungefähr zu
-    dem, was du im Bazaar siehst? Bei Abweichungen liegt es an der
-    Orderbuch-Tiefe.
+13. Stichprobe im Spiel: Der angezeigte Buy-Order-Preis ist die höchste
+    Buy-Order, der Sell-Offer-Preis das niedrigste Sell-Offer im Bazaar.
 
 ## Offen
 
-- Schwellen sind Annahmen: 30 % über Median, 1000 Stück Tiefe, 24 h,
-  Score 70. Nach ein paar Tagen echter Daten ansehen.
-- Bei teuren Items mit wenigen Stück im Buch mittelt die Tiefe über das ganze
-  sichtbare Buch. Wenn das stört, wäre eine Tiefe passend zum Kapital die
-  nächste Stufe.
+- Schwellen sind Annahmen: 30 % über Median, 24 h, Score 70. Nach ein paar
+  Tagen echter Daten ansehen.
 - Im Chart skaliert die Schrift am Desktop mit und wirkt dort groß.
 - Die Einstellungen sind am Handy lang (vier Gruppen untereinander).
 - Kein Light Mode, kein Verlauf über 7 Tage hinaus, kein Volumen-Chart.

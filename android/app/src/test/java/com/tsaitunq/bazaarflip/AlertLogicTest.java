@@ -9,10 +9,17 @@ import com.tsaitunq.bazaarflip.AlertLogic.Flip;
 import com.tsaitunq.bazaarflip.AlertLogic.Product;
 import com.tsaitunq.bazaarflip.AlertLogic.Stat;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
 import org.junit.Test;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -67,33 +74,40 @@ public class AlertLogicTest {
 
     @Test
     public void constantsMatchFlipsJs() {
-        assertEquals(1000, AlertLogic.DEPTH_UNITS);
         assertEquals(0.3, AlertLogic.MEDIAN_SPIKE, 0);
         assertEquals(24, AlertLogic.PROVISIONAL_HOURS, 0);
         assertEquals(70, AlertLogic.STABLE);
     }
 
-    private static double depth(String orders) throws IOException {
-        String json = "{\"success\":true,\"products\":{\"X\":{\"sell_summary\":" + orders
-            + ",\"buy_summary\":[{\"amount\":1,\"pricePerUnit\":1.0}]}}}";
-        Product p = AlertLogic.readMarket(new StringReader(json)).get("X");
-        return p == null ? Double.NaN : p.buy;
-    }
-
-    private static String o(int amount, double price) {
-        return "{\"amount\":" + amount + ",\"pricePerUnit\":" + price + ",\"orders\":1}";
-    }
-
     @Test
-    public void depthPriceAveragesTheFirstThousandUnits() throws IOException {
-        // same cases as tests/flips.test.js
-        assertEquals(90.1, depth("[" + o(10, 100) + "," + o(990, 90) + "," + o(5000, 50) + "]"), 1e-9);
-        assertEquals(15, depth("[" + o(500, 10) + "," + o(2000, 20) + "]"), 1e-9);
-        assertEquals(30, depth("[" + o(1, 10) + "," + o(2, 40) + "]"), 1e-9);
-        assertEquals(7, depth("[" + o(5000, 7) + "]"), 1e-9);
-        assertEquals(100, depth("[" + o(5, 100) + ",{\"pricePerUnit\":99}]"), 1e-9);
-        assertEquals(42, depth("[{\"pricePerUnit\":42},{\"pricePerUnit\":41}]"), 1e-9);
-        assertTrue(Double.isNaN(depth("[]")));
+    public void thePriceIsTheTopOrderHoweverSmall() throws IOException {
+        // same case as tests/flips.test.js
+        String json = "{\"success\":true,\"products\":{\"X\":{"
+            + "\"sell_summary\":[{\"amount\":1,\"pricePerUnit\":100.0},{\"amount\":5000,\"pricePerUnit\":90.0}],"
+            + "\"buy_summary\":[{\"amount\":1,\"pricePerUnit\":110.0},{\"amount\":5000,\"pricePerUnit\":120.0}]}}}";
+        Product p = AlertLogic.readMarket(new StringReader(json)).get("X");
+        assertEquals(100, p.buy, 0);
+        assertEquals(110, p.sell, 0);
+    }
+
+    /** Same real order books as tests/flips.test.js: the margin must not exceed the top-of-book margin. */
+    @Test
+    public void forRealOrderBooksTheMarginNeverExceedsTopOfBook() throws IOException {
+        // Gradle runs unit tests from android/app
+        String sample = new String(Files.readAllBytes(Paths.get("../../tests/fixtures/bazaar-sample.json")), StandardCharsets.UTF_8);
+        Map<String, Product> market = AlertLogic.readMarket(new StringReader("{\"success\":true,\"products\":" + sample + "}"));
+        JsonObject books = JsonParser.parseString(sample).getAsJsonObject();
+        assertTrue(books.size() >= 20);
+        for (Map.Entry<String, JsonElement> e : books.entrySet()) {
+            JsonObject book = e.getValue().getAsJsonObject();
+            double topBuy = book.getAsJsonArray("sell_summary").get(0).getAsJsonObject().get("pricePerUnit").getAsDouble();
+            double topSell = book.getAsJsonArray("buy_summary").get(0).getAsJsonObject().get("pricePerUnit").getAsDouble();
+            Product p = market.get(e.getKey());
+            assertEquals(e.getKey(), topBuy, p.buy, 0);
+            assertEquals(e.getKey(), topSell, p.sell, 0);
+            double margin = AlertLogic.flip(e.getKey(), p, TAX, 0, 1, NONE).margin;
+            assertTrue(e.getKey(), margin <= AlertLogic.margin(topBuy, topSell, TAX) + 1e-12);
+        }
     }
 
     @Test

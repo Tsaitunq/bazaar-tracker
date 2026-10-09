@@ -11,21 +11,19 @@ Wert; Tests benutzen in beiden Sprachen dieselben Fälle.
 
 ## Datenqualität
 
-### 1. Preis aus der Orderbuch-Tiefe
+### 1. Preis: oberste Order
 
-Statt der obersten Order gilt als Preis der mengengewichtete Durchschnitt der
-ersten `DEPTH_UNITS = 1000` Stück je Buchseite.
+Als Preis gilt weiterhin die oberste Order je Buchseite (höchste Buy-Order,
+niedrigstes Sell-Offer), egal wie klein sie ist. Ein Flipper handelt oben im
+Buch; jeder Blick tiefer ins Buch kann die Spanne nur vergrößern und die Marge
+überschätzen.
 
-```
-preis = Σ(menge_i × preis_i) / Σ menge_i     über die besten Orders, bis 1000 Stück erreicht sind
-```
+Ein Test mit echten Orderbüchern (`tests/fixtures/bazaar-sample.json`) sichert
+das in beiden Sprachen ab: Die berechnete Marge darf nie über der Marge der
+obersten Order liegen.
 
-- Die letzte Order zählt nur mit dem Teil, der bis 1000 fehlt.
-- Liegen insgesamt weniger als 1000 Stück im Buch, zählt alles Vorhandene.
-- Orders ohne Mengenangabe zählen nicht; zählt gar keine, gilt der Preis der
-  obersten Order.
-- Gilt überall, wo bisher „oberste Order“ stand: Flips, NPC, Craft,
-  Favoriten-Alerts, Market Alerts und die Snapshots im Branch `data`.
+Die zunächst gebaute Variante (gewichteter Durchschnitt der ersten 1000 Stück)
+wurde vor dem Merge verworfen, siehe `DECISIONS.md`.
 
 ### 2. Kennzahlen aus dem Verlauf (`stats.json`)
 
@@ -92,9 +90,9 @@ sofern vorhanden.
 
 ## Tests
 
-- Web (`node --test`): Orderbuch-Tiefe, Median-Regel, provisional,
+- Web (`node --test`): Preis der obersten Order, Median-Regel, provisional,
   `stats.json` im Snapshot, Kontrast, Chart-Hilfslinien und Trefferpunkt.
-- Java (`gradlew testDebugUnitTest`): dieselben Fälle für Tiefe, Median-Regel
+- Java (`gradlew testDebugUnitTest`): dieselben Fälle für Preis, Median-Regel
   und provisional.
 - Sichtprüfung per Screenshot bei 360 px und 1440 px.
 

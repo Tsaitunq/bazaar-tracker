@@ -220,19 +220,24 @@ Selbstständig getroffen (Auftrag: ohne Rückfragen).
 
 ## Datenqualität
 
-- **Orderbuch-Tiefe wörtlich umgesetzt: gewichteter Durchschnitt der ersten
-  1000 Stück je Seite.** Wichtig zu wissen: Das macht die Spanne in der Regel
-  **größer**, nicht kleiner. Der Durchschnitt der Buy-Orders liegt unter der
-  höchsten, der Durchschnitt der Sell-Offers über dem niedrigsten. Eine
-  Mini-Order an der Spitze wird dadurch richtig ignoriert; bei dünnen Büchern
-  sieht ein Flip aber besser aus, als er ist. Meine frühere Aussage, die
-  oberste Mini-Order erzeuge eine Scheinspanne, war ungenau: Sie verdeckt eher
-  eine echte. Gegen zu optimistische Werte wirken weiter Mindestvolumen, die
-  200-%-Regel und die neue Median-Regel.
-- **Dieselbe Preisdefinition überall**, auch in den Snapshots. Folge: Der
-  Verlauf hat am Umstellungstag einen kleinen Sprung.
-- **Orders ohne Mengenangabe zählen nicht; zählt keine, gilt die oberste
-  Order.** Grund: kein `NaN` bei unvollständigen Daten.
+- **Preis bleibt die oberste Order; die Orderbuch-Tiefe wurde vor dem Merge
+  wieder entfernt.** Zuerst gebaut war der gewichtete Durchschnitt der ersten
+  1000 Stück. Das überschätzt die Marge: Der Durchschnitt der Buy-Orders liegt
+  unter der höchsten, der der Sell-Offers über dem niedrigsten, die Spanne wird
+  also größer. Mit Live-Daten war die Marge bei 251 von 367 Flips höher als mit
+  der obersten Order (Median 41,3 % statt 38,7 %). Auch die danach erwogene
+  Regel „erste Order mit mindestens 64 Stück“ kann die Marge nur vergrößern
+  (bei 92 Items, Median 40,4 %). Da man als Flipper oben im Buch handelt, gilt
+  jetzt wieder: oberste Order, egal wie klein. `DEPTH_UNITS` gibt es nicht
+  mehr.
+- **Absicherung per Test mit echten Orderbüchern.** 30 Produkte aus der
+  Live-API liegen als `tests/fixtures/bazaar-sample.json` im Repo, die Hälfte
+  davon mit einer kleinen obersten Order. Web- und Java-Test prüfen: Preis =
+  oberste Order, Marge nie größer als die der obersten Order. Eine Regel, die
+  tiefer ins Buch schaut, lässt den Test fehlschlagen.
+- **Meine frühere Empfehlung, die Tiefe einzubeziehen, war falsch begründet.**
+  Eine Mini-Order an der Spitze erzeugt keine Scheinspanne; sie macht die
+  Spanne kleiner, und das ist für einen Flipper die richtige Zahl.
 - **Neue Datei `stats.json` statt Erweiterung von `scores.json`.** Grund:
   Bereits installierte Apps lesen `scores.json` im alten Format weiter.
 - **Median über den Sell-Preis des vorhandenen Verlaufs (bis 7 Tage).** In den
