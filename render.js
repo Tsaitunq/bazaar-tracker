@@ -131,6 +131,8 @@ export function swipeTab(view, dx, dy) {
   if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < 2 * Math.abs(dy)) return null;
   return TABS[TABS.indexOf(view) + (dx < 0 ? 1 : -1)] ?? null;
 }
+// How far the page follows the finger: fully towards a tab that exists, only a little at either end.
+export const dragOffset = (view, dx) => (TABS[TABS.indexOf(view) + (dx < 0 ? 1 : -1)] ? dx : dx * 0.25);
 
 const RANGES = [['24h', '24 h'], ['7d', '7 days']];
 

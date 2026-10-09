@@ -49,7 +49,7 @@ body {
 }
 
 /* keeps the content centred on wide screens */
-header, #settings, main, footer { padding-inline: max(12px, calc((100vw - var(--page)) / 2)); }
+header, #settings, main, footer, #peek { padding-inline: max(12px, calc((100vw - var(--page)) / 2)); }
 
 header {
   position: sticky;
@@ -110,10 +110,16 @@ input[type="checkbox"] { accent-color: var(--accent); }
 #market-alert-settings { display: grid; gap: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
 #settings .hint { margin: 0; font-size: 12px; color: var(--loss); }
 
-main { padding-block: 8px 24px; }
+/* a sideways drag on a list changes tabs; the browser keeps vertical scrolling */
+body { overflow-x: clip; }
+main { position: relative; padding-block: 8px 24px; touch-action: pan-y; }
+main.sliding .card, #peek .card { animation: none; }
+/* the neighbouring tab, shown beside the page while a swipe is in progress */
+#peek { position: absolute; width: 100%; max-height: 100vh; overflow: hidden; padding-top: 8px; pointer-events: none; }
+#peek[hidden] { display: none; }
 footer { padding-bottom: calc(24px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))); font-size: 11px; color: var(--muted); }
 footer a { color: inherit; }
-#count { margin: 0 0 8px; }
+.count { margin: 0 0 8px; }
 
 /* portfolio: the plan at the top of the Opportunities tab */
 .portfolio { margin: 4px 0 16px; padding: 12px; background: var(--card); border: 1px solid var(--accent); border-radius: 12px; max-width: 720px; }
@@ -129,8 +135,8 @@ footer a { color: inherit; }
 .picks .pick { overflow-wrap: anywhere; }
 .picks .stake { color: var(--muted); }
 .assume { margin: 10px 0 0; font-size: 12px; color: var(--warn); }
-#list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; min-height: 60vh; align-content: start; }
-#list > .muted { padding: 8px 0; }
+.list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; min-height: 60vh; align-content: start; }
+.list > .muted { padding: 8px 0; }
 
 /* cards: two big numbers, everything else small */
 [data-rarity="uncommon"] { --rarity: var(--r-uncommon); }
@@ -149,7 +155,7 @@ footer a { color: inherit; }
 .card::after { content: attr(data-rarity); position: absolute; right: 44px; top: 14px; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--rarity); pointer-events: none; }
 .card[data-rarity="very_special"]::after { content: "very special"; }
 /* in the Opportunities tab the whole frame is accent coloured */
-#list.opps .card { border-top-color: var(--accent); border-right-color: var(--accent); border-bottom-color: var(--accent); }
+.list.opps .card { border-top-color: var(--accent); border-right-color: var(--accent); border-bottom-color: var(--accent); }
 .star { position: absolute; top: 4px; right: 4px; border: 0; background: none; color: var(--muted); }
 .star[aria-pressed="true"] { color: var(--accent); }
 .name { display: flex; gap: 8px; align-items: center; font-weight: 600; overflow-wrap: anywhere; }
@@ -225,7 +231,7 @@ body.detail #tabs, body.detail .filters, body.detail #count, body.detail #list, 
   #tabs a { flex: 0 0 auto; padding: 0 20px; }
   .filters { grid-row: 2; grid-column: 2; margin: 0; }
   .bar + .bar { margin-top: 0; }
-  #list { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+  .list { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
   .charts { grid-template-columns: 1fr 1fr; }
   /* detail page: the two big numbers and the price table share one row across the page */
   .summary { display: grid; grid-template-columns: minmax(280px, 1fr) 2fr; gap: 32px; align-items: center; }

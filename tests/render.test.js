@@ -168,3 +168,11 @@ test('portfolioView explains an empty plan', async () => {
   assert.ok(portfolioView(empty, { capital: 50000000, slots: 10, sharePercent: 5 }).includes('No flip qualifies'));
   assert.ok(portfolioView(empty, { capital: 0, slots: 10, sharePercent: 5 }).includes('Set a total capital'));
 });
+
+test('dragOffset follows the finger, with resistance where there is no tab', async () => {
+  const { dragOffset } = await import('../render.js');
+  assert.equal(dragOffset('flips', -100), -100);
+  assert.equal(dragOffset('opps', 100), 100);
+  assert.equal(dragOffset('flips', 100), 25);
+  assert.equal(dragOffset('craft', -100), -25);
+});

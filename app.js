@@ -4,7 +4,7 @@ import { craftFlips } from './craft.js';
 import { loadItems, fallbackName } from './names.js';
 import { loadStats, loadRecipes, loadHistory } from './data.js';
 import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission } from './native.js';
-import { flipCard, npcCard, craftCard, parseRoute, detailView, portfolioView, swipeTab, coins, percent, PLACEHOLDER_ICON } from './render.js';
+import { flipCard, npcCard, craftCard, parseRoute, detailView, portfolioView, swipeTab, dragOffset, TABS, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
 
 const API = 'https://api.hypixel.net/v2/skyblock/bazaar';
@@ -62,25 +62,53 @@ const shown = new Map(); // last rendered big numbers per view and item, to flas
 
 const view = () => (route.view === 'item' ? 'flips' : route.view);
 
-function recompute() {
-  if (!products || route.view === 'item') return;
+// The flips of one tab, with names. plan is the portfolio and only exists for the Opportunities tab.
+function compute(v) {
   const opts = { ...settings, tax: settings.tax / 100, share: settings.share / 100, stats };
-  const v = view();
-  if (v === 'flips') flips = buildFlips(products, { ...opts, favs });
+  let list;
+  let pf = null;
+  if (v === 'flips') list = buildFlips(products, { ...opts, favs });
   else if (v === 'opps') {
     const conditions = { ...opts, minMargin: settings.marketMargin / 100, minVolume: settings.marketMinVolume, minProfitHour: settings.marketMinProfit };
-    flips = opportunities(products, conditions);
-    plan = portfolio(products, { ...conditions, capital: settings.portfolioCapital, slots: settings.portfolioSlots });
+    list = opportunities(products, conditions);
+    pf = portfolio(products, { ...conditions, capital: settings.portfolioCapital, slots: settings.portfolioSlots });
   }
-  else if (v === 'npc') flips = npcFlips(products, npc, opts);
-  else flips = recipes ? craftFlips(products, recipes, opts) : [];
+  else if (v === 'npc') list = npcFlips(products, npc, opts);
+  else list = recipes ? craftFlips(products, recipes, opts) : [];
   const name = (id) => names[id] ?? fallbackName(id);
-  if (v === 'opps') for (const f of plan.flips) f.name = name(f.id);
-  for (const f of flips) {
+  for (const f of pf?.flips ?? []) f.name = name(f.id);
+  for (const f of list) {
     f.name = name(f.id);
     f.tier = tiers[f.id];
     for (const i of f.ingredients ?? []) i.name = name(i.id);
   }
+  return { list, plan: pf };
+}
+
+function recompute() {
+  if (!products || route.view === 'item') return;
+  ({ list: flips, plan } = compute(view()));
+}
+
+// The three pieces of a list view as HTML: portfolio, the "x of y" line and the cards.
+function listMarkup(v, list, pf) {
+  if (v === 'craft' && recipes === null) {
+    return { portfolio: '', count: '', list: '<li class="muted">No recipe data yet. The snapshot workflow has to run once.</li>' };
+  }
+  const q = $('search').value.trim().toLowerCase();
+  const rows = list.filter((f) => (!settings.favOnly || favs.has(f.id)) && f.name.toLowerCase().includes(q));
+  let cards = rows.slice(0, MAX_ROWS).map((f) => CARDS[v](f, favs.has(f.id))).join('');
+  if (v === 'opps' && !list.length) {
+    cards = `<li class="muted">${stats
+      ? 'No item meets all conditions right now. Items need 24 hours of price history before they can show up here.'
+      : 'Price history could not be loaded, so stability cannot be checked right now.'}</li>`;
+  }
+  return {
+    portfolio: v === 'opps' && pf
+      ? portfolioView(pf, { capital: settings.portfolioCapital, slots: settings.portfolioSlots, sharePercent: settings.share }) : '',
+    count: `${Math.min(rows.length, MAX_ROWS)} of ${rows.length} flips`,
+    list: cards,
+  };
 }
 
 // Marks a big number that differs from the last time it was rendered; the stylesheet lets it glow briefly.
@@ -112,6 +140,8 @@ function renderDetail() {
 
 function render() {
   const item = route.view === 'item';
+  // cards fade in on a normal render, but not when a swipe has just slid them into place
+  document.querySelector('main').classList.toggle('sliding', switching);
   document.body.classList.toggle('detail', item);
   if (item) return renderDetail();
   $('detail').innerHTML = '';
@@ -120,24 +150,12 @@ function render() {
     else a.removeAttribute('aria-current');
   }
   if (!products) return;
-  if (view() === 'craft' && recipes === null) {
-    $('count').textContent = '';
-    $('list').innerHTML = '<li class="muted">No recipe data yet. The snapshot workflow has to run once.</li>';
-    return;
-  }
-  const q = $('search').value.trim().toLowerCase();
-  const rows = flips.filter((f) => (!settings.favOnly || favs.has(f.id)) && f.name.toLowerCase().includes(q));
-  $('count').textContent = `${Math.min(rows.length, MAX_ROWS)} of ${rows.length} flips`;
-  $('list').innerHTML = rows.slice(0, MAX_ROWS).map((f) => CARDS[view()](f, favs.has(f.id))).join('');
+  const markup = listMarkup(view(), flips, plan);
+  $('portfolio').innerHTML = markup.portfolio;
+  $('count').textContent = markup.count;
+  $('list').innerHTML = markup.list;
   $('list').classList.toggle('opps', view() === 'opps');
-  $('portfolio').innerHTML = view() === 'opps' && plan
-    ? portfolioView(plan, { capital: settings.portfolioCapital, slots: settings.portfolioSlots, sharePercent: settings.share }) : '';
   flashChanges();
-  if (view() === 'opps' && !flips.length) {
-    $('list').innerHTML = `<li class="muted">${stats
-      ? 'No item meets all conditions right now. Items need 24 hours of price history before they can show up here.'
-      : 'Price history could not be loaded, so stability cannot be checked right now.'}</li>`;
-  }
 }
 
 function schedule() {
@@ -252,6 +270,7 @@ addEventListener('hashchange', () => {
   if (route.view !== 'item') lastList = route.view;
   recompute();
   render();
+  settle();
 });
 
 document.addEventListener('visibilitychange', () => {
@@ -276,21 +295,83 @@ addEventListener('touchend', () => {
   pullStart = null;
 });
 
-// Swipe left or right on a list to change tabs. Not on the detail page, and not from the screen
+// Swipe left or right on a list to change tabs, like a pager: the page follows the finger and the
+// neighbouring tab is already there next to it. Not on the detail page, and not from the screen
 // edge, where Android's own back gesture starts.
 const EDGE_PX = 24;
-let swipeStart = null;
-$('list').addEventListener('touchstart', (e) => {
+const SLIDE_MS = 180;
+const page = document.querySelector('main');
+const peek = $('peek');
+const calm = matchMedia('(prefers-reduced-motion: reduce)');
+let drag = null;        // the touch in progress: start point, distance, side of the neighbour shown
+let switching = false;  // a swipe has just changed the tab; the next render must not animate
+
+function movePage(x, animate) {
+  page.style.transition = animate && !calm.matches ? `transform ${SLIDE_MS}ms ease-out` : 'none';
+  page.style.transform = x ? `translateX(${x}px)` : '';
+}
+
+// Renders the tab on one side (1 = right, -1 = left) next to the page, level with the visible part of the list.
+function showPeek(side) {
+  const tab = TABS[TABS.indexOf(view()) + side];
+  peek.hidden = !tab;
+  if (!tab) return;
+  const { list, plan: pf } = compute(tab);
+  const markup = listMarkup(tab, list, pf);
+  peek.innerHTML = `${markup.portfolio}<p class="count muted">${markup.count}</p><ul class="list${tab === 'opps' ? ' opps' : ''}">${markup.list}</ul>`;
+  peek.style.left = `${side * 100}%`;
+  peek.style.top = `${Math.max(0, document.querySelector('header').getBoundingClientRect().bottom - page.getBoundingClientRect().top)}px`;
+}
+
+// Called after a tab change has been rendered: the real list takes the place of its preview.
+function settle() {
+  if (!switching) return;
+  switching = false;
+  movePage(0, false);
+  peek.hidden = true;
+  peek.innerHTML = '';
+  scrollTo(0, 0);
+}
+
+page.addEventListener('touchstart', (e) => {
   const { clientX: x, clientY: y } = e.touches[0];
-  swipeStart = e.touches.length === 1 && x > EDGE_PX && x < innerWidth - EDGE_PX ? { x, y } : null;
+  const usable = products && route.view !== 'item' && e.touches.length === 1 && x > EDGE_PX && x < innerWidth - EDGE_PX;
+  drag = usable ? { x, y, dx: 0, side: 0 } : null;
 }, { passive: true });
-$('list').addEventListener('touchend', (e) => {
-  if (!swipeStart) return;
-  const { clientX: x, clientY: y } = e.changedTouches[0];
-  const tab = swipeTab(view(), x - swipeStart.x, y - swipeStart.y);
-  swipeStart = null;
-  if (tab) location.hash = `#/${tab}`;
+page.addEventListener('touchmove', (e) => {
+  if (!drag) return;
+  const dx = e.touches[0].clientX - drag.x;
+  const dy = e.touches[0].clientY - drag.y;
+  if (!drag.side) {
+    // a touch that starts as a scroll stays a scroll
+    if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { drag = null; return; }
+    if (Math.abs(dx) < 10 || Math.abs(dx) < 2 * Math.abs(dy)) return;
+  }
+  const side = dx < 0 ? 1 : -1;
+  if (side !== drag.side) showPeek(side);
+  drag.side = side;
+  drag.dx = dx;
+  movePage(dragOffset(view(), dx), false);
 }, { passive: true });
+function endDrag() {
+  if (!drag) return;
+  const { dx, side } = drag;
+  drag = null;
+  if (!side) return;
+  const tab = swipeTab(view(), dx, 0);
+  if (!tab) {
+    movePage(0, true);
+    setTimeout(() => { if (!drag && !switching) peek.hidden = true; }, SLIDE_MS);
+    return;
+  }
+  movePage(dx < 0 ? -innerWidth : innerWidth, true);
+  setTimeout(() => {
+    switching = true;
+    location.hash = `#/${tab}`;
+  }, calm.matches ? 0 : SLIDE_MS);
+}
+page.addEventListener('touchend', endDrag, { passive: true });
+page.addEventListener('touchcancel', endDrag, { passive: true });
 
 // Background alerts exist only in the Android app.
 function bindAlertToggle(key, hint) {
