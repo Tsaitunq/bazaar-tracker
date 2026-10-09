@@ -6,6 +6,7 @@ import { loadStats, loadRecipes, loadHistory } from './data.js';
 import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission } from './native.js';
 import { flipCard, npcCard, craftCard, parseRoute, detailView, portfolioView, swipeTab, dragOffset, TABS, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
+import { initOnboarding } from './tour.js';
 
 const API = 'https://api.hypixel.net/v2/skyblock/bazaar';
 const MAX_ROWS = 100;
@@ -58,6 +59,8 @@ let timer;
 let busy = false;
 let hist = { id: null, points: null }; // 7 days of history for the open item, loaded once
 let range = '24h';
+let markReady; // resolved once the first list is on screen, so the tour has something to point at
+const ready = new Promise((resolve) => { markReady = resolve; });
 const shown = new Map(); // last rendered big numbers per view and item, to flash the ones that changed
 
 const view = () => (route.view === 'item' ? 'flips' : route.view);
@@ -178,6 +181,7 @@ async function refresh() {
     $('error').hidden = true;
     recompute();
     render();
+    markReady();
     if (Date.now() - lastStats > STATS_TTL) refreshStats();
   } catch (e) {
     $('error').textContent = `Update failed: ${e.message}`;
@@ -415,5 +419,18 @@ loadItems().then((items) => {
   render();
 });
 loadRecipes().then((r) => { recipes = r; recompute(); render(); });
+initOnboarding({
+  native: !!plugin(),
+  ready,
+  slots: () => settings.portfolioSlots,
+  // the setup assistant hands over setting values; they go through the same checks as typed ones
+  apply(values) {
+    Object.assign(settings, values);
+    sanitize();
+    for (const key of Object.keys(values)) if ($(key)) $(key).value = settings[key];
+    applySettings();
+  },
+});
+
 // The Android app ships its files inside the APK and needs no service worker.
 if ('serviceWorker' in navigator && !window.Capacitor?.isNativePlatform?.()) navigator.serviceWorker.register('sw.js');

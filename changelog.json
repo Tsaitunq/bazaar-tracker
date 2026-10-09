@@ -1,0 +1,64 @@
+{
+  "versions": [
+    {
+      "version": "4.0.0",
+      "date": "2026-10-10",
+      "entries": [
+        { "title": "App tour", "text": "A short guided tour explains every part of the app. You can restart it any time in the settings." },
+        { "title": "Setup assistant", "text": "Three quick questions and the app suggests settings that fit your capital and play style." },
+        { "title": "What's new", "text": "After an update this window shows you what changed. The full history is in the settings." },
+        { "title": "Help buttons", "text": "Every setting now has a small ? that explains what it does.", "target": "#toggle-settings" }
+      ]
+    },
+    {
+      "version": "3.3.0",
+      "date": "2026-10-10",
+      "entries": [
+        { "title": "Swipe between tabs", "text": "Swipe left or right on a list to move to the next tab.", "target": "#tabs" },
+        { "title": "Portfolio", "text": "The Opportunities tab now starts with a plan: your capital split over several safe flips, with the total profit per hour.", "target": "#portfolio .portfolio", "route": "#/opps" }
+      ]
+    },
+    {
+      "version": "3.2.0",
+      "date": "2026-10-09",
+      "entries": [
+        { "title": "New look", "text": "Warmer colours, clearer cards and a layout that uses the whole screen on a computer." },
+        { "title": "Item rarity", "text": "Each card shows the item's rarity as a coloured stripe and a word in the corner.", "target": ".card" }
+      ]
+    },
+    {
+      "version": "3.0.0",
+      "date": "2026-10-09",
+      "entries": [
+        { "title": "Safer warnings", "text": "An item is flagged as suspicious when its price is far above what it normally sells for." },
+        { "title": "Provisional items", "text": "Items with less than 24 hours of price history are marked and kept out of Opportunities." },
+        { "title": "Charts with values", "text": "Tap or hover a chart on the detail page to read the exact values." }
+      ]
+    },
+    {
+      "version": "2.1.0",
+      "date": "2026-10-09",
+      "entries": [
+        { "title": "Opportunities", "text": "A tab that shows only flips that are stable, liquid and within your budget.", "target": "#tabs" },
+        { "title": "Market alerts", "text": "The Android app can notify you when a new opportunity shows up." }
+      ]
+    },
+    {
+      "version": "2.0.0",
+      "date": "2026-10-09",
+      "entries": [
+        { "title": "Price history", "text": "Every item has a detail page with price and margin charts." },
+        { "title": "Stability score", "text": "A score from 0 to 100 tells you how reliable a flip has been." },
+        { "title": "NPC and craft flips", "text": "Two more tabs for selling to NPCs and for crafting." },
+        { "title": "Item pictures", "text": "Items are shown with their icons." }
+      ]
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-10-09",
+      "entries": [
+        { "title": "First version", "text": "Live bazaar flips ranked by profit after tax, with filters and favorites." }
+      ]
+    }
+  ]
+}

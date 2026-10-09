@@ -105,6 +105,14 @@ input[type="checkbox"] { accent-color: var(--accent); }
 #settings label { display: grid; gap: 4px; font-size: 14px; }
 #settings input, #settings select { width: 100%; }
 #settings small, #settings .intro { margin: 0; font-size: 12px; color: var(--muted); }
+/* field label: name, "?" button, then the field and its explanation across both columns */
+#settings label:not(.check) { grid-template-columns: 1fr auto; align-items: center; }
+#settings label:not(.check) > input, #settings label:not(.check) > select, #settings label:not(.check) > small { grid-column: 1 / -1; }
+#settings label.check .help { margin-left: auto; }
+.help { min-width: 28px; min-height: 28px; width: 28px; padding: 0; border-radius: 50%; font-size: 13px; font-weight: 700; color: var(--muted); }
+.help[aria-expanded="true"] { color: var(--accent); border-color: var(--accent); }
+.help-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.help-actions button { padding: 0 14px; }
 #settings label.check { display: flex; align-items: center; gap: 10px; font-weight: 600; }
 #settings label.check input { width: 22px; height: 22px; min-height: 0; flex: none; }
 #market-alert-settings { display: grid; gap: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
@@ -250,4 +258,45 @@ body.detail #tabs, body.detail .filters, body.detail #count, body.detail #list, 
   /* app.js adds .flash to a big number whose value changed since the last refresh */
   .flash { animation: flash .8s ease-out; }
   @keyframes flash { from { text-shadow: 0 0 12px currentColor; } }
+}
+
+/* onboarding: windows */
+.sheet { width: min(440px, calc(100vw - 24px)); max-height: calc(100vh - 24px); padding: 20px; border: 1px solid var(--accent); border-radius: 14px; background: var(--card); color: var(--text); overflow: auto; }
+.sheet::backdrop { background: rgba(0, 0, 0, .72); }
+.sheet h2, #tour-bubble h2 { margin: 0 0 8px; font-size: 20px; }
+.sheet h3 { margin: 14px 0 4px; font-size: 14px; color: var(--accent); }
+.sheet p { margin: 0 0 12px; }
+.sheet .scroll { max-height: 50vh; overflow: auto; margin-bottom: 12px; }
+.sheet .news { margin: 0; padding-left: 18px; }
+.sheet .news li { margin-bottom: 6px; }
+.sheet .offer { padding: 10px; border: 1px solid var(--accent); border-radius: 8px; }
+.sheet fieldset { margin: 0 0 12px; padding: 0; border: 0; display: grid; gap: 6px; min-width: 0; }
+.sheet legend { padding: 0; margin-bottom: 6px; font-weight: 600; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.choice { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.choice:has(input:checked) { border-color: var(--accent); }
+.choice input[type="radio"] { min-height: 0; width: 20px; height: 20px; flex: none; accent-color: var(--accent); }
+.choice span { display: grid; flex: 1; min-width: 0; }
+.choice small { color: var(--muted); font-size: 12px; }
+.choice input[type="number"] { margin-top: 6px; width: 100%; }
+.summary-list { margin: 0 0 12px; display: grid; gap: 10px; }
+.summary-list > div { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.summary-list dt { font-weight: 600; }
+.summary-list dd { margin: 0; color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
+.summary-list p { grid-column: 1 / -1; margin: 0; font-size: 12px; color: var(--muted); }
+.actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px; }
+.actions button { padding: 0 16px; }
+.actions .progress { margin-right: auto; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 700; }
+
+/* onboarding: spotlight tour. The hole's huge shadow darkens everything around the target. */
+#tour { position: fixed; inset: 0; z-index: 10; }
+#tour[hidden] { display: none; }
+#tour-hole { position: fixed; border-radius: 10px; outline: 2px solid var(--accent); box-shadow: 0 0 0 200vmax rgba(0, 0, 0, .72); pointer-events: none; }
+#tour-hole[hidden] { display: block; left: 50%; top: 50%; width: 0; height: 0; outline: 0; }
+#tour-bubble { position: fixed; left: 50%; transform: translateX(-50%); width: min(360px, calc(100vw - 24px)); padding: 16px; border: 1px solid var(--accent); border-radius: 14px; background: var(--card); color: var(--text); }
+#tour-bubble p { margin: 0 0 12px; font-size: 14px; }
+@media (prefers-reduced-motion: no-preference) {
+  #tour-hole { transition: left .2s, top .2s, width .2s, height .2s; }
+  #tour-bubble { transition: top .2s; }
 }

@@ -120,6 +120,16 @@
       </label>
     </fieldset>
 
+    <fieldset>
+      <legend>Help</legend>
+      <p class="intro">New here, or want a refresher?</p>
+      <div class="help-actions">
+        <button id="restart-tour" type="button">Restart tour</button>
+        <button id="restart-setup" type="button">Restart setup</button>
+        <button id="show-news" type="button">What's new</button>
+      </div>
+    </fieldset>
+
     <fieldset id="alert-settings" hidden>
       <legend>Favorite alerts</legend>
       <label class="check"><input id="alerts" type="checkbox"> Notify me about favorites</label>
@@ -140,8 +150,14 @@
     <div id="detail"></div>
   </main>
   <footer>
-    Icons: <a href="https://sky.coflnet.com/data" rel="noopener">sky.coflnet.com</a> · Recipes: <a href="https://github.com/NotEnoughUpdates/NotEnoughUpdates-REPO" rel="noopener">NotEnoughUpdates-REPO</a> · Not an official Hypixel product
+    Icons: <a href="https://sky.coflnet.com/data" rel="noopener">sky.coflnet.com</a> · Recipes: <a href="https://github.com/NotEnoughUpdates/NotEnoughUpdates-REPO" rel="noopener">NotEnoughUpdates-REPO</a> · Not an official Hypixel product · <span id="version"></span>
   </footer>
+
+  <dialog id="sheet" class="sheet"></dialog>
+  <div id="tour" hidden>
+    <div id="tour-hole"></div>
+    <div id="tour-bubble" role="dialog" aria-modal="true" aria-labelledby="tour-title"></div>
+  </div>
   <script type="module" src="app.js"></script>
 </body>
 </html>

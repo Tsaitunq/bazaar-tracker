@@ -314,3 +314,48 @@ Selbstständig getroffen (Auftrag: ohne Rückfragen).
   0 schaltet das Portfolio ab.
 - **Die Logik liegt nur in `flips.js`.** Market Alerts und
   `AlertLogic.java` sind unverändert.
+
+# Entscheidungen Version 4
+
+Selbstständig getroffen (Auftrag: ohne Rückfragen).
+
+- **Das Design bleibt Variante C, nicht D.** Im Auftrag stand „Design Variante
+  D“. Eingebaut und zuletzt ausdrücklich gewählt ist aber C („nimm option c“).
+  Ich habe die neuen Fenster und die Tour im bestehenden Stil gebaut und das
+  Design der App nicht umgestellt. Kosten, falls du D wolltest: Die
+  Umstellung ist eine reine CSS-Änderung an `style.css`; `variant-d.css`
+  liegt als Vorlage in `docs/design-varianten/`.
+- **Branch `v4` baut auf `slide` auf** (das fließende Wischen), das noch
+  nicht in `main` ist. Grund: Beide ändern `app.js`; getrennt gäbe es
+  Konflikte. Kosten: `v4` lässt sich nur zusammen mit dem Wischen mergen.
+- **Zustand unter einem Schlüssel: `bt.onboarding` = `{ done, version }`.**
+  Das sind `onboardingDone` und `lastSeenVersion` aus dem Auftrag.
+- **„Bestehender Nutzer“ heißt: Es gab vor diesem Start schon App-Daten**
+  (`bt.settings`, `bt.favs` oder `bt.items`). Ohne Onboarding-Zustand, aber
+  mit solchen Daten, kommt das Tour-Angebot statt des Willkommensfensters.
+- **Gelöschter Speicher = neuer Nutzer.** Ohne jede Spur ist das nicht zu
+  unterscheiden; es kommt das Willkommensfenster.
+- **Das Tour-Angebot steht im What's-new-Fenster der aktuellen Version**, mit
+  den Buttons „Take the tour“ und „Not now“. Grund: ein Fenster statt zwei.
+- **Jedes Schließen eines Fensters zählt als gesehen**, auch per Escape. Grund:
+  Es soll nie zweimal ungefragt erscheinen.
+- **Der Assistent stellt die drei Fragen auf einer Seite** und zeigt danach
+  die Zusammenfassung. Grund: weniger Klicks am Handy.
+- **Werte des Assistenten:** Kapital → `Total capital` und `Max. capital per
+  flip` (Kapital / parallele Flips); Aktivität → Market share 5 / 10 / 20 %;
+  „Play it safe“ → 15 % Marge, 500 000 Volumen, 100 000 Gewinn/h; „More
+  profit“ → 8 %, 100 000, 250 000. Das sind Vorschläge für Einstellungen; an
+  der Bewertungslogik ändert sich nichts.
+- **Die Erklärtexte unter den Reglern sind jetzt eingeklappt und öffnen sich
+  über das „?“.** Grund: Der Auftrag wollte ein ?-Icon; nebenbei werden die
+  Einstellungen am Handy deutlich kürzer.
+- **Akku auf „Unrestricted“ und Benachrichtigungen erklärt die Tour nur als
+  Text.** Grund: Ein Sprung in die Android-Einstellungen bräuchte neuen
+  nativen Code. Kosten: Der Nutzer muss den Weg selbst gehen.
+- **Die Android-Version kommt aus `changelog.json`** (`versionName` 4.0.0,
+  `versionCode` 40000). Vorher stand fest 1.0.
+- **Die Versionshistorie beginnt bei 1.0.0 und fasst die bisherigen Schritte
+  rückwirkend zusammen** (1.0.0, 2.0.0, 2.1.0, 3.0.0, 3.2.0, 3.3.0, 4.0.0).
+- **Screenshots entstanden mit einer lokalen Kopie der App, die gespeicherte
+  API-Antworten lädt**, ohne Live-Abrufe. Die Kopie liegt im ignorierten
+  Ordner `data/` und wurde danach gelöscht.

@@ -1,5 +1,9 @@
 apply plugin: 'com.android.application'
 
+// The app version is the newest entry of changelog.json, the same file the web app reads.
+def appVersion = new groovy.json.JsonSlurper().parse(file('../../changelog.json')).versions[0].version
+def (major, minor, patch) = appVersion.tokenize('.').collect { it as int }
+
 android {
     namespace = "com.tsaitunq.bazaarflip"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +11,8 @@ android {
         applicationId "com.tsaitunq.bazaarflip"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode major * 10000 + minor * 100 + patch
+        versionName appVersion
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
