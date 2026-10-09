@@ -213,3 +213,48 @@ Selbstständig getroffen (Auftrag: ohne Rückfragen).
   15-Minuten-Lauf.
 - **Der Kurzname im Tab heißt „Opportunities“; die Tabs wurden dafür etwas
   schmaler gesetzt.**
+
+# Entscheidungen Version 3
+
+Selbstständig getroffen (Auftrag: ohne Rückfragen).
+
+## Datenqualität
+
+- **Orderbuch-Tiefe wörtlich umgesetzt: gewichteter Durchschnitt der ersten
+  1000 Stück je Seite.** Wichtig zu wissen: Das macht die Spanne in der Regel
+  **größer**, nicht kleiner. Der Durchschnitt der Buy-Orders liegt unter der
+  höchsten, der Durchschnitt der Sell-Offers über dem niedrigsten. Eine
+  Mini-Order an der Spitze wird dadurch richtig ignoriert; bei dünnen Büchern
+  sieht ein Flip aber besser aus, als er ist. Meine frühere Aussage, die
+  oberste Mini-Order erzeuge eine Scheinspanne, war ungenau: Sie verdeckt eher
+  eine echte. Gegen zu optimistische Werte wirken weiter Mindestvolumen, die
+  200-%-Regel und die neue Median-Regel.
+- **Dieselbe Preisdefinition überall**, auch in den Snapshots. Folge: Der
+  Verlauf hat am Umstellungstag einen kleinen Sprung.
+- **Orders ohne Mengenangabe zählen nicht; zählt keine, gilt die oberste
+  Order.** Grund: kein `NaN` bei unvollständigen Daten.
+- **Neue Datei `stats.json` statt Erweiterung von `scores.json`.** Grund:
+  Bereits installierte Apps lesen `scores.json` im alten Format weiter.
+- **Median über den Sell-Preis des vorhandenen Verlaufs (bis 7 Tage).** In den
+  ersten Tagen ist es also ein Median über weniger Zeit.
+- **„provisional“ ersetzt das Stabilitäts-Badge und setzt den Score auf „nicht
+  vorhanden“.** Grund: Ein Score aus wenigen Stunden täuscht. Folge: Beim
+  Sortieren nach Stabilität stehen solche Items am Ende.
+- **Fehlt ein Item in `stats.json`, gilt es als provisional; ist die Datei
+  nicht ladbar, gibt es keine Badges.** Grund: „keine Daten“ und „Netz weg“
+  sollen nicht gleich aussehen.
+- **Median-Regel gilt nur für Bazaar-Flips und Opportunities**, nicht für NPC-
+  und Craft-Karten (die hatten nie ein Suspicious-Badge).
+
+## Design
+
+- **Vier Badge-Farben: stable grün, medium blau, unstable rosa, provisional
+  grau gestrichelt.** Grund: Gelb ist für „suspicious“ reserviert, Rot für
+  Verlust, Orange für den Akzent.
+- **Symbol: drei aufsteigende orange Balken.** Schlicht, eigen, ohne
+  Minecraft-Bezug, und mit dem vorhandenen Skript ohne Bildbibliothek
+  erzeugbar.
+- **Desktop ab 900 px: Kartenraster mit `auto-fill`, höchstens 1400 px breit.**
+- **Chart-Anzeige beim Überfahren und Antippen über Pointer-Events**, ohne
+  eigene Bibliothek; die Werte stehen in einer Zeile über dem Chart.
+- **Einstellungs-Gruppen:** Calculation, List, Opportunities, Alerts.
