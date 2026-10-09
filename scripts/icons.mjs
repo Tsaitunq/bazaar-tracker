@@ -5,7 +5,7 @@ import path from 'node:path';
 
 const RES = 'android/app/src/main/res';
 const DENSITIES = { mdpi: 1, hdpi: 1.5, xhdpi: 2, xxhdpi: 3, xxxhdpi: 4 };
-const BLACK = [13, 13, 13, 255];
+const BLACK = [18, 13, 10, 255]; // the app background, a warm black
 const ORANGE = [255, 138, 0, 255];
 const CLEAR = [0, 0, 0, 0];
 const SAMPLES = 4;

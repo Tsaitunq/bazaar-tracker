@@ -54,6 +54,7 @@ let timer;
 let busy = false;
 let hist = { id: null, points: null }; // 7 days of history for the open item, loaded once
 let range = '24h';
+const shown = new Map(); // last rendered big numbers per view and item, to flash the ones that changed
 
 const view = () => (route.view === 'item' ? 'flips' : route.view);
 
@@ -77,6 +78,19 @@ function recompute() {
   }
 }
 
+// Marks a big number that differs from the last time it was rendered; the stylesheet lets it glow briefly.
+function flashChanges() {
+  for (const box of document.querySelectorAll('#list .card, #detail')) {
+    const id = box.querySelector('.star')?.dataset.id;
+    if (!id) continue;
+    box.querySelectorAll('.big').forEach((el, i) => {
+      const key = `${route.view}:${id}:${i}`;
+      if (shown.has(key) && shown.get(key) !== el.textContent) el.classList.add('flash');
+      shown.set(key, el.textContent);
+    });
+  }
+}
+
 function renderDetail() {
   const { id } = route;
   if (hist.id !== id) {
@@ -88,6 +102,7 @@ function renderDetail() {
   const stat = statOf(stats, id);
   const flip = products?.[id] ? computeFlip(id, products[id], settings.tax / 100, settings.maxCapital, settings.share / 100, stat.median) : null;
   $('detail').innerHTML = detailView({ id, name: names[id] ?? fallbackName(id), tier: tiers[id], flip, ...stat, back: lastList, isFav: favs.has(id), range, points, tax: settings.tax / 100 });
+  flashChanges();
 }
 
 function render() {
@@ -109,6 +124,8 @@ function render() {
   const rows = flips.filter((f) => (!settings.favOnly || favs.has(f.id)) && f.name.toLowerCase().includes(q));
   $('count').textContent = `${Math.min(rows.length, MAX_ROWS)} of ${rows.length} flips`;
   $('list').innerHTML = rows.slice(0, MAX_ROWS).map((f) => CARDS[view()](f, favs.has(f.id))).join('');
+  $('list').classList.toggle('opps', view() === 'opps');
+  flashChanges();
   if (view() === 'opps' && !flips.length) {
     $('list').innerHTML = `<li class="muted">${stats
       ? 'No item meets all conditions right now. Items need 24 hours of price history before they can show up here.'

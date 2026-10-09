@@ -108,12 +108,12 @@ const RANGES = [['24h', '24 h'], ['7d', '7 days']];
 // flip is the item's bazaar flip or null while prices are unknown; points are already cut to the range.
 export function detailView({ id, name, tier, flip, score, median, provisional, back = 'flips', isFav, range, points, tax }) {
   const stat = { score, provisional, median };
-  const current = flip ? `${keyStats(flip)}<dl class="facts">${[
+  const current = flip ? `<div class="summary">${keyStats(flip)}<dl class="facts">${[
     fact('Buy order', num(flip.buy)),
     sellFact({ ...flip, median }),
     fact('Profit/item', num(flip.profit), gain(flip.profit)),
     fact('Vol./week', num(flip.weekVol)),
-  ].join('')}</dl>` : '';
+  ].join('')}</dl></div>` : '';
   const buttons = RANGES.map(([r, label]) => `<button type="button" data-range="${r}" aria-pressed="${r === range}">${label}</button>`).join('');
   const charts = points === null ? '<p class="muted">Loading history…</p>'
     : !points.length ? '<p class="muted">No history yet</p>'

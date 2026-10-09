@@ -1,8 +1,10 @@
 # Design-Varianten
 
-Vier Vorschläge für ein wärmeres Schwarz/Orange. Jede Variante ist eine
-CSS-Datei, die nach `style.css` geladen wird; am Aufbau der Seite ändert sich
-nichts. Noch nichts davon ist in der App aktiv.
+Vorschläge für ein wärmeres Schwarz/Orange. A bis D sind je eine CSS-Datei,
+die nach `style.css` geladen wird. **E ist die gewählte Fassung (D plus
+breitere Detailseite) und auf dem Branch `design` in die App eingebaut**;
+ihre Bilder stammen aus der App selbst, eine eigene CSS-Datei gibt es dafür
+nicht.
 
 | Datei | Inhalt |
 |---|---|
@@ -39,6 +41,16 @@ das Wort (COMMON, RARE, EPIC …); Namen bleiben weiß.
 Wie B: oranger Dunst, Kopf mit Verlauf, Leuchten an aktiven Elementen und an
 der Chart-Linie. Die Item-Namen sind weiß; die Seltenheit zeigt wie in A ein
 farbiger Ring um das runde Item-Bild, in Liste und Detailseite.
+
+## E – D, eingebaut, mit breiter Detailseite
+
+Wie D. Auf der Desktop-Detailseite stehen die beiden großen Zahlen und die
+Preistabelle (Buy order, Sell offer mit „normal“, Profit/item, Vol./week) in
+einer Zeile über die volle Breite; am Handy bleibt alles untereinander.
+
+Zusätzlich gebaut: Karten im Tab „Opportunities“ leuchten dauerhaft leicht,
+und eine große Zahl leuchtet kurz auf, wenn sich ihr Wert bei einem Refresh
+ändert.
 
 ## Geprüft
 
