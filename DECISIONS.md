@@ -78,3 +78,69 @@ Grund, was es kostet, falls sie falsch ist.
   Umgehen der Filter bleibt auf den Flips-Tab beschränkt.**
 - **Verlaufsdaten werden nicht vom Service Worker gecacht.** Grund: einfacher;
   der HTTP-Cache reicht. Kosten: Charts brauchen Netz.
+
+# Entscheidungen Android-App
+
+Selbstständig getroffen (Auftrag: ohne Rückfragen).
+
+## Werkzeuge
+
+- **JDK 21 (Temurin) per winget.** Grund: Capacitor 8 braucht Java 21; installiert
+  war nur Java 8. Java 8 bleibt unangetastet und Standard im PATH; die Builds
+  setzen `JAVA_HOME` selbst.
+- **Android SDK über die Kommandozeilen-Tools nach
+  `%LOCALAPPDATA%\Android\Sdk`, Lizenzen per `sdkmanager --licenses`
+  angenommen.** Grund: So läuft der Build ohne Setup-Assistent. Das ist der
+  Standardpfad, den Android Studio beim ersten Start findet. Kosten: Die
+  Android-SDK-Lizenzbedingungen wurden in deinem Namen akzeptiert.
+- **Android Studio per winget installiert, für den Build aber nicht nötig.**
+  Du brauchst es nur, wenn du das Projekt in der IDE öffnen oder einen
+  Emulator mit Oberfläche nutzen willst.
+
+## Einbettung
+
+- **Capacitor 8 statt Trusted Web Activity.** Grund: Der Hintergrund-Check
+  braucht eigenen nativen Code (WorkManager); eine TWA ist nur ein
+  Browser-Fenster. Kosten: Die App enthält eine Kopie der Web-Dateien und
+  aktualisiert sich nicht mit der Webseite, sondern nur mit einer neuen APK.
+- **Web-Dateien werden nach `www/` kopiert (`scripts/copy-web.mjs`), `www/`
+  ist nicht eingecheckt.** Grund: Capacitor braucht einen Ordner nur mit den
+  App-Dateien; im Projektstamm liegen auch Doku, Tests und `node_modules`.
+- **`android/` ist eingecheckt.** Grund: Es enthält eigenen Code (Plugin,
+  Worker, Ressourcen).
+- **Kein Service Worker in der App.** Grund: Die Dateien liegen ohnehin lokal
+  in der APK. Kosten: Item-Bilder liegen nur im HTTP-Cache der WebView.
+- **Capacitor-Aufruf ohne Bundler über `window.Capacitor.Plugins`.** Grund:
+  Der Web-Code bleibt ohne Build-Schritt.
+
+## Hintergrund-Check
+
+- **Eigenes kleines Plugin statt fertiger Plugins.** Grund: Der Check muss bei
+  geschlossener App laufen, also nativ; Favoriten und Einstellungen liegen im
+  `localStorage` der WebView und müssen dafür nach `SharedPreferences`
+  gespiegelt werden.
+- **Java statt Kotlin.** Grund: Die Capacitor-Vorlage ist Java; kein
+  zusätzliches Gradle-Plugin.
+- **Gson nur für den Stream-Parser.** Grund: Die Antwort ist 3,6 MB groß; der
+  Stream liest nur die Favoriten. Der Android-eigene `JsonReader` läuft nicht
+  in JVM-Unit-Tests.
+- **Meldung nur beim Überschreiten der Schwelle, eine Sammel-Benachrichtigung
+  pro Lauf.** Grund: Sonst käme alle 15 Minuten dieselbe Meldung. Kosten: Wer
+  eine Meldung wegwischt, bekommt keine Erinnerung, solange die Marge oben
+  bleibt.
+- **Mindestmarge Standard 5 %, Schalter Standard aus.** Grund: Die
+  Berechtigungsabfrage soll erst kommen, wenn du die Funktion bewusst
+  einschaltest.
+- **15 Minuten sind das Android-Minimum und nicht garantiert.** Android
+  verschiebt Läufe im Stromsparmodus (Doze) teils deutlich.
+- **Der Check nutzt die Steuer aus den Einstellungen, aber weder
+  Mindestvolumen noch Kapitalgrenze.** Grund: Favoriten umgehen diese Filter
+  auch in der Liste.
+
+## Aussehen und Signatur
+
+- **Icon wie die PWA (Goldmünze auf dunklem Grund), per Skript erzeugt.**
+- **Debug-Signatur mit dem automatisch erzeugten Android-Debug-Keystore
+  (`CN=Android Debug`).** Grund: enthält keinen Namen. Kosten: Eine später
+  anders signierte Version lässt sich nicht darüber installieren; dann vorher
+  deinstallieren (Favoriten gehen dabei verloren).
