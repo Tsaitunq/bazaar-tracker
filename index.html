@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0f1115">
+  <meta name="color-scheme" content="dark">
+  <title>Bazaar-Flips</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="ptr" aria-hidden="true"></div>
+  <header>
+    <div class="bar">
+      <h1>Bazaar-Flips</h1>
+      <span id="stamp" class="muted">–</span>
+      <button id="refresh" type="button" aria-label="Aktualisieren">↻</button>
+      <button id="toggle-settings" type="button" aria-label="Einstellungen" aria-expanded="false" aria-controls="settings">⚙</button>
+    </div>
+    <div class="bar">
+      <input id="search" type="search" placeholder="Item suchen" aria-label="Item suchen" autocomplete="off">
+      <select id="sort" aria-label="Sortierung">
+        <option value="profitHour">Gewinn/h</option>
+        <option value="profit">Gewinn/Stück</option>
+        <option value="margin">Marge %</option>
+      </select>
+      <button id="fav-only" type="button" aria-pressed="false" aria-label="Nur Favoriten">★</button>
+    </div>
+    <form id="settings" hidden>
+      <label>Steuer
+        <select id="tax">
+          <option value="1.25">1,25 %</option>
+          <option value="1.125">1,125 %</option>
+          <option value="1">1,0 %</option>
+        </select>
+      </label>
+      <label>Refresh
+        <select id="interval">
+          <option value="1">1 Min</option>
+          <option value="2">2 Min</option>
+          <option value="5">5 Min</option>
+        </select>
+      </label>
+      <label>Mindestvolumen/Woche
+        <input id="minVolume" type="number" min="0" step="1" inputmode="numeric">
+      </label>
+      <label>Max. Kapital pro Flip (0 = egal)
+        <input id="maxCapital" type="number" min="0" step="1" inputmode="numeric">
+      </label>
+    </form>
+    <p id="error" role="alert" hidden></p>
+  </header>
+  <main>
+    <p id="count" class="muted">Lade…</p>
+    <ul id="list"></ul>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
