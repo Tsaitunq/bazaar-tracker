@@ -90,3 +90,19 @@ a.body { color: var(--text); text-decoration: none; }
 #tabs { display: flex; gap: 8px; margin-top: 8px; }
 #tabs a { flex: 1; min-height: 44px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 8px; color: var(--muted); text-decoration: none; }
 #tabs a[aria-current="page"] { color: var(--gold); border-color: var(--gold); }
+
+body.detail #tabs, body.detail .bar:has(#search), body.detail #count, body.detail #list { display: none; }
+.back { display: inline-flex; align-items: center; min-height: 44px; color: var(--gold); text-decoration: none; }
+.detail-head { display: flex; align-items: center; gap: 8px; }
+.detail-head .star { border: 0; background: none; color: var(--muted); }
+.detail-head .star[aria-pressed="true"] { color: var(--gold); }
+.detail-head .name { margin: 0; font-size: 18px; flex: 1; }
+.ranges { margin: 12px 0; }
+.ranges button { flex: 1; font-size: 15px; }
+#detail h3 { font-size: 14px; color: var(--muted); margin: 16px 0 4px; font-weight: 600; }
+.legend { margin: 0 0 4px; font-size: 12px; }
+.legend .buy { color: var(--gold); }
+.legend .sell { color: var(--green); }
+.chart { display: block; width: 100%; height: auto; background: var(--card); border: 1px solid var(--line); border-radius: 10px; }
+.chart text { fill: var(--muted); font-size: 10px; }
+.chart .axis { stroke: var(--line); }

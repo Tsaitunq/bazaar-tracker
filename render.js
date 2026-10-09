@@ -1,3 +1,5 @@
+import { lineChart } from './chart.js';
+import { marginSeries } from './history.js';
 export const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 export const compact = new Intl.NumberFormat('de-DE', { notation: 'compact', maximumFractionDigits: 1 });
 export const percent = new Intl.NumberFormat('de-DE', { style: 'percent', maximumFractionDigits: 1 });
@@ -63,4 +65,22 @@ export function parseRoute(hash) {
     try { return { view, id: decodeURIComponent(arg) }; } catch {}
   }
   return { view: view === 'npc' || view === 'craft' ? view : 'flips' };
+}
+
+const RANGES = [['24h', '24 Std.'], ['7d', '7 Tage']];
+
+export function detailView({ id, name, flip, score, isFav, range, points, tax }) {
+  const stat = (label, value) => `<div><dt>${label}</dt><dd>${value}</dd></div>`;
+  const current = flip ? `<dl>${stat('Buy-Order', num(flip.buy))}${stat('Sell-Offer', num(flip.sell))}${stat('Marge', percent.format(flip.margin))}${stat('Gewinn/Stück', num(flip.profit))}${stat('Vol./Woche', num(flip.weekVol))}${stat('Gewinn/h', num(flip.profitHour))}</dl>` : '';
+  const buttons = RANGES.map(([r, label]) => `<button type="button" data-range="${r}" aria-pressed="${r === range}">${label}</button>`).join('');
+  const charts = points === null ? '<p class="muted">Lade Verlauf…</p>'
+    : !points.length ? '<p class="muted">Noch kein Verlauf vorhanden</p>'
+    : `<h3>Preise</h3><p class="legend"><span class="buy">Buy-Order</span> <span class="sell">Sell-Offer</span></p>${lineChart([
+      { color: 'var(--gold)', points: points.map(([t, b]) => [t, b]) },
+      { color: 'var(--green)', points: points.map(([t, , s]) => [t, s]) },
+    ], { format: num })}<h3>Marge</h3>${lineChart([{ color: 'var(--text)', points: marginSeries(points, tax) }], { format: (v) => percent.format(v) })}`;
+  return `<a class="back" href="#/flips">← Zurück</a>
+<div class="detail-head"><button class="star" type="button" data-id="${esc(id)}" aria-pressed="${isFav}" aria-label="Favorit: ${esc(name)}">★</button>
+${icon(id, 48)}<h2 class="name">${esc(name)} ${scoreBadge(score)}</h2></div>
+${current}<div class="bar ranges">${buttons}</div>${charts}`;
 }

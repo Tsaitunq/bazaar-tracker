@@ -1,9 +1,9 @@
-import { buildFlips } from './flips.js';
+import { buildFlips, computeFlip } from './flips.js';
 import { npcFlips } from './npc.js';
 import { craftFlips } from './craft.js';
 import { loadItems, fallbackName } from './names.js';
-import { loadScores, loadRecipes } from './data.js';
-import { flipCard, npcCard, craftCard, parseRoute, PLACEHOLDER_ICON } from './render.js';
+import { loadScores, loadRecipes, loadHistory } from './data.js';
+import { flipCard, npcCard, craftCard, parseRoute, detailView, PLACEHOLDER_ICON } from './render.js';
 
 const API = 'https://api.hypixel.net/v2/skyblock/bazaar';
 const MAX_ROWS = 100;
@@ -42,11 +42,13 @@ let flips = [];
 let lastFetch = 0;
 let timer;
 let busy = false;
+let hist = { id: null, points: null }; // 7 days of history for the open item, loaded once
+let range = '24h';
 
-const view = () => (route.view === 'npc' || route.view === 'craft' ? route.view : 'flips'); // item page comes in a later task
+const view = () => (route.view === 'item' ? 'flips' : route.view);
 
 function recompute() {
-  if (!products) return;
+  if (!products || route.view === 'item') return;
   const opts = { ...settings, tax: settings.tax / 100, share: settings.share / 100, scores };
   const v = view();
   if (v === 'flips') flips = buildFlips(products, { ...opts, favs });
@@ -59,7 +61,23 @@ function recompute() {
   }
 }
 
+function renderDetail() {
+  const { id } = route;
+  if (hist.id !== id) {
+    hist = { id, points: null };
+    loadHistory(id, 7).then((points) => { if (hist.id === id) { hist.points = points; render(); } });
+  }
+  if (!products) return;
+  const nowMin = Date.now() / 60000;
+  const points = hist.points && (range === '24h' ? hist.points.filter(([t]) => t >= nowMin - 1440) : hist.points);
+  const flip = products[id] ? computeFlip(id, products[id], settings.tax / 100, settings.maxCapital, settings.share / 100) : null;
+  $('detail').innerHTML = detailView({ id, name: names[id] ?? fallbackName(id), flip, score: scores[id], isFav: favs.has(id), range, points, tax: settings.tax / 100 });
+}
+
 function render() {
+  const item = route.view === 'item';
+  document.body.classList.toggle('detail', item);
+  if (item) return renderDetail();
   for (const a of document.querySelectorAll('#tabs a')) {
     if (a.getAttribute('href') === `#/${view()}`) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
@@ -148,7 +166,13 @@ document.addEventListener('error', (e) => {
   const img = e.target;
   if (img.matches?.('img.icon') && img.src !== PLACEHOLDER_ICON) img.src = PLACEHOLDER_ICON;
 }, true);
-$('list').addEventListener('click', (e) => {
+$('detail').addEventListener('click', (e) => {
+  const r = e.target.closest('[data-range]')?.dataset.range;
+  if (!r) return;
+  range = r;
+  render();
+});
+document.querySelector('main').addEventListener('click', (e) => {
   const id = e.target.closest('.star')?.dataset.id;
   if (!id) return;
   if (!favs.delete(id)) favs.add(id);

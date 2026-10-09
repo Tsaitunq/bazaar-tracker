@@ -56,3 +56,15 @@ test('parseRoute', () => {
   assert.deepEqual(parseRoute('#/item/INK_SACK%3A4'), { view: 'item', id: 'INK_SACK:4' });
   assert.deepEqual(parseRoute('#/quatsch'), { view: 'flips' });
 });
+
+test('detailView shows history states, charts, escaping and range', async () => {
+  const { detailView } = await import('../render.js');
+  const base = { id: 'A', name: 'Name', flip: null, score: 80, isFav: false, range: '24h', tax: 0.0125 };
+  const points = [[29000000, 10, 20], [29000020, 11, 22], [29000040, 12, 21]];
+  assert.ok(detailView({ ...base, points: [] }).includes('Noch kein Verlauf vorhanden'));
+  assert.ok(detailView({ ...base, points: null }).includes('Lade Verlauf…'));
+  assert.equal(detailView({ ...base, points }).match(/<svg/g).length, 2);
+  assert.ok(!detailView({ ...base, name: '<i>', points }).includes('<i>'));
+  assert.match(detailView({ ...base, range: '7d', points }), /data-range="7d"[^>]*aria-pressed="true"|aria-pressed="true"[^>]*data-range="7d"/);
+  assert.match(detailView({ ...base, points }), /href="#\/flips"/);
+});
