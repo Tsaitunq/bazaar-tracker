@@ -16,7 +16,7 @@ import java.util.Set;
 
 /** Pure logic of the background check. No Android classes, so it runs in JVM unit tests. */
 final class AlertLogic {
-    private static final DecimalFormatSymbols DE = new DecimalFormatSymbols(Locale.GERMANY);
+    private static final DecimalFormatSymbols EN = new DecimalFormatSymbols(Locale.US);
 
     private AlertLogic() {}
 
@@ -103,8 +103,8 @@ final class AlertLogic {
     }
 
     static String title(int count, double minMarginPercent) {
-        return count + (count == 1 ? " Favorit" : " Favoriten") + " über "
-            + new DecimalFormat("#.#", DE).format(minMarginPercent) + " % Marge";
+        return count + (count == 1 ? " favorite" : " favorites") + " above "
+            + new DecimalFormat("#.#", EN).format(minMarginPercent) + "% margin";
     }
 
     /** One line per id, best margin first; falls back to the id when no name is known. */
@@ -121,6 +121,6 @@ final class AlertLogic {
     }
 
     static String line(String name, double margin) {
-        return name + ": " + new DecimalFormat("0.0", DE).format(margin * 100) + " %";
+        return name + ": " + new DecimalFormat("0.0", EN).format(margin * 100) + "%";
     }
 }

@@ -1,6 +1,6 @@
 import { esc } from './render.js';
 
-const stamp = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+const stamp = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 const when = (tMin) => stamp.format(new Date(tMin * 60000));
 
 // All series share both axes. x values are unix minutes.

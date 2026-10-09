@@ -1,8 +1,17 @@
 import { lineChart } from './chart.js';
 import { marginSeries } from './history.js';
 export const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
-export const compact = new Intl.NumberFormat('de-DE', { notation: 'compact', maximumFractionDigits: 1 });
-export const percent = new Intl.NumberFormat('de-DE', { style: 'percent', maximumFractionDigits: 1 });
+const plain = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
+const UNITS = [[1e9, 'B'], [1e6, 'M'], [1e3, 'k']];
+// Hypixel style: 1,234.5 below ten thousand, then 350k, 1.2M, 3.4B
+export function coins(v) {
+  if (!Number.isFinite(v)) return '–';
+  if (Math.abs(v) < 9999.95) return plain.format(v);
+  // 0.99995: a value that rounds up to 1000 of a unit moves to the next unit (999,950 is 1M, not 1000k)
+  const [div, unit] = UNITS.find(([d]) => Math.abs(v) >= d * 0.99995) ?? UNITS[2];
+  return plain.format(v / div) + unit;
+}
+export const percent = new Intl.NumberFormat('en-US', { style: 'percent', maximumFractionDigits: 1 });
 
 export const ICON_BASE = 'https://sky.coflnet.com/static/icon/';
 export const iconUrl = (id) => ICON_BASE + encodeURIComponent(id);
@@ -16,48 +25,48 @@ export const icon = (id, size = 32) =>
 
 export function scoreBadge(score) {
   if (score == null) return '';
-  const [cls, label] = score >= 70 ? ['good', 'stabil'] : score >= 40 ? ['mid', 'mittel'] : ['bad', 'instabil'];
+  const [cls, label] = score >= 70 ? ['good', 'stable'] : score >= 40 ? ['mid', 'medium'] : ['bad', 'unstable'];
   return `<span class="badge badge-${cls}">${label} ${Math.round(score)}</span>`;
 }
 
 const cell = (label, value, cls = '') => `<div><dt>${label}</dt><dd${cls ? ` class="${cls}"` : ''}>${value}</dd></div>`;
 const gain = (v) => (v > 0 ? 'gain' : 'loss');
-const num = (v) => compact.format(v);
+const num = coins;
 
 const card = (f, isFav, warn, cells, extra = '') => `<li class="card">
-  <button class="star" type="button" data-id="${esc(f.id)}" aria-pressed="${isFav}" aria-label="Favorit: ${esc(f.name)}">★</button>
+  <button class="star" type="button" data-id="${esc(f.id)}" aria-pressed="${isFav}" aria-label="Favorite: ${esc(f.name)}">★</button>
   <a class="body" href="${esc(itemHref(f.id))}">
-    <div class="name">${icon(f.id)}<span>${esc(f.name)}${warn ? ' <span class="warn">⚠ verdächtig</span>' : ''} ${scoreBadge(f.score)}</span></div>
+    <div class="name">${icon(f.id)}<span>${esc(f.name)}${warn ? ' <span class="warn">⚠ suspicious</span>' : ''} ${scoreBadge(f.score)}</span></div>
     <dl>${cells.join('')}</dl>${extra}
   </a>
 </li>`;
 
 export const flipCard = (f, isFav) => card(f, isFav, f.suspicious, [
-  cell('Buy-Order', num(f.buy)),
-  cell('Sell-Offer', num(f.sell)),
-  cell('Vol./Woche', num(f.weekVol)),
-  cell('Gewinn/Stück', num(f.profit), gain(f.profit)),
-  cell('Marge', percent.format(f.margin)),
-  cell('Gewinn/h', num(f.profitHour), gain(f.profit)),
+  cell('Buy order', num(f.buy)),
+  cell('Sell offer', num(f.sell)),
+  cell('Vol./week', num(f.weekVol)),
+  cell('Profit/item', num(f.profit), gain(f.profit)),
+  cell('Margin', percent.format(f.margin)),
+  cell('Profit/h', num(f.profitHour), gain(f.profit)),
 ]);
 
 export const npcCard = (f, isFav) => card(f, isFav, false, [
-  cell('Buy-Order', num(f.buy)),
-  cell('NPC-Preis', num(f.npc)),
-  cell('Vol./Woche', num(f.weekVol)),
-  cell('Gewinn/Stück', num(f.profit), gain(f.profit)),
-  cell('Gewinn Sofortkauf', num(f.profitInstant), gain(f.profitInstant)),
-  cell('Gewinn/h', num(f.profitHour), gain(f.profit)),
+  cell('Buy order', num(f.buy)),
+  cell('NPC price', num(f.npc)),
+  cell('Vol./week', num(f.weekVol)),
+  cell('Profit/item', num(f.profit), gain(f.profit)),
+  cell('Profit (instant buy)', num(f.profitInstant), gain(f.profitInstant)),
+  cell('Profit/h', num(f.profitHour), gain(f.profit)),
 ]);
 
 export const craftCard = (f, isFav) => card(f, isFav, false, [
-  cell('Kosten', num(f.cost)),
-  cell('Erlös', num(f.revenue)),
-  cell('Marge', percent.format(f.margin)),
-  cell('Gewinn/Craft', num(f.profit), gain(f.profit)),
+  cell('Cost', num(f.cost)),
+  cell('Revenue', num(f.revenue)),
+  cell('Margin', percent.format(f.margin)),
+  cell('Profit/craft', num(f.profit), gain(f.profit)),
   cell('Crafts/h', num(f.craftsHour)),
-  cell('Gewinn/h', num(f.profitHour), gain(f.profit)),
-], `<ul class="ingredients">${f.ingredients.map((i) => `<li>${num(i.qty)}× ${esc(i.name)} à ${num(i.price)}</li>`).join('')}</ul>`);
+  cell('Profit/h', num(f.profitHour), gain(f.profit)),
+], `<ul class="ingredients">${f.ingredients.map((i) => `<li>${num(i.qty)}× ${esc(i.name)} @ ${num(i.price)}</li>`).join('')}</ul>`);
 
 export function parseRoute(hash) {
   const [, view, arg] = /^#\/([^/]*)(?:\/(.*))?$/.exec(hash) ?? [];
@@ -67,20 +76,20 @@ export function parseRoute(hash) {
   return { view: view === 'npc' || view === 'craft' ? view : 'flips' };
 }
 
-const RANGES = [['24h', '24 Std.'], ['7d', '7 Tage']];
+const RANGES = [['24h', '24 h'], ['7d', '7 days']];
 
 export function detailView({ id, name, flip, score, back = 'flips', isFav, range, points, tax }) {
   const stat = (label, value) => `<div><dt>${label}</dt><dd>${value}</dd></div>`;
-  const current = flip ? `<dl>${stat('Buy-Order', num(flip.buy))}${stat('Sell-Offer', num(flip.sell))}${stat('Marge', percent.format(flip.margin))}${stat('Gewinn/Stück', num(flip.profit))}${stat('Vol./Woche', num(flip.weekVol))}${stat('Gewinn/h', num(flip.profitHour))}</dl>` : '';
+  const current = flip ? `<dl>${stat('Buy order', num(flip.buy))}${stat('Sell offer', num(flip.sell))}${stat('Margin', percent.format(flip.margin))}${stat('Profit/item', num(flip.profit))}${stat('Vol./week', num(flip.weekVol))}${stat('Profit/h', num(flip.profitHour))}</dl>` : '';
   const buttons = RANGES.map(([r, label]) => `<button type="button" data-range="${r}" aria-pressed="${r === range}">${label}</button>`).join('');
-  const charts = points === null ? '<p class="muted">Lade Verlauf…</p>'
-    : !points.length ? '<p class="muted">Noch kein Verlauf vorhanden</p>'
-    : `<h3>Preise</h3><p class="legend"><span class="buy">Buy-Order</span> <span class="sell">Sell-Offer</span></p>${lineChart([
+  const charts = points === null ? '<p class="muted">Loading history…</p>'
+    : !points.length ? '<p class="muted">No history yet</p>'
+    : `<h3>Prices</h3><p class="legend"><span class="buy">Buy order</span> <span class="sell">Sell offer</span></p>${lineChart([
       { color: 'var(--gold)', points: points.map(([t, b]) => [t, b]) },
       { color: 'var(--green)', points: points.map(([t, , s]) => [t, s]) },
-    ], { format: num })}<h3>Marge</h3>${lineChart([{ color: 'var(--text)', points: marginSeries(points, tax) }], { format: (v) => percent.format(v) })}`;
-  return `<a class="back" href="#/${back}">← Zurück</a>
-<div class="detail-head"><button class="star" type="button" data-id="${esc(id)}" aria-pressed="${isFav}" aria-label="Favorit: ${esc(name)}">★</button>
+    ], { format: num })}<h3>Margin</h3>${lineChart([{ color: 'var(--text)', points: marginSeries(points, tax) }], { format: (v) => percent.format(v) })}`;
+  return `<a class="back" href="#/${back}">← Back</a>
+<div class="detail-head"><button class="star" type="button" data-id="${esc(id)}" aria-pressed="${isFav}" aria-label="Favorite: ${esc(name)}">★</button>
 ${icon(id, 48)}<h2 class="name">${esc(name)} ${scoreBadge(score)}</h2></div>
 ${current}<div class="bar ranges">${buttons}</div>${charts}`;
 }

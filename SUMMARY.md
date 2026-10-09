@@ -154,3 +154,9 @@ Detailseite.
 - Platzbedarf der Werkzeuge: rund 9 GB (SDK und Emulator). Der Emulator lässt
   sich mit `sdkmanager --uninstall "emulator" "system-images;android-35;google_apis;x86_64"`
   und Löschen von `%USERPROFILE%\.android\avd` wieder entfernen.
+
+## Nachtrag: Oberfläche auf Englisch
+
+Seit der Umstellung sind alle Texte in PWA und App englisch. Die
+Benachrichtigung lautet jetzt z. B. „1 favorite above 5% margin“, der
+Schalter „Notify me about favorites“. Die Testliste oben gilt unverändert.

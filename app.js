@@ -89,12 +89,12 @@ function render() {
   if (!products) return;
   if (view() === 'craft' && recipes === null) {
     $('count').textContent = '';
-    $('list').innerHTML = '<li class="muted">Noch keine Rezeptdaten. Der Snapshot-Workflow muss einmal gelaufen sein.</li>';
+    $('list').innerHTML = '<li class="muted">No recipe data yet. The snapshot workflow has to run once.</li>';
     return;
   }
   const q = $('search').value.trim().toLowerCase();
   const rows = flips.filter((f) => (!settings.favOnly || favs.has(f.id)) && f.name.toLowerCase().includes(q));
-  $('count').textContent = `${Math.min(rows.length, MAX_ROWS)} von ${rows.length} Flips`;
+  $('count').textContent = `${Math.min(rows.length, MAX_ROWS)} of ${rows.length} flips`;
   $('list').innerHTML = rows.slice(0, MAX_ROWS).map((f) => CARDS[view()](f, favs.has(f.id))).join('');
 }
 
@@ -111,17 +111,17 @@ async function refresh() {
     const res = await fetch(API, { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    if (!data.success) throw new Error(data.cause || 'API meldet einen Fehler');
+    if (!data.success) throw new Error(data.cause || 'the API reported an error');
     products = data.products;
-    $('stamp').textContent = `Stand ${new Date(data.lastUpdated).toLocaleTimeString('de-DE')}`;
+    $('stamp').textContent = `Updated ${new Date(data.lastUpdated).toLocaleTimeString('en-GB')}`;
     $('error').hidden = true;
     recompute();
     render();
     if (Date.now() - lastScores > SCORES_TTL) refreshScores();
   } catch (e) {
-    $('error').textContent = `Aktualisierung fehlgeschlagen: ${e.message}`;
+    $('error').textContent = `Update failed: ${e.message}`;
     $('error').hidden = false;
-    if (!products) $('count').textContent = 'Keine Daten';
+    if (!products) $('count').textContent = 'No data';
   }
   lastFetch = Date.now();
   busy = false;
@@ -208,7 +208,7 @@ addEventListener('touchmove', (e) => {
   if (pullStart === null) return;
   pulled = e.touches[0].clientY - pullStart;
   $('ptr').style.height = `${Math.max(0, Math.min(pulled / 2, 40))}px`;
-  $('ptr').textContent = pulled > PULL_PX ? 'Loslassen zum Aktualisieren' : 'Ziehen zum Aktualisieren';
+  $('ptr').textContent = pulled > PULL_PX ? 'Release to refresh' : 'Pull to refresh';
 }, { passive: true });
 addEventListener('touchend', () => {
   $('ptr').style.height = '0';

@@ -164,3 +164,19 @@ Selbstständig getroffen (Auftrag: ohne Rückfragen).
   könnte andere Programme treffen.
 - **Die bisherige `SUMMARY.md` (Version 2) liegt jetzt unter
   `docs/summary-v2.md`.**
+
+# Entscheidungen Umstellung auf Englisch
+
+- **Coins-Werte:** unter 10 000 ausgeschrieben mit englischen Trennzeichen
+  (`1,234.5`), darüber gekürzt mit höchstens einer Nachkommastelle (`20.8k`,
+  `350k`, `1.2M`, `1.5B`). Grund: Deine Beispiele nennen beide Formen; die
+  Grenze bei 10 000 hält kleine Preise genau. Dieselbe Form gilt für Volumen
+  und Mengen.
+- **Zeit im 24-Stunden-Format, Datum als `9 Oct, 15:34`.** Grund: englisch,
+  aber ohne die Verwechslungsgefahr von `10/09`. Kosten: kein AM/PM, falls du
+  das erwartet hast.
+- **Schreibweise amerikanisch (`favorites`).**
+- **PWA heißt jetzt wie die App „Bazaar Flip Helper“** (Manifest und
+  Seitentitel); die Überschrift in der App bleibt kurz „Bazaar Flips“.
+- **Dokumentation (`docs/`, `DECISIONS.md`, `SUMMARY.md`) bleibt deutsch.**
+  Grund: Der Auftrag betraf die Oberfläche.

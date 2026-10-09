@@ -75,13 +75,13 @@ public class AlertLogicTest {
         prices.put("B", new double[] { 100, 200 });
         Map<String, String> names = new HashMap<>();
         names.put("B", "Item B");
-        assertEquals(Arrays.asList("Item B: 97,5 %", "A: 18,5 %"), AlertLogic.lines(set("A", "B"), prices, names, 0.0125));
+        assertEquals(Arrays.asList("Item B: 97.5%", "A: 18.5%"), AlertLogic.lines(set("A", "B"), prices, names, 0.0125));
     }
 
     @Test
-    public void textsAreGerman() {
-        assertEquals("2 Favoriten über 5 % Marge", AlertLogic.title(2, 5));
-        assertEquals("1 Favorit über 7,5 % Marge", AlertLogic.title(1, 7.5));
-        assertEquals("Enchanted Diamond: 12,3 %", AlertLogic.line("Enchanted Diamond", 0.1234));
+    public void textsAreEnglish() {
+        assertEquals("2 favorites above 5% margin", AlertLogic.title(2, 5));
+        assertEquals("1 favorite above 7.5% margin", AlertLogic.title(1, 7.5));
+        assertEquals("Enchanted Diamond: 12.3%", AlertLogic.line("Enchanted Diamond", 0.1234));
     }
 }

@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0f1115">
   <meta name="color-scheme" content="dark">
-  <title>Bazaar-Flips</title>
+  <title>Bazaar Flip Helper</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.png">
   <link rel="stylesheet" href="style.css">
@@ -14,20 +14,20 @@
   <div id="ptr" aria-hidden="true"></div>
   <header>
     <div class="bar">
-      <h1>Bazaar-Flips</h1>
+      <h1>Bazaar Flips</h1>
       <span id="stamp" class="muted">–</span>
-      <button id="refresh" type="button" aria-label="Aktualisieren">↻</button>
-      <button id="toggle-settings" type="button" aria-label="Einstellungen" aria-expanded="false" aria-controls="settings">⚙</button>
+      <button id="refresh" type="button" aria-label="Refresh">↻</button>
+      <button id="toggle-settings" type="button" aria-label="Settings" aria-expanded="false" aria-controls="settings">⚙</button>
     </div>
     <div class="bar">
-      <input id="search" type="search" placeholder="Item suchen" aria-label="Item suchen" autocomplete="off">
-      <select id="sort" aria-label="Sortierung">
-        <option value="profitHour">Gewinn/h</option>
-        <option value="profit">Gewinn/Stück</option>
-        <option value="margin">Marge %</option>
-        <option value="score">Stabilität</option>
+      <input id="search" type="search" placeholder="Search item" aria-label="Search item" autocomplete="off">
+      <select id="sort" aria-label="Sort by">
+        <option value="profitHour">Profit/h</option>
+        <option value="profit">Profit/item</option>
+        <option value="margin">Margin %</option>
+        <option value="score">Stability</option>
       </select>
-      <button id="fav-only" type="button" aria-pressed="false" aria-label="Nur Favoriten">★</button>
+      <button id="fav-only" type="button" aria-pressed="false" aria-label="Favorites only">★</button>
     </div>
     <nav id="tabs">
       <a href="#/flips">Flips</a>
@@ -35,47 +35,47 @@
       <a href="#/craft">Craft</a>
     </nav>
     <form id="settings" hidden>
-      <label>Steuer
+      <label>Tax
         <select id="tax">
-          <option value="1.25">1,25 %</option>
-          <option value="1.125">1,125 %</option>
-          <option value="1">1,0 %</option>
+          <option value="1.25">1.25%</option>
+          <option value="1.125">1.125%</option>
+          <option value="1">1.0%</option>
         </select>
       </label>
       <label>Refresh
         <select id="interval">
-          <option value="1">1 Min</option>
-          <option value="2">2 Min</option>
-          <option value="5">5 Min</option>
+          <option value="1">1 min</option>
+          <option value="2">2 min</option>
+          <option value="5">5 min</option>
         </select>
       </label>
-      <label>Marktanteil % (für Gewinn/h)
+      <label>Market share % (for profit/h)
         <input id="share" type="number" min="1" max="100" step="1" inputmode="numeric">
       </label>
-      <label>Mindestvolumen/Woche
+      <label>Min. volume/week
         <input id="minVolume" type="number" min="0" step="1" inputmode="numeric">
       </label>
-      <label>Max. Kapital pro Flip (0 = egal)
+      <label>Max. capital per flip (0 = any)
         <input id="maxCapital" type="number" min="0" step="1" inputmode="numeric">
       </label>
       <fieldset id="alert-settings" hidden>
-        <legend>Hintergrund-Check (etwa alle 15 Min)</legend>
-        <label class="check"><input id="alerts" type="checkbox"> Benachrichtigung bei Favoriten</label>
-        <label>Mindestmarge %
+        <legend>Background check (about every 15 min)</legend>
+        <label class="check"><input id="alerts" type="checkbox"> Notify me about favorites</label>
+        <label>Min. margin %
           <input id="alertMargin" type="number" min="0.1" max="1000" step="0.1" inputmode="decimal">
         </label>
-        <p id="alert-hint" role="alert" hidden>Benachrichtigungen sind in den Android-Einstellungen für diese App blockiert.</p>
+        <p id="alert-hint" role="alert" hidden>Notifications for this app are blocked in the Android settings.</p>
       </fieldset>
     </form>
     <p id="error" role="alert" hidden></p>
   </header>
   <main>
-    <p id="count" class="muted">Lade…</p>
+    <p id="count" class="muted">Loading…</p>
     <ul id="list"></ul>
     <div id="detail"></div>
   </main>
   <footer>
-    Bilder: <a href="https://sky.coflnet.com/data" rel="noopener">sky.coflnet.com</a> · Rezepte: <a href="https://github.com/NotEnoughUpdates/NotEnoughUpdates-REPO" rel="noopener">NotEnoughUpdates-REPO</a> · Kein offizielles Hypixel-Produkt
+    Icons: <a href="https://sky.coflnet.com/data" rel="noopener">sky.coflnet.com</a> · Recipes: <a href="https://github.com/NotEnoughUpdates/NotEnoughUpdates-REPO" rel="noopener">NotEnoughUpdates-REPO</a> · Not an official Hypixel product
   </footer>
   <script type="module" src="app.js"></script>
 </body>
