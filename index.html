@@ -107,6 +107,19 @@
       </div>
     </fieldset>
 
+    <fieldset>
+      <legend>Portfolio</legend>
+      <p class="intro">A plan at the top of the Opportunities tab: your capital split evenly over several flips that run at the same time.</p>
+      <label>Total capital
+        <input id="portfolioCapital" type="number" min="0" step="1" inputmode="numeric">
+        <small>All the coins you want to flip with. 0 switches the plan off.</small>
+      </label>
+      <label>Parallel flips
+        <input id="portfolioSlots" type="number" min="1" max="50" step="1" inputmode="numeric">
+        <small>How many items you flip at once. Each one gets the same share of the capital.</small>
+      </label>
+    </fieldset>
+
     <fieldset id="alert-settings" hidden>
       <legend>Favorite alerts</legend>
       <label class="check"><input id="alerts" type="checkbox"> Notify me about favorites</label>
@@ -120,6 +133,7 @@
   </form>
 
   <main>
+    <div id="portfolio"></div>
     <p id="count" class="muted">Loading…</p>
     <ul id="list"></ul>
     <div id="detail"></div>

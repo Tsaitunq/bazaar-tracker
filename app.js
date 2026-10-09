@@ -1,10 +1,10 @@
-import { buildFlips, computeFlip, opportunities, statOf } from './flips.js';
+import { buildFlips, computeFlip, opportunities, portfolio, statOf } from './flips.js';
 import { npcFlips } from './npc.js';
 import { craftFlips } from './craft.js';
 import { loadItems, fallbackName } from './names.js';
 import { loadStats, loadRecipes, loadHistory } from './data.js';
 import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission } from './native.js';
-import { flipCard, npcCard, craftCard, parseRoute, detailView, swipeTab, coins, percent, PLACEHOLDER_ICON } from './render.js';
+import { flipCard, npcCard, craftCard, parseRoute, detailView, portfolioView, swipeTab, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
 
 const API = 'https://api.hypixel.net/v2/skyblock/bazaar';
@@ -13,7 +13,8 @@ const PULL_PX = 70;
 const STATS_TTL = 20 * 60000;
 const CARDS = { flips: flipCard, opps: flipCard, npc: npcCard, craft: craftCard };
 const DEFAULTS = { tax: 1.25, minVolume: 100000, maxCapital: 5000000, interval: 2, share: 5, sort: 'profitHour', favOnly: false, alerts: false, alertMargin: 5,
-  marketAlerts: false, marketMargin: 10, marketMinVolume: 100000, marketMinProfit: 100000, marketCooldown: 6 };
+  marketAlerts: false, marketMargin: 10, marketMinVolume: 100000, marketMinProfit: 100000, marketCooldown: 6,
+  portfolioCapital: 50000000, portfolioSlots: 10 };
 
 const $ = (id) => document.getElementById(id);
 const load = (key, fallback) => { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } };
@@ -25,7 +26,7 @@ function sanitize() {
   for (const key of ['tax', 'interval', 'sort']) {
     if (![...$(key).options].some((o) => o.value === String(settings[key]))) settings[key] = DEFAULTS[key];
   }
-  for (const key of ['minVolume', 'maxCapital', 'marketMinVolume', 'marketMinProfit']) {
+  for (const key of ['minVolume', 'maxCapital', 'marketMinVolume', 'marketMinProfit', 'portfolioCapital']) {
     if (!(settings[key] >= 0)) settings[key] = DEFAULTS[key];
   }
   if (!(settings.share > 0 && settings.share <= 100)) settings.share = DEFAULTS.share;
@@ -34,6 +35,8 @@ function sanitize() {
   if (!(settings.marketMargin > 0 && settings.marketMargin <= 1000)) settings.marketMargin = DEFAULTS.marketMargin;
   if (!(settings.marketCooldown > 0 && settings.marketCooldown <= 168)) settings.marketCooldown = DEFAULTS.marketCooldown;
   settings.marketAlerts = settings.marketAlerts === true;
+  settings.portfolioSlots = Math.floor(settings.portfolioSlots);
+  if (!(settings.portfolioSlots >= 1 && settings.portfolioSlots <= 50)) settings.portfolioSlots = DEFAULTS.portfolioSlots;
 }
 sanitize();
 const storedFavs = load('bt.favs', []);
@@ -49,6 +52,7 @@ let lastStats = 0;
 let route = parseRoute(location.hash);
 let lastList = route.view === 'item' ? 'flips' : route.view; // where the detail page's back link goes
 let flips = [];
+let plan = null; // portfolio for the Opportunities tab
 let lastFetch = 0;
 let timer;
 let busy = false;
@@ -64,13 +68,14 @@ function recompute() {
   const v = view();
   if (v === 'flips') flips = buildFlips(products, { ...opts, favs });
   else if (v === 'opps') {
-    flips = opportunities(products, {
-      ...opts, minMargin: settings.marketMargin / 100, minVolume: settings.marketMinVolume, minProfitHour: settings.marketMinProfit,
-    });
+    const conditions = { ...opts, minMargin: settings.marketMargin / 100, minVolume: settings.marketMinVolume, minProfitHour: settings.marketMinProfit };
+    flips = opportunities(products, conditions);
+    plan = portfolio(products, { ...conditions, capital: settings.portfolioCapital, slots: settings.portfolioSlots });
   }
   else if (v === 'npc') flips = npcFlips(products, npc, opts);
   else flips = recipes ? craftFlips(products, recipes, opts) : [];
   const name = (id) => names[id] ?? fallbackName(id);
+  if (v === 'opps') for (const f of plan.flips) f.name = name(f.id);
   for (const f of flips) {
     f.name = name(f.id);
     f.tier = tiers[f.id];
@@ -125,6 +130,8 @@ function render() {
   $('count').textContent = `${Math.min(rows.length, MAX_ROWS)} of ${rows.length} flips`;
   $('list').innerHTML = rows.slice(0, MAX_ROWS).map((f) => CARDS[view()](f, favs.has(f.id))).join('');
   $('list').classList.toggle('opps', view() === 'opps');
+  $('portfolio').innerHTML = view() === 'opps' && plan
+    ? portfolioView(plan, { capital: settings.portfolioCapital, slots: settings.portfolioSlots, sharePercent: settings.share }) : '';
   flashChanges();
   if (view() === 'opps' && !flips.length) {
     $('list').innerHTML = `<li class="muted">${stats
@@ -180,7 +187,7 @@ function applySettings() {
   render();
 }
 
-for (const key of ['tax', 'interval', 'share', 'sort', 'minVolume', 'maxCapital', 'alertMargin', 'marketMargin', 'marketMinVolume', 'marketMinProfit', 'marketCooldown']) {
+for (const key of ['tax', 'interval', 'share', 'sort', 'minVolume', 'maxCapital', 'alertMargin', 'marketMargin', 'marketMinVolume', 'marketMinProfit', 'marketCooldown', 'portfolioCapital', 'portfolioSlots']) {
   $(key).value = settings[key];
   $(key).addEventListener('change', (e) => {
     settings[key] = key === 'sort' ? e.target.value : Math.max(0, Number(e.target.value) || 0);

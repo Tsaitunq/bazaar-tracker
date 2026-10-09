@@ -159,3 +159,27 @@ Karte, breitere Detailseite am Desktop. Zusätzlich zu testen:
    „Bewegung reduzieren“ in den Systemeinstellungen passiert das nicht.
 
 Vergleichsbilder aller Varianten: `docs/design-varianten/`.
+
+## Nachtrag: Wischen und Portfolio
+
+- **Wischen:** Auf einer Liste nach links oder rechts wischen wechselt den
+  Tab.
+- **Portfolio:** Oben im Tab „Opportunities“ steht ein Plan: Gesamtkapital
+  gleichmäßig auf mehrere parallele Flips verteilt, Summe Profit/h groß,
+  darunter die gewählten Items mit Einsatz und Profit/h. Einstellungen unter
+  „Portfolio“: Total capital (Standard 50 Mio.), Parallel flips (Standard 10).
+
+Zu testen:
+
+1. Wischen links/rechts auf jeder Liste; Scrollen wechselt keinen Tab.
+2. Solange alle Items „provisional“ sind, steht im Portfolio „No flip
+   qualifies …“. Sobald Opportunities erscheinen, füllt es sich.
+3. Total capital und Parallel flips ändern: Budget pro Flip und Auswahl ändern
+   sich; Total capital 0 zeigt den Hinweis, ein Kapital zu setzen.
+4. Market share ändern: Der Hinweis „Assumes X% market share …“ zeigt den
+   neuen Wert, die Summe skaliert mit.
+5. Ein Item im Portfolio antippen: öffnet die Detailseite.
+
+Nicht geprüft: das Portfolio mit echten Kennzahlen (noch ist alles
+„provisional“); gesehen habe ich es mit künstlich gemischten Kennzahlen am
+Desktop und bei 360 px.

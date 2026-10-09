@@ -37,7 +37,7 @@ export function computeFlip(id, product, tax, maxCapital, share = 1, median = nu
   const margin = profit / buy;
 
   return {
-    id, buy, sell, profit, margin, weekVol, hourVol,
+    id, buy, sell, profit, margin, weekVol, hourVol, units,
     profitHour: units * profit,
     suspicious: margin > 2 || (margin > 0.5 && hourVol < 100) || !(qs.buyOrders >= 3) || !(qs.sellOrders >= 3)
       || (median > 0 && sell > median * (1 + MEDIAN_SPIKE)),
@@ -68,4 +68,24 @@ export function opportunities(products, { tax, maxCapital, share = 1, sort, stat
     .filter((f) => f && !f.suspicious && !f.provisional && f.score >= STABLE && f.margin >= minMargin
       && f.weekVol >= minVolume && f.profitHour >= minProfitHour && !(maxCapital > 0 && f.buy > maxCapital))
     .sort(bySort(sort));
+}
+
+// A plan for running several flips at once: the total capital is split evenly over `slots` flips, and the best
+// opportunities for that budget are picked. A flip that cannot use its whole share (the item does not trade
+// enough, or whole units do not divide the budget) keeps the smaller stake; nothing is moved to other flips.
+// Uses exactly the opportunity conditions, so suspicious and provisional items never appear.
+export function portfolio(products, { capital, slots, ...opts }) {
+  const budget = capital > 0 && slots >= 1 ? capital / Math.floor(slots) : 0;
+  const flips = budget > 0
+    ? opportunities(products, { ...opts, maxCapital: budget, sort: 'profitHour' })
+      .filter((f) => f.units >= 1)
+      .slice(0, Math.floor(slots))
+      .map((f) => ({ ...f, stake: f.units * f.buy }))
+    : [];
+  return {
+    flips,
+    budget,
+    profitHour: flips.reduce((sum, f) => sum + f.profitHour, 0),
+    used: flips.reduce((sum, f) => sum + f.stake, 0),
+  };
 }

@@ -144,3 +144,27 @@ test('swipeTab: left opens the next tab, right the previous one, no wrap around'
   assert.equal(swipeTab('flips', -80, 41), null);
   assert.equal(swipeTab('flips', -80, 40), 'opps');
 });
+
+test('portfolioView shows the total, the picks and the market share assumption', async () => {
+  const { portfolioView } = await import('../render.js');
+  const plan = {
+    budget: 5000000, profitHour: 31000000, used: 42000000,
+    flips: [{ id: 'A', name: '<b>Worm</b>', stake: 4900000, profitHour: 3900000 }, { id: 'INK_SACK:4', name: 'Lapis', stake: 5000000, profitHour: 3600000 }],
+  };
+  const html = portfolioView(plan, { capital: 50000000, slots: 10, sharePercent: 20 });
+  assert.match(html, /class="big gain">31M</);
+  assert.ok(html.includes('Profit/h with 2 flips'));
+  assert.ok(html.includes('Assumes 20% market share – only realistic if you relist actively'));
+  assert.ok(html.includes('42M of 50M capital in use'));
+  assert.ok(html.includes('4.9M') && html.includes('3.9M/h'));
+  assert.ok(html.includes('&#60;b&#62;Worm') && !html.includes('<b>'));
+  assert.ok(html.includes('href="#/item/INK_SACK%3A4"'));
+  assert.ok(portfolioView({ ...plan, flips: plan.flips.slice(0, 1) }, { capital: 1, slots: 1, sharePercent: 5 }).includes('with 1 flip<'));
+});
+
+test('portfolioView explains an empty plan', async () => {
+  const { portfolioView } = await import('../render.js');
+  const empty = { flips: [], budget: 0, profitHour: 0, used: 0 };
+  assert.ok(portfolioView(empty, { capital: 50000000, slots: 10, sharePercent: 5 }).includes('No flip qualifies'));
+  assert.ok(portfolioView(empty, { capital: 0, slots: 10, sharePercent: 5 }).includes('Set a total capital'));
+});

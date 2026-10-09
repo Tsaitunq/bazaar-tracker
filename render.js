@@ -95,6 +95,26 @@ export const craftCard = (f, isFav) => card(f, isFav, false, [
   fact('Crafts/h', num(f.craftsHour)),
 ], `<ul class="ingredients">${f.ingredients.map((i) => `<li>${num(i.qty)}× ${esc(i.name)} @ ${num(i.price)}</li>`).join('')}</ul>`);
 
+// The plan at the top of the Opportunities tab: total first, then what it is made of.
+// plan comes from portfolio() with a name on every flip; sharePercent is the market share setting.
+export function portfolioView(plan, { capital, slots, sharePercent }) {
+  const hint = `<p class="assume">Assumes ${num(sharePercent)}% market share – only realistic if you relist actively</p>`;
+  if (!plan.flips.length) {
+    return `<section class="portfolio"><h2>Portfolio</h2><p class="muted">${capital > 0
+      ? 'No flip qualifies for the portfolio right now. It uses the same conditions as the list below.'
+      : 'Set a total capital in the settings to get a plan.'}</p></section>`;
+  }
+  const rows = plan.flips.map((f) => `<li><a href="${esc(itemHref(f.id))}"><span class="pick">${esc(f.name)}</span><span class="stake">${num(f.stake)}</span><span class="gain">${num(f.profitHour)}/h</span></a></li>`).join('');
+  return `<section class="portfolio">
+  <h2>Portfolio</h2>
+  <div class="total"><span class="big gain">${num(plan.profitHour)}</span><span class="lbl">Profit/h with ${plan.flips.length} ${plan.flips.length === 1 ? 'flip' : 'flips'}</span></div>
+  <p class="muted">${num(plan.used)} of ${num(capital)} capital in use · up to ${num(plan.budget)} per flip · ${Math.floor(slots)} planned</p>
+  <div class="picks-head"><span>Item</span><span>Stake</span><span>Profit/h</span></div>
+  <ol class="picks">${rows}</ol>
+  ${hint}
+</section>`;
+}
+
 export function parseRoute(hash) {
   const [, view, arg] = /^#\/([^/]*)(?:\/(.*))?$/.exec(hash) ?? [];
   if (view === 'item' && arg) {

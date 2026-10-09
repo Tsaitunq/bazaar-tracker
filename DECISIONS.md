@@ -288,3 +288,29 @@ Selbstständig getroffen (Auftrag: ohne Rückfragen).
   Marktanteils lässt Zahlen aufleuchten.
 - **App-Hintergrund, Manifest, Android-Systemleisten und Icon-Grund folgen dem
   warmen Schwarz `#110C09`.**
+
+# Entscheidungen Wischen und Portfolio
+
+- **Wischen wechselt Tabs nur auf Listen, ab 60 px und nur bei klar
+  seitlicher Bewegung; nicht vom Bildschirmrand.** Grund: Scrollen und
+  Androids Zurück-Geste sollen nie einen Tab wechseln.
+- **Portfolio steht oben im Tab „Opportunities“, kein fünfter Tab.** Grund:
+  Fünf Tabs passen bei 360 px nicht nebeneinander, und das Portfolio ist eine
+  Auswahl aus genau dieser Liste.
+- **Gleichmäßige Aufteilung: Budget pro Flip = Gesamtkapital / Anzahl
+  paralleler Flips.** Es ersetzt für das Portfolio die Einstellung „Max.
+  capital per flip“.
+- **Auswahl = die besten Opportunities für dieses Budget, sortiert nach
+  Profit/h.** Es gelten exakt die Opportunity-Bedingungen (stable, nicht
+  suspicious, nicht provisional, Mindestmarge, Mindestvolumen,
+  Mindest-Gewinn/h).
+- **Kürzen statt umverteilen.** Braucht ein Item weniger als sein Budget
+  (zu wenig Volumen, nur ganze Stück), bleibt der Rest ungenutzt; die Zeile
+  „X of Y capital in use“ zeigt das. Grund: einfach nachvollziehbar. Kosten:
+  Das Portfolio schöpft das Kapital oft nicht aus.
+- **„Stake“ ist Stück pro Stunde mal Buy-Order-Preis**, also dieselbe
+  Kapitalsicht wie bei „Max. capital per flip“.
+- **Standardwerte: 50 Mio. Gesamtkapital, 10 parallele Flips.** Gesamtkapital
+  0 schaltet das Portfolio ab.
+- **Die Logik liegt nur in `flips.js`.** Market Alerts und
+  `AlertLogic.java` sind unverändert.
