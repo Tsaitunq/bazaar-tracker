@@ -47,7 +47,7 @@ export const npcCard = (f, isFav) => card(f, isFav, false, [
   cell('Vol./Woche', num(f.weekVol)),
   cell('Gewinn/Stück', num(f.profit), gain(f.profit)),
   cell('Gewinn Sofortkauf', num(f.profitInstant), gain(f.profitInstant)),
-  cell('Gewinn/h', num(f.profitHour), gain(f.profitHour)),
+  cell('Gewinn/h', num(f.profitHour), gain(f.profit)),
 ]);
 
 export const craftCard = (f, isFav) => card(f, isFav, false, [
@@ -56,7 +56,7 @@ export const craftCard = (f, isFav) => card(f, isFav, false, [
   cell('Marge', percent.format(f.margin)),
   cell('Gewinn/Craft', num(f.profit), gain(f.profit)),
   cell('Crafts/h', num(f.craftsHour)),
-  cell('Gewinn/h', num(f.profitHour), gain(f.profitHour)),
+  cell('Gewinn/h', num(f.profitHour), gain(f.profit)),
 ], `<ul class="ingredients">${f.ingredients.map((i) => `<li>${num(i.qty)}× ${esc(i.name)} à ${num(i.price)}</li>`).join('')}</ul>`);
 
 export function parseRoute(hash) {
@@ -69,7 +69,7 @@ export function parseRoute(hash) {
 
 const RANGES = [['24h', '24 Std.'], ['7d', '7 Tage']];
 
-export function detailView({ id, name, flip, score, isFav, range, points, tax }) {
+export function detailView({ id, name, flip, score, back = 'flips', isFav, range, points, tax }) {
   const stat = (label, value) => `<div><dt>${label}</dt><dd>${value}</dd></div>`;
   const current = flip ? `<dl>${stat('Buy-Order', num(flip.buy))}${stat('Sell-Offer', num(flip.sell))}${stat('Marge', percent.format(flip.margin))}${stat('Gewinn/Stück', num(flip.profit))}${stat('Vol./Woche', num(flip.weekVol))}${stat('Gewinn/h', num(flip.profitHour))}</dl>` : '';
   const buttons = RANGES.map(([r, label]) => `<button type="button" data-range="${r}" aria-pressed="${r === range}">${label}</button>`).join('');
@@ -79,7 +79,7 @@ export function detailView({ id, name, flip, score, isFav, range, points, tax })
       { color: 'var(--gold)', points: points.map(([t, b]) => [t, b]) },
       { color: 'var(--green)', points: points.map(([t, , s]) => [t, s]) },
     ], { format: num })}<h3>Marge</h3>${lineChart([{ color: 'var(--text)', points: marginSeries(points, tax) }], { format: (v) => percent.format(v) })}`;
-  return `<a class="back" href="#/flips">← Zurück</a>
+  return `<a class="back" href="#/${back}">← Zurück</a>
 <div class="detail-head"><button class="star" type="button" data-id="${esc(id)}" aria-pressed="${isFav}" aria-label="Favorit: ${esc(name)}">★</button>
 ${icon(id, 48)}<h2 class="name">${esc(name)} ${scoreBadge(score)}</h2></div>
 ${current}<div class="bar ranges">${buttons}</div>${charts}`;

@@ -68,3 +68,15 @@ test('detailView shows history states, charts, escaping and range', async () => 
   assert.match(detailView({ ...base, range: '7d', points }), /data-range="7d"[^>]*aria-pressed="true"|aria-pressed="true"[^>]*data-range="7d"/);
   assert.match(detailView({ ...base, points }), /href="#\/flips"/);
 });
+
+test('detailView back link follows the origin tab', async () => {
+  const { detailView } = await import('../render.js');
+  const base = { id: 'A', name: 'Name', flip: null, score: 80, isFav: false, range: '24h', tax: 0.0125, points: [] };
+  assert.ok(detailView({ ...base, back: 'npc' }).includes('href="#/npc"'));
+  assert.ok(detailView(base).includes('href="#/flips"'));
+});
+
+test('card profit colour follows profit, not profitHour', () => {
+  const html = craftCard({ ...flip, profit: 10, profitHour: 0, cost: 1, revenue: 2, craftsHour: 0, ingredients: [] }, false);
+  assert.ok(!html.includes('class="loss"'));
+});

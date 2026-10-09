@@ -38,6 +38,7 @@ let scores = {};
 let recipes;
 let lastScores = 0;
 let route = parseRoute(location.hash);
+let lastList = route.view === 'item' ? 'flips' : route.view; // where the detail page's back link goes
 let flips = [];
 let lastFetch = 0;
 let timer;
@@ -70,7 +71,7 @@ function renderDetail() {
   const nowMin = Date.now() / 60000;
   const points = hist.points && (range === '24h' ? hist.points.filter(([t]) => t >= nowMin - 1440) : hist.points);
   const flip = products?.[id] ? computeFlip(id, products[id], settings.tax / 100, settings.maxCapital, settings.share / 100) : null;
-  $('detail').innerHTML = detailView({ id, name: names[id] ?? fallbackName(id), flip, score: scores[id], isFav: favs.has(id), range, points, tax: settings.tax / 100 });
+  $('detail').innerHTML = detailView({ id, name: names[id] ?? fallbackName(id), flip, score: scores[id], back: lastList, isFav: favs.has(id), range, points, tax: settings.tax / 100 });
 }
 
 function render() {
@@ -83,7 +84,7 @@ function render() {
     else a.removeAttribute('aria-current');
   }
   if (!products) return;
-  if (view() === 'craft' && !recipes) {
+  if (view() === 'craft' && recipes === null) {
     $('count').textContent = '';
     $('list').innerHTML = '<li class="muted">Noch keine Rezeptdaten. Der Snapshot-Workflow muss einmal gelaufen sein.</li>';
     return;
@@ -183,6 +184,7 @@ document.querySelector('main').addEventListener('click', (e) => {
 
 addEventListener('hashchange', () => {
   route = parseRoute(location.hash);
+  if (route.view !== 'item') lastList = route.view;
   recompute();
   render();
 });
@@ -211,6 +213,7 @@ addEventListener('touchend', () => {
 
 $('fav-only').setAttribute('aria-pressed', settings.favOnly);
 refresh();
+refreshScores();
 loadItems().then((items) => { names = items.names; npc = items.npc; recompute(); render(); });
 loadRecipes().then((r) => { recipes = r; recompute(); render(); });
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');

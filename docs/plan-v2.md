@@ -130,11 +130,11 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           cd data
-          rm -rf .git
-          git init --quiet --initial-branch data
+          if [ ! -d .git ]; then git init --quiet --initial-branch data; fi
+          git checkout --quiet --orphan snapshot
           git add --all
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit --quiet --message "snapshot"
-          git push --quiet --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data
+          git push --quiet --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:data
 ```
 
 - [ ] **Step 6:** `node --test` grün. Einmal echt laufen lassen: `node scripts/snapshot.mjs data` → Ausgabe mit über 1000 Produkten, `data/h/<heute>/` enthält 16 Dateien, `data/scores.json` existiert; Gesamtgröße des Tagesordners im Report nennen. `git status` zeigt `data/` nicht.
