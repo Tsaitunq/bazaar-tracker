@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { recipesStale, refreshRecipes } from './recipes.mjs';
 import { SHARDS, KEEP_DAYS, shardOf, dayKey, dayKeys, compactPrices, appendSnapshot, seriesFor, stabilityScore } from '../history.js';
 
 const readChunk = (file) => (fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : null);
@@ -38,8 +39,18 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     if (!json.success) throw new Error('API reported success=false');
-    const { day, count } = runSnapshot(process.argv[2] ?? 'data', json.products, Date.now());
+    const dataDir = process.argv[2] ?? 'data';
+    const now = Date.now();
+    const { day, count } = runSnapshot(dataDir, json.products, now);
     console.log(`snapshot ${day}: ${count} products`);
+    if (recipesStale(path.join(dataDir, 'recipes.json'), now)) {
+      try {
+        const r = refreshRecipes(dataDir, new Set(Object.keys(json.products)), now);
+        console.log(`recipes: ${Object.keys(r).length}`);
+      } catch (e) {
+        console.error(`recipes failed: ${e.message}`);
+      }
+    }
   } catch (e) {
     console.error(`snapshot failed: ${e.message}`);
     process.exitCode = 1;
