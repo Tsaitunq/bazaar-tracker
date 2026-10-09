@@ -1,6 +1,6 @@
 # Design-Varianten
 
-Drei Vorschläge für ein wärmeres Schwarz/Orange. Jede Variante ist eine
+Vier Vorschläge für ein wärmeres Schwarz/Orange. Jede Variante ist eine
 CSS-Datei, die nach `style.css` geladen wird; am Aufbau der Seite ändert sich
 nichts. Noch nichts davon ist in der App aktiv.
 
@@ -34,10 +34,16 @@ kräftige orange Linie unter dem Kopf und zwischen den großen Zahlen und den
 Details. Die Seltenheit zeigt ein farbiger Streifen links an der Karte plus
 das Wort (COMMON, RARE, EPIC …); Namen bleiben weiß.
 
+## D – „Glow + Ring“ (B mit weißen Namen)
+
+Wie B: oranger Dunst, Kopf mit Verlauf, Leuchten an aktiven Elementen und an
+der Chart-Linie. Die Item-Namen sind weiß; die Seltenheit zeigt wie in A ein
+farbiger Ring um das runde Item-Bild, in Liste und Detailseite.
+
 ## Geprüft
 
-- Kontrast: alle drei bestehen `check-contrast.mjs`; niedrigster Wert A 5,73,
-  B 4,94, C 5,85 (gefordert 4,5).
+- Kontrast: alle vier bestehen `check-contrast.mjs`; niedrigster Wert A 5,73,
+  B 4,94, C 5,85, D 4,94 (gefordert 4,5).
 - Bewegung: Das Einblenden der Karten und das Anheben beim Überfahren stehen
   hinter `prefers-reduced-motion`.
 - Leistung: nur Farbverläufe, Schatten und `opacity`/`transform`; kein
@@ -47,7 +53,7 @@ das Wort (COMMON, RARE, EPIC …); Namen bleiben weiß.
 
 - **Rarity-Farben auf Namen (nur B) kollidieren mit den Bedeutungsfarben.**
   Uncommon ist grün wie Gewinn und „stable“, Legendary gold nahe an
-  „suspicious“ und am Akzent, Special rot wie Verlust. In A und C steht die
+  „suspicious“ und am Akzent, Special rot wie Verlust. In A, C und D steht die
   Seltenheit deshalb nicht auf Text, sondern am Ring bzw. Streifen.
 - Die Rarity-Töne sind gegenüber dem Spiel aufgehellt; das originale Blau
   (`#5555FF`) erreicht auf dunklem Grund nur etwa 3,4 : 1.

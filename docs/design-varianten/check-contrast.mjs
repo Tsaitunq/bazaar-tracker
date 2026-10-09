@@ -15,7 +15,7 @@ const contrast = (a, b) => {
 
 const base = tokensOf(fs.readFileSync('style.css', 'utf8'));
 let failed = false;
-for (const v of ['a', 'b', 'c']) {
+for (const v of ['a', 'b', 'c', 'd']) {
   const css = fs.readFileSync(`docs/design-varianten/variant-${v}.css`, 'utf8');
   const t = { ...base, ...tokensOf(css) };
   // surfaces: the tokens plus every solid colour written into a background (gradient stops, hover)
