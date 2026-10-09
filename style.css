@@ -86,3 +86,7 @@ a.body { color: var(--text); text-decoration: none; }
 .badge-mid { color: var(--gold); }
 .badge-bad { color: var(--warn); }
 .ingredients { margin: 6px 0 0; padding-left: 18px; color: var(--muted); font-size: 12px; }
+
+#tabs { display: flex; gap: 8px; margin-top: 8px; }
+#tabs a { flex: 1; min-height: 44px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 8px; color: var(--muted); text-decoration: none; }
+#tabs a[aria-current="page"] { color: var(--gold); border-color: var(--gold); }

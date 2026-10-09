@@ -1,10 +1,15 @@
 import { buildFlips } from './flips.js';
+import { npcFlips } from './npc.js';
+import { craftFlips } from './craft.js';
 import { loadItems, fallbackName } from './names.js';
-import { flipCard, PLACEHOLDER_ICON } from './render.js';
+import { loadScores, loadRecipes } from './data.js';
+import { flipCard, npcCard, craftCard, parseRoute, PLACEHOLDER_ICON } from './render.js';
 
 const API = 'https://api.hypixel.net/v2/skyblock/bazaar';
 const MAX_ROWS = 100;
 const PULL_PX = 70;
+const SCORES_TTL = 20 * 60000;
+const CARDS = { flips: flipCard, npc: npcCard, craft: craftCard };
 const DEFAULTS = { tax: 1.25, minVolume: 100000, maxCapital: 5000000, interval: 2, share: 5, sort: 'profitHour', favOnly: false };
 
 const $ = (id) => document.getElementById(id);
@@ -28,23 +33,47 @@ const favs = new Set(Array.isArray(storedFavs) ? storedFavs : []);
 
 let products = null;
 let names = {};
+let npc = {};
+let scores = {};
+let recipes;
+let lastScores = 0;
+let route = parseRoute(location.hash);
 let flips = [];
 let lastFetch = 0;
 let timer;
 let busy = false;
 
+const view = () => (route.view === 'npc' || route.view === 'craft' ? route.view : 'flips'); // item page comes in a later task
+
 function recompute() {
   if (!products) return;
-  flips = buildFlips(products, { ...settings, tax: settings.tax / 100, share: settings.share / 100, favs });
-  for (const f of flips) f.name = names[f.id] ?? fallbackName(f.id);
+  const opts = { ...settings, tax: settings.tax / 100, share: settings.share / 100, scores };
+  const v = view();
+  if (v === 'flips') flips = buildFlips(products, { ...opts, favs });
+  else if (v === 'npc') flips = npcFlips(products, npc, opts);
+  else flips = recipes ? craftFlips(products, recipes, opts) : [];
+  const name = (id) => names[id] ?? fallbackName(id);
+  for (const f of flips) {
+    f.name = name(f.id);
+    for (const i of f.ingredients ?? []) i.name = name(i.id);
+  }
 }
 
 function render() {
+  for (const a of document.querySelectorAll('#tabs a')) {
+    if (a.getAttribute('href') === `#/${view()}`) a.setAttribute('aria-current', 'page');
+    else a.removeAttribute('aria-current');
+  }
   if (!products) return;
+  if (view() === 'craft' && !recipes) {
+    $('count').textContent = '';
+    $('list').innerHTML = '<li class="muted">Noch keine Rezeptdaten. Der Snapshot-Workflow muss einmal gelaufen sein.</li>';
+    return;
+  }
   const q = $('search').value.trim().toLowerCase();
   const rows = flips.filter((f) => (!settings.favOnly || favs.has(f.id)) && f.name.toLowerCase().includes(q));
   $('count').textContent = `${Math.min(rows.length, MAX_ROWS)} von ${rows.length} Flips`;
-  $('list').innerHTML = rows.slice(0, MAX_ROWS).map((f) => flipCard(f, favs.has(f.id))).join('');
+  $('list').innerHTML = rows.slice(0, MAX_ROWS).map((f) => CARDS[view()](f, favs.has(f.id))).join('');
 }
 
 function schedule() {
@@ -66,6 +95,7 @@ async function refresh() {
     $('error').hidden = true;
     recompute();
     render();
+    if (Date.now() - lastScores > SCORES_TTL) refreshScores();
   } catch (e) {
     $('error').textContent = `Aktualisierung fehlgeschlagen: ${e.message}`;
     $('error').hidden = false;
@@ -75,6 +105,13 @@ async function refresh() {
   busy = false;
   $('refresh').classList.remove('busy');
   schedule();
+}
+
+async function refreshScores() {
+  lastScores = Date.now();
+  scores = await loadScores();
+  recompute();
+  render();
 }
 
 function applySettings() {
@@ -120,6 +157,12 @@ $('list').addEventListener('click', (e) => {
   render();
 });
 
+addEventListener('hashchange', () => {
+  route = parseRoute(location.hash);
+  recompute();
+  render();
+});
+
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) clearTimeout(timer);
   else if (Date.now() - lastFetch >= settings.interval * 60000) refresh();
@@ -144,5 +187,6 @@ addEventListener('touchend', () => {
 
 $('fav-only').setAttribute('aria-pressed', settings.favOnly);
 refresh();
-loadItems().then((items) => { names = items.names; recompute(); render(); });
+loadItems().then((items) => { names = items.names; npc = items.npc; recompute(); render(); });
+loadRecipes().then((r) => { recipes = r; recompute(); render(); });
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');

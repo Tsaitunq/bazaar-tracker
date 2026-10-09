@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { esc, compact, iconUrl, itemHref, icon, scoreBadge, flipCard, npcCard, craftCard } from '../render.js';
+import { esc, compact, iconUrl, itemHref, icon, scoreBadge, flipCard, npcCard, craftCard, parseRoute } from '../render.js';
 
 const flip = { id: 'A', name: 'Name', buy: 10, sell: 20, profit: 5, margin: 0.1, weekVol: 1000, hourVol: 10, profitHour: 50, score: 80 };
 
@@ -47,4 +47,12 @@ test('npcCard shows the npc price', () => {
 test('icon attributes', () => {
   const html = icon('A');
   assert.ok(html.includes('loading="lazy"') && html.includes('crossorigin="anonymous"'));
+});
+
+test('parseRoute', () => {
+  assert.deepEqual(parseRoute(''), { view: 'flips' });
+  assert.deepEqual(parseRoute('#/npc'), { view: 'npc' });
+  assert.deepEqual(parseRoute('#/craft'), { view: 'craft' });
+  assert.deepEqual(parseRoute('#/item/INK_SACK%3A4'), { view: 'item', id: 'INK_SACK:4' });
+  assert.deepEqual(parseRoute('#/quatsch'), { view: 'flips' });
 });

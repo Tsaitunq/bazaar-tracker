@@ -56,3 +56,11 @@ export const craftCard = (f, isFav) => card(f, isFav, false, [
   cell('Crafts/h', num(f.craftsHour)),
   cell('Gewinn/h', num(f.profitHour), gain(f.profitHour)),
 ], `<ul class="ingredients">${f.ingredients.map((i) => `<li>${num(i.qty)}× ${esc(i.name)} à ${num(i.price)}</li>`).join('')}</ul>`);
+
+export function parseRoute(hash) {
+  const [, view, arg] = /^#\/([^/]*)(?:\/(.*))?$/.exec(hash) ?? [];
+  if (view === 'item' && arg) {
+    try { return { view, id: decodeURIComponent(arg) }; } catch {}
+  }
+  return { view: view === 'npc' || view === 'craft' ? view : 'flips' };
+}
