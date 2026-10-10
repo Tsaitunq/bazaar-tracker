@@ -18,11 +18,11 @@ const readState = () => { try { return JSON.parse(localStorage.getItem(STATE_KEY
 // Someone who opened the app before: keeps Pro mode and is not shown hints about things they know.
 export const returning = hadData || readState() !== null;
 
-let ctx;          // what app.js hands over: { native, ready, slots, forge, apply, pro, hints }
+let ctx;          // what app.js hands over: { native, ready, slots, forge, apply, pro, hints, showSettings }
 let seen = [];    // context hints that were dismissed or covered by a tour
 let started = false; // the start window (welcome, news) has had its turn; before that no hint shows
 let log;          // changelog.json
-let run = null;   // the tour in progress: { steps, index, then, settingsWereHidden }
+let run = null;   // the tour in progress: { steps, index, then, skipped, target }
 let answers = {}; // the setup assistant's answers while its window is open
 
 function markSeen() {
@@ -104,7 +104,7 @@ function place(el) {
 async function showStep() {
   const step = run.steps[run.index];
   if (step.route && location.hash !== step.route) location.hash = step.route;
-  if (step.open) $('settings').hidden = false;
+  if (step.open) ctx.showSettings(true);
   if (step.hint) markHint(step.hint);
   const stepIndex = run.index;
   const bubble = $('tour-bubble');
@@ -137,18 +137,18 @@ function live() {
 // then runs after the last station, skipped when the tour is left early.
 function startTour(steps, then, skipped) {
   closeSheet();
-  run = { steps, index: 0, then, skipped, settingsWereHidden: $('settings').hidden, target: null };
+  run = { steps, index: 0, then, skipped, target: null };
   $('tour').hidden = false;
   refreshHints();
   showStep();
 }
 
 function endTour(finished) {
-  const { then, skipped, settingsWereHidden } = run;
+  const { then, skipped } = run;
   run = null;
   $('tour').hidden = true;
   $('tour-bubble').innerHTML = '';
-  $('settings').hidden = settingsWereHidden;
+  ctx.showSettings(false);
   if (location.hash !== '#/flips') location.hash = '#/flips';
   scrollTo(0, 0);
   markSeen();

@@ -5,10 +5,11 @@ import { forgeFlips, forgeFlip } from './forge.js';
 import { loadItems, fallbackName } from './names.js';
 import { loadStats, loadRecipes, loadForge, loadAh, loadElection, loadTiming, loadHistory } from './data.js';
 import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission } from './native.js';
-import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, parseRoute, detailView, portfolioView, swipeTab, dragOffset, tabsFor, coins, percent, PLACEHOLDER_ICON } from './render.js';
+import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, parseRoute, detailView, portfolioView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
 import { level } from './trends.js';
 import { activePerks, upcoming, electionWindow, eventItems } from './events.js';
+import { bindSheet, openSheet } from './sheet.js';
 import { initOnboarding, refreshHints, offerAdvanced, returning } from './tour.js';
 
 const API = 'https://api.hypixel.net/v2/skyblock/bazaar';
@@ -24,6 +25,8 @@ const $ = (id) => document.getElementById(id);
 const load = (key, fallback) => { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } };
 const save = (key, value) => { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} };
 
+// the fields of the panel; they take effect together, on Apply
+const FIELDS = ['tax', 'interval', 'share', 'minVolume', 'maxCapital', 'alertMargin', 'marketMargin', 'marketMinVolume', 'marketMinProfit', 'marketCooldown', 'portfolioCapital', 'portfolioSlots', 'hotm'];
 const settings = { ...DEFAULTS, ...load('bt.settings', {}) };
 // A stored interval of 0 would refresh in a tight loop, so bad values fall back to defaults.
 function sanitize() {
@@ -232,7 +235,7 @@ function hintsNow() {
   if (route.view === 'item') return [detailSuspicious && 'suspicious', 'detail'];
   const v = view();
   return [
-    ...($('settings').hidden ? [] : ['alerts', 'settings']),
+    ...($('panel').open && !$('settings').classList.contains('filtering') ? ['alerts', 'settings'] : []),
     $('search').value.trim() && otherHits > 0 && 'search',
     document.querySelector('#radar .radar[open]') && 'radar',
     favs.size > 0 && 'fav',
@@ -262,6 +265,10 @@ function renderPage() {
       $('tabs').scrollLeft = a.offsetLeft - ($('tabs').clientWidth - a.offsetWidth) / 2;
     }
   }
+  const filters = activeFilters(view(), settings, DEFAULTS);
+  $('filter-count').textContent = filters.length || '';
+  $('open-filters').setAttribute('aria-label', filters.length ? `Filter, ${filters.length} active` : 'Filter');
+  $('chips').innerHTML = filterChips(filters, settings);
   if (!products) return;
   const markup = listMarkup(view(), flips, plan);
   $('portfolio').innerHTML = markup.portfolio;
@@ -332,20 +339,48 @@ function applySettings() {
   render();
 }
 
-for (const key of ['tax', 'interval', 'share', 'sort', 'minVolume', 'maxCapital', 'alertMargin', 'marketMargin', 'marketMinVolume', 'marketMinProfit', 'marketCooldown', 'portfolioCapital', 'portfolioSlots', 'hotm']) {
-  $(key).value = settings[key];
-  $(key).addEventListener('change', (e) => {
-    settings[key] = key === 'sort' ? e.target.value : Math.max(0, Number(e.target.value) || 0);
-    sanitize();
-    e.target.value = settings[key];
-    // Simple mode has no field for the cap per flip: it follows the total capital
-    if (key === 'portfolioCapital' && simple()) $('maxCapital').value = settings.maxCapital = Math.round(settings.portfolioCapital / settings.portfolioSlots);
-    applySettings();
-    if (key === 'interval') schedule();
-  });
+const fillForm = () => { for (const key of FIELDS) $(key).value = settings[key]; };
+fillForm();
+$('sort').value = settings.sort;
+$('sort').addEventListener('change', (e) => {
+  settings.sort = e.target.value;
+  applySettings();
+});
+// Apply: the fields go through the same checks as before, all at once
+$('settings').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const before = { ...settings };
+  for (const key of FIELDS) settings[key] = Math.max(0, Number($(key).value) || 0);
+  sanitize();
+  // Simple mode has no field for the cap per flip: it follows the total capital
+  if (simple() && settings.portfolioCapital !== before.portfolioCapital) settings.maxCapital = Math.round(settings.portfolioCapital / settings.portfolioSlots);
+  applySettings();
+  if (settings.interval !== before.interval) schedule();
+  $('panel').close();
+});
+
+// One panel for both buttons: all settings, or (tab given) only the fields that narrow that tab's list.
+// modal: false is for the tour, whose spotlight has to stay on top.
+function openPanel(tab, modal = true) {
+  const only = tab ? FILTERS[tab] : null;
+  $('panel-title').textContent = only ? 'Filter' : 'Settings';
+  $('settings').classList.toggle('filtering', !!only);
+  for (const key of FIELDS) $(key).closest('label').classList.toggle('on', !!only?.includes(key));
+  openSheet($('panel'), modal);
+  refreshHints();
 }
-$('settings').addEventListener('submit', (e) => e.preventDefault());
+bindSheet($('panel'));
+// closed without Apply: what was typed is dropped
+$('panel').addEventListener('close', () => { fillForm(); refreshHints(); });
+// Reset fills the fields on screen with the defaults; Apply makes it count
+$('panel').addEventListener('click', (e) => {
+  if (!e.target.closest('[data-act="reset"]')) return;
+  for (const key of FIELDS) if ($(key).getClientRects().length) $(key).value = DEFAULTS[key];
+});
+$('open-filters').addEventListener('click', () => openPanel(view()));
 $('settings').addEventListener('click', (e) => {
+  // the setup assistant opens its own window (tour.js)
+  if (e.target.closest('[data-act="setup"]')) return $('panel').close();
   const mode = e.target.closest('[data-set-mode]')?.dataset.setMode;
   if (!mode || mode === settings.mode) return;
   settings.mode = mode;
@@ -368,12 +403,7 @@ $('fav-only').addEventListener('click', () => {
   settings.favOnly = !settings.favOnly;
   applySettings();
 });
-$('toggle-settings').addEventListener('click', (e) => {
-  const open = $('settings').hidden;
-  $('settings').hidden = !open;
-  e.currentTarget.setAttribute('aria-expanded', open);
-  refreshHints();
-});
+$('toggle-settings').addEventListener('click', () => openPanel());
 // Image errors do not bubble, so listen in the capture phase.
 document.addEventListener('error', (e) => {
   const img = e.target;
@@ -406,6 +436,12 @@ document.querySelector('main').addEventListener('click', (e) => {
   const withAh = e.target.closest('[data-forge-ah]')?.dataset.forgeAh;
   if (withAh) {
     settings.forgeAh = withAh === '1';
+    return applySettings();
+  }
+  const drop = e.target.closest('[data-unfilter]')?.dataset.unfilter;
+  if (drop) {
+    settings[drop] = DEFAULTS[drop];
+    fillForm();
     return applySettings();
   }
   const id = e.target.closest('.star')?.dataset.id;
@@ -448,7 +484,8 @@ function showPtr(state, text, pull = PTR_REST) {
 }
 const pulling = () => ptr.dataset.state === 'pull' || ptr.dataset.state === 'ready';
 addEventListener('touchstart', (e) => {
-  pullStart = scrollY === 0 && !ptr.dataset.state ? e.touches[0].clientY : null;
+  // a drag inside a window scrolls or closes that window
+  pullStart = scrollY === 0 && !ptr.dataset.state && !e.target.closest?.('dialog') ? e.touches[0].clientY : null;
   pulled = 0;
   ptr.style.top = `${document.querySelector('header').getBoundingClientRect().bottom}px`;
 }, { passive: true });
@@ -497,7 +534,7 @@ function showPeek(side) {
   if (!tab) return;
   const { list, plan: pf } = compute(tab);
   const markup = listMarkup(tab, list, pf);
-  peek.innerHTML = `${$('radar').innerHTML}${markup.portfolio}<p class="count muted">${markup.count}</p><ul class="list${tab === 'opps' ? ' opps' : ''}">${markup.list}</ul>`;
+  peek.innerHTML = `<div class="chips">${filterChips(activeFilters(tab, settings, DEFAULTS), settings)}</div>${$('radar').innerHTML}${markup.portfolio}<p class="count muted">${markup.count}</p><ul class="list${tab === 'opps' ? ' opps' : ''}">${markup.list}</ul>`;
   peek.style.left = `${side * 100}%`;
   peek.style.top = `${Math.max(0, document.querySelector('header').getBoundingClientRect().bottom - page.getBoundingClientRect().top)}px`;
 }
@@ -606,6 +643,10 @@ initOnboarding({
   forge: () => ({ hotm: settings.hotm, ah: settings.forgeAh }),
   pro: () => !simple(),
   hints: hintsNow,
+  showSettings(open) {
+    if (open) openPanel(null, false);
+    else $('panel').close();
+  },
   // the setup assistant hands over setting values; they go through the same checks as typed ones
   apply(values) {
     Object.assign(settings, values);

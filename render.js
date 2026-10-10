@@ -43,6 +43,7 @@ const ICONS = {
   rising: svg('<path d="M6 18L18 6M10 6h8v8"/>'),
   falling: svg('<path d="M6 6l12 12M18 10v8h-8"/>'),
   flat: svg('<path d="M4 12h16M14 6l6 6-6 6"/>'),
+  close: svg('<path d="M6 6l12 12M18 6L6 18"/>'),
   event: svg('<rect x="4" y="6" width="16" height="14" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>'),
 };
 
@@ -153,6 +154,29 @@ export const forgeFilter = (withAh) => `<div class="bar ranges forge-filter" rol
   <button type="button" data-forge-ah="0" aria-pressed="${!withAh}">Bazaar only</button>
   <button type="button" data-forge-ah="1" aria-pressed="${!!withAh}">Incl. AH</button>
 </div>`;
+
+// The settings that narrow each tab's list. A filter counts as active once it differs from its default.
+export const FILTERS = {
+  flips: ['minVolume', 'maxCapital'],
+  opps: ['marketMargin', 'marketMinVolume', 'marketMinProfit', 'maxCapital'],
+  npc: ['minVolume', 'maxCapital'],
+  craft: ['maxCapital'],
+  forge: ['hotm', 'maxCapital'],
+};
+export const activeFilters = (tab, settings, defaults) => (FILTERS[tab] ?? []).filter((key) => settings[key] !== defaults[key]);
+const FILTER_TEXT = {
+  minVolume: (v) => `Vol./week ≥ ${num(v)}`,
+  maxCapital: (v) => (v > 0 ? `Max. capital ${num(v)}` : 'No capital limit'),
+  marketMargin: (v) => `Margin ≥ ${v}%`,
+  marketMinVolume: (v) => `Vol./week ≥ ${num(v)}`,
+  marketMinProfit: (v) => `Profit/h ≥ ${num(v)}`,
+  hotm: (v) => `HotM ≤ ${v}`,
+};
+// One chip per active filter (keys from activeFilters); its X puts the filter back to the default.
+export const filterChips = (keys, settings) => keys.map((key) => {
+  const text = esc(FILTER_TEXT[key](settings[key]));
+  return `<button type="button" class="chip" data-unfilter="${key}" aria-label="Remove filter: ${text}">${text}${ICONS.close}</button>`;
+}).join('');
 
 // The plan at the top of the Opportunities tab: total first, then what it is made of.
 // plan comes from portfolio() with a name on every flip; sharePercent is the market share setting.

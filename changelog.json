@@ -1,6 +1,15 @@
 {
   "versions": [
     {
+      "version": "6.1.0",
+      "date": "2026-10-10",
+      "entries": [
+        { "title": "Settings open as a sheet", "text": "The settings now slide up from the bottom instead of pushing the list down. Changes count once you tap Apply; Reset fills in the defaults.", "target": "#toggle-settings" },
+        { "title": "Filter button", "text": "In Pro mode the Filter button next to the search opens only the filters of the tab you are on, and its number says how many you changed.", "target": "#open-filters" },
+        { "title": "Filter chips", "text": "Every filter you changed shows as a small chip above the list. Tap its X to put it back to the default.", "target": "#chips" }
+      ]
+    },
+    {
       "version": "6.0.0",
       "date": "2026-10-10",
       "entries": [
