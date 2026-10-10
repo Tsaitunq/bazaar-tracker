@@ -1,6 +1,6 @@
 // Wires the onboarding to the page: one <dialog> for windows, one overlay for the spotlight.
 import {
-  currentVersion, startupAction, setupResult, tourSteps, advancedSteps,
+  currentVersion, startupAction, migrateState, SCHEME, setupResult, tourSteps, advancedSteps,
   welcomeHtml, newsHtml, helpHtml, advancedOfferHtml, setupOfferHtml, setupFormHtml, setupSummaryHtml, bubbleHtml,
   HINTS, HINT_IDS, PRO_OFFER, initialHints, pickHint, hintHtml,
 } from './onboarding.js';
@@ -14,7 +14,7 @@ const $ = (id) => document.getElementById(id);
 const hadData = (() => {
   try { return ['bt.settings', 'bt.favs', 'bt.items'].some((k) => localStorage.getItem(k) !== null); } catch { return false; }
 })();
-const readState = () => { try { return JSON.parse(localStorage.getItem(STATE_KEY)); } catch { return null; } };
+const readState = () => { try { return migrateState(JSON.parse(localStorage.getItem(STATE_KEY))); } catch { return null; } };
 // Someone who opened the app before: keeps Pro mode and is not shown hints about things they know.
 export const returning = hadData || readState() !== null;
 
@@ -26,7 +26,7 @@ let run = null;   // the tour in progress: { steps, index, then, skipped, target
 let answers = {}; // the setup assistant's answers while its window is open
 
 function markSeen() {
-  try { localStorage.setItem(STATE_KEY, JSON.stringify({ done: true, version: currentVersion(log) })); } catch {}
+  try { localStorage.setItem(STATE_KEY, JSON.stringify({ done: true, version: currentVersion(log), scheme: SCHEME })); } catch {}
 }
 
 // ---- windows

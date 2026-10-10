@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {
-  compareVersions, currentVersion, newsSince, startupAction, setupResult, tourSteps, advancedSteps,
+  compareVersions, currentVersion, newsSince, startupAction, migrateState, SCHEME, setupResult, tourSteps, advancedSteps,
   welcomeHtml, newsHtml, helpHtml, advancedOfferHtml, setupOfferHtml, setupFormHtml, setupSummaryHtml, bubbleHtml, CAPITALS,
   HINTS, HINT_IDS, PRO_OFFER, initialHints, pickHint, hintHtml,
 } from '../onboarding.js';
@@ -11,10 +11,10 @@ import {
 const entry = (title, target) => ({ title, text: `${title} text`, ...(target && { target }) });
 const log = {
   versions: [
-    { version: '4.0.0', date: '2026-10-10', entries: [entry('Tour'), entry('Help', '#toggle-settings')] },
-    { version: '3.3.0', date: '2026-10-10', entries: [entry('Swipe', '#tabs')] },
-    { version: '3.2.0', date: '2026-10-09', entries: [entry('Look')] },
-    { version: '3.0.0', date: '2026-10-09', entries: [entry('Warnings')] },
+    { version: '0.4.0', date: '2026-10-10', entries: [entry('Tour'), entry('Help', '#toggle-settings')] },
+    { version: '0.3.3', date: '2026-10-10', entries: [entry('Swipe', '#tabs')] },
+    { version: '0.3.2', date: '2026-10-09', entries: [entry('Look')] },
+    { version: '0.3.0', date: '2026-10-09', entries: [entry('Warnings')] },
   ],
 };
 const versions = (action) => action.news.map((v) => v.version);
@@ -28,13 +28,35 @@ test('compareVersions compares numbers, not text', () => {
 });
 
 test('the newest entry of the changelog is the app version', () => {
-  assert.equal(currentVersion(log), '4.0.0');
-  assert.deepEqual(newsSince(log, '3.2.0').map((v) => v.version), ['4.0.0', '3.3.0']);
-  assert.deepEqual(newsSince(log, '4.0.0'), []);
+  assert.equal(currentVersion(log), '0.4.0');
+  assert.deepEqual(newsSince(log, '0.3.2').map((v) => v.version), ['0.4.0', '0.3.3']);
+  assert.deepEqual(newsSince(log, '0.4.0'), []);
+});
+
+test('a version stored in the old numbering becomes its 0.x name', () => {
+  const real = JSON.parse(fs.readFileSync('changelog.json', 'utf8'));
+  const stored = (version) => migrateState({ done: true, version });
+  assert.deepEqual(stored('6.7.0'), { done: true, version: '0.6.7', scheme: SCHEME });
+  assert.equal(stored('6.5.1').version, '0.6.5.1');
+  assert.equal(compareVersions('0.6.5.1', '0.6.5'), 1);
+  assert.equal(compareVersions('0.6.6', '0.6.5.1'), 1);
+  // every release that was ever stored still exists under its new name
+  const names = real.versions.map((v) => v.version);
+  for (const old of ['1.0.0', '4.2.0', '5.0.1', '6.5.1', '6.7.0']) assert.ok(names.includes(stored(old).version), old);
+  // someone on the old 6.7.0 sees no news at first and only 0.7.0 after the next release
+  const upTo067 = { versions: real.versions.filter((v) => compareVersions(v.version, '0.6.7') <= 0) };
+  assert.equal(startupAction(stored('6.7.0'), upTo067, true).type, 'none');
+  const next = { versions: [{ version: '0.7.0', date: '2026-10-11', entries: [entry('Next')] }, ...upTo067.versions] };
+  assert.deepEqual(versions(startupAction(stored('6.7.0'), next, true)), ['0.7.0']);
+  // a state written in the new numbering is left alone, also once the app reaches 1.0.0
+  const kept = { done: true, version: '1.0.0', scheme: SCHEME };
+  assert.equal(migrateState(kept), kept);
+  assert.equal(migrateState(stored('6.7.0')).version, '0.6.7');
+  for (const broken of [null, undefined, {}, { version: 4 }, { version: 'abc' }, 'x']) assert.equal(migrateState(broken), broken);
 });
 
 test('a new user gets the welcome screen and no news', () => {
-  assert.deepEqual(startupAction(null, log, false), { type: 'welcome', current: '4.0.0' });
+  assert.deepEqual(startupAction(null, log, false), { type: 'welcome', current: '0.4.0' });
 });
 
 test('cleared storage is the same as a new user', () => {
@@ -44,22 +66,22 @@ test('cleared storage is the same as a new user', () => {
 });
 
 test('an update by one version shows that version once', () => {
-  const action = startupAction({ done: true, version: '3.3.0' }, log, true);
+  const action = startupAction({ done: true, version: '0.3.3' }, log, true);
   assert.equal(action.type, 'whatsNew');
-  assert.deepEqual(versions(action), ['4.0.0']);
+  assert.deepEqual(versions(action), ['0.4.0']);
   // after it has been seen the stored version is the current one
   assert.equal(startupAction({ done: true, version: action.current }, log, true).type, 'none');
 });
 
 test('several skipped versions are all shown, newest first', () => {
-  const action = startupAction({ done: true, version: '3.0.0' }, log, true);
-  assert.deepEqual(versions(action), ['4.0.0', '3.3.0', '3.2.0']);
+  const action = startupAction({ done: true, version: '0.3.0' }, log, true);
+  assert.deepEqual(versions(action), ['0.4.0', '0.3.3', '0.3.2']);
 });
 
 test('someone who used the app before it had a tour gets an offer, not an automatic tour', () => {
   const action = startupAction(null, log, true);
   assert.equal(action.type, 'tourOffer');
-  assert.deepEqual(versions(action), ['4.0.0']);
+  assert.deepEqual(versions(action), ['0.4.0']);
 });
 
 test('a stored version from the future or a broken state never throws', () => {
@@ -162,15 +184,15 @@ test('welcome offers the tour and skip', () => {
 
 test('news window: plain update, tour offer and full history', () => {
   const update = newsHtml(log.versions.slice(0, 2));
-  assert.ok(update.includes("What's new") && update.includes('Version 4.0.0') && update.includes('Version 3.3.0'));
+  assert.ok(update.includes("What's new") && update.includes('Version 0.4.0') && update.includes('Version 0.3.3'));
   assert.ok(update.includes('data-act="news-show"') && update.includes('Got it'));
-  assert.ok(update.indexOf('4.0.0') < update.indexOf('3.3.0'));
+  assert.ok(update.indexOf('0.4.0') < update.indexOf('0.3.3'));
 
   const offer = newsHtml(log.versions.slice(0, 1), { offerTour: true });
   assert.ok(offer.includes('New: app tour – take it now?') && offer.includes('data-act="tour"') && offer.includes('Not now'));
 
   const history = newsHtml(log.versions, { history: true });
-  assert.ok(history.includes('Version history') && history.includes('Version 3.0.0') && !history.includes('news-show'));
+  assert.ok(history.includes('Version history') && history.includes('Version 0.3.0') && !history.includes('news-show'));
 
   // no entry with a target: nothing to point at
   assert.ok(!newsHtml(log.versions.slice(2, 3)).includes('news-show'));
@@ -199,7 +221,7 @@ test('changelog.json is well formed', () => {
   const real = JSON.parse(fs.readFileSync('changelog.json', 'utf8'));
   assert.ok(real.versions.length >= 1);
   real.versions.forEach((v, i) => {
-    assert.match(v.version, /^\d+\.\d+\.\d+$/);
+    assert.match(v.version, /^\d+(\.\d+){2,3}$/); // four parts only for the old 5.0.1 and 6.5.1
     assert.match(v.date, /^\d{4}-\d{2}-\d{2}$/);
     assert.ok(v.entries.length >= 1 && v.entries.length <= 4, `${v.version} has ${v.entries.length} entries`);
     for (const e of v.entries) assert.ok(e.title && e.text, `${v.version} entry needs title and text`);
@@ -228,13 +250,13 @@ test('help in Simple mode leaves out the advanced tour and the Pro topics', () =
 });
 
 test('users from before version 5 are offered the advanced tour with the news', () => {
-  const v5 = { versions: [{ version: '5.0.0', date: '2026-10-10', entries: [entry('Forge', '#tabs')] }, ...log.versions] };
-  const update = startupAction({ done: true, version: '4.2.0' }, v5, true);
+  const v5 = { versions: [{ version: '0.5.0', date: '2026-10-10', entries: [entry('Forge', '#tabs')] }, ...log.versions] };
+  const update = startupAction({ done: true, version: '0.4.2' }, v5, true);
   assert.equal(update.type, 'whatsNew');
   assert.equal(update.advanced, true);
-  assert.deepEqual(versions(update), ['5.0.0']);
-  const later = { versions: [{ version: '5.1.0', date: '2026-10-11', entries: [entry('More')] }, ...v5.versions] };
-  assert.equal(startupAction({ done: true, version: '5.0.0' }, later, true).advanced, false);
+  assert.deepEqual(versions(update), ['0.5.0']);
+  const later = { versions: [{ version: '0.5.1', date: '2026-10-11', entries: [entry('More')] }, ...v5.versions] };
+  assert.equal(startupAction({ done: true, version: '0.5.0' }, later, true).advanced, false);
   assert.equal(startupAction(null, v5, false).type, 'welcome');
 
   const html = newsHtml(update.news, { offerAdvanced: true });

@@ -1,7 +1,7 @@
 {
   "versions": [
     {
-      "version": "6.7.0",
+      "version": "0.6.7",
       "date": "2026-10-10",
       "entries": [
         { "title": "Warning before a mayor leaves", "text": "In the last 24 hours of a term, a portfolio flip is marked when the mayor's or minister's perk kept its price down, for example Paul leaves in 5h – price may rise back.", "target": "#portfolio .portfolio", "route": "#/opps" },
@@ -10,7 +10,7 @@
       ]
     },
     {
-      "version": "6.6.0",
+      "version": "0.6.6",
       "date": "2026-10-10",
       "entries": [
         { "title": "Election warning in the portfolio", "text": "While an election runs, a flip is marked when the leading candidate has a perk that brings more of that item, for example Diana and Griffin Feathers.", "target": "#portfolio .portfolio", "route": "#/opps" },
@@ -18,14 +18,14 @@
       ]
     },
     {
-      "version": "6.5.1",
+      "version": "0.6.5.1",
       "date": "2026-10-10",
       "entries": [
         { "title": "Max. flips explained", "text": "The help text for Max. flips now says what the portfolio does: it picks the flips that earn the most with your budget, up to that many." }
       ]
     },
     {
-      "version": "6.5.0",
+      "version": "0.6.5",
       "date": "2026-10-10",
       "entries": [
         { "title": "Max. flips, up to 21", "text": "Parallel flips is now Max. flips and stops at 21, because the bazaar allows 21 open orders. A higher value you had set became 21.", "target": "#portfolio .portfolio", "route": "#/opps" },
@@ -35,7 +35,7 @@
       ]
     },
     {
-      "version": "6.4.0",
+      "version": "0.6.4",
       "date": "2026-10-10",
       "entries": [
         { "title": "Portfolio min. margin", "text": "The portfolio has its own margin floor, 3% to start with, so items that trade a lot can take part even if your Opportunities list asks for more.", "target": "#portfolio .portfolio", "route": "#/opps" },
@@ -44,7 +44,7 @@
       ]
     },
     {
-      "version": "6.3.0",
+      "version": "0.6.3",
       "date": "2026-10-10",
       "entries": [
         { "title": "Portfolio fills the best flips first", "text": "Your capital is no longer split evenly: the flips with the best return get as much as the item trades, up to your Max. capital per flip. Parallel flips is only the most flips you run.", "target": "#portfolio .portfolio", "route": "#/opps" },
@@ -52,7 +52,7 @@
       ]
     },
     {
-      "version": "6.2.0",
+      "version": "0.6.2",
       "date": "2026-10-10",
       "entries": [
         { "title": "Portfolio uses your whole capital", "text": "Coins one flip cannot use now go to the other flips, up to your Max. capital per flip and never more than an item trades.", "target": "#portfolio .portfolio", "route": "#/opps" },
@@ -61,7 +61,7 @@
       ]
     },
     {
-      "version": "6.1.0",
+      "version": "0.6.1",
       "date": "2026-10-10",
       "entries": [
         { "title": "Settings open as a sheet", "text": "The settings now slide up from the bottom instead of pushing the list down. Changes count once you tap Apply; Reset fills in the defaults.", "target": "#toggle-settings" },
@@ -70,7 +70,7 @@
       ]
     },
     {
-      "version": "6.0.0",
+      "version": "0.6.0",
       "date": "2026-10-10",
       "entries": [
         { "title": "Simple and Pro mode", "text": "Simple shows only flips, opportunities and the numbers you need for them; Pro shows everything, as before. You stay in Pro and can switch at the top of the settings.", "target": "#toggle-settings" },
@@ -80,7 +80,7 @@
       ]
     },
     {
-      "version": "5.1.0",
+      "version": "0.5.1",
       "date": "2026-10-10",
       "entries": [
         { "title": "Event timing", "text": "The event radar now learns what prices did around past events: once an item moved the same way three times, it says how much it usually changes and when to buy and sell. Based on past events, not a guarantee.", "target": "#radar .radar" },
@@ -89,7 +89,7 @@
       ]
     },
     {
-      "version": "5.0.1",
+      "version": "0.5.0.1",
       "date": "2026-10-10",
       "entries": [
         { "title": "More realistic forge profit", "text": "Profit/forge hour no longer assumes you can sell everything a quick recipe makes. It is now capped by your market share of what is bought per hour, and each card says what limits it.", "target": "#tabs a[href=\"#/forge\"]", "route": "#/forge" },
@@ -98,7 +98,7 @@
       ]
     },
     {
-      "version": "5.0.0",
+      "version": "0.5.0",
       "date": "2026-10-10",
       "entries": [
         { "title": "Forge tab", "text": "A new tab shows what is worth forging: what the ingredients cost, the profit per item and per forge hour, how long it takes and the HotM tier you need. Results that sell on the Auction House are marked as estimates.", "target": "#tabs a[href=\"#/forge\"]", "route": "#/forge" },
@@ -108,7 +108,7 @@
       ]
     },
     {
-      "version": "4.2.0",
+      "version": "0.4.2",
       "date": "2026-10-10",
       "entries": [
         { "title": "Pull to refresh you can see", "text": "Pull down on a list or an item page: an arrow appears below the header, then a spinner while prices load and a short \"Updated\" when they are in." },
@@ -116,7 +116,7 @@
       ]
     },
     {
-      "version": "4.1.0",
+      "version": "0.4.1",
       "date": "2026-10-10",
       "entries": [
         { "title": "Search finds every item", "text": "The search now covers the whole bazaar. Items your filters hide still show up, with a short note why they are not a flip right now.", "target": "#search" },
@@ -124,7 +124,7 @@
       ]
     },
     {
-      "version": "4.0.0",
+      "version": "0.4.0",
       "date": "2026-10-10",
       "entries": [
         { "title": "App tour", "text": "A short guided tour explains every part of the app. You can restart it any time in the settings." },
@@ -134,7 +134,7 @@
       ]
     },
     {
-      "version": "3.3.0",
+      "version": "0.3.3",
       "date": "2026-10-10",
       "entries": [
         { "title": "Swipe between tabs", "text": "Swipe left or right on a list to move to the next tab.", "target": "#tabs" },
@@ -142,7 +142,7 @@
       ]
     },
     {
-      "version": "3.2.0",
+      "version": "0.3.2",
       "date": "2026-10-09",
       "entries": [
         { "title": "New look", "text": "Warmer colours, clearer cards and a layout that uses the whole screen on a computer." },
@@ -150,7 +150,7 @@
       ]
     },
     {
-      "version": "3.0.0",
+      "version": "0.3.0",
       "date": "2026-10-09",
       "entries": [
         { "title": "Safer warnings", "text": "An item is flagged as suspicious when its price is far above what it normally sells for." },
@@ -159,7 +159,7 @@
       ]
     },
     {
-      "version": "2.1.0",
+      "version": "0.2.1",
       "date": "2026-10-09",
       "entries": [
         { "title": "Opportunities", "text": "A tab that shows only flips that are stable, liquid and within your budget.", "target": "#tabs" },
@@ -167,7 +167,7 @@
       ]
     },
     {
-      "version": "2.0.0",
+      "version": "0.2.0",
       "date": "2026-10-09",
       "entries": [
         { "title": "Price history", "text": "Every item has a detail page with price and margin charts." },
@@ -177,7 +177,7 @@
       ]
     },
     {
-      "version": "1.0.0",
+      "version": "0.1.0",
       "date": "2026-10-09",
       "entries": [
         { "title": "First version", "text": "Live bazaar flips ranked by profit after tax, with filters and favorites." }

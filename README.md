@@ -93,4 +93,4 @@ node --test                   # tests
 npm run android:build         # debug APK (needs JDK 21 and the Android SDK)
 ```
 
-When you ship a feature, raise the version and add an entry to `changelog.json`. That file is the app version and feeds the "What's new" window.
+When you ship a feature, raise the version (`0.minor.patch` until 1.0) and add an entry to `changelog.json`. That file is the app version and feeds the "What's new" window.

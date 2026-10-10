@@ -6,25 +6,36 @@ import { esc, coins } from './render.js';
 
 export const compareVersions = (a, b) => {
   const [pa, pb] = [a, b].map((v) => String(v).split('.').map(Number));
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 4; i++) { // four parts: 0.6.5.1 is the old 6.5.1
     const d = (pa[i] || 0) - (pb[i] || 0);
     if (d) return Math.sign(d);
   }
   return 0;
 };
 
+const VERSION = /^\d+(\.\d+){0,3}$/;
+export const SCHEME = 2; // stored with the last seen version since the numbering became 0.x
+
+// Up to 0.6.7 the app counted 6.7.0. A state stored without `scheme` holds such a number;
+// it becomes the same release in the new numbering, so 0.7.0 is newer than a stored 6.7.0.
+export function migrateState(state) {
+  if (!state || state.scheme === SCHEME || typeof state.version !== 'string' || !VERSION.test(state.version)) return state;
+  const [major, minor = 0, patch = 0] = state.version.split('.');
+  return { ...state, version: `0.${major}.${minor}${Number(patch) ? `.${patch}` : ''}`, scheme: SCHEME };
+}
+
 // changelog.json lists the newest version first; that one is the app version
 export const currentVersion = (log) => log.versions[0].version;
 export const newsSince = (log, version) => log.versions.filter((v) => compareVersions(v.version, version) > 0);
 
-export const ADVANCED_SINCE = '5.0.0'; // the version that brought the advanced tour
+export const ADVANCED_SINCE = '0.5.0'; // the version that brought the advanced tour
 
 // What to show at start.
 // state: the stored { done, version }, or anything else when nothing usable is stored.
 // hadData: the app had saved settings, favourites or items before this start.
 export function startupAction(state, log, hadData) {
   const current = currentVersion(log);
-  if (!state || typeof state.version !== 'string' || !/^\d+(\.\d+){0,2}$/.test(state.version)) {
+  if (!state || typeof state.version !== 'string' || !VERSION.test(state.version)) {
     // nothing stored at all: a new user (or cleared storage) gets the welcome screen and no news
     if (!hadData) return { type: 'welcome', current };
     // used the app before it had a tour: offer the tour, never start it unasked
@@ -165,7 +176,7 @@ export const HINTS = {
 export const HINT_IDS = Object.keys(HINTS);
 export const PRO_OFFER = 'advanced'; // kept in the same list: the advanced tour was offered on the switch to Pro
 
-// What a user starts with: someone who used the app before version 6 knows it, a new user has seen nothing.
+// What a user starts with: someone who used the app before version 0.6 knows it, a new user has seen nothing.
 export const initialHints = (hadData) => (hadData ? [...HINT_IDS, PRO_OFFER] : []);
 // The first candidate that has not been seen and whose place is on screen right now.
 export const pickHint = (candidates, seen, onScreen = () => true) =>
