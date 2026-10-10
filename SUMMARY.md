@@ -37,7 +37,7 @@ Die Bewertungslogik ist unverändert: `flips.js`, `npc.js`, `craft.js`,
 | `forge.json` | 62 Forge-Rezepte (30 mit Bazaar-Ergebnis, 32 mit AH-Ergebnis) | 5,9 KB |
 | `ah.json` | Lowest BIN für 29 Forge-Ergebnisse | 0,8 KB |
 | `election.json` | Mayor, Perks, Minister, laufende Wahl | 0,4 KB |
-| `stats.json` | viertes Feld je Item: Trend | 82 KB (vorher rund 70 KB) |
+| `stats.json` | viertes Feld je Item: Trend | 80 KB (vorher 70 KB) |
 
 Die Workflow-Datei selbst ist unverändert; die Zusatzabrufe stecken in
 `scripts/snapshot.mjs`. Ein Lauf dauerte lokal 21 Sekunden (46 Auktionsseiten,
@@ -56,7 +56,7 @@ NEU-Klon inklusive).
   Live-Abrufe, keine JavaScript-Fehler): What's new mit „Advanced tour“,
   Liste mit Radar und Trend-Badges, Radar aufgeklappt, Sortierung „Trend“,
   Forge-Tab mit beiden Filtern, Assistent mit den neuen Fragen bis „Apply“,
-  Basis-Tour mit Angebot, Advanced-Tour, „Show me“. 46 Bilder erzeugt, 12
+  Basis-Tour mit Angebot, Advanced-Tour, „Show me“. 46 Bilder erzeugt, 11
   davon selbst angesehen.
 - Einzelprüfungen im Browser: Event-Badge „Mining Fiesta“ auf Refined Mineral
   in Liste und Detailseite; aufgeklappte Radar-Zeilen bleiben nach einem
