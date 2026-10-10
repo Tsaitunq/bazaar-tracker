@@ -124,8 +124,14 @@ async function showStep() {
   run.target = el;
   place(el);
   // pictures and charts that arrive late can move the target
-  setTimeout(() => run && run.index === stepIndex && place(el), 400);
+  setTimeout(() => run && run.index === stepIndex && place(live()), 400);
   $('tour-bubble').querySelector('.primary').focus();
+}
+
+// A list that was redrawn in the meantime has new elements: look the target up again.
+function live() {
+  if (run.target && !run.target.isConnected) run.target = [].concat(run.steps[run.index].target).map(find).find(Boolean) ?? null;
+  return run.target;
 }
 
 // then runs after the last station, skipped when the tour is left early.
@@ -293,7 +299,7 @@ export async function initOnboarding(context) {
     else if (e.key === 'ArrowRight') moveTour(1);
     else if (e.key === 'ArrowLeft') moveTour(-1);
   });
-  const again = () => run && place(run.target);
+  const again = () => run && place(live());
   addEventListener('resize', again);
   addEventListener('scroll', again, { passive: true });
 

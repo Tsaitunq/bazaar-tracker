@@ -149,7 +149,7 @@ button:active { filter: brightness(.8); }
 #settings .ranges { margin: 0; }
 
 /* context hints: a note in the flow of the page, shown once, never in the way */
-.tip { margin: 0 0 8px; padding: 10px 12px; max-width: 720px; border: 1px dashed var(--muted); border-radius: 10px; background: var(--raised); color: var(--text); font-size: 13px; font-style: normal; }
+.tip { margin: 8px 0; padding: 10px 12px; max-width: 720px; border: 1px dashed var(--muted); border-radius: 10px; background: var(--raised); color: var(--text); font-size: 13px; font-style: normal; }
 .tip p { margin: 0 0 8px; }
 .tip button { min-height: 36px; }
 #settings .tip { grid-column: 1 / -1; max-width: none; }
