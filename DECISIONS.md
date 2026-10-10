@@ -359,3 +359,98 @@ Selbstständig getroffen (Auftrag: ohne Rückfragen).
 - **Screenshots entstanden mit einer lokalen Kopie der App, die gespeicherte
   API-Antworten lädt**, ohne Live-Abrufe. Die Kopie liegt im ignorierten
   Ordner `data/` und wurde danach gelöscht.
+
+# Entscheidungen Version 5 (Forge, Events & Trends)
+
+Selbstständig getroffen (Auftrag: ohne Rückfragen). Jede Zeile: Entscheidung,
+Grund, was es kostet, falls sie falsch ist.
+
+## Vorgehen
+
+- **Branch `v5` ab `main`, kein Push.** Spec in `docs/spec-v5.md`, Plan in
+  `docs/plan-v5.md`.
+- **Je eine API-Antwort wurde einmal gespeichert** (Bazaar, erste
+  Auktionsseite, Election), außerhalb des Repos. Daraus stammen die Formate
+  und die Screenshot-Daten. Dazu kommt ein einziger Live-Lauf des
+  Snapshot-Skripts für die Workflow-Prüfung. Grund: Formate lassen sich nicht
+  raten. Kosten: keine; wiederholte Abrufe gibt es nicht.
+- **Das offizielle Wiki ist seit Juli 2026 geschlossen.** Quelle ist das
+  Community-Wiki `hypixelskyblock.minecraft.wiki`, auf das auch das NEU-Repo
+  verweist. Alles steht in `docs/events-sources.md`.
+
+## Forge
+
+- **Nur Rezepte, deren Zutaten alle im Bazaar sind** (71 von 124; 30 mit
+  Bazaar-Ergebnis, 41 mit AH-Ergebnis). Grund: Der Auftrag rechnet Zutaten zum
+  Bazaar-Preis. Kosten: Rezepte mit geschmiedeten Zwischenteilen (z. B.
+  höhere Drills) fehlen.
+- **Pets als Ergebnis fallen weg.** Grund: Im Auktionshaus haben alle Pets
+  dieselbe Item-ID; der Preis hinge an Seltenheit und Level.
+- **Lowest BIN aus dem offiziellen Auktions-Endpunkt, nicht von Dritten.**
+  Der Workflow liest alle Seiten (zuletzt 46, je ca. 2,4 MB), acht
+  gleichzeitig, und merkt sich nur den niedrigsten BIN der Forge-Ergebnisse.
+  `ah.json` hat rund 40 Einträge und keinen Verlauf. Kosten: einige Sekunden
+  mehr pro Lauf, keine spürbare Repo-Größe.
+- **Die Item-ID wird direkt aus den gepackten Auktionsdaten gesucht**, ohne
+  NBT-Bibliothek: Gesucht wird das Text-Feld `id`. Grund: keine neue
+  Abhängigkeit. Kosten: Ändert Hypixel das Format, bleibt `ah.json` leer und
+  der Forge-Tab zeigt nur Bazaar-Ergebnisse.
+- **Der Lowest BIN ist ein einzelnes Angebot.** Er kann zu niedrig
+  (Lockangebot) oder zu hoch sein (kaum Angebote). Darum Badge und Hinweis
+  „estimate“. Ein Verlauf oder Median der AH-Preise ist nicht Teil von v5.
+- **AH-Gebühren: Einstellgebühr nach Preisstufe plus 1 % Abholsteuer.** Nicht
+  eingerechnet: die Gebühr für die Laufzeit der Auktion (keine belegte
+  Tabelle) und Derpys vierfache Steuer. Kosten: Der Gewinn ist leicht zu hoch
+  geschätzt.
+- **„Profit/forge hour“ = Gewinn eines Durchgangs geteilt durch die Dauer**,
+  für einen Forge-Slot. Marktanteil und Volumen fließen nicht ein, Quick
+  Forge auch nicht. Kosten: Bei sehr kurzen Rezepten wirkt der Wert hoch; die
+  Grenze ist dann der Verkauf, nicht die Schmiede.
+- **Die HotM-Stufe kommt aus dem Text „Requires: … HotM N“.** Weitere
+  Voraussetzungen (z. B. „Mithril X“) werden nicht geprüft. Ohne Angabe gilt
+  Stufe 0 (immer sichtbar).
+- **Der AH-Filter sitzt über der Forge-Liste, die HotM-Stufe in den
+  Einstellungen.** Grund: Der Filter wird oft umgeschaltet, die Stufe selten.
+- **Fünf Tabs: Die Leiste scrollt horizontal und holt den aktiven Tab ins
+  Bild.** Bei 360 px passen die fünf Namen knapp; das Scrollen fängt
+  größere Schrift ab.
+
+## Events
+
+- **Termine werden in der App aus der Uhrzeit berechnet**, nicht vom Workflow
+  geliefert. Grund: Der Countdown stimmt auch, wenn der Workflow hängt.
+- **Mining Fiesta und Mythological Ritual erscheinen als aktiver Perk ohne
+  Countdown**, Fishing Festival mit Terminen. Grund: Für die Mining Fiesta
+  widersprechen sich die Quellen.
+- **Perks des Ministers zählen als aktiv.** Grund: Die API führt sie so.
+- **Event-Badge: laufende Events, Events in den nächsten 24 Stunden und
+  aktive Perks.** Grund: Ein SkyBlock-Jahr dauert gut fünf Tage; ohne Grenze
+  wäre fast immer alles markiert.
+- **Die Liste betroffener Items ist kurz und nennt nur Items, die die Quellen
+  dem Event zuordnen.** Eine Preisrichtung behauptet die App nicht.
+- **Eigene Farbe `--event` für Event-Badges.** Grund: Orange ist für
+  Bedienelemente reserviert, Grün und Rot für Gewinn und Verlust.
+
+## Trends
+
+- **Der Trend steht als viertes Feld in `stats.json`.** Grund: Der Workflow
+  hat den Verlauf ohnehin geladen; die App müsste sonst pro Item Dateien
+  nachladen. `statOf` und die Android-App lesen nur die ersten drei Felder.
+- **Steigung per linearer Regression über die letzten 24 h, relativ zum
+  Mittelwert.** Schwellen: ±3 % für „flat“, ±10 % gegen den Median für
+  „below/above normal“. Mindestens 12 Punkte über 12 Stunden.
+- **Trend-Badges sind neutral gefärbt.** Grund: Grün und Rot bedeuten in der
+  App Gewinn und Verlust; ein steigender Preis ist keins von beiden.
+- **Sortierung „Trend“ ordnet nur die Anzeige um.** Die Listen werden wie
+  bisher gebaut und danach sortiert; das Portfolio bleibt bei Profit/h.
+
+## Tour und Assistent
+
+- **Basis-Tour mit 6 Stationen, Advanced-Tour mit 4 (Android: 5).** Die
+  Station „Item details“ entfällt aus der Basis-Tour, damit die Grenze von
+  sechs hält.
+- **Nach der Basis-Tour kommt das Angebot für die Advanced-Tour, danach wie
+  bisher der Assistent**, wenn die Tour vom Willkommensfenster aus begann.
+- **„Advanced tour“ im What's-new-Fenster sehen alle, deren zuletzt gesehene
+  Version vor 5.0.0 liegt.**
+- **Assistent: HotM-Stufe als Auswahlliste 1 bis 10, AH-Frage mit Ja/Nein.**
