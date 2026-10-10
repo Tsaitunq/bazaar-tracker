@@ -3,11 +3,12 @@ import { npcFlips } from './npc.js';
 import { craftFlips } from './craft.js';
 import { forgeFlips } from './forge.js';
 import { loadItems, fallbackName } from './names.js';
-import { loadStats, loadRecipes, loadForge, loadAh, loadHistory } from './data.js';
+import { loadStats, loadRecipes, loadForge, loadAh, loadElection, loadHistory } from './data.js';
 import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission } from './native.js';
-import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, parseRoute, detailView, portfolioView, swipeTab, dragOffset, TABS, coins, percent, PLACEHOLDER_ICON } from './render.js';
+import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, parseRoute, detailView, portfolioView, swipeTab, dragOffset, TABS, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
 import { level } from './trends.js';
+import { activePerks, upcoming, electionWindow, eventItems } from './events.js';
 import { initOnboarding } from './tour.js';
 
 const API = 'https://api.hypixel.net/v2/skyblock/bazaar';
@@ -56,6 +57,8 @@ let stats = null; // score, median and hours of history per item; null until loa
 let recipes;
 let forge;   // forge recipes; undefined while loading, null when there are none
 let ah = {}; // lowest BIN of forge results that are not on the bazaar
+let election = null; // mayor, perks and a running election; null when unknown
+let marked = {};     // item id -> event or perk it belongs to right now
 let lastStats = 0;
 let route = parseRoute(location.hash);
 let lastList = route.view === 'item' ? 'flips' : route.view; // where the detail page's back link goes
@@ -80,12 +83,14 @@ function decorate(f) {
   f.tier = tiers[f.id];
   f.trend = stats?.[f.id]?.[3] ?? null;
   f.level = level(f.sell, statOf(stats, f.id).median);
+  f.event = marked[f.id];
   return f;
 }
 const oppOpts = () => ({ ...baseOpts(), minMargin: settings.marketMargin / 100, minVolume: settings.marketMinVolume, minProfitHour: settings.marketMinProfit });
 
 // The flips of one tab, with names. plan is the portfolio and only exists for the Opportunities tab.
 function compute(v) {
+  marked = eventItems(Date.now(), election);
   const opts = baseOpts();
   let list;
   let pf = null;
@@ -167,8 +172,23 @@ function flashChanges() {
   }
 }
 
+// The radar is only rebuilt when its content changed, so parts the user unfolded stay open.
+let radarShown = '';
+function renderRadar() {
+  const now = Date.now();
+  const data = { election, perks: activePerks(election), events: upcoming(now, election), vote: electionWindow(now), now, name: nameOf };
+  const plain = radarView(data);
+  if (plain === radarShown) return;
+  const box = $('radar');
+  const open = new Set([...box.querySelectorAll('details[open]')].map((d) => d.dataset.key));
+  if (!radarShown && load('bt.radar', false) === true) open.add('radar');
+  radarShown = plain;
+  box.innerHTML = radarView({ ...data, open });
+}
+
 function renderDetail() {
   const { id } = route;
+  marked = eventItems(Date.now(), election);
   if (hist.id !== id) {
     hist = { id, points: null };
     loadHistory(id, 7).then((points) => { if (hist.id === id) { hist.points = points; render(); } });
@@ -188,6 +208,7 @@ function render() {
   document.body.classList.toggle('detail', item);
   if (item) return renderDetail();
   $('detail').innerHTML = '';
+  renderRadar();
   for (const a of document.querySelectorAll('#tabs a')) {
     if (a.getAttribute('href') !== `#/${view()}`) a.removeAttribute('aria-current');
     else if (!a.hasAttribute('aria-current')) {
@@ -244,7 +265,7 @@ async function refresh() {
 
 async function refreshStats() {
   lastStats = Date.now();
-  [stats, ah] = await Promise.all([loadStats(), loadAh()]);
+  [stats, ah, election] = await Promise.all([loadStats(), loadAh(), loadElection()]);
   recompute();
   render();
 }
@@ -268,6 +289,8 @@ for (const key of ['tax', 'interval', 'share', 'sort', 'minVolume', 'maxCapital'
   });
 }
 $('settings').addEventListener('submit', (e) => e.preventDefault());
+// toggle does not bubble, so listen in the capture phase; only the radar itself is remembered
+$('radar').addEventListener('toggle', (e) => { if (e.target.dataset.key === 'radar') save('bt.radar', e.target.open); }, true);
 $('search').addEventListener('input', render);
 $('refresh').addEventListener('click', refresh);
 $('fav-only').addEventListener('click', () => {
@@ -402,7 +425,7 @@ function showPeek(side) {
   if (!tab) return;
   const { list, plan: pf } = compute(tab);
   const markup = listMarkup(tab, list, pf);
-  peek.innerHTML = `${markup.portfolio}<p class="count muted">${markup.count}</p><ul class="list${tab === 'opps' ? ' opps' : ''}">${markup.list}</ul>`;
+  peek.innerHTML = `${$('radar').innerHTML}${markup.portfolio}<p class="count muted">${markup.count}</p><ul class="list${tab === 'opps' ? ' opps' : ''}">${markup.list}</ul>`;
   peek.style.left = `${side * 100}%`;
   peek.style.top = `${Math.max(0, document.querySelector('header').getBoundingClientRect().bottom - page.getBoundingClientRect().top)}px`;
 }

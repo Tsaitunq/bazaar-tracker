@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { esc, coins, percent, iconUrl, itemHref, icon, scoreBadge, flipCard, searchCard, npcCard, craftCard, forgeCard, forgeFilter, duration, trendBadge, detailView, parseRoute } from '../render.js';
+import { esc, coins, percent, iconUrl, itemHref, icon, scoreBadge, flipCard, searchCard, npcCard, craftCard, forgeCard, forgeFilter, duration, trendBadge, detailView, radarView, parseRoute } from '../render.js';
 
 const flip = { id: 'A', name: 'Name', buy: 10, sell: 20, profit: 5, margin: 0.1, weekVol: 1000, hourVol: 10, profitHour: 50, score: 80 };
 
@@ -227,4 +227,50 @@ test('cards and the detail page carry the trend badge', () => {
   assert.ok(!flipCard(flip, false).includes('badge-trend'));
   const page = detailView({ id: 'A', name: 'Name', flip, score: 80, median: 20, provisional: false, trend: -0.1, level: null, isFav: false, range: '24h', points: [], tax: 0.0125 });
   assert.ok(page.includes('badge-trend') && page.includes('falling'));
+});
+
+test('an event badge marks items that belong to an event or perk', () => {
+  const html = flipCard({ ...flip, event: 'Spooky <Festival>' }, false);
+  assert.ok(html.includes('badge-event') && html.includes('Spooky &#60;Festival&#62;'));
+  assert.ok(!flipCard(flip, false).includes('badge-event'));
+});
+
+const HOUR = 3600000;
+const radar = (over = {}) => radarView({
+  election: { mayor: { name: 'Paul', perks: [{ name: 'Marauder', text: 'Chests are cheaper.' }], minister: { name: 'Cole', perk: { name: 'Mining Fiesta', text: 'Refined Minerals.' } } }, vote: null },
+  perks: [{ name: 'Marauder', text: 'Chests are cheaper.', by: 'Paul' }, { name: 'Mining Fiesta', text: 'Refined Minerals.', by: 'Cole, minister' }],
+  events: [
+    { key: 'zoo', name: 'Traveling Zoo', active: true, start: -HOUR, end: 0.5 * HOUR, items: [] },
+    { key: 'spooky', name: 'Spooky Festival', active: false, start: 50 * HOUR, end: 51 * HOUR, items: ['GREEN_CANDY'] },
+  ],
+  vote: { open: false, at: 30 * HOUR }, now: 0, name: (id) => `<${id}>`, ...over,
+});
+
+test('radar: one line when folded, mayor, election and events inside', () => {
+  const html = radar();
+  assert.ok(html.includes('Mayor Paul · Traveling Zoo now · Spooky Festival in 2d 2h'));
+  assert.ok(!html.includes('data-key="radar" open'));
+  assert.ok(html.includes('minister Cole') && html.includes('Chests are cheaper.') && html.includes('Cole, minister'));
+  assert.ok(html.includes('now · 30m left') && html.includes('in 2d 2h'));
+  assert.ok(html.includes('The next one opens in 1d 6h'));
+  // items are named, linked and never promised a price move
+  assert.ok(html.includes('Typically affected:') && html.includes('href="#/item/GREEN_CANDY"') && html.includes('&#60;GREEN_CANDY&#62;'));
+  assert.ok(html.includes('href="#/item/REFINED_MINERAL"'));
+});
+
+test('radar: unfolded parts stay open, a running election lists its candidates', () => {
+  const html = radar({ open: new Set(['radar', 'event:spooky']) });
+  assert.ok(html.includes('data-key="radar" open') && html.includes('data-key="event:spooky" open') && !html.includes('data-key="event:zoo" open'));
+  const voting = radar({
+    election: { mayor: { name: 'Paul', perks: [], minister: null }, vote: { year: 520, candidates: [{ name: 'Cole', votes: 25, perks: ['Mining Fiesta'] }, { name: 'Diana', votes: 75, perks: ['Pet XP Buff'] }] } },
+    perks: [], vote: { open: true, at: 2 * HOUR },
+  });
+  assert.ok(voting.includes('Election for year 520 · closes in 2h'));
+  assert.ok(voting.indexOf('Diana') < voting.indexOf('Cole') && voting.includes('75%') && voting.includes('Pet XP Buff'));
+});
+
+test('radar without mayor data still shows the events', () => {
+  const html = radar({ election: null, perks: [] });
+  assert.ok(html.includes('Mayor data is not available') && html.includes('Spooky Festival'));
+  assert.ok(html.includes('Traveling Zoo now · Spooky Festival in 2d 2h') && !html.includes('Mayor undefined'));
 });

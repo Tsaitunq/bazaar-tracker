@@ -18,7 +18,7 @@ its price goes up or down is not claimed anywhere in the app.
 | Day | 20 real minutes (124 h / 372) | derived |
 
 Cross-check: the election API reported the mayor elected in year 518 while
-this clock gave year 519, Early Summer 1.
+this clock gave year 519, Early Summer 2.
 
 ## Events with fixed dates
 

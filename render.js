@@ -1,6 +1,7 @@
 import { lineChart } from './chart.js';
 import { marginSeries } from './history.js';
 import { direction } from './trends.js';
+import { skyDate, MONTHS, PERK_ITEMS, DAY_MS } from './events.js';
 
 export const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
@@ -163,6 +164,52 @@ export function portfolioView(plan, { capital, slots, sharePercent }) {
   <ol class="picks">${rows}</ol>
   ${hint}
 </section>`;
+}
+
+// The mayor and event radar above every list. Folded it is one line; unfolded it lists the mayor's
+// perks, the election and the events, each of which unfolds to its details.
+// perks: activePerks(); events: upcoming(); vote: electionWindow(); name(id): an item's name;
+// open: keys of the parts that are unfolded.
+export function radarView({ election, perks, events, vote, now, name, open = new Set() }) {
+  const until = (t) => duration(Math.ceil(Math.max(0, t - now) / 60000) * 60);
+  const affected = (ids) => (ids?.length
+    ? `<p class="affected"><span class="muted">Typically affected:</span> ${ids.map((id) => `<a href="${esc(itemHref(id))}">${esc(name(id))}</a>`).join(', ')}</p>` : '');
+  const row = (key, title, side, body) => `<li><details data-key="${esc(key)}"${open.has(key) ? ' open' : ''}>
+    <summary><span>${esc(title)}</span> <span class="side">${esc(side)}</span></summary>${body}</details></li>`;
+  const day = (t) => { const d = skyDate(t); return `${MONTHS[d.month]} ${d.day}`; };
+
+  const running = events.filter((e) => e.active);
+  const next = events.find((e) => !e.active);
+  const line = [
+    election && `Mayor ${election.mayor.name}`,
+    running.length === 1 ? `${running[0].name} now` : running.length > 1 && `${running.length} events now`,
+    next && `${next.name} in ${until(next.start)}`,
+  ].filter(Boolean).join(' · ');
+
+  const mayor = election ? `<p><strong>${esc(election.mayor.name)}</strong>${
+    election.mayor.minister ? ` · minister ${esc(election.mayor.minister.name)}` : ''}</p>
+  <ul>${perks.map((p) => row(`perk:${p.name}`, p.name, p.by, `<p>${esc(p.text)}</p>${affected(PERK_ITEMS[p.name])}`)).join('')}</ul>`
+    : '<p class="muted">Mayor data is not available right now.</p>';
+
+  const total = election?.vote?.candidates.reduce((sum, c) => sum + c.votes, 0);
+  const votes = election?.vote ? `<p class="muted">Election for year ${esc(election.vote.year)}${vote.open ? ` · closes in ${until(vote.at)}` : ''}</p>
+  <ol class="votes">${[...election.vote.candidates].sort((a, b) => b.votes - a.votes).map((c) =>
+    `<li><span>${esc(c.name)}</span> <span class="side">${total > 0 ? percent.format(c.votes / total) : '–'}</span><small>${esc(c.perks.join(', '))}</small></li>`).join('')}</ol>`
+    : `<p class="muted">${vote.open ? `The election is open and closes in ${until(vote.at)}.` : `No election right now. The next one opens in ${until(vote.at)}.`}</p>`;
+
+  const list = events.map((e) => row(`event:${e.key}`, e.name, e.active ? `now · ${until(e.end)} left` : `in ${until(e.start)}`,
+    `<p class="muted">${e.active ? 'Started' : 'Starts'} on ${day(e.start)} · lasts ${duration((e.end - e.start) / 1000)} (${Math.round((e.end - e.start) / DAY_MS)} SkyBlock days)${
+      e.perk ? ` · only with the ${esc(e.perk)} perk` : ''}</p>${affected(e.items)}`)).join('');
+
+  return `<details class="radar" data-key="radar"${open.has('radar') ? ' open' : ''}>
+  <summary><span class="radar-title">${ICONS.event}Event radar</span> <span class="radar-line">${esc(line)}</span></summary>
+  <h3>Mayor</h3>
+  ${mayor}
+  <h3>Election</h3>
+  ${votes}
+  <h3>Events</h3>
+  <ul>${list}</ul>
+</details>`;
 }
 
 export function parseRoute(hash) {
