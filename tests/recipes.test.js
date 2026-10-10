@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { parseRecipe, toBazaarId, buildRecipes, recipesStale, loadNeuItems } from '../scripts/recipes.mjs';
+import { parseForge, buildForge, parseRecipe, toBazaarId, buildRecipes, recipesStale, loadNeuItems } from '../scripts/recipes.mjs';
 
 const block = {
   internalname: 'ENCHANTED_DIAMOND_BLOCK',
@@ -74,4 +74,34 @@ test('recipesStale', () => {
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
+});
+
+const forgeItem = (internalname, inputs, extra = {}) => ({
+  internalname, crafttext: 'Requires: Mithril X & HotM 4',
+  recipes: [{ type: 'forge', inputs, count: 1, overrideOutputId: internalname, duration: 21600 }], ...extra,
+});
+
+test('parseForge reads inputs, coins, duration and the HotM tier', () => {
+  assert.deepEqual(parseForge(forgeItem('DRILL', ['PLATE:1', 'GEM:12.0', 'GEM:3', 'SKYBLOCK_COIN:50000'])),
+    { out: 'DRILL', n: 1, d: 21600, h: 4, c: 50000, i: { PLATE: 1, GEM: 15 } });
+  assert.equal(parseForge(forgeItem('A', ['B:1'], { crafttext: '' })).h, 0);
+  assert.equal(parseForge(forgeItem('A', ['B:1'], { crafttext: 'Requires: HotM 10' })).h, 10);
+  assert.equal(parseForge({ internalname: 'A', recipes: [{ type: 'crafting', A1: 'B:1' }] }), null);
+  assert.equal(parseForge({ internalname: 'A', recipes: [{ type: 'forge', inputs: ['B:1'] }] }), null);
+  assert.equal(parseForge(forgeItem('A', ['SKYBLOCK_COIN:5'])), null);
+});
+
+test('buildForge keeps bazaar ingredients only and any result that is not a pet', () => {
+  const ids = new Set(['PLATE', 'GEM', 'INK_SACK:4', 'REFINED']);
+  const r = buildForge([
+    forgeItem('DRILL', ['PLATE:1', 'INK_SACK-4:2', 'SKYBLOCK_COIN:100']),
+    forgeItem('REFINED', ['GEM:160']),
+    forgeItem('BIG_DRILL', ['DRILL:1', 'GEM:1']),
+    forgeItem('AMMONITE;4', ['GEM:1']),
+    forgeItem('GEM', ['GEM:2', 'PLATE:1']),
+  ], ids);
+  assert.deepEqual(r, {
+    DRILL: { n: 1, d: 21600, h: 4, c: 100, i: { PLATE: 1, 'INK_SACK:4': 2 } },
+    REFINED: { n: 1, d: 21600, h: 4, i: { GEM: 160 } },
+  });
 });

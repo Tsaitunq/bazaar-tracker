@@ -2,6 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { recipesStale, refreshRecipes } from './recipes.mjs';
+import { fetchLowestBins } from './auctions.mjs';
+import { compactElection } from './election.mjs';
+import { trendSlope } from '../trends.js';
 import { SHARDS, KEEP_DAYS, shardOf, dayKey, dayKeys, compactPrices, appendSnapshot, seriesFor, itemStats } from '../history.js';
 
 const readChunk = (file) => (fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : null);
@@ -27,7 +30,9 @@ export function runSnapshot(dataDir, products, nowMs) {
   const scores = {};
   const stats = {};
   for (const id of ids) {
-    stats[id] = itemStats(seriesFor(chunks, id));
+    const series = seriesFor(chunks, id);
+    // the trend is a fourth field; readers of the first three (older apps, the Android worker) ignore it
+    stats[id] = [...itemStats(series), trendSlope(series)];
     if (stats[id][0] != null) scores[id] = stats[id][0];
   }
   fs.writeFileSync(path.join(dataDir, 'stats.json'), JSON.stringify({ t: tMin, i: stats }));
@@ -36,12 +41,42 @@ export function runSnapshot(dataDir, products, nowMs) {
   return { day, count: Object.keys(prices).length };
 }
 
+const API = 'https://api.hypixel.net/v2/';
+async function getJson(url) {
+  const res = await fetch(url, { signal: AbortSignal.timeout(30000) });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const json = await res.json();
+  if (!json.success) throw new Error('API reported success=false');
+  return json;
+}
+
+// Mayor and lowest BINs ride along with the snapshot. If one of them fails, its old file stays
+// and the snapshot still counts.
+export async function runExtras(dataDir, bazaarIds, nowMs, get = getJson) {
+  const write = (name, value) => fs.writeFileSync(path.join(dataDir, name), JSON.stringify(value));
+  const done = [];
+  try {
+    write('election.json', compactElection(await get(`${API}resources/skyblock/election`), nowMs));
+    done.push('election');
+  } catch (e) {
+    console.error(`election failed: ${e.message}`);
+  }
+  try {
+    const forge = readChunk(path.join(dataDir, 'forge.json'))?.r ?? {};
+    const wanted = new Set(Object.keys(forge).filter((id) => !bazaarIds.has(id)));
+    if (wanted.size) {
+      write('ah.json', { t: nowMs, p: await fetchLowestBins((n) => get(`${API}skyblock/auctions?page=${n}`), wanted) });
+      done.push('ah');
+    }
+  } catch (e) {
+    console.error(`auctions failed: ${e.message}`);
+  }
+  return done;
+}
+
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
-    const res = await fetch('https://api.hypixel.net/v2/skyblock/bazaar');
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const json = await res.json();
-    if (!json.success) throw new Error('API reported success=false');
+    const json = await getJson(`${API}skyblock/bazaar`);
     const dataDir = process.argv[2] ?? 'data';
     const now = Date.now();
     const { day, count } = runSnapshot(dataDir, json.products, now);
@@ -49,11 +84,13 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     if (recipesStale(path.join(dataDir, 'recipes.json'), now)) {
       try {
         const r = refreshRecipes(dataDir, new Set(Object.keys(json.products)), now);
-        console.log(`recipes: ${Object.keys(r).length}`);
+        console.log(`recipes: ${Object.keys(r.recipes).length}, forge: ${Object.keys(r.forge).length}`);
       } catch (e) {
         console.error(`recipes failed: ${e.message}`);
       }
     }
+    const extras = await runExtras(dataDir, new Set(Object.keys(json.products)), now);
+    console.log(`extras: ${extras.join(', ') || 'none'}`);
   } catch (e) {
     console.error(`snapshot failed: ${e.message}`);
     process.exitCode = 1;
