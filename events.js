@@ -1,6 +1,7 @@
 // Mayor and event radar: the SkyBlock calendar, the events on it and the items that belong to them.
 // Dates, items and every source are listed in docs/events-sources.md. An item here is "typically
-// affected": it is obtained during the event or through the perk. Nothing is said about its price.
+// affected": it is obtained during the event or through the perk. What its price did in past runs
+// is learned from our own snapshots (timing.js); PERK_EXPECT below is the only place with an expectation.
 
 export const SB_EPOCH = 1560275700000; // start of SkyBlock year 1
 export const DAY_MS = 20 * 60000;
@@ -81,4 +82,23 @@ export function eventItems(nowMs, election) {
   }
   for (const p of activePerks(election)) for (const id of PERK_ITEMS[p.name] ?? []) out[id] ??= p.name;
   return out;
+}
+
+// What a perk is expected to do to prices while it is active. The sources only describe the perk;
+// "cheaper" is our conclusion from it (docs/events-sources.md), so `why` is always shown next to it.
+export const PERK_EXPECT = {
+  Marauder: { why: 'dungeon reward chests cost 20% less',
+    items: ['RECOMBOBULATOR_3000', 'FUMING_POTATO_BOOK', 'WITHER_CATALYST', 'PRECURSOR_GEAR',
+      'FIRST_MASTER_STAR', 'SECOND_MASTER_STAR', 'THIRD_MASTER_STAR', 'FOURTH_MASTER_STAR', 'FIFTH_MASTER_STAR'] },
+  'Mining Fiesta': { why: 'drops from mining while the perk is active', items: PERK_ITEMS['Mining Fiesta'] },
+  'Mythological Ritual': { why: 'found while the perk is active', items: PERK_ITEMS['Mythological Ritual'] },
+  'Fishing Festival': { why: 'shark loot from the festivals', items: EVENTS.find((e) => e.key === 'fishing').items },
+};
+
+// A mayor takes office when the election closes on Late Spring 27 and stays for a year.
+// Returns the start of the term that runs at nowMs.
+export function termStart(nowMs) {
+  const { year } = skyDate(nowMs);
+  const start = skyTime(year, 2, 27);
+  return start <= nowMs ? start : skyTime(year - 1, 2, 27);
 }

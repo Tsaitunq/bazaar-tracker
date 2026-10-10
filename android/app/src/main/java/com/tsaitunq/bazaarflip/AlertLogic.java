@@ -1,5 +1,9 @@
 package com.tsaitunq.bazaarflip;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 
@@ -308,6 +312,69 @@ final class AlertLogic {
             out.add(name(names, f.id) + ": " + percent(f.margin) + " · " + coins(f.profitHour) + "/h");
         }
         if (hits.size() > MAX_LINES) out.add("+" + (hits.size() - MAX_LINES) + " more");
+        return out;
+    }
+
+    /** A ready-made notice from timing.json (timing.js writes it): due from {@code from} until {@code to}. */
+    static final class Notice {
+        final String key;
+        final String kind; // "event" or "mayor"
+        final long from;
+        final long to;
+        final String title;
+        final List<String[]> lines; // item id, text
+
+        Notice(String key, String kind, long from, long to, String title, List<String[]> lines) {
+            this.key = key;
+            this.kind = kind;
+            this.from = from;
+            this.to = to;
+            this.title = title;
+            this.lines = lines;
+        }
+    }
+
+    /** The notices under "n" in timing.json; a file without them has none. */
+    static List<Notice> readNotices(Reader json) throws IOException {
+        List<Notice> out = new ArrayList<>();
+        try {
+            JsonElement root = JsonParser.parseReader(json);
+            JsonElement list = root.isJsonObject() ? root.getAsJsonObject().get("n") : null;
+            if (list == null || !list.isJsonArray()) return out;
+            for (JsonElement e : list.getAsJsonArray()) {
+                JsonObject o = e.getAsJsonObject();
+                List<String[]> lines = new ArrayList<>();
+                for (JsonElement line : o.getAsJsonArray("lines")) {
+                    JsonArray pair = line.getAsJsonArray();
+                    lines.add(new String[] { pair.get(0).getAsString(), pair.get(1).getAsString() });
+                }
+                out.add(new Notice(o.get("k").getAsString(), o.get("kind").getAsString(), o.get("from").getAsLong(),
+                    o.get("to").getAsLong(), o.get("title").getAsString(), lines));
+            }
+        } catch (RuntimeException e) {
+            throw new IOException("unexpected timing file", e);
+        }
+        return out;
+    }
+
+    /** Notices of a kind the user switched on that are due now and were not shown yet. */
+    static List<Notice> dueNotices(List<Notice> all, boolean events, boolean mayor, Set<String> shown, long now) {
+        List<Notice> out = new ArrayList<>();
+        for (Notice n : all) {
+            boolean wanted = n.kind.equals("event") ? events : n.kind.equals("mayor") && mayor;
+            if (wanted && now >= n.from && now < n.to && !shown.contains(n.key)) out.add(n);
+        }
+        return out;
+    }
+
+    /** The first three items, then "+N more", then the reminder that a pattern is no promise. */
+    static List<String> noticeLines(Notice n, Map<String, String> names) {
+        List<String> out = new ArrayList<>();
+        for (String[] line : n.lines.subList(0, Math.min(MAX_LINES, n.lines.size()))) {
+            out.add(name(names, line[0]) + ": " + line[1]);
+        }
+        if (n.lines.size() > MAX_LINES) out.add("+" + (n.lines.size() - MAX_LINES) + " more");
+        out.add("Based on past events, not a guarantee.");
         return out;
     }
 

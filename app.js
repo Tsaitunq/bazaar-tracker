@@ -3,7 +3,7 @@ import { npcFlips } from './npc.js';
 import { craftFlips } from './craft.js';
 import { forgeFlips, forgeFlip } from './forge.js';
 import { loadItems, fallbackName } from './names.js';
-import { loadStats, loadRecipes, loadForge, loadAh, loadElection, loadHistory } from './data.js';
+import { loadStats, loadRecipes, loadForge, loadAh, loadElection, loadTiming, loadHistory } from './data.js';
 import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission } from './native.js';
 import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, parseRoute, detailView, portfolioView, swipeTab, dragOffset, TABS, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
@@ -17,7 +17,7 @@ const PULL_PX = 70;
 const STATS_TTL = 20 * 60000;
 const CARDS = { flips: flipCard, opps: flipCard, npc: npcCard, craft: craftCard, forge: forgeCard };
 const DEFAULTS = { tax: 1.25, minVolume: 100000, maxCapital: 5000000, interval: 2, share: 5, sort: 'profitHour', favOnly: false, alerts: false, alertMargin: 5,
-  marketAlerts: false, marketMargin: 10, marketMinVolume: 100000, marketMinProfit: 100000, marketCooldown: 6,
+  marketAlerts: false, marketMargin: 10, marketMinVolume: 100000, marketMinProfit: 100000, marketCooldown: 6, eventAlerts: false, mayorAlerts: false,
   portfolioCapital: 50000000, portfolioSlots: 10, hotm: 10, forgeAh: true };
 
 const $ = (id) => document.getElementById(id);
@@ -39,6 +39,8 @@ function sanitize() {
   if (!(settings.marketMargin > 0 && settings.marketMargin <= 1000)) settings.marketMargin = DEFAULTS.marketMargin;
   if (!(settings.marketCooldown > 0 && settings.marketCooldown <= 168)) settings.marketCooldown = DEFAULTS.marketCooldown;
   settings.marketAlerts = settings.marketAlerts === true;
+  settings.eventAlerts = settings.eventAlerts === true;
+  settings.mayorAlerts = settings.mayorAlerts === true;
   settings.portfolioSlots = Math.floor(settings.portfolioSlots);
   if (!(settings.portfolioSlots >= 1 && settings.portfolioSlots <= 50)) settings.portfolioSlots = DEFAULTS.portfolioSlots;
   settings.hotm = Math.floor(settings.hotm);
@@ -58,6 +60,7 @@ let recipes;
 let forge;   // forge recipes; undefined while loading, null when there are none
 let ah = {}; // lowest BIN of forge results that are not on the bazaar
 let election = null; // mayor, perks and a running election; null when unknown
+let timing = {};     // past runs per event and perk, for the radar's price patterns
 let marked = {};     // item id -> event or perk it belongs to right now
 let lastStats = 0;
 let route = parseRoute(location.hash);
@@ -177,7 +180,7 @@ function flashChanges() {
 let radarShown = '';
 function renderRadar() {
   const now = Date.now();
-  const data = { election, perks: activePerks(election), events: upcoming(now, election), vote: electionWindow(now), now, name: nameOf };
+  const data = { election, perks: activePerks(election), events: upcoming(now, election), vote: electionWindow(now), now, name: nameOf, timing };
   const plain = radarView(data);
   if (plain === radarShown) return;
   const box = $('radar');
@@ -270,7 +273,7 @@ async function refresh() {
 
 async function refreshStats() {
   lastStats = Date.now();
-  [stats, ah, election] = await Promise.all([loadStats(), loadAh(), loadElection()]);
+  [stats, ah, election, timing] = await Promise.all([loadStats(), loadAh(), loadElection(), loadTiming()]);
   recompute();
   render();
 }
@@ -499,8 +502,11 @@ function bindAlertToggle(key, hint) {
 if (plugin()) {
   $('alert-settings').hidden = false;
   $('market-alert-settings').hidden = false;
+  $('timing-alert-settings').hidden = false;
   bindAlertToggle('alerts', 'alert-hint');
   bindAlertToggle('marketAlerts', 'market-hint');
+  bindAlertToggle('eventAlerts', 'timing-hint');
+  bindAlertToggle('mayorAlerts', 'timing-hint');
   onRoute((hash) => { location.hash = hash; });
 }
 

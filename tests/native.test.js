@@ -16,7 +16,9 @@ test('alertConfig converts percent to fractions and resolves names', () => {
     tax: 0.0125,
     favs: [{ id: 'ENCHANTMENT_SHARPNESS_7', name: 'Sharpness 7' }, { id: 'X', name: 'Named' }],
     market: { enabled: true, minMargin: 0.1, minVolume: 100000, minProfitHour: 250000, cooldownHours: 6, maxCapital: 5000000, share: 0.05 },
+    timing: { events: false, mayor: false },
   });
+  assert.deepEqual(alertConfig({ ...settings, eventAlerts: true, mayorAlerts: true }, new Set(), {}).timing, { events: true, mayor: true });
   assert.equal(alertConfig({ ...settings, marketAlerts: undefined }, new Set(), {}).market.enabled, false);
   assert.equal(alertConfig({ ...settings, alerts: undefined }, new Set(), {}).enabled, false);
 });

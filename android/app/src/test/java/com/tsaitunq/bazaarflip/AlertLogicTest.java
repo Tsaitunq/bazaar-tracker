@@ -6,6 +6,7 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import com.tsaitunq.bazaarflip.AlertLogic.Flip;
+import com.tsaitunq.bazaarflip.AlertLogic.Notice;
 import com.tsaitunq.bazaarflip.AlertLogic.Product;
 import com.tsaitunq.bazaarflip.AlertLogic.Stat;
 
@@ -226,6 +227,41 @@ public class AlertLogicTest {
         // one millisecond before the cooldown ends it is still blocked
         assertEquals(Collections.emptyList(), AlertLogic.due(Arrays.asList("RECENT"), set(), notified, now + HOUR - 1, cooldown));
         assertEquals(Arrays.asList("RECENT"), AlertLogic.due(Arrays.asList("RECENT"), set(), notified, now + HOUR, cooldown));
+    }
+
+    // the shape timing.js writes, see tests/timing.test.js
+    private static final String TIMING = "{\"t\":1,\"r\":{\"event:spooky\":[{\"s\":1,\"p\":{\"GREEN_CANDY\":[1,2,null]}}]},\"n\":["
+        + "{\"k\":\"event:spooky:5000\",\"kind\":\"event\",\"from\":2000,\"to\":5000,\"title\":\"Spooky Festival starts soon\","
+        + "\"lines\":[[\"GREEN_CANDY\",\"Usually +25% during event (seen 3 times)\"],[\"B\",\"b\"],[\"C\",\"c\"],[\"D\",\"d\"]]},"
+        + "{\"k\":\"term:1000\",\"kind\":\"mayor\",\"from\":1000,\"to\":3000,\"title\":\"Mayor Paul took office\",\"lines\":[]}]}";
+
+    @Test
+    public void noticesAreDueOnceInsideTheirWindowAndOnlyWhenSwitchedOn() throws IOException {
+        List<Notice> all = AlertLogic.readNotices(new StringReader(TIMING));
+        assertEquals(2, all.size());
+        assertEquals("event:spooky:5000", all.get(0).key);
+        assertEquals(2000, all.get(0).from);
+
+        assertEquals(2, AlertLogic.dueNotices(all, true, true, set(), 2000).size());
+        assertEquals("term:1000", AlertLogic.dueNotices(all, false, true, set(), 2000).get(0).key);
+        assertEquals("event:spooky:5000", AlertLogic.dueNotices(all, true, false, set(), 2000).get(0).key);
+        assertTrue(AlertLogic.dueNotices(all, false, false, set(), 2000).isEmpty());
+        // before the window, at its end, and after it was shown
+        assertTrue(AlertLogic.dueNotices(all, true, false, set(), 1999).isEmpty());
+        assertTrue(AlertLogic.dueNotices(all, true, false, set(), 5000).isEmpty());
+        assertTrue(AlertLogic.dueNotices(all, true, false, set("event:spooky:5000"), 2000).isEmpty());
+
+        Map<String, String> names = new HashMap<>();
+        names.put("GREEN_CANDY", "Green Candy");
+        assertEquals(Arrays.asList("Green Candy: Usually +25% during event (seen 3 times)", "B: b", "C: c", "+1 more",
+            "Based on past events, not a guarantee."), AlertLogic.noticeLines(all.get(0), names));
+    }
+
+    @Test
+    public void aTimingFileWithoutNoticesHasNoneAndABrokenOneIsAnError() throws IOException {
+        assertTrue(AlertLogic.readNotices(new StringReader("{\"t\":1,\"r\":{}}")).isEmpty());
+        assertThrows(IOException.class, () -> AlertLogic.readNotices(new StringReader("{\"n\":[{\"k\":1}]}")));
+        assertThrows(IOException.class, () -> AlertLogic.readNotices(new StringReader("{\"n\":")));
     }
 
     @Test

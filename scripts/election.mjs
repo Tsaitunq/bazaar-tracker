@@ -11,6 +11,7 @@ export function compactElection(json, nowMs) {
     t: nowMs,
     mayor: {
       name: clean(m.name),
+      year: m.election?.year ?? null, // the election this mayor won; the term starts in the year after
       perks: (m.perks ?? []).map(perk),
       minister: m.minister?.perk ? { name: clean(m.minister.name), perk: perk(m.minister.perk) } : null,
     },

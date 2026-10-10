@@ -19,6 +19,7 @@ export const alertConfig = (settings, favs, names) => ({
     maxCapital: settings.maxCapital,
     share: settings.share / 100,
   },
+  timing: { events: settings.eventAlerts === true, mayor: settings.mayorAlerts === true },
 });
 
 export function syncAlerts(settings, favs, names) {
