@@ -38,7 +38,9 @@ export const EVENTS = [
 // Perks that run for the whole term and bring their own items.
 export const PERK_ITEMS = {
   'Mining Fiesta': ['REFINED_MINERAL', 'GLOSSY_GEMSTONE'],
-  'Mythological Ritual': ['GRIFFIN_FEATHER', 'ANCIENT_CLAW', 'ENCHANTED_ANCIENT_CLAW', 'DAEDALUS_STICK', 'MYTHOS_FRAGMENT'],
+  'Mythological Ritual': ['GRIFFIN_FEATHER', 'BRAIDED_GRIFFIN_FEATHER', 'ANCIENT_CLAW', 'ENCHANTED_ANCIENT_CLAW', 'DAEDALUS_STICK', 'MYTHOS_FRAGMENT',
+    'ENCHANTMENT_ULTIMATE_CHIMERA_1', 'FATEFUL_STINGER', 'BRAIN_FOOD',
+    'SHARD_MINOS_HUNTER', 'SHARD_CRETAN_BULL', 'SHARD_HARPY', 'SHARD_MINOTAUR', 'SHARD_SPHINX', 'SHARD_KING_MINOS'],
 };
 
 // election: the content of election.json, or null. The minister's perk is active like the mayor's.
@@ -94,6 +96,17 @@ export const PERK_EXPECT = {
   'Mythological Ritual': { why: 'found while the perk is active', items: PERK_ITEMS['Mythological Ritual'] },
   'Fishing Festival': { why: 'shark loot from the festivals', items: EVENTS.find((e) => e.key === 'fishing').items },
 };
+
+// { itemId: candidate } for the items a perk of the election's leading candidate is expected to make
+// cheaper. Empty without a running election or before the first vote. Only the leader counts: which perk
+// the runner-up brings along as minister is not in election.json.
+export function electionRisks(election) {
+  const lead = [...(election?.vote?.candidates ?? [])].sort((a, b) => b.votes - a.votes)[0];
+  const out = {};
+  if (!(lead?.votes > 0)) return out;
+  for (const perk of lead.perks) for (const id of PERK_EXPECT[perk]?.items ?? []) out[id] = lead.name;
+  return out;
+}
 
 // A mayor takes office when the election closes on Late Spring 27 and stays for a year.
 // Returns the start of the term that runs at nowMs.

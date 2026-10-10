@@ -1,6 +1,14 @@
 {
   "versions": [
     {
+      "version": "6.6.0",
+      "date": "2026-10-10",
+      "entries": [
+        { "title": "Election warning in the portfolio", "text": "While an election runs, a flip is marked when the leading candidate has a perk that brings more of that item, for example Diana and Griffin Feathers.", "target": "#portfolio .portfolio", "route": "#/opps" },
+        { "title": "More Diana items", "text": "The radar now also lists Braided Griffin Feather, Chimera I, Fateful Stinger, Brain Food and the shards of the mythological creatures for Diana's Mythological Ritual.", "target": "#radar", "route": "#/opps" }
+      ]
+    },
+    {
       "version": "6.5.1",
       "date": "2026-10-10",
       "entries": [

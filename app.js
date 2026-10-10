@@ -8,7 +8,7 @@ import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission } from '
 import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, parseRoute, detailView, portfolioView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
 import { level } from './trends.js';
-import { activePerks, upcoming, electionWindow, eventItems } from './events.js';
+import { activePerks, upcoming, electionWindow, eventItems, electionRisks } from './events.js';
 import { bindSheet, openSheet } from './sheet.js';
 import { initOnboarding, refreshHints, offerAdvanced, returning } from './tour.js';
 
@@ -129,7 +129,11 @@ function compute(v) {
   else if (v === 'npc') list = npcFlips(products, npc, opts);
   else if (v === 'forge') list = forge ? forgeFlips(products, forge, ah, opts) : [];
   else list = recipes ? craftFlips(products, recipes, opts) : [];
-  for (const f of pf?.flips ?? []) f.name = nameOf(f.id);
+  const risks = electionRisks(election);
+  for (const f of pf?.flips ?? []) {
+    f.name = nameOf(f.id);
+    f.risk = risks[f.id]; // the candidate leading the election whose perk brings more of this item
+  }
   for (const f of list) {
     decorate(f);
     for (const i of f.ingredients ?? []) i.name = nameOf(i.id);

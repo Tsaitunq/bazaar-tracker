@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { skyDate, skyTime, upcoming, activePerks, electionWindow, eventItems, EVENTS, PERK_ITEMS, DAY_MS, YEAR_DAYS, SOON_MS, MONTHS } from '../events.js';
+import { skyDate, skyTime, upcoming, activePerks, electionWindow, eventItems, electionRisks, PERK_EXPECT, EVENTS, PERK_ITEMS, DAY_MS, YEAR_DAYS, SOON_MS, MONTHS } from '../events.js';
 import { compactElection } from '../scripts/election.mjs';
 
 const raw = JSON.parse(fs.readFileSync(new URL('./fixtures/election.json', import.meta.url), 'utf8'));
@@ -89,4 +89,25 @@ test('every curated item and event is documented with its source', () => {
     assert.ok(doc.includes(perk), perk);
     for (const id of ids) assert.ok(doc.includes(`\`${id}\``), `${perk}: ${id}`);
   }
+});
+
+test('electionRisks names the leading candidate for the items their perk brings', () => {
+  const vote = (dianaVotes, perks = ['Mythological Ritual', 'Pet XP Buff']) => ({ vote: { year: 520, candidates: [
+    { name: 'Marina', votes: 500, perks: ['Fishing Festival'] },
+    { name: 'Diana', votes: dianaVotes, perks },
+  ] } });
+  const leading = electionRisks(vote(900));
+  assert.equal(leading.GRIFFIN_FEATHER, 'Diana');
+  assert.deepEqual(Object.keys(leading).sort(), [...PERK_EXPECT['Mythological Ritual'].items].sort());
+  // the drops added from the wiki page are covered too
+  for (const id of ['BRAIDED_GRIFFIN_FEATHER', 'ENCHANTMENT_ULTIMATE_CHIMERA_1', 'FATEFUL_STINGER', 'SHARD_MINOTAUR']) assert.equal(leading[id], 'Diana', id);
+  // behind in the votes: the leader's items count, not hers
+  const behind = electionRisks(vote(100));
+  assert.equal(behind.GRIFFIN_FEATHER, undefined);
+  assert.equal(behind.SHARK_FIN, 'Marina');
+  // leading without the perk, no election, or no vote cast yet: nothing
+  assert.deepEqual(electionRisks(vote(900, ['Pet XP Buff'])), {});
+  assert.deepEqual(electionRisks({ mayor: { name: 'Paul' }, vote: null }), {});
+  assert.deepEqual(electionRisks(null), {});
+  assert.deepEqual(electionRisks({ vote: { candidates: [{ name: 'Diana', votes: 0, perks: ['Mythological Ritual'] }] } }), {});
 });

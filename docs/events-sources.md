@@ -46,7 +46,17 @@ current perks come from the election API
 |---|---|---|---|
 | Fishing Festival (Marina) | first 3 days of every month | `SHARK_FIN`, `ENCHANTED_SHARK_FIN`, `NURSE_SHARK_TOOTH`, `BLUE_SHARK_TOOTH`, `TIGER_SHARK_TOOTH`, `GREAT_WHITE_SHARK_TOOTH` | https://hypixelskyblock.minecraft.wiki/w/Fishing_Festival |
 | Mining Fiesta (Cole) | shown as an active perk without dates | `REFINED_MINERAL`, `GLOSSY_GEMSTONE` | https://hypixelskyblock.minecraft.wiki/w/Mining_Fiesta ; the perk text from the API names both items |
-| Mythological Ritual (Diana) | whole term | `GRIFFIN_FEATHER`, `ANCIENT_CLAW`, `ENCHANTED_ANCIENT_CLAW`, `DAEDALUS_STICK`, `MYTHOS_FRAGMENT` | https://hypixelskyblock.minecraft.wiki/w/Mythological_Ritual |
+| Mythological Ritual (Diana) | whole term | burrow loot: `GRIFFIN_FEATHER`, `BRAIDED_GRIFFIN_FEATHER` (Deific Spade), `MYTHOS_FRAGMENT`; every creature: `ANCIENT_CLAW`, `ENCHANTED_ANCIENT_CLAW`; Minotaur: `DAEDALUS_STICK`, `SHARD_MINOTAUR`; Minos Inquisitor: `ENCHANTMENT_ULTIMATE_CHIMERA_1` (Chimera I); Manticore: `FATEFUL_STINGER`; Sphinx: `BRAIN_FOOD`, `SHARD_SPHINX`; Minos Hunter: `SHARD_MINOS_HUNTER`; Cretan Bull: `SHARD_CRETAN_BULL`; Harpy: `SHARD_HARPY`; King Minos: `SHARD_KING_MINOS` | https://hypixelskyblock.minecraft.wiki/w/Mythological_Ritual (burrow loot per spade and the drops per creature; read on 2026-10-10) |
+
+Mythological Ritual, added on 2026-10-10: Braided Griffin Feather, Chimera I,
+Fateful Stinger, Brain Food and the six shards. The page says the event
+"occurs when Diana is elected as Mayor with her Mythological Ritual perk".
+Not marked because they are not on the Bazaar: Shimmering Wool, Manti-core,
+Hilt of Revelations, Cretan Urn, Crown of Greed, Minos Relic, Antique
+Remedies, Washed-up Souvenir, Dwarf Turtle Shelmet, Crochet Tiger Plushie.
+Not marked because the ritual is only one of many sources: Enchanted Gold
+Ingot. The shard ids were matched by name ("Minotaur Shard" is
+`SHARD_MINOTAUR`); the page does not say whether a shard has other sources.
 
 Open points:
 
@@ -80,6 +90,26 @@ it and no source states it.
 | Mining Fiesta (Cole) | Refined Mineral and Glossy Gemstone drop from mining while the perk is active | as in the table above | https://hypixelskyblock.minecraft.wiki/w/Mayor_Election |
 | Mythological Ritual (Diana) | the Griffin pet "lets you find Mythological Creatures and tons of unique items" | as in the table above | https://hypixelskyblock.minecraft.wiki/w/Mayor_Election |
 | Fishing Festival (Marina) | "earn unique Shark loot" during the festivals | as in the table above | https://hypixelskyblock.minecraft.wiki/w/Mayor_Election |
+
+### Warning in the portfolio
+
+While an election runs, a flip in the portfolio is marked "<candidate> may
+lower this price" when the candidate with the most votes has a perk from the
+table above that lists the item. The votes and each candidate's perks come
+from the election API. It is the same expectation as above, not a
+measurement. The runner-up becomes minister with one perk ("The runner-up
+will become a Minister, activating their minister perk alongside the Mayor's
+perks", https://hypixelskyblock.minecraft.wiki/w/Mayor_Election); the app does
+not store which perk that is, so only the leader is checked.
+
+Suggested on 2026-10-10 and not added yet, because the Dungeon Reward Chest
+page lists them without saying which come from the chest itself: Shadow Warp,
+Implosion and Wither Shield scrolls, Wither Blood, Dark Orb, Giant Tooth,
+Sadan's Brooch, Necromancer's Brooch, Spirit Wing, Spirit Bone, Suspicious
+Vial, Red Nose, Red Scarf (all on the Bazaar). For Mining Fiesta the Mayor
+Election page adds "Fiesta Flask and Packrat Shard can be bought from Brynmor
+while the perk is active"; the Bazaar has `SHARD_PACKRAT_SKULL`, and that it
+is the same item is not confirmed.
 
 Left out on purpose:
 

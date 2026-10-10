@@ -171,6 +171,10 @@ test('portfolioView shows the total, the picks and the market share assumption',
   assert.ok(hint('volume').includes('limited by how much these items trade. Raise Market share or lower Portfolio min. margin to use more.'));
   assert.ok(html.includes('4.9M') && html.includes('3.9M/h'));
   assert.ok(html.includes('&#60;b&#62;Worm') && !html.includes('<b>'));
+  // a flip the election's leader may make cheaper carries a warning; the others do not
+  assert.ok(!html.includes('may lower this price'));
+  const risky = portfolioView({ ...plan, flips: [{ ...plan.flips[0], risk: 'Diana' }, plan.flips[1]] }, { capital: 50000000, slots: 10, sharePercent: 20 });
+  assert.equal(risky.split('<small>Diana may lower this price</small>').length, 2);
   assert.ok(html.includes('href="#/item/INK_SACK%3A4"'));
   assert.ok(portfolioView({ ...plan, flips: plan.flips.slice(0, 1) }, { capital: 1, slots: 1, sharePercent: 5 }).includes('Using 1 of 1 flips'));
 });
