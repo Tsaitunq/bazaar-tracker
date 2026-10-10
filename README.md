@@ -8,18 +8,22 @@ It runs in any browser, can be installed as an app from the browser menu, and th
 
 ## Features
 
+The app has four areas in a bar at the bottom: **Today**, **Trade**, **Minions** and **Market**. Simple mode shows Today and Trade.
+
+- **Today:** what your portfolio earns, the warnings about it, the next events and the election with a countdown, and up to three opportunities that are new since your last visit.
 - **Flips:** every bazaar item you can flip with buy orders and sell offers, ranked by profit per hour.
 - **Opportunities:** only the flips that are stable, liquid, not suspicious and within your budget.
-- **Portfolio:** your capital put into the safe flips with the best return, with the total profit and return per hour.
+- **Portfolio:** your capital put into the safe flips with the best return, with the total profit and return per hour. It remembers the plan you last saw and warns when a flip's price drops, it turns suspicious, or the election may move it. A flip whose item is worth more crafted into something else says so ("Craft into X: +Y/h · uses N orders").
 - **NPC and Craft:** buy on the bazaar and sell to an NPC, or craft and sell the result.
 - **Forge:** forge recipes with bazaar ingredients, with profit per item and per forge hour, forge time and HotM tier. Results that sell on the Auction House use the lowest BIN minus fees and are marked as estimates.
-- **Event radar:** the mayor, the active perks and the next SkyBlock events with a countdown, plus the items that are typically affected (sources in `docs/events-sources.md`).
-- **Trends:** a badge shows whether an item's sell price is rising, falling or flat over the last day and whether it is below or above its 7 day median.
+- **Minions:** what thirteen minions earn per day for a tier, a fuel and two upgrades, sold at the Bazaar or to an NPC, with used-up fuel taken off (sources in `docs/minions-sources.md`).
+- **Event radar (Market):** the mayor, the active perks and the next SkyBlock events with a countdown, plus the items that are typically affected (sources in `docs/events-sources.md`).
+- **Trends:** the Market area lists the strongest risers and fallers; a badge shows whether an item's sell price is rising, falling or flat over the last day and whether it is below or above its 7 day median.
 - **Item pages:** price and margin charts for the last 24 hours or 7 days. Tap or hover a chart for exact values.
 - **Warnings:** a *suspicious* badge when the numbers look manipulated, a *provisional* badge when an item has less than a day of history.
 - **Favorites, search and sorting**, plus swiping between tabs on a phone.
-- **Tours and setup assistant:** a basic tour in six steps, an optional advanced tour, and five questions that suggest settings for you.
-- **Android app:** notifications for favorites and for new market opportunities, checked about every 15 minutes.
+- **Tours and setup assistant:** a basic tour in seven steps, an optional advanced tour, and five questions that suggest settings for you.
+- **Android app:** notifications for favorites, for new market opportunities and for warnings about your portfolio, checked about every 15 minutes.
 
 ## How it calculates
 
@@ -66,6 +70,21 @@ An opportunity has to pass every check: minimum margin, a stable score, not susp
 
 The bazaar allows 21 open orders, so the portfolio holds at most 21 flips (Max. flips). It picks the set that earns the most per hour together and fills the best return per coin first. A flip gets as much as the item trades at your market share, never more than your max. capital per flip. It has its own minimum margin (3% by default) and measures volume as turnover in coins per week (1B by default) instead of units, with at least about 10 sales an hour; stable, not suspicious and not provisional stay required. If capital is left over, a note names the limit.
 
+### Portfolio warnings and craft hints
+
+The stored plan keeps the buy order price each item had when it entered. A flip is reported when its buy order is more than 5% below that price (adjustable), its margin is under 1%, it is suspicious, the leading candidate or the next minister has a perk expected to lower its price, or the mayor whose perk kept it down leaves within 24 hours.
+
+A craft hint compares the flip with crafting its item into something else using the same coins: `extra = crafts per hour × craft profit − flip profit per hour`, where crafts per hour is capped by the flip's stake, your market share and the weekly volume of every ingredient and of the result. It uses one order per ingredient plus one sell offer, and you need the recipe.
+
+### Minions
+
+```
+harvests per day = 86400 / (2 × time between actions / (1 + speed bonuses))
+coins per day    = max(Σ items × buy order price × (1 − tax), Σ items × NPC price) − fuel used up
+```
+
+A minion needs two actions per harvest. A Catalyst multiplies the items instead of the speed. Fuel that runs out costs `24 / hours × lowest sell offer`. Numbers the wiki leaves open are marked "not confirmed".
+
 ### NPC and craft flips
 
 - **NPC:** `profit = NPC sell price − buy order price`. No bazaar tax. The game's daily NPC sell limit is not included.
@@ -75,6 +94,7 @@ The bazaar allows 21 open orders, so the portfolio holds at most 21 flips (Max. 
 
 - Prices, volumes, item names and NPC prices: the official Hypixel API
 - Price history and scores: collected by this project every 20 minutes
+- Minion data: the archived official Hypixel SkyBlock wiki and the Fandom wiki, see `docs/minions-sources.md`
 - Recipes: [NotEnoughUpdates-REPO](https://github.com/NotEnoughUpdates/NotEnoughUpdates-REPO)
 - Item icons: [sky.coflnet.com](https://sky.coflnet.com/data)
 
