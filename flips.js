@@ -97,23 +97,83 @@ export function opportunities(products, { tax, maxCapital, share = 1, sort, stat
     .sort(bySort(sort));
 }
 
-// A plan for running several flips at once: the total capital is split evenly over `slots` flips, and the best
-// opportunities for that budget are picked. A flip that cannot use its whole share (the item does not trade
-// enough, or whole units do not divide the budget) keeps the smaller stake; nothing is moved to other flips.
-// Uses exactly the opportunity conditions, so suspicious and provisional items never appear.
-// opts.maxCapital ("Max. capital per flip") caps the share of one flip; 0 means no cap.
+// A plan for running several flips at once. There is no even split: the flips with the highest return per coin
+// are filled first, each up to what its volume takes (hourly volume × market share), the max. capital per flip
+// and the capital that is left. `slots` ("Max. flips") is the most flips the plan holds; fewer are fine.
+// Uses the opportunity conditions, so suspicious and provisional items never appear, with one change: the
+// weekly volume is measured in coins (opts.minTurnover, units × buy price) instead of units, so an expensive
+// item that sells a few thousand times a week can take part. opts.minVolume is ignored.
+// opts.maxCapital ("Max. capital per flip") caps the stake of one flip; 0 means no cap.
+// limit says what keeps capital unused: 'slots', 'maxCapital' or 'volume'; null when the capital is in use.
+// more: when slots are the limit and more are allowed, { slots, used, profitHour } of the plan they would give.
+// The API has no sales per hour, only the week's total. A floor on the hourly average is the nearest check
+// that an item sells all day: at 10 an hour, an hour without a sale is very unlikely if sales are spread out.
+// shortcut: cannot tell steady sales from a few bulk trades; record the weekly volume per snapshot to do that
+export const PLAN_MIN_HOUR_SALES = 10;
+export const MAX_SLOTS = 21; // the bazaar allows 21 open orders, so no plan can hold more flips
 export function portfolio(products, { capital, slots, ...opts }) {
-  const even = capital > 0 && slots >= 1 ? capital / Math.floor(slots) : 0;
-  const budget = opts.maxCapital > 0 ? Math.min(even, opts.maxCapital) : even;
-  const flips = budget > 0
-    ? opportunities(products, { ...opts, maxCapital: budget, sort: 'profitHour' })
-      .filter((f) => f.units >= 1)
-      .slice(0, Math.floor(slots))
-      .map((f) => ({ ...f, stake: f.units * f.buy }))
+  const n = Math.floor(slots);
+  const cap = opts.maxCapital > 0 ? opts.maxCapital : capital;
+  const share = opts.share ?? 1;
+  const unitsFor = (f, coins) => Math.min(f.hourVol * share, Math.floor(coins / f.buy));
+  const ranked = capital > 0 && n >= 1
+    ? opportunities(products, { ...opts, minVolume: 0, maxCapital: cap, sort: 'profitHour' })
+      .filter((f) => f.units >= 1 && f.weekVol * f.buy >= (opts.minTurnover ?? 0) && f.hourVol >= PLAN_MIN_HOUR_SALES)
     : [];
+  // a set of flips, the best return per coin served first
+  const fill = (set) => {
+    const plan = { flips: [], left: capital, profitHour: 0 };
+    for (const f of set.sort(bySort('margin'))) {
+      const units = unitsFor(f, Math.min(cap, plan.left));
+      if (!(units >= 1) || units * f.profit < (opts.minProfitHour ?? 0)) continue;
+      plan.left -= units * f.buy;
+      plan.profitHour += units * f.profit;
+      plan.flips.push({ ...f, units, stake: units * f.buy, profitHour: units * f.profit });
+    }
+    return plan;
+  };
+  // Which n flips earn the most together? With capital to spare it is the n with the highest profit per hour,
+  // big volume before big margin. When capital is short those would starve each other, and a coin is worth
+  // more in a flip with a higher return. So capital gets a price: a flip counts for what it earns above that
+  // price on the coins it takes. The price is narrowed down to where the chosen flips just fit the capital,
+  // and the best plan seen on the way wins; it starts from price 0, so nothing does worse than that.
+  // shortcut: a search over one price, not an exact optimum; whole units and the cap per flip can cost a little
+  const takes = (set) => set.reduce((sum, f) => sum + f.units * f.buy, 0);
+  let best = fill(ranked.slice(0, n));
+  let low = 0;
+  let high = takes(ranked.slice(0, n)) > capital ? Math.max(...ranked.map((f) => f.margin)) : 0;
+  for (let i = 0; i < 40 && high > low; i++) {
+    const price = (low + high) / 2;
+    const worth = (f) => f.profitHour - price * f.units * f.buy;
+    const set = [...ranked].sort((a, b) => worth(b) - worth(a)).slice(0, n);
+    if (takes(set) > capital) low = price;
+    else high = price;
+    const plan = fill(set);
+    if (plan.profitHour > best.profitHour) best = plan;
+  }
+  const { flips, left } = best;
+  flips.sort(bySort('profitHour'));
+
+  let limit = null;
+  // whole units always leave some coins over, so under 1% counts as in use
+  if (flips.length && left > capital * 0.01) {
+    const fits = (f) => !flips.some((p) => p.id === f.id) && unitsFor(f, Math.min(cap, left)) >= 1;
+    limit = flips.length >= n && ranked.some(fits) ? 'slots'
+      : opts.maxCapital > 0 && flips.some((f) => f.hourVol * share - f.units >= 1) ? 'maxCapital' : 'volume';
+  }
+  // What more slots would do, worked out once with the most the bazaar allows. If fewer are enough, the
+  // numbers are those of a plan with exactly that many, so the hint holds when the player sets it.
+  let more = null;
+  if (limit === 'slots' && n < MAX_SLOTS) {
+    const plan = (slots) => portfolio(products, { capital, slots, ...opts });
+    const most = plan(MAX_SLOTS);
+    const { used, profitHour } = most.flips.length < MAX_SLOTS ? plan(most.flips.length) : most;
+    more = { slots: most.flips.length, used, profitHour };
+  }
   return {
     flips,
-    budget,
+    limit,
+    more,
     profitHour: flips.reduce((sum, f) => sum + f.profitHour, 0),
     used: flips.reduce((sum, f) => sum + f.stake, 0),
   };

@@ -150,23 +150,38 @@ test('swipeTab: left opens the next tab, right the previous one, no wrap around'
 test('portfolioView shows the total, the picks and the market share assumption', async () => {
   const { portfolioView } = await import('../render.js');
   const plan = {
-    budget: 5000000, profitHour: 31000000, used: 42000000,
+    profitHour: 31000000, used: 42000000,
     flips: [{ id: 'A', name: '<b>Worm</b>', stake: 4900000, profitHour: 3900000 }, { id: 'INK_SACK:4', name: 'Lapis', stake: 5000000, profitHour: 3600000 }],
   };
   const html = portfolioView(plan, { capital: 50000000, slots: 10, sharePercent: 20 });
   assert.match(html, /class="big gain">31M</);
-  assert.ok(html.includes('Profit/h with 2 flips'));
   assert.ok(html.includes('Assumes 20% market share – only realistic if you relist actively'));
-  assert.ok(html.includes('42M of 50M capital in use'));
+  assert.ok(html.includes('Using 2 of 10 flips · 42M of 50M capital in use · 73.8% return per hour'));
+  assert.ok(!html.includes('limited by'));
+  const hint = (limit) => portfolioView({ ...plan, limit }, { capital: 50000000, slots: 10, sharePercent: 20 });
+  const more = portfolioView({ ...plan, limit: 'slots', more: { slots: 21, used: 50000000, profitHour: 36000000 } }, { capital: 50000000, slots: 10, sharePercent: 20 });
+  assert.ok(more.includes('Using 42M of 50M – limited by Max. flips (10). With 21 flips you could use 50M (est. 36M/h).'));
+  // at the bazaar's 21 orders there is nothing to raise: say what the market takes, and the other ways
+  const full = portfolioView({ ...plan, limit: 'slots', more: null }, { capital: 50000000, slots: 21, sharePercent: 20 });
+  assert.ok(full.includes('With 21 orders the market can absorb about 42M right now. The rest stays free. Raise Market share or lower Portfolio min. margin to use more.'));
+  assert.ok(hint('maxCapital').includes('limited by your max. capital per flip. Raise Max. capital per flip to use more.'));
+  // Simple mode hides those settings, so it does not name them
+  const simple = portfolioView({ ...plan, limit: 'slots' }, { capital: 50000000, slots: 21, sharePercent: 20, simple: true });
+  assert.ok(simple.includes('The rest stays free. Switch to Pro to adjust.') && !simple.includes('Raise'));
+  assert.ok(hint('volume').includes('limited by how much these items trade. Raise Market share or lower Portfolio min. margin to use more.'));
   assert.ok(html.includes('4.9M') && html.includes('3.9M/h'));
   assert.ok(html.includes('&#60;b&#62;Worm') && !html.includes('<b>'));
+  // a flip the election's leader may make cheaper carries a warning; the others do not
+  assert.ok(!html.includes('<small>'));
+  const risky = portfolioView({ ...plan, flips: [{ ...plan.flips[0], risk: 'Paul leaves in 5h – price may rise back' }, plan.flips[1]] }, { capital: 50000000, slots: 10, sharePercent: 20 });
+  assert.equal(risky.split('<small>Paul leaves in 5h – price may rise back</small>').length, 2);
   assert.ok(html.includes('href="#/item/INK_SACK%3A4"'));
-  assert.ok(portfolioView({ ...plan, flips: plan.flips.slice(0, 1) }, { capital: 1, slots: 1, sharePercent: 5 }).includes('with 1 flip<'));
+  assert.ok(portfolioView({ ...plan, flips: plan.flips.slice(0, 1) }, { capital: 1, slots: 1, sharePercent: 5 }).includes('Using 1 of 1 flips'));
 });
 
 test('portfolioView explains an empty plan', async () => {
   const { portfolioView } = await import('../render.js');
-  const empty = { flips: [], budget: 0, profitHour: 0, used: 0 };
+  const empty = { flips: [], limit: null, profitHour: 0, used: 0 };
   assert.ok(portfolioView(empty, { capital: 50000000, slots: 10, sharePercent: 5 }).includes('No flip qualifies'));
   assert.ok(portfolioView(empty, { capital: 0, slots: 10, sharePercent: 5 }).includes('Set a total capital'));
 });

@@ -1,6 +1,66 @@
 {
   "versions": [
     {
+      "version": "6.7.0",
+      "date": "2026-10-10",
+      "entries": [
+        { "title": "Warning before a mayor leaves", "text": "In the last 24 hours of a term, a portfolio flip is marked when the mayor's or minister's perk kept its price down, for example Paul leaves in 5h – price may rise back.", "target": "#portfolio .portfolio", "route": "#/opps" },
+        { "title": "The next minister counts too", "text": "The election warning now also looks at the perk the runner-up would bring along as minister.", "target": "#portfolio .portfolio", "route": "#/opps" },
+        { "title": "More dungeon chest items for Paul", "text": "Marauder now also lists Wither Blood, the three Necron scrolls, Giant Tooth, Sadan's Brooch, Dark Orb, Necromancer's Brooch, Spirit Bone and Spirit Wing.", "target": "#radar", "route": "#/opps" }
+      ]
+    },
+    {
+      "version": "6.6.0",
+      "date": "2026-10-10",
+      "entries": [
+        { "title": "Election warning in the portfolio", "text": "While an election runs, a flip is marked when the leading candidate has a perk that brings more of that item, for example Diana and Griffin Feathers.", "target": "#portfolio .portfolio", "route": "#/opps" },
+        { "title": "More Diana items", "text": "The radar now also lists Braided Griffin Feather, Chimera I, Fateful Stinger, Brain Food and the shards of the mythological creatures for Diana's Mythological Ritual.", "target": "#radar", "route": "#/opps" }
+      ]
+    },
+    {
+      "version": "6.5.1",
+      "date": "2026-10-10",
+      "entries": [
+        { "title": "Max. flips explained", "text": "The help text for Max. flips now says what the portfolio does: it picks the flips that earn the most with your budget, up to that many." }
+      ]
+    },
+    {
+      "version": "6.5.0",
+      "date": "2026-10-10",
+      "entries": [
+        { "title": "Max. flips, up to 21", "text": "Parallel flips is now Max. flips and stops at 21, because the bazaar allows 21 open orders. A higher value you had set became 21.", "target": "#portfolio .portfolio", "route": "#/opps" },
+        { "title": "Better choice of flips", "text": "The portfolio now picks the flips that earn the most together, so a small budget is no longer spent on a few big items when more flips would earn more.", "target": "#portfolio .portfolio", "route": "#/opps" },
+        { "title": "Flips in use", "text": "The portfolio shows how many of your flips it uses, and at 21 flips it says how much the market can take right now.", "target": "#portfolio .portfolio", "route": "#/opps" },
+        { "title": "Expensive items in the portfolio", "text": "The portfolio now asks for a minimum turnover in coins per week instead of a number of items, so pricey items that sell steadily can get a stake.", "target": "#portfolio .portfolio", "route": "#/opps" }
+      ]
+    },
+    {
+      "version": "6.4.0",
+      "date": "2026-10-10",
+      "entries": [
+        { "title": "Portfolio min. margin", "text": "The portfolio has its own margin floor, 3% to start with, so items that trade a lot can take part even if your Opportunities list asks for more.", "target": "#portfolio .portfolio", "route": "#/opps" },
+        { "title": "How many flips would use your capital", "text": "When your parallel flips hold capital back, the note says how many flips would use how much, with the estimated profit per hour.", "target": "#portfolio .portfolio", "route": "#/opps" },
+        { "title": "No cap per flip in Simple mode", "text": "Simple mode no longer limits one flip to an even share of your capital; a flip gets as much as the item trades.", "target": "#portfolio .portfolio", "route": "#/opps" }
+      ]
+    },
+    {
+      "version": "6.3.0",
+      "date": "2026-10-10",
+      "entries": [
+        { "title": "Portfolio fills the best flips first", "text": "Your capital is no longer split evenly: the flips with the best return get as much as the item trades, up to your Max. capital per flip. Parallel flips is only the most flips you run.", "target": "#portfolio .portfolio", "route": "#/opps" },
+        { "title": "Clearer note in Simple mode", "text": "When capital stays unused in Simple mode, the note says why and sends you to Pro mode, where the setting can be changed.", "target": "#portfolio .portfolio", "route": "#/opps" }
+      ]
+    },
+    {
+      "version": "6.2.0",
+      "date": "2026-10-10",
+      "entries": [
+        { "title": "Portfolio uses your whole capital", "text": "Coins one flip cannot use now go to the other flips, up to your Max. capital per flip and never more than an item trades.", "target": "#portfolio .portfolio", "route": "#/opps" },
+        { "title": "Why capital stays unused", "text": "If part of your capital is left over, the portfolio says what limits it and which setting to raise.", "target": "#portfolio .portfolio", "route": "#/opps" },
+        { "title": "Return per hour", "text": "The portfolio shows the capital in use, the profit per hour and the return per hour in percent.", "target": "#portfolio .portfolio", "route": "#/opps" }
+      ]
+    },
+    {
       "version": "6.1.0",
       "date": "2026-10-10",
       "entries": [

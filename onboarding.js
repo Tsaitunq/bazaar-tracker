@@ -64,19 +64,18 @@ const SETTING_LABELS = {
 };
 
 // Settings for the five answers, each with the value as shown and one sentence why.
-// slots: the current "Parallel flips" setting. hotm: 0 to 10; ah: false leaves auction house results out.
+// hotm: 0 to 10; ah: false leaves auction house results out.
 // pro: false leaves the two forge settings out, so they stay as they are.
-export function setupResult({ capital, activity, style, hotm, ah }, slots, pro = true) {
+export function setupResult({ capital, activity, style, hotm, ah }, pro = true) {
   const tier = Number.isInteger(hotm) && hotm >= 0 && hotm <= 10 ? hotm : 10;
   const withAh = ah !== false;
   const act = ACTIVITY[activity] ?? ACTIVITY.rarely;
   const sty = STYLES[style] ?? STYLES.safe;
   const total = capital > 0 ? Math.round(capital) : CAPITALS[1];
-  const perFlip = Math.round(total / Math.max(1, Math.floor(slots) || 1));
   const row = (key, value, shown, reason) => ({ key, value, label: SETTING_LABELS[key], shown, reason });
   return [
     row('portfolioCapital', total, coins(total), 'The coins you told us you want to flip with.'),
-    row('maxCapital', perFlip, coins(perFlip), `Your capital split evenly over ${Math.max(1, Math.floor(slots) || 1)} flips at the same time.`),
+    row('maxCapital', 0, 'No limit', 'The portfolio gives each flip as much as the item trades.'),
     row('share', act.share, `${act.share}%`, act.reason),
     row('marketMargin', sty.marketMargin[0], `${sty.marketMargin[0]}%`, sty.marketMargin[1]),
     row('marketMinVolume', sty.marketMinVolume[0], coins(sty.marketMinVolume[0]), sty.marketMinVolume[1]),
@@ -148,7 +147,7 @@ export const HINTS = {
   opps: { at: '#count', where: 'beforebegin',
     text: 'These are the flips you can act on without checking them by hand: stable for at least a day, not suspicious, and above the margin, volume and profit set for Opportunities.' },
   portfolio: { at: '.portfolio h2', where: 'afterend',
-    text: 'A plan, not a promise: your total capital split evenly over the best safe flips. No flip gets more than your max. capital per flip.' },
+    text: 'A plan, not a promise: your total capital put into the safe flips with the best return. No flip gets more than your max. capital per flip; a note says what holds capital back.' },
   npc: { at: '#count', where: 'beforebegin',
     text: 'NPC flips: buy with a buy order, then sell to an NPC shop for a fixed price. There is no bazaar tax. Profit (instant buy) is what is left if you buy at once instead of waiting for your order.' },
   craft: { at: '#count', where: 'beforebegin',
@@ -225,7 +224,7 @@ const HOW = [
   ['Stability score', 'A number from 0 to 100 from the last 7 days of prices. It starts with how often the flip made a profit and loses points the more the prices jumped around. 70 or more counts as stable. Under 24 hours of data there is no score yet; the item is "provisional".'],
   ['Suspicious', 'A warning that the numbers may be manipulated. An item gets it for any of four reasons: its margin is above 200%; its margin is above 50% while fewer than 100 items trade per hour; there are fewer than 3 buy orders or fewer than 3 sell offers; or its sell price is more than 30% above its normal price. Suspicious items never show up in Opportunities.'],
   ['Favorites', 'Tap the star on a card. Favorites stay in the Flips list even when your filters would hide them, and the star next to the sort box shows only them. The Android app can alert you when a favorite reaches a margin you set.'],
-  ['Portfolio', 'A plan at the top of Opportunities. Your total capital is split evenly over the best opportunities. No flip gets more than your max. capital per flip, and none more than its volume can use.'],
+  ['Portfolio', 'A plan at the top of Opportunities. Your total capital goes to the opportunities with the best return, each filled as far as the item trades. No flip gets more than your max. capital per flip, and none more than its volume can use.'],
   ['NPC flips', 'Buy an item with a buy order and sell it to an NPC shop for a fixed price. There is no bazaar tax on that sale. "Profit (instant buy)" is what is left if you buy at the sell offer price instead of waiting for your order.', true],
   ['Craft flips', 'Buy the ingredients with buy orders, craft, and sell the result with a sell offer. Cost is all ingredients, revenue is the sale after tax. Crafts/h is limited by the ingredient that trades least, your market share and your capital.', true],
   ['Forge', 'The cost is all ingredients bought with buy orders. A Bazaar result sells at its sell offer price minus tax. Any other result is priced at the lowest BIN on the Auction House minus the fees there, which makes it an estimate. Profit/forge hour is what one forge slot can earn, but never more than you can sell; the card says which of the two limits it.', true],

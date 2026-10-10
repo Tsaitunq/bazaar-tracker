@@ -22,8 +22,17 @@ export function runSnapshot(dataDir, products, nowMs) {
     const file = path.join(dayDir, `${s}.json`);
     fs.writeFileSync(file, JSON.stringify(appendSnapshot(readChunk(file), tMin, shardPrices)));
   }
+  // The week's volume per item, [bought, sold], in one file per day with the shape of a price chunk.
+  // Only collected so far: the change between snapshots can later show whether an item sells every hour.
+  const vDir = path.join(dataDir, 'v');
+  fs.mkdirSync(vDir, { recursive: true });
+  const volumes = Object.fromEntries(Object.entries(products).map(([id, p]) => [id, [p.quick_status?.buyMovingWeek ?? null, p.quick_status?.sellMovingWeek ?? null]]));
+  const vFile = path.join(vDir, `${day}.json`);
+  fs.writeFileSync(vFile, JSON.stringify(appendSnapshot(readChunk(vFile), tMin, volumes)));
   const oldest = dayKeys(nowMs, KEEP_DAYS + 1)[0];
-  for (const d of fs.readdirSync(hDir)) if (d < oldest) fs.rmSync(path.join(hDir, d), { recursive: true, force: true });
+  for (const dir of [hDir, vDir]) {
+    for (const d of fs.readdirSync(dir)) if (d < oldest) fs.rmSync(path.join(dir, d), { recursive: true, force: true });
+  }
 
   const days = fs.readdirSync(hDir);
   const chunks = days.flatMap((d) => Array.from({ length: SHARDS }, (_, s) => readChunk(path.join(hDir, d, `${s}.json`))));

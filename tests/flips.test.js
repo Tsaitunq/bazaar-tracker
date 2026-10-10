@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { searchFlip, flipIssues, oppIssues, portfolio, opportunities, computeFlip, buildFlips, bookPrices, statOf, MEDIAN_SPIKE, PROVISIONAL_HOURS, STABLE } from '../flips.js';
+import { searchFlip, flipIssues, oppIssues, portfolio, MAX_SLOTS, PLAN_MIN_HOUR_SALES, opportunities, computeFlip, buildFlips, bookPrices, statOf, MEDIAN_SPIKE, PROVISIONAL_HOURS, STABLE } from '../flips.js';
 
 const product = (buy, sell, qs = {}) => ({
   sell_summary: buy == null ? [] : [{ pricePerUnit: buy }],
@@ -175,69 +175,132 @@ test('flips carry score, median and provisional; opportunities skip provisional 
   assert.deepEqual(opportunities(products, opts).map((f) => f.id), ['OLD']);
 });
 
-test('portfolio splits the capital evenly and picks the best safe flips', () => {
-  const products = {
-    A: product(100, 120),                                                  // 18.5 profit per item
-    B: product(1000, 1300),                                                // 283.75 profit per item
-    PRICEY: product(9000, 12000),                                          // costs more than one share
-    SMALL: product(10, 12, { buyMovingWeek: 16800, sellMovingWeek: 16800 }), // only 100 items trade per hour
-    NEW: product(100, 120),                                                // provisional
-    SPIKE: product(100, 120),                                              // suspicious: far above its median
-  };
-  const stats = Object.fromEntries(Object.entries(products).map(([id, p]) => [id, [90, p.buy_summary[0].pricePerUnit, 48]]));
-  stats.NEW[2] = 5;
-  stats.SPIKE[1] = 90;
-  const opts = { tax: 0.0125, share: 1, stats, minMargin: 0.1, minVolume: 0, minProfitHour: 0, capital: 10000, slots: 2 };
+// 10,000 of each trade per hour, so at a market share of 1 the volume takes 10,000 × the buy price
+const PLAN = {
+  BEST: product(12000, 15000),   // takes 120M, 23.4% return
+  DEEP: product(100000, 120000), // takes 1,000M, 18.5% return
+  OK: product(1000, 1200),       // takes 10M, 18.5% return
+};
+const planStats = (products) => Object.fromEntries(Object.entries(products).map(([id, p]) => [id, [90, p.buy_summary[0].pricePerUnit, 48]]));
+const planOpts = { tax: 0.0125, share: 1, stats: planStats(PLAN), minMargin: 0.1, minVolume: 0, minProfitHour: 0, capital: 200e6, slots: 10 };
+const stakes = (plan) => plan.flips.map((f) => [f.id, f.stake]);
 
-  // 5,000 per flip: A buys 50 items, B buys 5
-  const two = portfolio(products, opts);
-  assert.deepEqual(two.flips.map((f) => f.id), ['B', 'A']);
-  assert.equal(two.budget, 5000);
-  near(two.flips[0].stake, 5000);
-  near(two.flips[0].profitHour, 1418.75);
-  near(two.flips[1].stake, 5000);
-  near(two.flips[1].profitHour, 925);
-  near(two.profitHour, 2343.75);
-  near(two.used, 10000);
+test('portfolio fills the best return first, as far as its volume goes', () => {
+  // no even split: BEST gets the 120M it trades, not 20M, and DEEP the rest; OK is not needed
+  const plan = portfolio(PLAN, planOpts);
+  assert.deepEqual(stakes(plan), [['BEST', 120e6], ['DEEP', 80e6]]);
+  near(plan.profitHour, 10000 * 2812.5 + 800 * 18500);
+  assert.deepEqual([plan.used, plan.limit], [200e6, null]);
 
-  // 3,333.33 per flip: whole units only, and SMALL is limited by its volume, not by the budget
-  const three = portfolio(products, { ...opts, slots: 3 });
-  assert.deepEqual(three.flips.map((f) => [f.id, f.units, f.stake]), [['B', 3, 3000], ['A', 33, 3300], ['SMALL', 100, 1000]]);
-  near(three.profitHour, 3 * 283.75 + 33 * 18.5 + 100 * 1.85);
-  near(three.used, 7300);
+  // provisional and suspicious items never get a stake
+  const products = { ...PLAN, NEW: product(12000, 15000), SPIKE: product(12000, 15000) };
+  const stats = { ...planStats(products), NEW: [90, 15000, 5], SPIKE: [90, 9000, 48] };
+  assert.deepEqual(stakes(portfolio(products, { ...planOpts, stats })), stakes(plan));
 
-  // never more flips than qualify, and never a flip that cannot buy a single item
-  assert.equal(portfolio(products, { ...opts, slots: 10 }).flips.length, 3);
-  assert.deepEqual(portfolio(products, { ...opts, capital: 150, slots: 1 }).flips.map((f) => f.id), ['SMALL', 'A'].slice(0, 1));
-  assert.ok(!portfolio(products, { ...opts, slots: 10 }).flips.some((f) => ['PRICEY', 'NEW', 'SPIKE'].includes(f.id)));
+  // never a flip that cannot buy a single item
+  assert.deepEqual(stakes(portfolio(PLAN, { ...planOpts, capital: 5000 })), [['OK', 5000]]);
 });
 
 test('portfolio is empty without capital, slots or stats', () => {
-  const products = { A: product(100, 120) };
-  const opts = { tax: 0.0125, share: 1, stats: { A: [90, 120, 48] }, minMargin: 0.1, minVolume: 0, minProfitHour: 0, capital: 10000, slots: 2 };
-  assert.equal(portfolio(products, opts).flips.length, 1);
+  const opts = { ...planOpts, maxCapital: 50e6 };
+  assert.equal(portfolio(PLAN, opts).flips.length, 3);
   for (const change of [{ capital: 0 }, { slots: 0 }, { stats: null }, { stats: {} }]) {
-    const p = portfolio(products, { ...opts, ...change });
-    assert.deepEqual([p.flips.length, p.profitHour, p.used], [0, 0, 0]);
+    const p = portfolio(PLAN, { ...opts, ...change });
+    assert.deepEqual([p.flips.length, p.profitHour, p.used, p.limit], [0, 0, 0, null]);
   }
   // 2.9 slots count as 2
-  assert.equal(portfolio(products, { ...opts, slots: 2.9 }).budget, 5000);
+  assert.equal(portfolio(PLAN, { ...opts, slots: 2.9 }).flips.length, 2);
 });
 
-test('portfolio never puts more into one flip than the max. capital per flip', () => {
-  const products = { A: product(100, 120), B: product(1000, 1300) };
-  const stats = { A: [90, 120, 48], B: [90, 1300, 48] };
-  const opts = { tax: 0.0125, share: 1, stats, minMargin: 0.1, minVolume: 0, minProfitHour: 0, capital: 10000, slots: 2 };
-  // an even share would be 5,000; the cap of 2,000 wins
-  const capped = portfolio(products, { ...opts, maxCapital: 2000 });
-  assert.equal(capped.budget, 2000);
-  assert.deepEqual(capped.flips.map((f) => [f.id, f.stake]), [['B', 2000], ['A', 2000]]);
-  near(capped.used, 4000);
-  // a cap above the even share changes nothing, and 0 means no cap
-  assert.equal(portfolio(products, { ...opts, maxCapital: 9000 }).budget, 5000);
-  assert.equal(portfolio(products, { ...opts, maxCapital: 0 }).budget, 5000);
+test('portfolio says what keeps capital unused', () => {
+  const { BEST, OK } = PLAN;
+  // everything trades as much as it can: only more market share or wider filters help
+  const thin = portfolio({ BEST, OK }, planOpts);
+  assert.deepEqual(stakes(thin), [['BEST', 120e6], ['OK', 10e6]]);
+  assert.deepEqual([thin.used, thin.limit], [130e6, 'volume']);
+
+  // the cap per flip stops BEST and DEEP; whole units leave 8,000 of BEST's 50M over
+  const capped = portfolio(PLAN, { ...planOpts, maxCapital: 50e6 });
+  assert.deepEqual(stakes(capped), [['BEST', 49992000], ['DEEP', 50e6], ['OK', 10e6]]);
+  assert.equal(capped.limit, 'maxCapital');
   // an item that costs more than the cap is left out
-  assert.deepEqual(portfolio(products, { ...opts, maxCapital: 500 }).flips.map((f) => f.id), ['A']);
+  assert.deepEqual(stakes(portfolio(PLAN, { ...planOpts, maxCapital: 5000 })), [['OK', 5000]]);
+
+  // slots are the most flips there can be, even with capital left for another one
+  const one = portfolio({ BEST, OK }, { ...planOpts, slots: 1 });
+  assert.deepEqual(stakes(one), [['BEST', 120e6]]);
+  assert.equal(one.limit, 'slots');
+  // two flips would use all that trades; a plan that is not short of slots has nothing to add
+  assert.deepEqual(one.more, { slots: 2, used: 130e6, profitHour: thin.profitHour });
+  assert.equal(thin.more, null);
+  // a single slot goes to the flip that earns the most with it, not to the best return
+  assert.deepEqual(stakes(portfolio(PLAN, { ...planOpts, slots: 1 })), [['DEEP', 200e6]]);
+});
+
+test('portfolio never counts on more than the 21 orders the bazaar allows', () => {
+  assert.equal(MAX_SLOTS, 21);
+  // 60 items that each take 1M: 10 flips use 10M, and the hint stops at 21
+  const products = Object.fromEntries(Array.from({ length: 60 }, (_, i) => [`I${i}`, product(100, 120)]));
+  const plan = portfolio(products, { ...planOpts, stats: planStats(products) });
+  assert.deepEqual([plan.flips.length, plan.used, plan.limit], [10, 10e6, 'slots']);
+  assert.deepEqual([plan.more.slots, plan.more.used], [21, 21e6]);
+  near(plan.more.profitHour, 21 * 10000 * 18.5);
+  // already at 21: still the limit, but there is nothing to raise
+  const full = portfolio(products, { ...planOpts, stats: planStats(products), slots: 21 });
+  assert.deepEqual([full.flips.length, full.limit, full.more], [21, 'slots', null]);
+});
+
+test('portfolio picks the flips that earn the most together when capital is short', () => {
+  const niche = { buyMovingWeek: 168000, sellMovingWeek: 168000 }; // 1,000 an hour: takes 100k
+  const products = {
+    BIGA: product(1000, 1100), // 8.6% return, could take all of the 1M alone: 86,250/h
+    BIGB: product(1000, 1090), // 7.6% return, the same size: 76,375/h
+    N1: product(100, 150, niche), // 48% return, but only 48,125/h
+    N2: product(100, 149, niche),
+  };
+  const opts = { ...planOpts, stats: planStats(products), minMargin: 0.03, slots: 2 };
+  const plan = portfolio(products, { ...opts, capital: 1e6 });
+  // by profit per hour alone the two flips would be BIGA and BIGB: BIGA takes everything, 86,250/h.
+  // BIGA with the best niche earns more: 100k at 48% and the other 900k at 8.6%
+  assert.deepEqual(stakes(plan), [['BIGA', 900000], ['N1', 100000]]);
+  near(plan.profitHour, 900 * 86.25 + 1000 * 48.125);
+  // with capital to spare, big volume comes before big margin
+  assert.deepEqual(stakes(portfolio(products, { ...opts, capital: 100e6 })), [['BIGA', 10e6], ['BIGB', 10e6]]);
+});
+
+test('portfolio measures volume in coins per week, so expensive items can take part', () => {
+  const week = (perHour) => ({ buyMovingWeek: perHour * 168, sellMovingWeek: perHour * 168 });
+  const products = {
+    PRICEY: product(2e6, 2.3e6, week(30)),                     // 5,040 a week, worth 10B
+    CHEAP: product(10, 12, week(1000)),                        // 168,000 a week, worth 1.7M
+    RARE: product(2e6, 2.3e6, week(PLAN_MIN_HOUR_SALES - 1)),  // worth 3B, but not sold often enough
+  };
+  // the unit filter of the Opportunities list does not count for the plan
+  const opts = { ...planOpts, stats: planStats(products), minVolume: 100000 };
+  assert.deepEqual(stakes(portfolio(products, { ...opts, minTurnover: 1e9 })), [['PRICEY', 60e6]]);
+  assert.deepEqual(stakes(portfolio(products, { ...opts, minTurnover: 0 })), [['PRICEY', 60e6], ['CHEAP', 10000]]);
+  assert.deepEqual(opportunities(products, { ...opts, sort: 'profitHour' }).map((f) => f.id), ['CHEAP']);
+});
+
+test('a lower margin floor lets items with more volume into the portfolio', () => {
+  // WIDE has 4.8% margin and trades ten times as much as BEST
+  const products = { BEST: PLAN.BEST, WIDE: product(10000, 10600, { buyMovingWeek: 16800000, sellMovingWeek: 16800000 }) };
+  const opts = { ...planOpts, stats: planStats(products), capital: 1000e6 };
+  assert.deepEqual(stakes(portfolio(products, { ...opts, minMargin: 0.15 })), [['BEST', 120e6]]);
+  assert.deepEqual(stakes(portfolio(products, { ...opts, minMargin: 0.03 })), [['WIDE', 880e6], ['BEST', 120e6]]);
+});
+
+// Apply recomputes from the prices already loaded: every setting has to change the plan without new data
+test('portfolio follows every setting on the same prices, and 0 means no cap per flip', () => {
+  const opts = { ...planOpts, capital: 60e6, slots: 3, maxCapital: 20e6, share: 0.5 };
+  const sum = (plan) => JSON.stringify([stakes(plan), Math.round(plan.profitHour)]);
+  const base = portfolio(PLAN, opts);
+  assert.deepEqual(stakes(base), [['BEST', 19992000], ['DEEP', 20e6], ['OK', 5e6]]);
+  for (const change of [{ capital: 30e6 }, { slots: 2 }, { maxCapital: 0 }, { share: 1 }, { tax: 0.01 }, { minMargin: 0.2 }, { minProfitHour: 4e6 }]) {
+    assert.notEqual(sum(portfolio(PLAN, { ...opts, ...change })), sum(base), JSON.stringify(change));
+  }
+  // without a cap BEST takes all it trades at a 50% share, which is the whole capital
+  assert.deepEqual(stakes(portfolio(PLAN, { ...opts, maxCapital: 0 })), [['BEST', 60e6]]);
 });
 
 test('search keeps every item and says why it is not a flip', () => {

@@ -133,14 +133,22 @@
 
     <fieldset>
       <legend>Portfolio</legend>
-      <p class="intro">A plan at the top of the Opportunities tab: your capital split evenly over several flips that run at the same time. No flip gets more than your max. capital per flip.</p>
+      <p class="intro">A plan at the top of the Opportunities tab: your capital goes to the flips with the best return first, each as far as the item trades at your market share. Only stable, unsuspicious items with 24 hours of price history get a stake, and none more than your max. capital per flip.</p>
       <label>Total capital
         <input id="portfolioCapital" type="number" min="0" step="1" inputmode="numeric">
-        <small>All the coins you want to flip with. 0 switches the plan off.</small>
+        <small>All the coins you want to flip with. The plan uses as much of it as the items trade. 0 switches the plan off.</small>
       </label>
-      <label class="pro">Parallel flips
-        <input id="portfolioSlots" type="number" min="1" max="50" step="1" inputmode="numeric">
-        <small>How many items you flip at once. Each one gets the same share of the capital, up to your max. capital per flip.</small>
+      <label class="pro">Max. flips
+        <input id="portfolioSlots" type="number" min="1" max="21" step="1" inputmode="numeric">
+        <small>Bazaar allows up to 21 open orders. The plan picks the flips that earn the most with your budget, up to this many. Lower it if you want fewer orders to manage.</small>
+      </label>
+      <label class="pro">Portfolio min. margin %
+        <input id="portfolioMargin" type="number" min="0.1" max="1000" step="0.1" inputmode="decimal">
+        <small>The plan's own margin floor, apart from the one for the Opportunities list. Items that trade a lot often have a small margin, so a low value lets the plan use more capital.</small>
+      </label>
+      <label class="pro">Portfolio min. turnover/week
+        <input id="portfolioTurnover" type="number" min="0" step="1" inputmode="numeric">
+        <small>Coins an item has to trade per week (items sold × price). Unlike the volume filter of the Opportunities list it counts coins, so expensive items that sell steadily can be in the plan. An item also needs about 10 sales an hour.</small>
       </label>
     </fieldset>
 

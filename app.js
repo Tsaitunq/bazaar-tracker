@@ -1,4 +1,4 @@
-import { buildFlips, computeFlip, opportunities, portfolio, statOf, searchFlip, flipIssues, oppIssues, bySort } from './flips.js';
+import { buildFlips, computeFlip, opportunities, portfolio, MAX_SLOTS, statOf, searchFlip, flipIssues, oppIssues, bySort } from './flips.js';
 import { npcFlips } from './npc.js';
 import { craftFlips } from './craft.js';
 import { forgeFlips, forgeFlip } from './forge.js';
@@ -8,7 +8,7 @@ import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission } from '
 import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, parseRoute, detailView, portfolioView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
 import { level } from './trends.js';
-import { activePerks, upcoming, electionWindow, eventItems } from './events.js';
+import { activePerks, upcoming, electionWindow, eventItems, flipWarnings } from './events.js';
 import { bindSheet, openSheet } from './sheet.js';
 import { initOnboarding, refreshHints, offerAdvanced, returning } from './tour.js';
 
@@ -19,33 +19,35 @@ const STATS_TTL = 20 * 60000;
 const CARDS = { flips: flipCard, opps: flipCard, npc: npcCard, craft: craftCard, forge: forgeCard };
 const DEFAULTS = { tax: 1.25, minVolume: 100000, maxCapital: 5000000, interval: 2, share: 5, sort: 'profitHour', favOnly: false, alerts: false, alertMargin: 5,
   marketAlerts: false, marketMargin: 10, marketMinVolume: 100000, marketMinProfit: 100000, marketCooldown: 6, eventAlerts: false, mayorAlerts: false,
-  portfolioCapital: 50000000, portfolioSlots: 10, hotm: 10, forgeAh: true };
+  portfolioCapital: 50000000, portfolioSlots: MAX_SLOTS, portfolioMargin: 3, portfolioTurnover: 1000000000, hotm: 10, forgeAh: true };
 
 const $ = (id) => document.getElementById(id);
 const load = (key, fallback) => { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } };
 const save = (key, value) => { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} };
 
 // the fields of the panel; they take effect together, on Apply
-const FIELDS = ['tax', 'interval', 'share', 'minVolume', 'maxCapital', 'alertMargin', 'marketMargin', 'marketMinVolume', 'marketMinProfit', 'marketCooldown', 'portfolioCapital', 'portfolioSlots', 'hotm'];
+const FIELDS = ['tax', 'interval', 'share', 'minVolume', 'maxCapital', 'alertMargin', 'marketMargin', 'marketMinVolume', 'marketMinProfit', 'marketCooldown', 'portfolioCapital', 'portfolioSlots', 'portfolioMargin', 'portfolioTurnover', 'hotm'];
 const settings = { ...DEFAULTS, ...load('bt.settings', {}) };
 // A stored interval of 0 would refresh in a tight loop, so bad values fall back to defaults.
 function sanitize() {
   for (const key of ['tax', 'interval', 'sort']) {
     if (![...$(key).options].some((o) => o.value === String(settings[key]))) settings[key] = DEFAULTS[key];
   }
-  for (const key of ['minVolume', 'maxCapital', 'marketMinVolume', 'marketMinProfit', 'portfolioCapital']) {
+  for (const key of ['minVolume', 'maxCapital', 'marketMinVolume', 'marketMinProfit', 'portfolioCapital', 'portfolioTurnover']) {
     if (!(settings[key] >= 0)) settings[key] = DEFAULTS[key];
   }
   if (!(settings.share > 0 && settings.share <= 100)) settings.share = DEFAULTS.share;
   if (!(settings.alertMargin > 0 && settings.alertMargin <= 1000)) settings.alertMargin = DEFAULTS.alertMargin;
   settings.alerts = settings.alerts === true;
   if (!(settings.marketMargin > 0 && settings.marketMargin <= 1000)) settings.marketMargin = DEFAULTS.marketMargin;
+  if (!(settings.portfolioMargin > 0 && settings.portfolioMargin <= 1000)) settings.portfolioMargin = DEFAULTS.portfolioMargin;
   if (!(settings.marketCooldown > 0 && settings.marketCooldown <= 168)) settings.marketCooldown = DEFAULTS.marketCooldown;
   settings.marketAlerts = settings.marketAlerts === true;
   settings.eventAlerts = settings.eventAlerts === true;
   settings.mayorAlerts = settings.mayorAlerts === true;
-  settings.portfolioSlots = Math.floor(settings.portfolioSlots);
-  if (!(settings.portfolioSlots >= 1 && settings.portfolioSlots <= 50)) settings.portfolioSlots = DEFAULTS.portfolioSlots;
+  // more than the bazaar's 21 orders (older versions took up to 50) becomes 21
+  settings.portfolioSlots = Math.min(MAX_SLOTS, Math.floor(settings.portfolioSlots));
+  if (!(settings.portfolioSlots >= 1)) settings.portfolioSlots = DEFAULTS.portfolioSlots;
   settings.hotm = Math.floor(settings.hotm);
   if (!(settings.hotm >= 0 && settings.hotm <= 10)) settings.hotm = DEFAULTS.hotm;
   settings.forgeAh = settings.forgeAh !== false;
@@ -120,12 +122,18 @@ function compute(v) {
   else if (v === 'opps') {
     const conditions = oppOpts();
     list = opportunities(products, conditions);
-    pf = portfolio(products, { ...conditions, capital: settings.portfolioCapital, slots: settings.portfolioSlots });
+    // The plan has its own floors: a lower margin, because items that trade a lot rarely have a high one,
+    // and the week's turnover in coins instead of units, so expensive items can take part.
+    pf = portfolio(products, { ...conditions, minMargin: settings.portfolioMargin / 100, minTurnover: settings.portfolioTurnover, capital: settings.portfolioCapital, slots: settings.portfolioSlots });
   }
   else if (v === 'npc') list = npcFlips(products, npc, opts);
   else if (v === 'forge') list = forge ? forgeFlips(products, forge, ah, opts) : [];
   else list = recipes ? craftFlips(products, recipes, opts) : [];
-  for (const f of pf?.flips ?? []) f.name = nameOf(f.id);
+  const risks = flipWarnings(election, Date.now());
+  for (const f of pf?.flips ?? []) {
+    f.name = nameOf(f.id);
+    f.risk = risks[f.id]; // what the election may do to this item's price, in words
+  }
   for (const f of list) {
     decorate(f);
     for (const i of f.ingredients ?? []) i.name = nameOf(i.id);
@@ -173,7 +181,7 @@ function listMarkup(v, list, pf) {
   }
   return {
     portfolio: v === 'opps' && pf
-      ? portfolioView(pf, { capital: settings.portfolioCapital, slots: settings.portfolioSlots, sharePercent: settings.share })
+      ? portfolioView(pf, { capital: settings.portfolioCapital, slots: settings.portfolioSlots, sharePercent: settings.share, simple: simple() })
       : v === 'forge' ? forgeFilter(settings.forgeAh) : '',
     count: q ? `${rows.length} ${rows.length === 1 ? 'flip' : 'flips'}, ${rest.length} other ${rest.length === 1 ? 'item' : 'items'}`
       : `${Math.min(rows.length, MAX_ROWS)} of ${rows.length} flips`,
@@ -324,6 +332,8 @@ async function refreshStats() {
 }
 
 function applyMode() {
+  // Simple mode has no field for the cap per flip, so there is none
+  if (simple()) settings.maxCapital = 0;
   document.body.dataset.mode = settings.mode;
   for (const b of document.querySelectorAll('[data-set-mode]')) b.setAttribute('aria-pressed', b.dataset.setMode === settings.mode);
   // an option cannot be hidden by the stylesheet in every browser
@@ -331,8 +341,8 @@ function applyMode() {
 }
 
 function applySettings() {
-  save('bt.settings', settings);
   applyMode();
+  save('bt.settings', settings);
   $('fav-only').setAttribute('aria-pressed', settings.favOnly);
   syncAlerts(settings, favs, names);
   recompute();
@@ -352,8 +362,6 @@ $('settings').addEventListener('submit', (e) => {
   const before = { ...settings };
   for (const key of FIELDS) settings[key] = Math.max(0, Number($(key).value) || 0);
   sanitize();
-  // Simple mode has no field for the cap per flip: it follows the total capital
-  if (simple() && settings.portfolioCapital !== before.portfolioCapital) settings.maxCapital = Math.round(settings.portfolioCapital / settings.portfolioSlots);
   applySettings();
   if (settings.interval !== before.interval) schedule();
   $('panel').close();
@@ -639,7 +647,6 @@ loadForge().then((r) => { forge = r; recompute(); render(); });
 initOnboarding({
   native: !!plugin(),
   ready,
-  slots: () => settings.portfolioSlots,
   forge: () => ({ hotm: settings.hotm, ah: settings.forgeAh }),
   pro: () => !simple(),
   hints: hintsNow,

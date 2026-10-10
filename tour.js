@@ -18,7 +18,7 @@ const readState = () => { try { return JSON.parse(localStorage.getItem(STATE_KEY
 // Someone who opened the app before: keeps Pro mode and is not shown hints about things they know.
 export const returning = hadData || readState() !== null;
 
-let ctx;          // what app.js hands over: { native, ready, slots, forge, apply, pro, hints, showSettings }
+let ctx;          // what app.js hands over: { native, ready, forge, apply, pro, hints, showSettings }
 let seen = [];    // context hints that were dismissed or covered by a tour
 let started = false; // the start window (welcome, news) has had its turn; before that no hint shows
 let log;          // changelog.json
@@ -49,7 +49,7 @@ function showSetup() {
   answers = { capital: undefined, activity: 'rarely', style: 'safe', ...ctx.forge(), ...answers };
   sheet(setupFormHtml({ ...answers, pro: ctx.pro() }), 'setup');
 }
-const setupRows = () => setupResult(answers, ctx.slots(), ctx.pro());
+const setupRows = () => setupResult(answers, ctx.pro());
 
 function readSetupForm() {
   const data = new FormData($('setup-form'));

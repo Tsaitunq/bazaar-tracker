@@ -178,20 +178,39 @@ export const filterChips = (keys, settings) => keys.map((key) => {
   return `<button type="button" class="chip" data-unfilter="${key}" aria-label="Remove filter: ${text}">${text}${ICONS.close}</button>`;
 }).join('');
 
+// Why a plan leaves capital unused (plan.limit) and what would change it. Simple mode hides the settings
+// the advice names, so there it sends the player to Pro instead.
+function limitNote(plan, { capital, slots, simple }) {
+  const using = `Using ${num(plan.used)} of ${num(capital)} – limited by`;
+  const wider = 'Raise Market share or lower Portfolio min. margin to use more.';
+  const [what, advice] = {
+    // without plan.more the flips are at the bazaar's own limit: nothing to raise
+    slots: () => (plan.more
+      ? [`${using} Max. flips (${slots}).`, `With ${plan.more.slots} flips you could use ${num(plan.more.used)} (est. ${num(plan.more.profitHour)}/h).`]
+      : [`With ${slots} orders the market can absorb about ${num(plan.used)} right now. The rest stays free.`, wider]),
+    maxCapital: () => [`${using} your max. capital per flip.`, 'Raise Max. capital per flip to use more.'],
+    volume: () => [`${using} how much these items trade.`, wider],
+  }[plan.limit]();
+  return `<p class="assume">${what} ${simple ? 'Switch to Pro to adjust.' : advice}</p>`;
+}
+
 // The plan at the top of the Opportunities tab: total first, then what it is made of.
-// plan comes from portfolio() with a name on every flip; sharePercent is the market share setting.
-export function portfolioView(plan, { capital, slots, sharePercent }) {
+// plan comes from portfolio() with a name on every flip, and `risk` (a sentence from flipWarnings) where
+// the election may move the item's price; sharePercent is the market share setting.
+// slots: the "Max. flips" setting; simple: Simple mode (see limitNote).
+export function portfolioView(plan, { capital, slots, sharePercent, simple = false }) {
   const hint = `<p class="assume">Assumes ${num(sharePercent)}% market share – only realistic if you relist actively</p>`;
   if (!plan.flips.length) {
     return `<section class="portfolio"><h2>Portfolio</h2><p class="muted">${capital > 0
-      ? 'No flip qualifies for the portfolio right now. It uses the same conditions as the list below.'
+      ? 'No flip qualifies for the portfolio right now. It takes stable, unsuspicious items with 24 hours of price history.'
       : 'Set a total capital in the settings to get a plan.'}</p></section>`;
   }
-  const rows = plan.flips.map((f) => `<li><a href="${esc(itemHref(f.id))}"><span class="pick">${esc(f.name)}</span><span class="stake">${num(f.stake)}</span><span class="gain">${num(f.profitHour)}/h</span></a></li>`).join('');
+  const rows = plan.flips.map((f) => `<li><a href="${esc(itemHref(f.id))}"><span class="pick">${esc(f.name)}${f.risk ? `<small>${esc(f.risk)}</small>` : ''}</span><span class="stake">${num(f.stake)}</span><span class="gain">${num(f.profitHour)}/h</span></a></li>`).join('');
   return `<section class="portfolio">
   <h2>Portfolio</h2>
-  <div class="total"><span class="big gain">${num(plan.profitHour)}</span><span class="lbl">Profit/h with ${plan.flips.length} ${plan.flips.length === 1 ? 'flip' : 'flips'}</span></div>
-  <p class="muted">${num(plan.used)} of ${num(capital)} capital in use · up to ${num(plan.budget)} per flip · ${Math.floor(slots)} planned</p>
+  <div class="total"><span class="big gain">${num(plan.profitHour)}</span><span class="lbl">Profit/h</span></div>
+  <p class="muted">Using ${plan.flips.length} of ${Math.floor(slots)} flips · ${num(plan.used)} of ${num(capital)} capital in use · ${percent.format(plan.profitHour / plan.used)} return per hour</p>
+  ${plan.limit ? limitNote(plan, { capital, slots: Math.floor(slots), simple }) : ''}
   <div class="picks-head"><span>Item</span><span>Stake</span><span>Profit/h</span></div>
   <ol class="picks">${rows}</ol>
   ${hint}

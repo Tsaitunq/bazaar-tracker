@@ -38,7 +38,9 @@ export const EVENTS = [
 // Perks that run for the whole term and bring their own items.
 export const PERK_ITEMS = {
   'Mining Fiesta': ['REFINED_MINERAL', 'GLOSSY_GEMSTONE'],
-  'Mythological Ritual': ['GRIFFIN_FEATHER', 'ANCIENT_CLAW', 'ENCHANTED_ANCIENT_CLAW', 'DAEDALUS_STICK', 'MYTHOS_FRAGMENT'],
+  'Mythological Ritual': ['GRIFFIN_FEATHER', 'BRAIDED_GRIFFIN_FEATHER', 'ANCIENT_CLAW', 'ENCHANTED_ANCIENT_CLAW', 'DAEDALUS_STICK', 'MYTHOS_FRAGMENT',
+    'ENCHANTMENT_ULTIMATE_CHIMERA_1', 'FATEFUL_STINGER', 'BRAIN_FOOD',
+    'SHARD_MINOS_HUNTER', 'SHARD_CRETAN_BULL', 'SHARD_HARPY', 'SHARD_MINOTAUR', 'SHARD_SPHINX', 'SHARD_KING_MINOS'],
 };
 
 // election: the content of election.json, or null. The minister's perk is active like the mayor's.
@@ -89,11 +91,41 @@ export function eventItems(nowMs, election) {
 export const PERK_EXPECT = {
   Marauder: { why: 'dungeon reward chests cost 20% less',
     items: ['RECOMBOBULATOR_3000', 'FUMING_POTATO_BOOK', 'WITHER_CATALYST', 'PRECURSOR_GEAR',
-      'FIRST_MASTER_STAR', 'SECOND_MASTER_STAR', 'THIRD_MASTER_STAR', 'FOURTH_MASTER_STAR', 'FIFTH_MASTER_STAR'] },
+      'FIRST_MASTER_STAR', 'SECOND_MASTER_STAR', 'THIRD_MASTER_STAR', 'FOURTH_MASTER_STAR', 'FIFTH_MASTER_STAR',
+      'WITHER_BLOOD', 'IMPLOSION_SCROLL', 'SHADOW_WARP_SCROLL', 'WITHER_SHIELD_SCROLL', 'GIANT_TOOTH', 'SADAN_BROOCH',
+      'DARK_ORB', 'NECROMANCER_BROOCH', 'SPIRIT_BONE', 'SPIRIT_WING'] },
   'Mining Fiesta': { why: 'drops from mining while the perk is active', items: PERK_ITEMS['Mining Fiesta'] },
   'Mythological Ritual': { why: 'found while the perk is active', items: PERK_ITEMS['Mythological Ritual'] },
   'Fishing Festival': { why: 'shark loot from the festivals', items: EVENTS.find((e) => e.key === 'fishing').items },
 };
+
+export const LEAVING_MS = 24 * 3600000; // a term this close to its end is announced on the items it holds down
+
+// { itemId: text } for the portfolio: what the election may do to an item's price. Two cases, both from
+// PERK_EXPECT and so an expectation, not a measurement:
+// - a perk that is coming: all perks of the candidate with the most votes, and the minister perk of the
+//   runner-up (candidate.minister; absent in files written before it was stored)
+// - a perk that is going: the mayor's and the minister's, when the term ends within LEAVING_MS
+// An item with both keeps the first, because the perk stays.
+export function flipWarnings(election, nowMs) {
+  const out = {};
+  const mark = (perk, text) => { for (const id of PERK_EXPECT[perk]?.items ?? []) out[id] ??= text; };
+  const [lead, second] = [...(election?.vote?.candidates ?? [])].sort((a, b) => b.votes - a.votes);
+  if (lead?.votes > 0) {
+    for (const perk of lead.perks) mark(perk, `${lead.name} may lower this price`);
+    if (second?.votes > 0 && second.minister) mark(second.minister, `${second.name} may lower this price`);
+  }
+  const start = termStart(nowMs);
+  const left = start + YEAR_DAYS * DAY_MS - nowMs;
+  const mayor = election?.mayor;
+  // the election file lags behind the calendar: only a mayor elected for this term counts
+  if (left < LEAVING_MS && mayor?.year === skyDate(start).year - 1) {
+    const leaves = (name) => `${name} leaves in ${Math.ceil(left / 3600000)}h – price may rise back`;
+    for (const perk of mayor.perks ?? []) mark(perk.name, leaves(mayor.name));
+    if (mayor.minister) mark(mayor.minister.perk.name, leaves(mayor.minister.name));
+  }
+  return out;
+}
 
 // A mayor takes office when the election closes on Late Spring 27 and stays for a year.
 // Returns the start of the term that runs at nowMs.
