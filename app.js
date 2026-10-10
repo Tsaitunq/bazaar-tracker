@@ -1,14 +1,15 @@
-import { buildFlips, computeFlip, opportunities, portfolio, MAX_SLOTS, statOf, searchFlip, flipIssues, oppIssues, bySort } from './flips.js';
+import { buildFlips, computeFlip, opportunities, portfolio, MAX_SLOTS, statOf, searchFlip, flipIssues, oppIssues, bySort, planWarnings, trackPlan } from './flips.js';
 import { npcFlips } from './npc.js';
-import { craftFlips } from './craft.js';
+import { craftFlips, craftHints } from './craft.js';
 import { forgeFlips, forgeFlip } from './forge.js';
+import { minionRows, FUELS, UPGRADES, MAX_TIER } from './minions.js';
 import { loadItems, fallbackName } from './names.js';
 import { loadStats, loadRecipes, loadForge, loadAh, loadElection, loadTiming, loadHistory } from './data.js';
 import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission } from './native.js';
-import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, parseRoute, detailView, portfolioView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, coins, percent, PLACEHOLDER_ICON } from './render.js';
+import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, trendsView, todayView, minionCard, parseRoute, detailView, portfolioView, warningsView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, viewsFor, areaOf, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
 import { level } from './trends.js';
-import { activePerks, upcoming, electionWindow, eventItems, flipWarnings } from './events.js';
+import { activePerks, upcoming, electionWindow, eventItems, flipRisks, planElection } from './events.js';
 import { bindSheet, openSheet } from './sheet.js';
 import { initOnboarding, refreshHints, offerAdvanced, returning } from './tour.js';
 
@@ -19,14 +20,16 @@ const STATS_TTL = 20 * 60000;
 const CARDS = { flips: flipCard, opps: flipCard, npc: npcCard, craft: craftCard, forge: forgeCard };
 const DEFAULTS = { tax: 1.25, minVolume: 100000, maxCapital: 5000000, interval: 2, share: 5, sort: 'profitHour', favOnly: false, alerts: false, alertMargin: 5,
   marketAlerts: false, marketMargin: 10, marketMinVolume: 100000, marketMinProfit: 100000, marketCooldown: 6, eventAlerts: false, mayorAlerts: false,
-  portfolioCapital: 50000000, portfolioSlots: MAX_SLOTS, portfolioMargin: 3, portfolioTurnover: 1000000000, hotm: 10, forgeAh: true };
+  portfolioCapital: 50000000, portfolioSlots: MAX_SLOTS, portfolioMargin: 3, portfolioTurnover: 1000000000, hotm: 10, forgeAh: true,
+  portfolioDrop: 5, portfolioCooldown: 6, planPriceAlerts: false, planSuspiciousAlerts: false, planElectionAlerts: false, planLeavingAlerts: false };
+const PLAN_ALERTS = ['planPriceAlerts', 'planSuspiciousAlerts', 'planElectionAlerts', 'planLeavingAlerts'];
 
 const $ = (id) => document.getElementById(id);
 const load = (key, fallback) => { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } };
 const save = (key, value) => { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} };
 
 // the fields of the panel; they take effect together, on Apply
-const FIELDS = ['tax', 'interval', 'share', 'minVolume', 'maxCapital', 'alertMargin', 'marketMargin', 'marketMinVolume', 'marketMinProfit', 'marketCooldown', 'portfolioCapital', 'portfolioSlots', 'portfolioMargin', 'portfolioTurnover', 'hotm'];
+const FIELDS = ['tax', 'interval', 'share', 'minVolume', 'maxCapital', 'alertMargin', 'marketMargin', 'marketMinVolume', 'marketMinProfit', 'marketCooldown', 'portfolioCapital', 'portfolioSlots', 'portfolioMargin', 'portfolioTurnover', 'hotm', 'portfolioDrop', 'portfolioCooldown'];
 const settings = { ...DEFAULTS, ...load('bt.settings', {}) };
 // A stored interval of 0 would refresh in a tight loop, so bad values fall back to defaults.
 function sanitize() {
@@ -51,6 +54,9 @@ function sanitize() {
   settings.hotm = Math.floor(settings.hotm);
   if (!(settings.hotm >= 0 && settings.hotm <= 10)) settings.hotm = DEFAULTS.hotm;
   settings.forgeAh = settings.forgeAh !== false;
+  if (!(settings.portfolioDrop > 0 && settings.portfolioDrop <= 90)) settings.portfolioDrop = DEFAULTS.portfolioDrop;
+  if (!(settings.portfolioCooldown > 0 && settings.portfolioCooldown <= 168)) settings.portfolioCooldown = DEFAULTS.portfolioCooldown;
+  for (const key of PLAN_ALERTS) settings[key] = settings[key] === true;
 }
 sanitize();
 // A new user starts in Simple mode; whoever used the app before keeps everything (Pro). Stored at once,
@@ -61,11 +67,13 @@ if (settings.mode !== 'simple' && settings.mode !== 'pro') {
 }
 const simple = () => settings.mode === 'simple';
 const tabs = () => tabsFor(settings.mode);
-// a tab that Simple mode does not show opens as Flips
+// a page that Simple mode does not show opens as Flips
 function readRoute() {
   const r = parseRoute(location.hash);
-  return r.view !== 'item' && !tabs().includes(r.view) ? { view: 'flips' } : r;
+  return r.view !== 'item' && !viewsFor(settings.mode).includes(r.view) ? { view: 'flips' } : r;
 }
+// Without an address the app opens where it was left; the very first time that is Today.
+if (!location.hash) history.replaceState(null, '', String(load('bt.route', '#/today')));
 const storedFavs = load('bt.favs', []);
 const favs = new Set(Array.isArray(storedFavs) ? storedFavs : []);
 
@@ -83,8 +91,18 @@ let marked = {};     // item id -> event or perk it belongs to right now
 let lastStats = 0;
 let route = readRoute();
 let lastList = route.view === 'item' ? 'flips' : route.view; // where the detail page's back link goes
+let lastTab = tabs().includes(route.view) ? route.view : 'flips'; // the Trade tab the bar's Trade button opens
 let flips = [];
-let plan = null; // portfolio for the Opportunities tab
+let plan = null; // the portfolio: shown in the Opportunities tab and on Today
+// The plan the player last saw, as [{ id, buy }]: what the warnings and the Android worker compare the market with.
+const storedPlan = load('bt.plan', null);
+let tracked = Array.isArray(storedPlan) ? storedPlan.filter((i) => typeof i?.id === 'string' && i.buy > 0) : null;
+let alerts = [];  // warnings about the tracked plan, each with the item's name
+// Today's "new since your last visit": the opportunities of the last visit, or null when there was none.
+const storedOpps = load('bt.opps', null);
+let lastVisit = Array.isArray(storedOpps) ? new Set(storedOpps) : null;
+let opps = [];    // the opportunities right now, best profit per hour first
+const AWAY_MS = 30 * 60000; // back after this long counts as a new visit
 let lastFetch = 0;
 let timer;
 let busy = false;
@@ -96,7 +114,18 @@ let markReady; // resolved once the first list is on screen, so the tour has som
 const ready = new Promise((resolve) => { markReady = resolve; });
 const shown = new Map(); // last rendered big numbers per view and item, to flash the ones that changed
 
-const view = () => (route.view === 'item' ? 'flips' : route.view);
+// the Trade tab in use; in the other areas that is the one last opened
+const view = () => (tabs().includes(route.view) ? route.view : lastTab);
+const area = () => areaOf(route.view);
+// One place for what a new address means: the back link, the Trade button and where the next start opens.
+function noteRoute() {
+  if (route.view === 'item') return;
+  lastList = route.view;
+  if (tabs().includes(route.view)) lastTab = route.view;
+  else if (!tabs().includes(lastTab)) lastTab = 'flips'; // a Pro tab does not survive the switch to Simple
+  save('bt.route', `#/${route.view}`);
+}
+noteRoute();
 const nameOf = (id) => names[id] ?? fallbackName(id);
 // "Trend" only reorders what is shown: the lists are built in their usual order and sorted afterwards
 const baseOpts = () => ({ ...settings, tax: settings.tax / 100, share: settings.share / 100, stats, sort: settings.sort === 'trend' ? 'profitHour' : settings.sort,
@@ -112,34 +141,37 @@ function decorate(f) {
 }
 const oppOpts = () => ({ ...baseOpts(), minMargin: settings.marketMargin / 100, minVolume: settings.marketMinVolume, minProfitHour: settings.marketMinProfit });
 
-// The flips of one tab, with names. plan is the portfolio and only exists for the Opportunities tab.
+// The portfolio, with what a row shows besides its numbers.
+function buildPlan() {
+  // The plan has its own floors: a lower margin, because items that trade a lot rarely have a high one,
+  // and the week's turnover in coins instead of units, so expensive items can take part.
+  const pf = portfolio(products, { ...oppOpts(), minMargin: settings.portfolioMargin / 100, minTurnover: settings.portfolioTurnover, capital: settings.portfolioCapital, slots: settings.portfolioSlots });
+  const risks = flipRisks(election, Date.now());
+  const crafts = recipes ? craftHints(pf.flips, products, recipes, baseOpts()) : {};
+  for (const f of pf.flips) {
+    f.name = nameOf(f.id);
+    f.risk = risks[f.id]?.text; // what the election may do to this item's price, in words
+    f.craft = crafts[f.id] && { ...crafts[f.id], name: nameOf(crafts[f.id].id) };
+  }
+  return pf;
+}
+
+// The flips of one tab, with names.
 function compute(v) {
   marked = eventItems(Date.now(), election);
   const opts = baseOpts();
   let list;
-  let pf = null;
   if (v === 'flips') list = buildFlips(products, { ...opts, favs });
-  else if (v === 'opps') {
-    const conditions = oppOpts();
-    list = opportunities(products, conditions);
-    // The plan has its own floors: a lower margin, because items that trade a lot rarely have a high one,
-    // and the week's turnover in coins instead of units, so expensive items can take part.
-    pf = portfolio(products, { ...conditions, minMargin: settings.portfolioMargin / 100, minTurnover: settings.portfolioTurnover, capital: settings.portfolioCapital, slots: settings.portfolioSlots });
-  }
+  else if (v === 'opps') list = opportunities(products, oppOpts());
   else if (v === 'npc') list = npcFlips(products, npc, opts);
   else if (v === 'forge') list = forge ? forgeFlips(products, forge, ah, opts) : [];
   else list = recipes ? craftFlips(products, recipes, opts) : [];
-  const risks = flipWarnings(election, Date.now());
-  for (const f of pf?.flips ?? []) {
-    f.name = nameOf(f.id);
-    f.risk = risks[f.id]; // what the election may do to this item's price, in words
-  }
   for (const f of list) {
     decorate(f);
     for (const i of f.ingredients ?? []) i.name = nameOf(i.id);
   }
   if (settings.sort === 'trend') list.sort(bySort('trend'));
-  return { list, plan: pf };
+  return list;
 }
 
 // Search hits the tab's list does not hold: every other bazaar item with a matching name, each with
@@ -154,9 +186,35 @@ function searchRest(v, q, listed) {
     .sort(bySort(settings.sort));
 }
 
+// What the Android worker gets about the plan; sent again only when it changed.
+let planSent = '';
+const planConfig = () => ({ items: tracked ?? [], ...planElection((tracked ?? []).map((i) => i.id), election, Date.now()) });
+const sync = () => syncAlerts(settings, favs, names, planConfig());
+
+// Compares the tracked plan with the market, then lets it follow the current plan (see trackPlan).
+// Without the stats there is no plan at all, so nothing is stored until they are there.
+function watchPlan() {
+  if (!stats) return;
+  const market = planWarnings(tracked ?? [], products, { tax: settings.tax / 100, drop: settings.portfolioDrop / 100, stats });
+  tracked = trackPlan(tracked, plan.flips, market.length > 0);
+  save('bt.plan', tracked);
+  const risks = flipRisks(election, Date.now());
+  alerts = [...market, ...tracked.filter((i) => risks[i.id]).map((i) => ({ id: i.id, ...risks[i.id] }))]
+    .map((w) => ({ ...w, name: nameOf(w.id) }));
+  const config = JSON.stringify(planConfig());
+  if (config !== planSent) { planSent = config; sync(); }
+}
+const marketWarned = () => alerts.some((w) => w.kind === 'price' || w.kind === 'suspicious');
+
 function recompute() {
-  if (!products || route.view === 'item') return;
-  ({ list: flips, plan } = compute(view()));
+  if (!products) return;
+  plan = buildPlan();
+  watchPlan();
+  opps = opportunities(products, { ...oppOpts(), sort: 'profitHour' });
+  for (const f of opps) f.name = nameOf(f.id);
+  // without the stats the list is empty, and an empty list would make everything "new" next time
+  if (stats) save('bt.opps', opps.map((f) => f.id));
+  if (route.view !== 'item') flips = compute(view());
 }
 
 // The three pieces of a list view as HTML: what stands above the list (portfolio or the forge switch),
@@ -181,7 +239,7 @@ function listMarkup(v, list, pf) {
   }
   return {
     portfolio: v === 'opps' && pf
-      ? portfolioView(pf, { capital: settings.portfolioCapital, slots: settings.portfolioSlots, sharePercent: settings.share, simple: simple() })
+      ? warningsView(alerts, { dismiss: marketWarned() }) + portfolioView(pf, { capital: settings.portfolioCapital, slots: settings.portfolioSlots, sharePercent: settings.share, simple: simple() })
       : v === 'forge' ? forgeFilter(settings.forgeAh) : '',
     count: q ? `${rows.length} ${rows.length === 1 ? 'flip' : 'flips'}, ${rest.length} other ${rest.length === 1 ? 'item' : 'items'}`
       : `${Math.min(rows.length, MAX_ROWS)} of ${rows.length} flips`,
@@ -212,9 +270,52 @@ function renderRadar() {
   if (plain === radarShown) return;
   const box = $('radar');
   const open = new Set([...box.querySelectorAll('details[open]')].map((d) => d.dataset.key));
-  if (!radarShown && load('bt.radar', false) === true) open.add('radar');
   radarShown = plain;
   box.innerHTML = radarView({ ...data, open });
+}
+
+// The minion setup: its own small form, stored apart from the settings because it changes nothing else.
+const MINION_FIELDS = { tier: 'm-tier', count: 'm-count', fuel: 'm-fuel', up1: 'm-up1', up2: 'm-up2' };
+const minionSetup = { tier: 11, count: 1, fuel: 'lava', up1: 'compactor', up2: 'spreading', ...load('bt.minions', {}) };
+const options = (list) => list.map((o) => `<option value="${o.key}">${o.name}</option>`).join('');
+$('m-tier').innerHTML = Array.from({ length: MAX_TIER }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('');
+$('m-fuel').innerHTML = options(FUELS);
+$('m-up1').innerHTML = $('m-up2').innerHTML = options(UPGRADES);
+for (const [key, id] of Object.entries(MINION_FIELDS)) {
+  $(id).value = minionSetup[key];
+  // a stored value the lists no longer have falls back to the first option
+  if ($(id).tagName === 'SELECT' && $(id).selectedIndex < 0) $(id).selectedIndex = 0;
+}
+$('minion-setup').addEventListener('change', () => {
+  for (const [key, id] of Object.entries(MINION_FIELDS)) minionSetup[key] = key === 'tier' || key === 'count' ? Number($(id).value) : $(id).value;
+  minionSetup.count = Math.min(50, Math.max(1, Math.floor(minionSetup.count) || 1));
+  $('m-count').value = minionSetup.count;
+  save('bt.minions', minionSetup);
+  render();
+});
+$('minion-setup').addEventListener('submit', (e) => e.preventDefault());
+
+// The areas that are one page each. Trade is drawn by renderPage itself.
+function renderArea() {
+  if (area() === 'minions' && products) {
+    const rows = minionRows(products, npc, { ...minionSetup, upgrades: [minionSetup.up1, minionSetup.up2] }, { tax: settings.tax / 100 });
+    $('minion-note').textContent = `${rows.length} minions, best first · coins per day for ${minionSetup.count === 1 ? '1 minion' : `${minionSetup.count} minions`} · Bazaar = sold at once to buy orders, after tax`;
+    $('minion-list').innerHTML = rows.map(minionCard).join('');
+  }
+  if (area() === 'today') {
+    const now = Date.now();
+    const risks = flipRisks(election, now);
+    $('today').innerHTML = products ? todayView({
+      plan, capital: settings.portfolioCapital, slots: settings.portfolioSlots, alerts, dismiss: marketWarned(),
+      events: upcoming(now, election), vote: electionWindow(now), election,
+      voteItems: Object.keys(risks).filter((id) => risks[id].kind === 'election'),
+      fresh: (lastVisit ? opps.filter((f) => !lastVisit.has(f.id)) : opps).slice(0, 3), firstVisit: !lastVisit, now, name: nameOf,
+    }) : '<p class="count muted">Loading…</p>';
+  }
+  if (area() === 'market') {
+    renderRadar();
+    if (products) $('trends').innerHTML = trendsView(compute('flips'));
+  }
 }
 
 function renderDetail() {
@@ -241,14 +342,16 @@ function renderDetail() {
 // that has not been seen yet.
 function hintsNow() {
   if (route.view === 'item') return [detailSuspicious && 'suspicious', 'detail'];
+  if (area() !== 'trade') return [area() === 'market' && 'radar', area() === 'minions' && 'minions', area() === 'today' && alerts.length > 0 && 'planalerts', area() === 'today' && 'today'];
   const v = view();
   return [
     ...($('panel').open && !$('settings').classList.contains('filtering') ? ['alerts', 'settings'] : []),
     $('search').value.trim() && otherHits > 0 && 'search',
-    document.querySelector('#radar .radar[open]') && 'radar',
     favs.size > 0 && 'fav',
     v === 'flips' ? 'card' : v,
+    v === 'opps' && alerts.length > 0 && 'planalerts',
     v === 'opps' && plan?.flips.length > 0 && 'portfolio',
+    v === 'opps' && plan?.flips.some((f) => f.craft) && 'crafthint',
   ];
 }
 
@@ -262,9 +365,15 @@ function renderPage() {
   // cards fade in on a normal render, but not when a swipe has just slid them into place
   document.querySelector('main').classList.toggle('sliding', switching);
   document.body.classList.toggle('detail', item);
+  document.body.dataset.area = area();
+  for (const a of document.querySelectorAll('#areas a')) {
+    if (a.dataset.area === area()) a.setAttribute('aria-current', 'page');
+    else a.removeAttribute('aria-current');
+  }
+  document.querySelector('#areas [data-area="trade"]').setAttribute('href', `#/${lastTab}`);
   if (item) return renderDetail();
   $('detail').innerHTML = '';
-  renderRadar();
+  renderArea();
   for (const a of document.querySelectorAll('#tabs a')) {
     if (a.getAttribute('href') !== `#/${view()}`) a.removeAttribute('aria-current');
     else if (!a.hasAttribute('aria-current')) {
@@ -344,7 +453,7 @@ function applySettings() {
   applyMode();
   save('bt.settings', settings);
   $('fav-only').setAttribute('aria-pressed', settings.favOnly);
-  syncAlerts(settings, favs, names);
+  sync();
   recompute();
   render();
 }
@@ -395,16 +504,10 @@ $('settings').addEventListener('click', (e) => {
   // Simple mode offers two ways to sort; nothing else is reset
   if (simple() && !['profitHour', 'margin'].includes(settings.sort)) $('sort').value = settings.sort = 'profitHour';
   route = readRoute();
-  if (route.view !== 'item') lastList = route.view;
+  noteRoute();
   applySettings();
   if (!simple()) offerAdvanced();
 });
-// toggle does not bubble, so listen in the capture phase; only the radar itself is remembered
-$('radar').addEventListener('toggle', (e) => {
-  if (e.target.dataset.key !== 'radar') return;
-  save('bt.radar', e.target.open);
-  refreshHints();
-}, true);
 $('search').addEventListener('input', render);
 $('refresh').addEventListener('click', refresh);
 $('fav-only').addEventListener('click', () => {
@@ -446,6 +549,12 @@ document.querySelector('main').addEventListener('click', (e) => {
     settings.forgeAh = withAh === '1';
     return applySettings();
   }
+  // "Got it" on the warnings: from now on the market is compared with the plan as it is now
+  if (e.target.closest('[data-act="plan-seen"]')) {
+    tracked = trackPlan(null, plan?.flips ?? []);
+    recompute();
+    return render();
+  }
   const drop = e.target.closest('[data-unfilter]')?.dataset.unfilter;
   if (drop) {
     settings[drop] = DEFAULTS[drop];
@@ -456,20 +565,26 @@ document.querySelector('main').addEventListener('click', (e) => {
   if (!id) return;
   if (!favs.delete(id)) favs.add(id);
   save('bt.favs', [...favs]);
-  syncAlerts(settings, favs, names);
+  sync();
   recompute();
   render();
 });
 
 addEventListener('hashchange', () => {
+  const from = area();
   route = readRoute();
-  if (route.view !== 'item') lastList = route.view;
+  noteRoute();
   recompute();
   render();
   settle();
+  if (area() !== from) scrollTo(0, 0);
 });
 
+let hiddenAt = 0;
 document.addEventListener('visibilitychange', () => {
+  // the app often stays open in the background for days: coming back after a while is a new visit
+  if (document.hidden) hiddenAt = Date.now();
+  else if (hiddenAt && Date.now() - hiddenAt > AWAY_MS && stats) lastVisit = new Set(opps.map((f) => f.id));
   if (document.hidden) clearTimeout(timer);
   else if (Date.now() - lastFetch >= settings.interval * 60000) refresh();
   else schedule();
@@ -520,8 +635,8 @@ addEventListener('touchend', endPull);
 addEventListener('touchcancel', () => { pullStart = null; if (pulling()) showPtr(); });
 
 // Swipe left or right on a list to change tabs, like a pager: the page follows the finger and the
-// neighbouring tab is already there next to it. Not on the detail page, and not from the screen
-// edge, where Android's own back gesture starts.
+// neighbouring tab is already there next to it. Only between the tabs of Trade: not on the detail
+// page, not in another area, and not from the screen edge, where Android's own back gesture starts.
 const EDGE_PX = 24;
 const SLIDE_MS = 180;
 const page = document.querySelector('main');
@@ -540,9 +655,8 @@ function showPeek(side) {
   const tab = tabs()[tabs().indexOf(view()) + side];
   peek.hidden = !tab;
   if (!tab) return;
-  const { list, plan: pf } = compute(tab);
-  const markup = listMarkup(tab, list, pf);
-  peek.innerHTML = `<div class="chips">${filterChips(activeFilters(tab, settings, DEFAULTS), settings)}</div>${$('radar').innerHTML}${markup.portfolio}<p class="count muted">${markup.count}</p><ul class="list${tab === 'opps' ? ' opps' : ''}">${markup.list}</ul>`;
+  const markup = listMarkup(tab, compute(tab), plan);
+  peek.innerHTML = `<div class="chips">${filterChips(activeFilters(tab, settings, DEFAULTS), settings)}</div>${markup.portfolio}<p class="count muted">${markup.count}</p><ul class="list${tab === 'opps' ? ' opps' : ''}">${markup.list}</ul>`;
   peek.style.left = `${side * 100}%`;
   peek.style.top = `${Math.max(0, document.querySelector('header').getBoundingClientRect().bottom - page.getBoundingClientRect().top)}px`;
 }
@@ -559,7 +673,7 @@ function settle() {
 
 page.addEventListener('touchstart', (e) => {
   const { clientX: x, clientY: y } = e.touches[0];
-  const usable = products && route.view !== 'item' && e.touches.length === 1 && x > EDGE_PX && x < innerWidth - EDGE_PX;
+  const usable = products && route.view !== 'item' && area() === 'trade' && e.touches.length === 1 && x > EDGE_PX && x < innerWidth - EDGE_PX;
   drag = usable ? { x, y, dx: 0, side: 0 } : null;
 }, { passive: true });
 page.addEventListener('touchmove', (e) => {
@@ -612,6 +726,8 @@ if (plugin()) {
   $('alert-settings').hidden = false;
   $('market-alert-settings').hidden = false;
   $('timing-alert-settings').hidden = false;
+  $('plan-alert-settings').hidden = false;
+  for (const key of PLAN_ALERTS) bindAlertToggle(key, 'plan-hint');
   bindAlertToggle('alerts', 'alert-hint');
   bindAlertToggle('marketAlerts', 'market-hint');
   bindAlertToggle('eventAlerts', 'timing-hint');
@@ -637,7 +753,7 @@ loadItems().then((items) => {
   npc = items.npc;
   tiers = items.tiers;
   itemsLoaded = true;
-  syncAlerts(settings, favs, names);
+  sync();
   sendNames();
   recompute();
   render();

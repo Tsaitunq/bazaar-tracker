@@ -264,7 +264,7 @@ const radar = (over = {}) => radarView({
 test('radar: one line when folded, mayor, election and events inside', () => {
   const html = radar();
   assert.ok(html.includes('Mayor Paul · Traveling Zoo now · Spooky Festival in 2d 2h'));
-  assert.ok(!html.includes('data-key="radar" open'));
+  assert.ok(html.startsWith('<section class="radar">') && !html.includes('data-key="radar"'));
   assert.ok(html.includes('minister Cole') && html.includes('Chests are cheaper.') && html.includes('Cole, minister'));
   assert.ok(html.includes('now · 30m left') && html.includes('in 2d 2h'));
   assert.ok(html.includes('The next one opens in 1d 6h'));
@@ -275,7 +275,7 @@ test('radar: one line when folded, mayor, election and events inside', () => {
 
 test('radar: unfolded parts stay open, a running election lists its candidates', () => {
   const html = radar({ open: new Set(['radar', 'event:spooky']) });
-  assert.ok(html.includes('data-key="radar" open') && html.includes('data-key="event:spooky" open') && !html.includes('data-key="event:zoo" open'));
+  assert.ok(html.includes('data-key="event:spooky" open') && !html.includes('data-key="event:zoo" open'));
   const voting = radar({
     election: { mayor: { name: 'Paul', perks: [], minister: null }, vote: { year: 520, candidates: [{ name: 'Cole', votes: 25, perks: ['Mining Fiesta'] }, { name: 'Diana', votes: 75, perks: ['Pet XP Buff'] }] } },
     perks: [], vote: { open: true, at: 2 * HOUR },
@@ -378,4 +378,102 @@ test('a filter is active once it differs from its default, per tab', async () =>
     assert.ok(chips.includes(part), part);
   }
   assert.ok(filterChips(['marketMargin', 'hotm'], changed).includes('Margin ≥ 15%') && filterChips(['hotm'], changed).includes('HotM ≤ 6'));
+});
+
+test('areas: three pages next to Trade, Simple mode has only Today', async () => {
+  const { areaOf, viewsFor, AREAS, TABS } = await import('../render.js');
+  assert.deepEqual(AREAS, ['today', 'minions', 'market']);
+  for (const v of [...TABS, 'item']) assert.equal(areaOf(v), 'trade', v);
+  for (const v of AREAS) assert.equal(areaOf(v), v);
+  assert.deepEqual(viewsFor('simple'), ['flips', 'opps', 'today']);
+  assert.deepEqual(viewsFor('pro'), [...TABS, ...AREAS]);
+  for (const v of AREAS) assert.deepEqual(parseRoute(`#/${v}`), { view: v });
+  // the old addresses of the tabs stay valid
+  for (const v of TABS) assert.deepEqual(parseRoute(`#/${v}`), { view: v });
+});
+
+test('trendsView lists the strongest risers and fallers and leaves flat items out', async () => {
+  const { trendsView } = await import('../render.js');
+  const html = trendsView([
+    { id: 'A', name: 'Alpha', trend: 0.2 }, { id: 'B', name: 'Beta', trend: 0.5 }, { id: 'C', name: 'Gamma', trend: -0.08 },
+    { id: 'D', name: 'Delta', trend: 0.01 }, { id: 'E', name: '<Epsilon>', trend: null },
+  ]);
+  assert.ok(html.indexOf('Beta') < html.indexOf('Alpha') && html.indexOf('Alpha') < html.indexOf('Gamma'));
+  assert.ok(html.includes('+50% / day') && html.includes('−8% / day') && html.includes('href="#/item/C"'));
+  assert.ok(!html.includes('Delta') && !html.includes('Epsilon'));
+  assert.ok(trendsView([]).includes('Nothing right now.'));
+});
+
+test('portfolio: a craft hint is a line on the row, with a note that the recipe must be unlocked', async () => {
+  const { portfolioView } = await import('../render.js');
+  const flip = { id: 'A', name: 'Alpha', stake: 1000, profitHour: 50 };
+  const plan = (flips) => ({ flips, limit: null, more: null, profitHour: 50, used: 1000 });
+  const opts = { capital: 1000, slots: 21, sharePercent: 5 };
+  const html = portfolioView(plan([{ ...flip, craft: { name: '<Beta>', extra: 12345, orders: 3 } }]), opts);
+  assert.ok(html.includes('<small class="craft pro">Craft into &#60;Beta&#62;: +12.3k/h · uses 3 orders</small>'));
+  assert.ok(html.includes('unlocked the recipe') && html.includes('not part of the plan'));
+  const none = portfolioView(plan([flip]), opts);
+  assert.ok(!none.includes('Craft into') && !none.includes('craft-note'));
+});
+
+test('warningsView: one line per warning in plain words, "Got it" only for what the market did', async () => {
+  const { warningsView, warningText } = await import('../render.js');
+  assert.equal(warningsView([]), '');
+  assert.equal(warningText({ kind: 'price', fall: 0.072 }), 'Buy order 7.2% below your plan price');
+  assert.equal(warningText({ kind: 'price', margin: 0.004 }), 'Margin down to 0.4%');
+  assert.equal(warningText({ kind: 'suspicious' }), 'Prices look suspicious now');
+  assert.equal(warningText({ kind: 'election', text: 'Diana may lower this price' }), 'Diana may lower this price');
+  const list = [{ id: 'A', name: '<Alpha>', kind: 'price', fall: 0.072 }, { id: 'B', name: 'Beta', kind: 'leaving', text: 'Paul leaves in 5h – price may rise back' }];
+  const html = warningsView(list, { dismiss: true });
+  assert.ok(html.includes('Portfolio warnings') && html.includes('href="#/item/A"') && html.includes('&#60;Alpha&#62;'));
+  assert.ok(html.includes('Buy order 7.2% below your plan price') && html.includes('Paul leaves in 5h'));
+  assert.ok(html.includes('data-act="plan-seen"'));
+  assert.ok(!warningsView(list.slice(1)).includes('data-act="plan-seen"'));
+});
+
+test('todayView: portfolio in short, warnings, what comes next and what is new, each with its link', async () => {
+  const { todayView } = await import('../render.js');
+  const base = {
+    plan: { flips: [{ id: 'A' }, { id: 'B' }], profitHour: 1500000, used: 9000000 }, capital: 50000000, slots: 21,
+    events: [
+      { name: 'Traveling Zoo', active: true, start: -HOUR, end: 0.5 * HOUR, items: [] },
+      { name: 'Spooky Festival', active: false, start: 50 * HOUR, end: 51 * HOUR, items: ['GREEN_CANDY', 'PURPLE_CANDY', 'ECTOPLASM', 'SOUL_FRAGMENT'] },
+      { name: 'Third', active: false, start: 60 * HOUR, end: 61 * HOUR, items: [] },
+      { name: 'Fourth', active: false, start: 70 * HOUR, end: 71 * HOUR, items: [] },
+    ],
+    vote: { open: true, at: 2 * HOUR }, election: { vote: { candidates: [{ name: 'Cole', votes: 1 }, { name: 'Diana', votes: 9 }] } },
+    voteItems: ['GRIFFIN_FEATHER'], now: 0, name: (id) => `<${id}>`,
+    fresh: [{ id: 'X', name: 'Xeno', profitHour: 250000, margin: 0.12 }],
+  };
+  const html = todayView(base);
+  assert.ok(html.includes('1.5M') && html.includes('9M of 50M capital in use · 2 of 21 flips'));
+  assert.ok(html.includes('Traveling Zoo') && html.includes('now · 30m left') && html.includes('in 2d 2h'));
+  assert.ok(html.includes('Affected: &#60;GREEN_CANDY&#62;, &#60;PURPLE_CANDY&#62;, &#60;ECTOPLASM&#62; +1 more'));
+  assert.ok(html.includes('Third') && !html.includes('Fourth'), 'three events at most');
+  assert.ok(html.includes('Election · Diana leads') && html.includes('closes in 2h') && html.includes('Affected: &#60;GRIFFIN_FEATHER&#62;'));
+  assert.ok(html.includes('New since your last visit') && html.includes('href="#/item/X"') && html.includes('250k/h') && html.includes('12%'));
+  for (const href of ['#/opps', '#/market']) assert.ok(html.includes(`<a class="more" href="${href}">`), href);
+  // events and election are Pro; the rest is what Simple mode shows
+  assert.ok(html.includes('<section class="radar pro">') && !html.includes('<section class="portfolio pro">'));
+  assert.ok(!html.includes('class="alerts"'));
+
+  const warned = todayView({ ...base, alerts: [{ id: 'A', name: 'Alpha', kind: 'suspicious' }], dismiss: true });
+  assert.ok(warned.includes('Portfolio warnings') && warned.includes('data-act="plan-seen"'));
+  assert.ok(todayView({ ...base, firstVisit: true }).includes('Top opportunities'));
+  assert.ok(todayView({ ...base, fresh: [] }).includes('No new opportunity since your last visit.'));
+  assert.ok(todayView({ ...base, plan: { flips: [] } }).includes('No flip qualifies'));
+  assert.ok(todayView({ ...base, plan: { flips: [] }, capital: 0 }).includes('Set a total capital'));
+  assert.ok(todayView({ ...base, vote: { open: false, at: 30 * HOUR }, election: null }).includes('opens in 1d 6h'));
+});
+
+test('minionCard: coins per day, where to sell, and a mark on numbers that are not confirmed', async () => {
+  const { minionCard } = await import('../render.js');
+  const row = { key: 'snow', name: 'Snow Minion', id: 'SNOW_BALL', tier: 11, maxTier: 12, bazaar: 52000, npcCoins: 26000, fuelCost: 400, best: 'bazaar', net: 51600, itemsDay: 26584.6, fillHours: 0.87, unsure: [] };
+  const html = minionCard(row);
+  assert.ok(html.includes('Snow Minion') && html.includes('Tier XI<') && html.includes('51.6k') && html.includes('Coins/day'));
+  assert.ok(html.includes('<span class="big">Bazaar</span>') && html.includes('−400') && html.includes('about 52m'));
+  assert.ok(!html.includes('not confirmed') && !html.includes('class="why"'));
+  const open = minionCard({ ...row, tier: 12, best: 'npc', fuelCost: 0, unsure: ['The wiki gives 2 to 5 <per> harvest.'] });
+  assert.ok(open.includes('Tier XII (highest)') && open.includes('<span class="big">NPC</span>') && open.includes('not confirmed'));
+  assert.ok(open.includes('2 to 5 &#60;per&#62; harvest'));
 });

@@ -5,7 +5,8 @@ export const plugin = () =>
   (globalThis.Capacitor?.isNativePlatform?.() ? globalThis.Capacitor.Plugins?.BazaarAlerts ?? null : null);
 
 // The background worker runs without the web view, so it gets everything it needs up front.
-export const alertConfig = (settings, favs, names) => ({
+// plan: { items: [{ id, buy }], perks, term } – the stored portfolio and what planElection says about it.
+export const alertConfig = (settings, favs, names, plan = {}) => ({
   enabled: settings.alerts === true,
   minMargin: settings.alertMargin / 100,
   tax: settings.tax / 100,
@@ -20,10 +21,21 @@ export const alertConfig = (settings, favs, names) => ({
     share: settings.share / 100,
   },
   timing: { events: settings.eventAlerts === true, mayor: settings.mayorAlerts === true },
+  portfolio: {
+    price: settings.planPriceAlerts === true,
+    suspicious: settings.planSuspiciousAlerts === true,
+    election: settings.planElectionAlerts === true,
+    leaving: settings.planLeavingAlerts === true,
+    drop: settings.portfolioDrop / 100,
+    cooldownHours: settings.portfolioCooldown,
+    items: plan.items ?? [],
+    perks: plan.perks ?? {},
+    term: plan.term ?? null,
+  },
 });
 
-export function syncAlerts(settings, favs, names) {
-  plugin()?.configure(alertConfig(settings, favs, names)).catch(() => {});
+export function syncAlerts(settings, favs, names, plan) {
+  plugin()?.configure(alertConfig(settings, favs, names, plan)).catch(() => {});
 }
 
 export async function requestAlertPermission() {

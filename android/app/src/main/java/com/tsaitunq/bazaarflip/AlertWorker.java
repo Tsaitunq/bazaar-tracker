@@ -14,11 +14,15 @@ import androidx.core.app.NotificationCompat;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
+import com.tsaitunq.bazaarflip.AlertLogic.Candidate;
 import com.tsaitunq.bazaarflip.AlertLogic.Flip;
 import com.tsaitunq.bazaarflip.AlertLogic.Notice;
+import com.tsaitunq.bazaarflip.AlertLogic.PlanItem;
 import com.tsaitunq.bazaarflip.AlertLogic.Product;
 import com.tsaitunq.bazaarflip.AlertLogic.Stat;
+import com.tsaitunq.bazaarflip.AlertLogic.Warning;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -34,19 +38,21 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 /**
- * Periodic check with three independent parts: favourites that newly reach their minimum margin,
- * market-wide opportunities that newly meet every market alert condition, and notices about
- * events and mayors that the snapshot run prepared.
+ * Periodic check with four independent parts: favourites that newly reach their minimum margin,
+ * market-wide opportunities that newly meet every market alert condition, notices about
+ * events and mayors that the snapshot run prepared, and warnings about the flips of the stored portfolio.
  */
 public class AlertWorker extends Worker {
     private static final String API = "https://api.hypixel.net/v2/skyblock/bazaar";
     private static final String TIMING = "https://raw.githubusercontent.com/Tsaitunq/bazaar-tracker/data/timing.json";
     private static final String STATS = "https://raw.githubusercontent.com/Tsaitunq/bazaar-tracker/data/stats.json";
+    private static final String ELECTION = "https://raw.githubusercontent.com/Tsaitunq/bazaar-tracker/data/election.json";
     private static final int TIMEOUT_MS = 30_000;
     private static final long HOUR_MS = 3_600_000L;
     // channel id, channel name, notification id
@@ -54,6 +60,7 @@ public class AlertWorker extends Worker {
     private static final Object[] MARKET = { "market", R.string.market_channel, 2 };
     private static final Object[] EVENT = { "timing", R.string.timing_channel, 3 };
     private static final Object[] MAYOR = { "timing", R.string.timing_channel, 4 };
+    private static final Object[] PORTFOLIO = { "portfolio", R.string.portfolio_channel, 5 };
 
     private interface Parser<T> {
         T parse(Reader reader) throws IOException;
@@ -83,18 +90,35 @@ public class AlertWorker extends Worker {
                     // A notice is due for hours; the next round shows it.
                 }
             }
-            if (!favoritesOn && !marketOn) return Result.success();
+            JSONObject plan = config.optJSONObject("portfolio");
+            boolean planOn = AlertsPlugin.portfolioEnabled(plan);
+            boolean planMarketOn = planOn && (plan.optBoolean("price") || plan.optBoolean("suspicious"));
+            List<Warning> warnings = planOn ? voteWarnings(plan) : new ArrayList<>();
+            if (!favoritesOn && !marketOn && !planMarketOn) {
+                notifyPlan(prefs, plan, warnings);
+                return Result.success();
+            }
 
             double tax = config.optDouble("tax", 0.0125);
             Map<String, Product> products = fetch(API, AlertLogic::readMarket);
             if (favoritesOn) checkFavorites(prefs, products, favs, tax, config.optDouble("minMargin", 0.05));
-            if (marketOn) {
+            Map<String, Stat> stats = null;
+            if (marketOn || planMarketOn) {
                 try {
-                    checkMarket(prefs, products, market, tax);
+                    stats = fetch(STATS, AlertLogic::readStats);
                 } catch (IOException e) {
-                    // Without the stats file "stable" cannot be verified; skip this round, favourites are done.
+                    // Without the stats file "stable" cannot be verified: market alerts skip this round.
+                    // The plan is still checked, only without the comparison with the normal price.
                 }
             }
+            if (marketOn && stats != null) checkMarket(prefs, products, market, tax, stats);
+            if (planMarketOn) {
+                for (Warning w : AlertLogic.planWarnings(planItems(plan), products, stats == null ? new HashMap<>() : stats,
+                        tax, plan.optDouble("drop", 0.05))) {
+                    if (plan.optBoolean(w.kind)) warnings.add(w);
+                }
+            }
+            notifyPlan(prefs, plan, warnings);
             return Result.success();
         } catch (IOException e) {
             return Result.retry();
@@ -116,9 +140,8 @@ public class AlertWorker extends Worker {
         }
     }
 
-    private void checkMarket(SharedPreferences prefs, Map<String, Product> products, JSONObject market, double tax)
-            throws IOException, JSONException {
-        Map<String, Stat> stats = fetch(STATS, AlertLogic::readStats);
+    private void checkMarket(SharedPreferences prefs, Map<String, Product> products, JSONObject market, double tax,
+            Map<String, Stat> stats) throws JSONException {
         List<Flip> hits = AlertLogic.opportunities(products, stats, tax,
             market.optDouble("maxCapital", 0), market.optDouble("share", 1), market.optDouble("minMargin", 0.10),
             market.optDouble("minVolume", 0), market.optDouble("minProfitHour", 0));
@@ -127,13 +150,7 @@ public class AlertWorker extends Worker {
 
         long now = System.currentTimeMillis();
         long cooldown = Math.round(market.optDouble("cooldownHours", 6) * HOUR_MS);
-        JSONObject stored = new JSONObject(prefs.getString(AlertsPlugin.KEY_MARKET_NOTIFIED, "{}"));
-        Map<String, Long> notified = new HashMap<>();
-        for (Iterator<String> it = stored.keys(); it.hasNext();) {
-            String id = it.next();
-            // entries past the cooldown no longer block anything
-            if (now - stored.optLong(id) < cooldown) notified.put(id, stored.optLong(id));
-        }
+        Map<String, Long> notified = recent(prefs.getString(AlertsPlugin.KEY_MARKET_NOTIFIED, "{}"), now, cooldown);
         Set<String> before = prefs.getStringSet(AlertsPlugin.KEY_MARKET_QUALIFIED, Collections.emptySet());
         List<String> due = AlertLogic.due(qualifying, before, notified, now, cooldown);
         for (String id : due) notified.put(id, now);
@@ -149,6 +166,80 @@ public class AlertWorker extends Worker {
         String route = dueFlips.size() == 1 ? "#/item/" + Uri.encode(dueFlips.get(0).id) : "#/opps";
         show(MARKET, AlertLogic.marketTitle(dueFlips.size()),
             AlertLogic.marketLines(dueFlips, AlertsPlugin.names(getApplicationContext())), route);
+    }
+
+    /** The stored "when was this last reported" map, without the entries past the cooldown: they no longer block anything. */
+    private static Map<String, Long> recent(String json, long now, long cooldown) throws JSONException {
+        JSONObject stored = new JSONObject(json);
+        Map<String, Long> out = new HashMap<>();
+        for (Iterator<String> it = stored.keys(); it.hasNext();) {
+            String key = it.next();
+            if (now - stored.optLong(key) < cooldown) out.put(key, stored.optLong(key));
+        }
+        return out;
+    }
+
+    private static List<PlanItem> planItems(JSONObject plan) {
+        List<PlanItem> out = new ArrayList<>();
+        JSONArray items = plan.optJSONArray("items");
+        for (int i = 0; items != null && i < items.length(); i++) {
+            JSONObject item = items.optJSONObject(i);
+            if (item != null && !item.optString("id").isEmpty()) out.add(new PlanItem(item.optString("id"), item.optDouble("buy")));
+        }
+        return out;
+    }
+
+    /** Election and "mayor leaves" warnings for the plan, as far as their switches are on. */
+    private List<Warning> voteWarnings(JSONObject plan) {
+        List<Warning> out = new ArrayList<>();
+        Map<String, List<String>> itemPerks = new LinkedHashMap<>();
+        JSONObject perks = plan.optJSONObject("perks");
+        for (Iterator<String> it = perks == null ? Collections.emptyIterator() : perks.keys(); it.hasNext();) {
+            String id = it.next();
+            List<String> list = new ArrayList<>();
+            JSONArray names = perks.optJSONArray(id);
+            for (int i = 0; names != null && i < names.length(); i++) list.add(names.optString(i));
+            itemPerks.put(id, list);
+        }
+        if (itemPerks.isEmpty()) return out;
+        if (plan.optBoolean("election")) {
+            try {
+                List<Candidate> candidates = fetch(ELECTION, AlertLogic::readCandidates);
+                out.addAll(AlertLogic.electionWarnings(candidates, itemPerks));
+            } catch (IOException e) {
+                // An election runs for days; the next round asks again.
+            }
+        }
+        JSONObject term = plan.optJSONObject("term");
+        JSONObject termPerks = term == null ? null : term.optJSONObject("perks");
+        if (plan.optBoolean("leaving") && termPerks != null) {
+            Map<String, String> by = new LinkedHashMap<>();
+            for (Iterator<String> it = termPerks.keys(); it.hasNext();) {
+                String perk = it.next();
+                by.put(perk, termPerks.optString(perk));
+            }
+            out.addAll(AlertLogic.leavingWarnings(term.optLong("end"), by, itemPerks, System.currentTimeMillis()));
+        }
+        return out;
+    }
+
+    /** One notification for the warnings that were not reported within the cooldown, per item and kind. */
+    private void notifyPlan(SharedPreferences prefs, JSONObject plan, List<Warning> warnings) throws JSONException {
+        if (warnings.isEmpty()) return;
+        long now = System.currentTimeMillis();
+        long cooldown = Math.round(plan.optDouble("cooldownHours", 6) * HOUR_MS);
+        Map<String, Long> notified = recent(prefs.getString(AlertsPlugin.KEY_PLAN_NOTIFIED, "{}"), now, cooldown);
+        List<Warning> due = new ArrayList<>();
+        for (Warning w : warnings) {
+            String key = w.id + "|" + w.kind;
+            if (notified.containsKey(key)) continue;
+            notified.put(key, now);
+            due.add(w);
+        }
+        prefs.edit().putString(AlertsPlugin.KEY_PLAN_NOTIFIED, new JSONObject(notified).toString()).apply();
+        if (due.isEmpty()) return;
+        show(PORTFOLIO, AlertLogic.planTitle(due.size()),
+            AlertLogic.planLines(due, AlertsPlugin.names(getApplicationContext())), "#/opps");
     }
 
     private void checkTiming(SharedPreferences prefs, boolean events, boolean mayor) throws IOException {

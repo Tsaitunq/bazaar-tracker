@@ -101,9 +101,11 @@ export function setupResult({ capital, activity, style, hotm, ah }, pro = true) 
 
 // target is a CSS selector, or a list of them in order of preference.
 // hint: the context hint a station makes unnecessary (see HINTS).
-// The basic tour: what a new user needs for the first flip. Six stations at most.
+// The basic tour: what a new user needs for the first flip. Seven stations at most.
 export function tourSteps() {
   return [
+    { route: '#/flips', target: '#areas', title: 'The areas',
+      text: 'The bar at the bottom switches between the areas of the app. Today is your overview. Trade holds the flips; this tour stays there. Pro mode adds Minions and Market.' },
     { route: '#/flips', target: '#list .card', title: 'A flip', hint: 'card',
       text: 'Each card is one item. Place a buy order at the Buy order price, wait until it fills, then put the items up as a sell offer at the Sell offer price. The difference is your profit. Tap a card to see its price history.' },
     { route: '#/flips', target: '#list .card .key', title: 'Two numbers',
@@ -111,7 +113,7 @@ export function tourSteps() {
     { route: '#/flips', target: '#list .card .badges', title: 'Badges',
       text: 'stable, medium and unstable tell you how reliable the flip has been over the last week. suspicious means the numbers look manipulated – better stay away.' },
     { route: '#/opps', target: '#tabs', title: 'Opportunities', hint: 'opps',
-      text: 'This tab holds only the flips you can act on without checking them by hand: stable for at least a day, not suspicious and worth the effort. On a phone you can swipe left and right to switch tabs.' },
+      text: 'The tabs at the top belong to Trade. This one holds only the flips you can act on without checking them by hand: stable for at least a day, not suspicious and worth the effort. On a phone you can swipe left and right to switch tabs.' },
     { route: '#/flips', target: '.filters', title: 'Find, sort, favorites',
       text: 'The search finds every bazaar item, also the ones your filters hide. Pick how the list is sorted. Tap the star on a card to make it a favorite; the star up here shows only your favorites.' },
     { route: '#/flips', target: '#toggle-settings', title: 'Settings and help',
@@ -127,13 +129,15 @@ export function advancedSteps({ native }) {
   const steps = [
     { route: '#/flips', target: ['#list .badge-trend', '#sort'], title: 'Trends',
       text: 'The arrow on a card shows where the sell price went over the last day: rising, falling or flat. "below normal" and "above normal" compare it with the usual price. You can also sort by Trend.' },
-    { route: '#/flips', target: '#radar .radar', title: 'Event radar', hint: 'radar',
-      text: 'The mayor, the active perks and the next SkyBlock events with a countdown. Tap it to unfold, then tap a line to see the items that are typically affected. Once a price moved the same way three times, the radar says how much it usually changes.' },
+    { route: '#/market', target: '#radar .radar', title: 'Event radar', hint: 'radar',
+      text: 'The Market area: the mayor, the active perks and the next SkyBlock events with a countdown. Tap a line to see the items that are typically affected. Once a price moved the same way three times, the radar says how much it usually changes.' },
     { route: '#/opps', target: '#portfolio .portfolio', title: 'Portfolio', hint: 'portfolio',
       text: 'A ready-made plan: your capital split over the best safe flips, with the total profit per hour. It fills up once items have a day of price history.' },
     { route: '#/forge', target: ['#list .card', '#tabs a[href="#/forge"]'], title: 'Forge', hint: 'forge',
       text: 'What is worth forging, with the profit per hour of one forge slot. "AH sale – estimate" means the result sells on the Auction House, which is slower and less certain.' },
   ];
+  steps.push({ route: '#/minions', target: '#minion-setup', title: 'Minions', hint: 'minions',
+    text: 'Choose a tier, a fuel and two upgrades, and the list ranks the minions by coins per day: sold at the Bazaar or to an NPC, whichever pays more, minus the fuel that is used up.' });
   if (native) {
     steps.push({ route: '#/flips', target: '#market-alert-settings', open: true, title: 'Alerts on your phone', hint: 'alerts',
       text: `Switch on Market alerts and allow notifications when Android asks. ${BATTERY}` });
@@ -141,11 +145,19 @@ export function advancedSteps({ native }) {
   return steps;
 }
 
+// Where "Show me" goes for a changelog entry. Entries are never edited, so an entry written before the
+// areas existed is sent to where its target lives now: the radar moved from the lists to Market.
+export const newsRoute = (entry) => (/^#radar\b/.test(entry.target ?? '') ? '#/market' : entry.route ?? '#/flips');
+
 // ---- context hints: one short note the first time a feature shows up
 
 // at: where the note goes (CSS selector); where: its place relative to that element, as in insertAdjacentHTML.
 // text may be a function of { native, pro }.
 export const HINTS = {
+  today: { at: '#today', where: 'afterbegin',
+    text: 'Today is your overview: what your plan earns, what needs your attention and what is new since your last visit. Each block has a link to the tab behind it.' },
+  minions: { at: '#minion-note', where: 'beforebegin',
+    text: 'Pick a tier, how many minions you place, a fuel and two upgrades. The list shows what each minion earns per day with that setup, the best one first. "not confirmed" marks a number the wiki leaves open.' },
   card: { at: '#count', where: 'beforebegin',
     text: 'Tap a card for its price history. To flip, place a buy order at the Buy order price, then sell with a sell offer.' },
   detail: { at: '#detail .ranges', where: 'beforebegin',
@@ -159,13 +171,18 @@ export const HINTS = {
     text: 'These are the flips you can act on without checking them by hand: stable for at least a day, not suspicious, and above the margin, volume and profit set for Opportunities.' },
   portfolio: { at: '.portfolio h2', where: 'afterend',
     text: 'A plan, not a promise: your total capital put into the safe flips with the best return. No flip gets more than your max. capital per flip; a note says what holds capital back.' },
+  planalerts: { at: '.alerts h2', where: 'afterend',
+    text: ({ native }) => 'The app remembers your plan and tells you when a flip in it goes wrong: its price fell, its numbers look suspicious, or the election may move it.'
+      + (native ? ' The settings under Portfolio can send these as notifications.' : '') },
+  crafthint: { at: '.portfolio .craft-note', where: 'beforebegin',
+    text: '"Craft into" means: with the same coins, crafting this item into something else and selling that would earn more than the flip. It takes one buy order per ingredient plus the sell offer, and you need the recipe.' },
   npc: { at: '#count', where: 'beforebegin',
     text: 'NPC flips: buy with a buy order, then sell to an NPC shop for a fixed price. There is no bazaar tax. Profit (instant buy) is what is left if you buy at once instead of waiting for your order.' },
   craft: { at: '#count', where: 'beforebegin',
     text: 'Craft flips: buy the ingredients with buy orders, craft, and sell the result with a sell offer. Revenue is already after tax. Crafts/h is limited by the ingredient that trades least.' },
   forge: { at: '.forge-filter', where: 'beforebegin',
     text: 'Set your HotM tier in the settings to hide recipes you cannot forge yet. "Incl. AH" adds results that sell on the Auction House; their prices are estimates.' },
-  radar: { at: '.radar > summary', where: 'afterend',
+  radar: { at: '#radar .radar h2', where: 'afterend',
     text: 'Tap an event or perk to see the items it affects. A price pattern appears once a price moved the same way three times; until then it says "not enough data yet".' },
   search: { at: '#count', where: 'afterend',
     text: 'The search covers the whole bazaar. Cards with a grey line in italics are not a flip right now; the line says why.' },
@@ -201,8 +218,8 @@ const versionHtml = (v) => `<section><h3>Version ${esc(v.version)} <span class="
 <ul class="news">${v.entries.map((e) => `<li><strong>${esc(e.title)}</strong> ${esc(e.text)}</li>`).join('')}</ul></section>`;
 
 // Shown once, on the first switch to Pro mode. count: the number of stations on this platform.
-export const advancedOfferHtml = (count = 4) => `<h2>Take the advanced tour?</h2>
-<p>${count} short stops: trends, the event radar, the portfolio${count > 4 ? ', forge flips and alerts' : ' and forge flips'}. You can also start it later from the ? at the top.</p>
+export const advancedOfferHtml = (count = 5) => `<h2>Take the advanced tour?</h2>
+<p>${count} short stops: trends, the event radar, the portfolio, forge flips${count > 5 ? ', minions and alerts' : ' and minions'}. You can also start it later from the ? at the top.</p>
 <div class="actions">${button('close', 'Not now')}${button('tour-advanced', 'Take the advanced tour', true)}</div>`;
 
 // Shown after "Skip", so nobody misses the setup.
@@ -238,9 +255,14 @@ const HOW = [
   ['Portfolio', 'A plan at the top of Opportunities. Your total capital goes to the opportunities with the best return, each filled as far as the item trades. No flip gets more than your max. capital per flip, and none more than its volume can use.'],
   ['NPC flips', 'Buy an item with a buy order and sell it to an NPC shop for a fixed price. There is no bazaar tax on that sale. "Profit (instant buy)" is what is left if you buy at the sell offer price instead of waiting for your order.', true],
   ['Craft flips', 'Buy the ingredients with buy orders, craft, and sell the result with a sell offer. Cost is all ingredients, revenue is the sale after tax. Crafts/h is limited by the ingredient that trades least, your market share and your capital.', true],
+  ['Portfolio warnings', 'The app stores the plan you last saw, with the buy order price each item had when it entered. A warning appears above the plan and on Today when a buy order falls more than 5% below that price (you can change the number), when the margin drops under 1%, when the flip turns suspicious, when the leading candidate of an election or the next minister has a perk that is expected to lower the price, or when the mayor whose perk kept the price down leaves within 24 hours. "Got it" stores the current plan. The Android app can send the same warnings as notifications, each kind with its own switch.'],
+  ['Craft hints in the portfolio', 'When an item of your plan is an ingredient of a recipe that earns more per hour than the flip, its row says "Craft into …". The craft is worked out with the coins the plan gave that flip, your tax and market share, and no faster than every ingredient and the result trade. The number after the plus is what it earns on top. "uses N orders" counts one buy order per ingredient and one sell offer, out of the 21 the bazaar allows. The plan itself does not change, and the hint cannot know whether you have unlocked the recipe.', true],
   ['Forge', 'The cost is all ingredients bought with buy orders. A Bazaar result sells at its sell offer price minus tax. Any other result is priced at the lowest BIN on the Auction House minus the fees there, which makes it an estimate. Profit/forge hour is what one forge slot can earn, but never more than you can sell; the card says which of the two limits it.', true],
-  ['Events', 'The countdowns come from the SkyBlock calendar, the mayor and perks from Hypixel\'s election data. An item with an event badge is typically obtained during that event or through that perk. The rule of three: only when an item\'s price moved the same way in three past events or terms does the radar say how much it usually changes. Before that it says "not enough data yet". It is never a guarantee.', true],
-  ['Trends', 'The arrow is the direction of the sell price over the last 24 hours; rising or falling means more than 3% in a day. "below normal" and "above normal" mean the price is more than 10% off its 7 day median. Trends are a hint and never change Opportunities or alerts.', true],
+  ['Today', 'The overview you start with. Portfolio shows what your plan earns per hour, how much of your capital it uses and how many of your flips are taken. Warnings lists what went wrong with the plan you last saw. New since your last visit shows up to three opportunities that were not there when you last had the app open; after 30 minutes away it counts as a new visit. In Pro mode, Coming up names the next events and the election with a countdown.'],
+  ['Minions', 'What a minion earns per day with the setup you pick. A minion needs two actions for one harvest, so it harvests 86,400 ÷ (2 × time between actions) times a day; fuel and speed upgrades add their percentages and shorten that time. Bazaar/day is everything sold at once to the highest buy orders, after tax. NPC/day is the NPC sell price. The better one counts, and fuel that is used up is taken off at its lowest sell offer; a lava bucket lasts forever and costs nothing per day. Diamond Spreading adds one Diamond per 10 items, the Super Compactor 3000 turns items into their enchanted form. "Full after" is how long one minion takes to fill its own storage. The numbers are from the Hypixel SkyBlock wiki; "not confirmed" marks what it leaves open.', true],
+  ['Areas', 'The bar at the bottom has the areas of the app. Today is the overview. Trade holds every kind of flip, with its tabs at the top; search, sorting and filters work there. Pro mode adds Minions and Market.'],
+  ['Events', 'You find them in the Market area. The countdowns come from the SkyBlock calendar, the mayor and perks from Hypixel\'s election data. An item with an event badge is typically obtained during that event or through that perk. The rule of three: only when an item\'s price moved the same way in three past events or terms does the radar say how much it usually changes. Before that it says "not enough data yet". It is never a guarantee.', true],
+  ['Trends', 'The Market area lists the items of your Flips list that rose and fell most. The arrow on a card is the direction of the sell price over the last 24 hours; rising or falling means more than 3% in a day. "below normal" and "above normal" mean the price is more than 10% off its 7 day median. Trends are a hint and never change Opportunities or alerts.', true],
 ];
 // pro: false leaves out what Simple mode does not show.
 export const helpHtml = ({ pro = true } = {}) => `<h2>Help</h2>

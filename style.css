@@ -154,7 +154,7 @@ button:active { filter: brightness(.8); }
 .help-actions button { padding: 0 14px; }
 #settings label.check { display: flex; align-items: center; gap: 10px; font-weight: 600; }
 #settings label.check input { width: 22px; height: 22px; min-height: 0; flex: none; }
-#market-alert-settings { display: grid; gap: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+#market-alert-settings, #plan-alert-settings { display: grid; gap: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
 #settings .hint { margin: 0; font-size: 12px; color: var(--loss); }
 #settings .ranges { margin: 0; }
 
@@ -171,14 +171,28 @@ main.sliding .card, #peek .card { animation: none; }
 /* the neighbouring tab, shown beside the page while a swipe is in progress */
 #peek { position: absolute; width: 100%; max-height: 100vh; overflow: hidden; padding-top: 8px; pointer-events: none; }
 #peek[hidden] { display: none; }
-footer { padding-bottom: calc(24px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))); font-size: 11px; color: var(--muted); }
+footer { padding-bottom: calc(82px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))); font-size: 11px; color: var(--muted); }
 footer a { color: inherit; }
 .count { margin: 0 0 8px; }
 
-/* radar: mayor and events, folded to one line above every list */
+/* areas: the bar at the bottom. It mirrors the header: same surface, the accent line towards the page.
+   It stays clear of Android's gesture bar; in a browser the inset is 0. */
+#areas { position: fixed; left: 0; right: 0; bottom: 0; z-index: 2; display: flex; background: var(--header-bg); border-top: 2px solid var(--accent);
+  padding-inline: max(0px, calc((100vw - var(--page)) / 2)); padding-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)); }
+#areas a { flex: 1; min-height: 56px; display: grid; justify-items: center; align-content: center; gap: 2px; font-size: 12px; color: var(--muted); text-decoration: none; }
+#areas a[aria-current="page"] { color: var(--accent); font-weight: 600; }
+#areas a:active { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--text); }
+/* the keyboard would push the bar over the list while typing a search */
+body:has(#search:focus) #areas { display: none; }
+/* what belongs to one area only: search, sorting, filters and tabs are Trade's */
+body:not([data-area="trade"]) :is(.filters, #tabs, #chips, #portfolio, #count, #list),
+body:not([data-area="today"]) #today, body:not([data-area="minions"]) #minions, body:not([data-area="market"]) #market { display: none; }
+#today, #minions, #market { min-height: 60vh; }
+
+/* radar: mayor, election and events in the Market area */
 .radar { margin: 4px 0 12px; padding: 0 12px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; max-width: 720px; font-size: 14px; }
 .radar summary { cursor: pointer; padding: 10px 0; }
-.radar > summary { min-height: 44px; }
+.radar h2 { margin: 0; padding: 10px 0; font-size: inherit; font-weight: 400; }
 .radar-title { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--event); text-transform: uppercase; letter-spacing: .06em; vertical-align: middle; }
 .radar-title .ico { width: 16px; height: 16px; }
 .radar-line { display: block; margin-top: 2px; font-size: 13px; color: var(--muted); }
@@ -193,6 +207,31 @@ footer a { color: inherit; }
 .votes li { padding: 8px 0; }
 .votes small { display: block; color: var(--muted); font-size: 12px; }
 
+/* warnings about the stored plan: a banner above the portfolio and on Today */
+.alerts { margin: 4px 0 12px; padding: 12px; background: var(--card); border: 1px solid var(--warn); border-radius: 12px; max-width: 720px; }
+.alerts h2 { display: flex; align-items: center; gap: 6px; margin: 0 0 4px; font-size: 13px; font-weight: 600; color: var(--warn); text-transform: uppercase; letter-spacing: .06em; }
+.alerts h2 .ico { width: 16px; height: 16px; }
+.alerts ul { list-style: none; margin: 0; padding: 0; }
+.alerts li { padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.alerts li a { color: var(--text); }
+.alerts li small { display: block; font-size: 12px; color: var(--warn); }
+.alerts .muted { margin: 8px 0; }
+.alerts button { min-height: 36px; }
+
+/* Minions: the setup in one row of fields above the list; two columns on a phone */
+.setup { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 4px 0 12px; max-width: 900px; }
+.setup label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+.setup select, .setup input { width: 100%; }
+.card.minion .name { padding-right: 0; }
+
+/* Today: the blocks reuse the portfolio and radar cards; each ends with a link to its tab */
+.more { display: flex; align-items: center; justify-content: flex-end; gap: 4px; min-height: 44px; margin-top: 4px; color: var(--accent); font-size: 13px; text-decoration: none; }
+.more .ico { width: 14px; height: 14px; }
+.more:active { filter: brightness(.8); }
+.coming li { padding: 8px 0; }
+.coming li small { display: block; color: var(--muted); font-size: 12px; }
+.coming a { color: var(--text); }
+
 /* portfolio: the plan at the top of the Opportunities tab */
 .portfolio { margin: 4px 0 16px; padding: 12px; background: var(--card); border: 1px solid var(--accent); border-radius: 12px; max-width: 720px; }
 .portfolio h2 { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: .06em; }
@@ -206,6 +245,8 @@ footer a { color: inherit; }
 .picks a { min-height: 40px; color: var(--text); text-decoration: none; font-size: 14px; border-bottom: 1px solid var(--line); }
 .picks .pick { overflow-wrap: anywhere; }
 .picks .pick small { display: block; font-size: 11px; color: var(--warn); }
+/* a craft hint is an offer, not a warning */
+.picks .pick small.craft { color: var(--gain); }
 .picks .stake { color: var(--muted); }
 .assume { margin: 10px 0 0; font-size: 12px; color: var(--warn); }
 .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; min-height: 60vh; align-content: start; }
@@ -327,7 +368,7 @@ body.detail #tabs, body.detail .filters, body.detail #count, body.detail #list, 
   /* press: things give way a little and ease back; without motion only the colours change */
   .card { transition: background-color .15s, border-color .25s, box-shadow .25s, transform .12s ease-out; }
   .card:has(.body:active) { transform: scale(.98); }
-  button, #tabs a, .picks a, .back { transition: filter .12s ease-out, background-color .12s ease-out, transform .12s ease-out; }
+  button, #tabs a, #areas a, .picks a, .back { transition: filter .12s ease-out, background-color .12s ease-out, transform .12s ease-out; }
   .star:active { transform: scale(.85); }
   /* the pill follows the finger directly and eases everywhere else */
   #ptr { transition: transform .2s ease-out, visibility 0s .2s; }

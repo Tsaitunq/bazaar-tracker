@@ -101,15 +101,16 @@ export const PERK_EXPECT = {
 
 export const LEAVING_MS = 24 * 3600000; // a term this close to its end is announced on the items it holds down
 
-// { itemId: text } for the portfolio: what the election may do to an item's price. Two cases, both from
+// { itemId: { kind, text } } for the portfolio: what the election may do to an item's price. Two cases, both from
 // PERK_EXPECT and so an expectation, not a measurement:
 // - a perk that is coming: all perks of the candidate with the most votes, and the minister perk of the
 //   runner-up (candidate.minister; absent in files written before it was stored)
 // - a perk that is going: the mayor's and the minister's, when the term ends within LEAVING_MS
-// An item with both keeps the first, because the perk stays.
-export function flipWarnings(election, nowMs) {
+// An item with both keeps the first, because the perk stays. kind is 'election' or 'leaving'.
+export function flipRisks(election, nowMs) {
   const out = {};
-  const mark = (perk, text) => { for (const id of PERK_EXPECT[perk]?.items ?? []) out[id] ??= text; };
+  let kind = 'election';
+  const mark = (perk, text) => { for (const id of PERK_EXPECT[perk]?.items ?? []) out[id] ??= { kind, text }; };
   const [lead, second] = [...(election?.vote?.candidates ?? [])].sort((a, b) => b.votes - a.votes);
   if (lead?.votes > 0) {
     for (const perk of lead.perks) mark(perk, `${lead.name} may lower this price`);
@@ -120,11 +121,35 @@ export function flipWarnings(election, nowMs) {
   const mayor = election?.mayor;
   // the election file lags behind the calendar: only a mayor elected for this term counts
   if (left < LEAVING_MS && mayor?.year === skyDate(start).year - 1) {
+    kind = 'leaving';
     const leaves = (name) => `${name} leaves in ${Math.ceil(left / 3600000)}h – price may rise back`;
     for (const perk of mayor.perks ?? []) mark(perk.name, leaves(mayor.name));
     if (mayor.minister) mark(mayor.minister.perk.name, leaves(mayor.minister.name));
   }
   return out;
+}
+// the same as plain sentences
+export const flipWarnings = (election, nowMs) =>
+  Object.fromEntries(Object.entries(flipRisks(election, nowMs)).map(([id, risk]) => [id, risk.text]));
+
+// What the Android worker needs to repeat flipRisks for the items of a plan. It has no calendar and no
+// list of perks, so both come from here:
+// perks: { itemId: [perk names that are expected to lower its price] }, only for the given ids
+// term: { end, perks: { perk name: who brings it } } of the mayor in office, or null when the election
+// file is behind the calendar. The worker reads the candidates from election.json itself.
+export function planElection(ids, election, nowMs) {
+  const perks = {};
+  for (const [perk, { items }] of Object.entries(PERK_EXPECT)) {
+    for (const id of items) if (ids.includes(id)) (perks[id] ??= []).push(perk);
+  }
+  const start = termStart(nowMs);
+  const mayor = election?.mayor;
+  const term = mayor?.year === skyDate(start).year - 1 ? {
+    end: start + YEAR_DAYS * DAY_MS,
+    perks: Object.fromEntries([...(mayor.perks ?? []).map((p) => [p.name, mayor.name]),
+      ...(mayor.minister ? [[mayor.minister.perk.name, mayor.minister.name]] : [])]),
+  } : null;
+  return { perks, term };
 }
 
 // A mayor takes office when the election closes on Late Spring 27 and stays for a year.

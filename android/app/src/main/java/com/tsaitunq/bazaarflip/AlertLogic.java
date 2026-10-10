@@ -15,6 +15,7 @@ import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -31,6 +32,10 @@ final class AlertLogic {
     /** Stability score from which the app shows the "stable" badge. */
     static final int STABLE = 70;
     static final int MAX_LINES = 3;
+    /** A plan flip whose margin falls below this is reported. Same value as PLAN_MIN_MARGIN in flips.js. */
+    static final double PLAN_MIN_MARGIN = 0.01;
+    /** A term this close to its end is announced. Same value as LEAVING_MS in events.js. */
+    static final long LEAVING_MS = 24 * 3_600_000L;
     private static final double HOURS_PER_WEEK = 168;
     private static final DecimalFormatSymbols EN = new DecimalFormatSymbols(Locale.US);
 
@@ -312,6 +317,150 @@ final class AlertLogic {
             out.add(name(names, f.id) + ": " + percent(f.margin) + " · " + coins(f.profitHour) + "/h");
         }
         if (hits.size() > MAX_LINES) out.add("+" + (hits.size() - MAX_LINES) + " more");
+        return out;
+    }
+
+    /** One flip of the stored plan: the buy order price it entered the plan at. */
+    static final class PlanItem {
+        final String id;
+        final double buy;
+
+        PlanItem(String id, double buy) {
+            this.id = id;
+            this.buy = buy;
+        }
+    }
+
+    /** A finding about a plan flip. kind: "price", "suspicious", "election" or "leaving". */
+    static final class Warning {
+        final String id;
+        final String kind;
+        final String text;
+
+        Warning(String id, String kind, String text) {
+            this.id = id;
+            this.kind = kind;
+            this.text = text;
+        }
+    }
+
+    /**
+     * What the market did to the flips of a stored plan. Same rules as planWarnings in flips.js, with the
+     * sentences of warningText in render.js: the buy order fell more than {@code drop} (a fraction) below
+     * the plan price, or the price held but the margin is under PLAN_MIN_MARGIN; and the flip is suspicious.
+     * An item that is not on the market is skipped; without a stat the median check is left out.
+     */
+    static List<Warning> planWarnings(List<PlanItem> items, Map<String, Product> market, Map<String, Stat> stats,
+            double tax, double drop) {
+        List<Warning> out = new ArrayList<>();
+        for (PlanItem item : items) {
+            Product p = market.get(item.id);
+            if (p == null) continue;
+            Stat stat = stats.get(item.id);
+            Flip f = flip(item.id, p, tax, 0, 1, stat == null ? Double.NaN : stat.median);
+            if (f.buy < item.buy * (1 - drop)) {
+                out.add(new Warning(item.id, "price", "Buy order " + percent(1 - f.buy / item.buy) + " below your plan price"));
+            } else if (f.margin < PLAN_MIN_MARGIN) {
+                out.add(new Warning(item.id, "price", "Margin down to " + percent(f.margin)));
+            }
+            if (f.suspicious) out.add(new Warning(item.id, "suspicious", "Prices look suspicious now"));
+        }
+        return out;
+    }
+
+    /** A candidate of the running election, as election.json stores it. minister: the perk brought along as runner-up. */
+    static final class Candidate {
+        final String name;
+        final double votes;
+        final List<String> perks;
+        final String minister;
+
+        Candidate(String name, double votes, List<String> perks, String minister) {
+            this.name = name;
+            this.votes = votes;
+            this.perks = perks;
+            this.minister = minister;
+        }
+    }
+
+    /** The candidates under "vote" in election.json; none when no election runs. */
+    static List<Candidate> readCandidates(Reader json) throws IOException {
+        List<Candidate> out = new ArrayList<>();
+        try {
+            JsonElement root = JsonParser.parseReader(json);
+            JsonElement vote = root.isJsonObject() ? root.getAsJsonObject().get("vote") : null;
+            if (vote == null || !vote.isJsonObject()) return out;
+            for (JsonElement e : vote.getAsJsonObject().getAsJsonArray("candidates")) {
+                JsonObject o = e.getAsJsonObject();
+                List<String> perks = new ArrayList<>();
+                for (JsonElement perk : o.getAsJsonArray("perks")) perks.add(perk.getAsString());
+                JsonElement minister = o.get("minister");
+                out.add(new Candidate(o.get("name").getAsString(), o.get("votes").getAsDouble(), perks,
+                    minister == null || minister.isJsonNull() ? null : minister.getAsString()));
+            }
+        } catch (RuntimeException e) {
+            throw new IOException("unexpected election file", e);
+        }
+        return out;
+    }
+
+    /**
+     * Plan flips whose price the election may lower: every perk of the candidate with the most votes, and
+     * the minister perk of the runner-up. Same rule as the first half of flipRisks in events.js.
+     * itemPerks: per plan item the perks that are expected to lower its price (the app sends them).
+     */
+    static List<Warning> electionWarnings(List<Candidate> candidates, Map<String, List<String>> itemPerks) {
+        List<Candidate> sorted = new ArrayList<>(candidates);
+        sorted.sort((a, b) -> Double.compare(b.votes, a.votes));
+        Map<String, String> texts = new LinkedHashMap<>();
+        if (!sorted.isEmpty() && sorted.get(0).votes > 0) {
+            Candidate lead = sorted.get(0);
+            for (String perk : lead.perks) mark(texts, itemPerks, perk, lead.name + " may lower this price");
+            if (sorted.size() > 1 && sorted.get(1).votes > 0 && sorted.get(1).minister != null) {
+                mark(texts, itemPerks, sorted.get(1).minister, sorted.get(1).name + " may lower this price");
+            }
+        }
+        return warnings(texts, "election");
+    }
+
+    /**
+     * Plan flips whose price a perk kept down, in the last 24 hours of the term. Same rule as the second
+     * half of flipRisks in events.js. termPerks: perk name to who brings it, the mayor's perks first.
+     */
+    static List<Warning> leavingWarnings(long termEnd, Map<String, String> termPerks, Map<String, List<String>> itemPerks, long now) {
+        Map<String, String> texts = new LinkedHashMap<>();
+        long left = termEnd - now;
+        if (left > 0 && left < LEAVING_MS) {
+            long hours = (long) Math.ceil(left / 3_600_000.0);
+            for (Map.Entry<String, String> e : termPerks.entrySet()) {
+                mark(texts, itemPerks, e.getKey(), e.getValue() + " leaves in " + hours + "h – price may rise back");
+            }
+        }
+        return warnings(texts, "leaving");
+    }
+
+    /** The first sentence for an item stays, as in flipRisks. */
+    private static void mark(Map<String, String> texts, Map<String, List<String>> itemPerks, String perk, String text) {
+        for (Map.Entry<String, List<String>> e : itemPerks.entrySet()) {
+            if (e.getValue().contains(perk) && !texts.containsKey(e.getKey())) texts.put(e.getKey(), text);
+        }
+    }
+
+    private static List<Warning> warnings(Map<String, String> texts, String kind) {
+        List<Warning> out = new ArrayList<>();
+        for (Map.Entry<String, String> e : texts.entrySet()) out.add(new Warning(e.getKey(), kind, e.getValue()));
+        return out;
+    }
+
+    static String planTitle(int count) {
+        return count + (count == 1 ? " portfolio warning" : " portfolio warnings");
+    }
+
+    /** The first three warnings as "name: sentence", then "+N more". */
+    static List<String> planLines(List<Warning> warnings, Map<String, String> names) {
+        List<String> out = new ArrayList<>();
+        for (Warning w : warnings.subList(0, Math.min(MAX_LINES, warnings.size()))) out.add(name(names, w.id) + ": " + w.text);
+        if (warnings.size() > MAX_LINES) out.add("+" + (warnings.size() - MAX_LINES) + " more");
         return out;
     }
 

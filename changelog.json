@@ -1,6 +1,16 @@
 {
   "versions": [
     {
+      "version": "0.7.0",
+      "date": "2026-10-10",
+      "entries": [
+        { "title": "A bar at the bottom", "text": "The app now has four areas: Today, Trade, Minions and Market. Trade holds the flips with their tabs, Market the mayor, events and trends; Simple mode shows Today and Trade.", "target": "#areas", "route": "#/flips" },
+        { "title": "Today", "text": "An overview to start with: what your portfolio earns, what needs your attention, the next events and up to three opportunities that are new since your last visit.", "target": "#today", "route": "#/today" },
+        { "title": "The portfolio watches your plan", "text": "A flip of your plan gets a warning when its price drops, it turns suspicious or the election may move it, and a hint when crafting the item would earn more. The Android app can send the warnings as notifications.", "target": "#portfolio", "route": "#/opps" },
+        { "title": "Minion calculator", "text": "Pick a tier, a fuel and two upgrades and see what thirteen minions earn per day at the Bazaar or the NPC, best first.", "target": "#minion-setup", "route": "#/minions" }
+      ]
+    },
+    {
       "version": "0.6.7",
       "date": "2026-10-10",
       "entries": [

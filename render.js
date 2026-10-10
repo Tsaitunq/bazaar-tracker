@@ -178,6 +178,29 @@ export const filterChips = (keys, settings) => keys.map((key) => {
   return `<button type="button" class="chip" data-unfilter="${key}" aria-label="Remove filter: ${text}">${text}${ICONS.close}</button>`;
 }).join('');
 
+const moreLink = (href, label) => `
+  <a class="more" href="${href}">${label}${ICONS.flat}</a>`;
+
+// One warning about a flip of the stored plan as a sentence. AlertLogic.planText says the same in a notification.
+export function warningText(w) {
+  if (w.text) return w.text; // election and leaving come with their sentence (flipRisks)
+  if (w.kind === 'suspicious') return 'Prices look suspicious now';
+  return w.fall != null ? `Buy order ${percent.format(w.fall)} below your plan price` : `Margin down to ${percent.format(w.margin)}`;
+}
+
+// The warnings of the stored plan, above the portfolio and on Today. alerts: [{ id, name, kind, ... }].
+// dismiss: a price or suspicious warning is in the list; "Got it" then stores the current plan.
+// more: add the link to the portfolio (Today shows the warnings without the plan below them).
+export function warningsView(alerts, { dismiss = false, more = false } = {}) {
+  if (!alerts.length) return '';
+  return `<section class="alerts" role="status">
+  <h2>${ICONS.warn}Portfolio warnings</h2>
+  <ul>${alerts.map((w) => `<li><a href="${esc(itemHref(w.id))}">${esc(w.name)}</a> <small>${esc(warningText(w))}</small></li>`).join('')}</ul>${dismiss ? `
+  <p class="muted">Compared with the plan you last saw. The portfolio already shows the new one.</p>
+  <div class="actions"><button type="button" data-act="plan-seen">Got it</button></div>` : ''}${more ? moreLink('#/opps', 'Open the portfolio') : ''}
+</section>`;
+}
+
 // Why a plan leaves capital unused (plan.limit) and what would change it. Simple mode hides the settings
 // the advice names, so there it sends the player to Pro instead.
 function limitNote(plan, { capital, slots, simple }) {
@@ -197,6 +220,7 @@ function limitNote(plan, { capital, slots, simple }) {
 // The plan at the top of the Opportunities tab: total first, then what it is made of.
 // plan comes from portfolio() with a name on every flip, and `risk` (a sentence from flipWarnings) where
 // the election may move the item's price; sharePercent is the market share setting.
+// craft: { name, extra, orders } from craftHints where crafting the item pays more than flipping it.
 // slots: the "Max. flips" setting; simple: Simple mode (see limitNote).
 export function portfolioView(plan, { capital, slots, sharePercent, simple = false }) {
   const hint = `<p class="assume">Assumes ${num(sharePercent)}% market share – only realistic if you relist actively</p>`;
@@ -205,20 +229,22 @@ export function portfolioView(plan, { capital, slots, sharePercent, simple = fal
       ? 'No flip qualifies for the portfolio right now. It takes stable, unsuspicious items with 24 hours of price history.'
       : 'Set a total capital in the settings to get a plan.'}</p></section>`;
   }
-  const rows = plan.flips.map((f) => `<li><a href="${esc(itemHref(f.id))}"><span class="pick">${esc(f.name)}${f.risk ? `<small>${esc(f.risk)}</small>` : ''}</span><span class="stake">${num(f.stake)}</span><span class="gain">${num(f.profitHour)}/h</span></a></li>`).join('');
+  const rows = plan.flips.map((f) => `<li><a href="${esc(itemHref(f.id))}"><span class="pick">${esc(f.name)}${f.risk ? `<small>${esc(f.risk)}</small>` : ''}${f.craft
+    ? `<small class="craft pro">Craft into ${esc(f.craft.name)}: +${num(f.craft.extra)}/h · uses ${f.craft.orders} orders</small>` : ''}</span><span class="stake">${num(f.stake)}</span><span class="gain">${num(f.profitHour)}/h</span></a></li>`).join('');
   return `<section class="portfolio">
   <h2>Portfolio</h2>
   <div class="total"><span class="big gain">${num(plan.profitHour)}</span><span class="lbl">Profit/h</span></div>
   <p class="muted">Using ${plan.flips.length} of ${Math.floor(slots)} flips · ${num(plan.used)} of ${num(capital)} capital in use · ${percent.format(plan.profitHour / plan.used)} return per hour</p>
   ${plan.limit ? limitNote(plan, { capital, slots: Math.floor(slots), simple }) : ''}
   <div class="picks-head"><span>Item</span><span>Stake</span><span>Profit/h</span></div>
-  <ol class="picks">${rows}</ol>
+  <ol class="picks">${rows}</ol>${plan.flips.some((f) => f.craft) ? `
+  <p class="craft-note muted pro">Craft hints are not part of the plan. They only work if you have unlocked the recipe.</p>` : ''}
   ${hint}
 </section>`;
 }
 
-// The mayor and event radar above every list. Folded it is one line; unfolded it lists the mayor's
-// perks, the election and the events, each of which unfolds to its details.
+// The mayor and event radar of the Market area: one line as a summary, then the mayor's perks, the
+// election and the events, each of which unfolds to its details.
 // perks: activePerks(); events: upcoming(); vote: electionWindow(); name(id): an item's name;
 // open: keys of the parts that are unfolded; timing: past runs per event and perk (timing.js).
 export function radarView({ election, perks, events, vote, now, name, open = new Set(), timing = {} }) {
@@ -270,8 +296,8 @@ export function radarView({ election, perks, events, vote, now, name, open = new
     `<p class="muted">${e.active ? 'Started' : 'Starts'} on ${day(e.start)} · lasts ${duration((e.end - e.start) / 1000)} (${Math.round((e.end - e.start) / DAY_MS)} SkyBlock days)${
       e.perk ? ` · only with the ${esc(e.perk)} perk` : ''}</p>${priced('Typically affected:', eventRows(e))}`)).join('');
 
-  return `<details class="radar" data-key="radar"${open.has('radar') ? ' open' : ''}>
-  <summary><span class="radar-title">${ICONS.event}Event radar</span> <span class="radar-line">${esc(line)}</span></summary>
+  return `<section class="radar">
+  <h2><span class="radar-title">${ICONS.event}Event radar</span> <span class="radar-line">${esc(line)}</span></h2>
   <h3>Mayor</h3>
   ${mayor}
   <h3>Election</h3>
@@ -279,7 +305,7 @@ export function radarView({ election, perks, events, vote, now, name, open = new
   <h3>Events</h3>
   <ul>${list}</ul>
   <p class="muted">Based on past events, not a guarantee.</p>
-</details>`;
+</section>`;
 }
 
 export function parseRoute(hash) {
@@ -287,8 +313,94 @@ export function parseRoute(hash) {
   if (view === 'item' && arg) {
     try { return { view, id: decodeURIComponent(arg) }; } catch {}
   }
-  return { view: TABS.includes(view) ? view : 'flips' };
+  return { view: TABS.includes(view) || AREAS.includes(view) ? view : 'flips' };
 }
+
+// The Market area's own list: the items whose sell price moved most over the last day.
+// flips: the Flips list with name and trend on every item (change per 24 hours, see trends.js).
+const TREND_ROWS = 5;
+export function trendsView(flips) {
+  const moving = (dir) => flips.filter((f) => direction(f.trend) === dir)
+    .sort((a, b) => (dir === 'rising' ? b.trend - a.trend : a.trend - b.trend)).slice(0, TREND_ROWS);
+  const part = (dir, title) => {
+    const rows = moving(dir);
+    return `<h3>${title}</h3>${rows.length ? `<ul class="timing">${rows.map((f) =>
+      `<li><a href="${esc(itemHref(f.id))}">${esc(f.name)}</a> <span class="side">${f.trend > 0 ? '+' : '−'}${percent.format(Math.abs(f.trend))} / day</span></li>`).join('')}</ul>`
+      : '<p class="muted">Nothing right now.</p>'}`;
+  };
+  return `<section class="radar trends">
+  <h2><span class="radar-title">${ICONS.rising}Trends</span> <span class="radar-line">Sell price over the last 24 hours, items from your Flips list</span></h2>
+  ${part('rising', 'Rising')}
+  ${part('falling', 'Falling')}
+  <p class="muted">A trend is a hint, not a forecast.</p>
+</section>`;
+}
+
+// The Today area: what the plan earns, what needs attention, what comes next and what is new.
+// Every block ends with a link to the tab behind it.
+// plan, capital, slots: as for portfolioView. alerts, dismiss: as for warningsView.
+// events: upcoming(); vote: electionWindow(); voteItems: ids the election may make cheaper (flipRisks).
+// fresh: up to three opportunities, best first, with a name; firstVisit: there is no last visit to compare with.
+const TODAY_EVENTS = 3;
+const TODAY_ITEMS = 3;
+export function todayView({ plan, capital, slots, alerts = [], dismiss = false, events = [], vote, election = null, voteItems = [], fresh = [], firstVisit = false, now, name }) {
+  const until = (t) => duration(Math.ceil(Math.max(0, t - now) / 60000) * 60);
+  const items = (ids) => (ids.length ? `<small>Affected: ${ids.slice(0, TODAY_ITEMS).map((id) => esc(name(id))).join(', ')}${
+    ids.length > TODAY_ITEMS ? ` +${ids.length - TODAY_ITEMS} more` : ''}</small>` : '');
+
+  const portfolio = `<section class="portfolio">
+  <h2>Portfolio</h2>${plan?.flips.length ? `
+  <div class="total"><span class="big gain">${num(plan.profitHour)}</span><span class="lbl">Profit/h</span></div>
+  <p class="muted">${num(plan.used)} of ${num(capital)} capital in use · ${plan.flips.length} of ${Math.floor(slots)} flips</p>` : `
+  <p class="muted">${capital > 0 ? 'No flip qualifies for the portfolio right now.' : 'Set a total capital in the settings to get a plan.'}</p>`}${moreLink('#/opps', 'Open the portfolio')}
+</section>`;
+
+  const lead = election?.vote && [...election.vote.candidates].sort((a, b) => b.votes - a.votes)[0];
+  const rows = [
+    ...events.slice(0, TODAY_EVENTS).map((e) => [e.name, e.active ? `now · ${until(e.end)} left` : `in ${until(e.start)}`, items(e.items)]),
+    vote && [lead?.votes > 0 ? `Election · ${lead.name} leads` : 'Election', vote.open ? `closes in ${until(vote.at)}` : `opens in ${until(vote.at)}`, items(voteItems)],
+  ].filter(Boolean);
+  const coming = `<section class="radar pro">
+  <h2><span class="radar-title">${ICONS.event}Coming up</span></h2>
+  <ul class="coming">${rows.map(([title, side, small]) => `<li><span>${esc(title)}</span> <span class="side">${esc(side)}</span>${small}</li>`).join('')}</ul>${moreLink('#/market', 'Open the market')}
+</section>`;
+
+  const news = `<section class="radar">
+  <h2><span class="radar-title">${ICONS.rising}${firstVisit ? 'Top opportunities' : 'New since your last visit'}</span></h2>${fresh.length ? `
+  <ul class="coming">${fresh.map((f) => `<li><a href="${esc(itemHref(f.id))}">${esc(f.name)}</a> <span class="side"><span class="gain">${num(f.profitHour)}/h</span> · ${percent.format(f.margin)}</span></li>`).join('')}</ul>` : `
+  <p class="muted">No new opportunity since your last visit.</p>`}${moreLink('#/opps', 'Open the opportunities')}
+</section>`;
+
+  return portfolio + warningsView(alerts, { dismiss, more: true }) + coming + news;
+}
+
+// One minion of the Minions area. row comes from minionRows; all coins are per day and for every minion placed.
+const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+export const minionCard = (row) => `<li class="card minion">
+  <a class="body" href="${esc(itemHref(row.id))}">
+    <div class="name">${tile(row.id, 32)}<span>${esc(row.name)}</span></div>
+    <div class="badges"><span class="badge badge-trend">Tier ${ROMAN[row.tier - 1]}${row.tier === row.maxTier ? ' (highest)' : ''}</span>${
+      row.unsure.length ? `<span class="badge badge-warn">${ICONS.warn}not confirmed</span>` : ''}</div>
+    <div class="key">
+      <div><span class="big ${gain(row.net)}">${num(row.net)}</span><span class="lbl">Coins/day</span></div>
+      <div><span class="big">${row.best === 'npc' ? 'NPC' : 'Bazaar'}</span><span class="lbl">Sell at</span></div>
+    </div>
+    <dl class="facts">${[
+      fact('Bazaar/day', num(row.bazaar)),
+      fact('NPC/day', num(row.npcCoins)),
+      fact('Fuel/day', row.fuelCost > 0 ? `−${num(row.fuelCost)}` : '–'),
+      fact('Items/day', num(row.itemsDay)),
+      fact('Full after', `about ${duration(row.fillHours * 3600)}`),
+    ].join('')}</dl>${row.unsure.length ? `
+    <p class="why">${esc(row.unsure.join(' '))}</p>` : ''}
+  </a>
+</li>`;
+
+// The four areas of the bar at the bottom. Trade holds the tabs and the item page; the others are one page each.
+export const AREAS = ['today', 'minions', 'market'];
+export const areaOf = (view) => (AREAS.includes(view) ? view : 'trade');
+// The pages a mode can open; Simple mode has no Minions and no Market.
+export const viewsFor = (mode) => [...tabsFor(mode), ...(mode === 'simple' ? AREAS.slice(0, 1) : AREAS)];
 
 // Tab a horizontal swipe leads to, or null. A swipe to the left opens the tab on the right, like turning a page.
 // It has to be long enough and clearly more sideways than up or down, so scrolling the list never switches tabs.

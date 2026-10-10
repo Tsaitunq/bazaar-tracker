@@ -7,4 +7,5 @@
     <string name="alert_channel">Favorite flips</string>
     <string name="market_channel">Market alerts</string>
     <string name="timing_channel">Events and mayors</string>
+    <string name="portfolio_channel">Portfolio warnings</string>
 </resources>

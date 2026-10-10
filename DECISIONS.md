@@ -583,3 +583,138 @@ getroffen, Arbeit auf Branch `v6`, kein Push.
   Forge-Abschnitt.
 - **Favoriten-Alerts, die im Pro-Modus eingeschaltet wurden, laufen im
   Einfach-Modus weiter**, obwohl ihr Schalter dort nicht sichtbar ist.
+
+# Entscheidungen Version 0.7
+
+Selbstständig getroffen (Auftrag: unbeaufsichtigt, ohne Rückfragen). Spec:
+`docs/spec-v0.7.md`, Bericht: `docs/summary-v0.7.md`.
+
+## Teil 0: Navigation
+
+- **Die Trade-Tabs behalten ihre Adressen** (`#/flips`, `#/opps`, `#/npc`,
+  `#/craft`, `#/forge`, `#/item/…`). Neu sind nur `#/today`, `#/minions`,
+  `#/market`. Grund: Benachrichtigungen, Lesezeichen und die Tests zeigen
+  auf diese Adressen; `#/trade/flips` hätte nur Umleitungen gebracht. Kosten:
+  Die Adresse sagt nicht, dass Flips zu Trade gehört.
+- **„Show me“ wird im Code umgebogen, nicht im Changelog.** Alte Einträge
+  dürfen laut CLAUDE.md nicht geändert werden. `newsRoute` schickt jeden
+  Eintrag, der auf `#radar` zeigt, nach `#/market`. Alle anderen alten Ziele
+  liegen weiter in Trade.
+- **Beim Start öffnet die App den zuletzt benutzten Bereich**, beim
+  allerersten Start Today. Grund: „Letzter Bereich/Tab wird gemerkt“ stand
+  ausdrücklich im Auftrag. Kosten: Wer Today als feste Startseite will, muss
+  einmal tippen.
+- **Der Radar ist in Market immer aufgeklappt** (ein Abschnitt statt
+  `<details>`); `bt.radar` wird nicht mehr gelesen. Die Zeilen darin klappen
+  weiter einzeln auf.
+- **Trends in Market = die fünf stärksten Steiger und Faller aus der
+  Flips-Liste** (also mit deinem Mindestvolumen). Grund: Ohne den Filter
+  stünden dort Items, die kaum gehandelt werden.
+- **Die Leiste bleibt auch am Desktop unten.** Beim Tippen in die Suche wird
+  sie ausgeblendet, damit die Tastatur sie nicht über die Liste schiebt.
+- **Die Basic-Tour hat jetzt sieben Stationen** (neu: die Leiste) und endet
+  auf Today.
+- **Ein Profi-Bereich in der Adresse öffnet im Einfach-Modus weiter Flips**
+  (wie bisher bei Profi-Tabs).
+
+## Teil 1: Crafts im Portfolio
+
+- **Der Craft rechnet mit dem Einsatz des Flips** (seinem Stake aus dem
+  Plan), nicht mit dem ganzen Kapital. Grund: Nur so ist „mehr Profit/h als
+  der reine Flip“ ein Vergleich mit denselben Coins. Kosten: Ein Craft, der
+  mehr Kapital bräuchte als der Flip bekommen hat, erscheint nicht.
+- **„+Y/h“ ist der Mehrertrag** (Craft minus Flip), nicht der Craft-Profit.
+- **Volumen wie im Craft-Tab:** Verkäufe je Woche bei jeder Zutat, Käufe je
+  Woche beim Endprodukt, davon dein Market share.
+- **Ein Endprodukt mit „suspicious“ gibt keinen Hinweis.** Grund: Sonst
+  empfiehlt der Plan genau die manipulierten Preise, vor denen er schützt.
+  Stabilität und 24 h Verlauf des Endprodukts werden nicht verlangt (wie im
+  Craft-Tab).
+- **Pro Flip nur der beste Craft**, nur im Profi-Modus (Craft ist ein
+  Profi-Tab).
+- **Der Plan wird jetzt bei jeder Neuberechnung gebaut**, nicht nur im
+  Opportunities-Tab; Teil 2 und 3 brauchen ihn überall.
+
+## Teil 2: Warnungen fürs Portfolio
+
+- **Gespeichert wird „der Plan, den du zuletzt gesehen hast“** (`bt.plan`:
+  Item und Kaufpreis beim Eintritt in den Plan). Grund: Der Plan auf dem
+  Bildschirm wird alle paar Minuten neu gerechnet; gegen ihn selbst kann
+  nichts fallen. Ohne Warnung folgt der gespeicherte Plan dem aktuellen, ein
+  Item, das bleibt, behält seinen ersten Preis. Mit einer Preis- oder
+  Suspicious-Warnung bleibt er stehen, bis du „Got it“ tippst. Kosten: Ein
+  Item, das sehr lange im Plan steht und langsam 5 % verliert, wird gemeldet,
+  obwohl du längst zu neuen Preisen handelst; „Got it“ setzt neu auf.
+- **Kein Knopf „Orders platziert“.** Die App weiß nicht, was du im Spiel
+  wirklich gekauft hast; der gespeicherte Plan ist die beste Näherung.
+- **„Preis fällt“ = Buy-Order mehr als X % unter dem Plan-Preis ODER Marge
+  unter 1 %.** X ist einstellbar (Portfolio → Price drop warning %, Default
+  5), die 1 % sind fest (`PLAN_MIN_MARGIN`).
+- **Die Schalter gelten nur für Benachrichtigungen.** Das Banner in der App
+  zeigt immer alle vier Arten; im Browser gibt es die Schalter gar nicht.
+- **Wahl im Hintergrund:** Der Worker lädt `election.json` selbst. Welcher
+  Perk welches Plan-Item betrifft und wann die Amtszeit endet, schickt die
+  App mit (`planElection`), damit Java keine Kopie der Perk-Listen und des
+  Kalenders braucht. Kosten: Wird die App eine ganze Amtszeit (124 h) nicht
+  geöffnet, kennt der Worker das neue Amtsende nicht und meldet „Mayor geht“
+  nicht.
+- **Ein Cooldown für alle vier Arten** (Default 6 h, je Item und Art), eine
+  Benachrichtigung pro Lauf mit bis zu drei Zeilen.
+- **Die Schalter sind standardmäßig aus**, wie alle Benachrichtigungen: Erst
+  das Einschalten fragt nach der Android-Berechtigung.
+- **Der Worker lädt `stats.json` nur noch einmal pro Lauf** (Markt-Alerts
+  und Plan teilen sie). Fehlt die Datei, läuft die Plan-Prüfung ohne den
+  Vergleich mit dem Normalpreis weiter.
+
+## Teil 3: Today
+
+- **Today ist ein eigener Bereich in der Leiste**, nicht ein sechster Tab in
+  Trade (der Auftrag ließ beides zu); so stand es schon in Teil 0.
+- **„Seit dem letzten Öffnen“ = seit dem letzten Besuch.** Die IDs der
+  Opportunities werden laufend gespeichert (`bt.opps`); beim Start gilt der
+  gespeicherte Stand als „letzter Besuch“. Weil die Android-App oft tagelang
+  im Hintergrund offen bleibt, zählt auch eine Rückkehr nach mehr als 30
+  Minuten als neuer Besuch.
+- **Ohne letzten Besuch (erster Start) heißt der Block „Top opportunities“**
+  und zeigt die drei besten nach Profit/h, statt alles als neu zu melden.
+- **Der Block „Coming up“ (Events und Wahl) ist Profi**, weil er nach Market
+  verlinkt und Market im Einfach-Modus fehlt. Einfach zeigt Portfolio,
+  Warnungen und neue Chancen.
+- **Countdowns laufen nicht sekündlich**, sie stimmen bei jedem Refresh (alle
+  1 bis 5 Minuten), wie der Radar.
+- **Betroffene Items der Wahl** sind die, bei denen der Führende oder der
+  kommende Minister den Preis drücken dürfte (dieselbe Quelle wie die
+  Portfolio-Warnung), höchstens drei mit „+N more“.
+
+## Teil 4: Minion-Rechner
+
+- **Quelle ist das Archiv des offiziellen Wikis.** `wiki.hypixel.net` wurde
+  im Juli 2026 abgeschaltet und leitet nur noch auf die Ankündigung um. Alle
+  Zahlen stammen aus den letzten Kopien im Internet Archive (Januar bis März
+  2026); drei Regeln, die dort nicht stehen (zwei Aktionen je Ernte,
+  Speed-Formel, Diamond Spreading je Item), aus dem Fandom-Wiki. Jede Zahl
+  mit Link in `docs/minions-sources.md`. Kosten: Ändert Hypixel später etwas,
+  merkt das Archiv es nicht.
+- **13 Minions statt 15.** Iron und Gold fehlen absichtlich: Sie liefern Erz
+  (nicht am Bazaar), und der Super Compactor braucht Barren, also den Auto
+  Smelter im zweiten Slot. Sechs weitere Seiten (Wheat, Melon, Pumpkin,
+  Cactus, Glowstone, Fishing) ließen sich im Lauf nicht laden.
+- **„Bazaar“ heißt Sofortverkauf an die höchste Buy-Order, mit deiner Tax.**
+  Grund: „Sell-Preis“ ist in der Hypixel-API der Sofortverkauf, und Minion-
+  Mengen stellt kaum jemand als Sell-Offer ein. Ob beim Sofortverkauf Tax
+  anfällt, steht in keinem der beiden Wikis; abgezogen ist die vorsichtige
+  Lesart. Kosten: Wer Sell-Offers stellt, verdient etwas mehr als gezeigt.
+- **Als „not confirmed“ markiert:** Spannen ohne Mittelwert (Lapis, Redstone,
+  String, Rotten Flesh; gerechnet wird die Mitte) und Diamond Spreading
+  zusammen mit einem Catalyst (Diamanten zählen einfach).
+- **Fuel-Kosten nur für Verbrauchs-Fuel**, zum niedrigsten Sell-Offer. Ein
+  Lava Bucket hält ewig und kostet pro Tag nichts; sein Kaufpreis ist nicht
+  eingerechnet.
+- **Ergebnis = alle Minions mit demselben Setup, bester zuerst.** „Bestes
+  Setup oben“ habe ich so gelesen; eine Suche über alle Fuel-/Upgrade-
+  Kombinationen je Minion gibt es nicht.
+- **Der Super Compactor rechnet nur die erste Enchanted-Stufe**, nicht den
+  Block darüber.
+- **Das Setup liegt in `bt.minions`**, getrennt von den Einstellungen, und
+  gilt sofort (kein Apply).
+- **Kein Compactor, Auto Smelter, Hopper, Storage, Beacon, Mayor-Perk.**

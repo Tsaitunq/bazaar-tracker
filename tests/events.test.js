@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { skyDate, skyTime, upcoming, activePerks, electionWindow, eventItems, flipWarnings, termStart, LEAVING_MS, PERK_EXPECT, EVENTS, PERK_ITEMS, DAY_MS, YEAR_DAYS, SOON_MS, MONTHS } from '../events.js';
+import { skyDate, skyTime, upcoming, activePerks, electionWindow, eventItems, flipWarnings, flipRisks, planElection, termStart, LEAVING_MS, PERK_EXPECT, EVENTS, PERK_ITEMS, DAY_MS, YEAR_DAYS, SOON_MS, MONTHS } from '../events.js';
 import { compactElection } from '../scripts/election.mjs';
 
 const raw = JSON.parse(fs.readFileSync(new URL('./fixtures/election.json', import.meta.url), 'utf8'));
@@ -143,4 +143,26 @@ test('flipWarnings: in the last 24 hours of a term the mayor and the minister ar
   const both = flipWarnings(again, end - 3600000);
   assert.equal(both.REFINED_MINERAL, 'Cole may lower this price');
   assert.equal(both.DARK_ORB, 'Paul leaves in 1h – price may rise back');
+});
+
+test('flipRisks says which kind of warning it is; flipWarnings is the same as sentences', () => {
+  const end = termStart(at(8, 1)) + YEAR_MS;
+  const leaving = flipRisks(election, end - 3600000);
+  assert.deepEqual(leaving.RECOMBOBULATOR_3000, { kind: 'leaving', text: 'Paul leaves in 1h – price may rise back' });
+  const vote = { vote: { candidates: [{ name: 'Diana', votes: 9, perks: ['Mythological Ritual'], minister: null }] } };
+  assert.deepEqual(flipRisks(vote, at(8, 1)).GRIFFIN_FEATHER, { kind: 'election', text: 'Diana may lower this price' });
+  assert.equal(flipWarnings(vote, at(8, 1)).GRIFFIN_FEATHER, 'Diana may lower this price');
+});
+
+test('planElection: what the Android worker needs to repeat the election warnings for a plan', () => {
+  const now = at(8, 1);
+  const { perks, term } = planElection(['GRIFFIN_FEATHER', 'REFINED_MINERAL', 'ENCHANTED_IRON'], election, now);
+  // only the plan's items, and only those a perk is expected to move
+  assert.deepEqual(perks, { GRIFFIN_FEATHER: ['Mythological Ritual'], REFINED_MINERAL: ['Mining Fiesta'] });
+  assert.equal(term.end, termStart(now) + YEAR_MS);
+  // the mayor's perks first, then the minister's
+  assert.deepEqual(Object.entries(term.perks), [['Marauder', 'Paul'], ['Benediction', 'Paul'], ['Mining Fiesta', 'Cole']]);
+  // an election file that is behind the calendar names nobody
+  assert.equal(planElection([], { mayor: { ...election.mayor, year: 500 } }, now).term, null);
+  assert.deepEqual(planElection(['SHARK_FIN'], null, now), { perks: { SHARK_FIN: ['Fishing Festival'] }, term: null });
 });
