@@ -218,6 +218,14 @@ body:not([data-area="today"]) #today, body:not([data-area="minions"]) #minions, 
 .alerts .muted { margin: 8px 0; }
 .alerts button { min-height: 36px; }
 
+/* Today: the blocks reuse the portfolio and radar cards; each ends with a link to its tab */
+.more { display: flex; align-items: center; justify-content: flex-end; gap: 4px; min-height: 44px; margin-top: 4px; color: var(--accent); font-size: 13px; text-decoration: none; }
+.more .ico { width: 14px; height: 14px; }
+.more:active { filter: brightness(.8); }
+.coming li { padding: 8px 0; }
+.coming li small { display: block; color: var(--muted); font-size: 12px; }
+.coming a { color: var(--text); }
+
 /* portfolio: the plan at the top of the Opportunities tab */
 .portfolio { margin: 4px 0 16px; padding: 12px; background: var(--card); border: 1px solid var(--accent); border-radius: 12px; max-width: 720px; }
 .portfolio h2 { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: .06em; }

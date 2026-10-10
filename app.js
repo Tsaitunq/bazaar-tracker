@@ -5,7 +5,7 @@ import { forgeFlips, forgeFlip } from './forge.js';
 import { loadItems, fallbackName } from './names.js';
 import { loadStats, loadRecipes, loadForge, loadAh, loadElection, loadTiming, loadHistory } from './data.js';
 import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission } from './native.js';
-import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, trendsView, parseRoute, detailView, portfolioView, warningsView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, viewsFor, areaOf, coins, percent, PLACEHOLDER_ICON } from './render.js';
+import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, trendsView, todayView, parseRoute, detailView, portfolioView, warningsView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, viewsFor, areaOf, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
 import { level } from './trends.js';
 import { activePerks, upcoming, electionWindow, eventItems, flipRisks, planElection } from './events.js';
@@ -97,6 +97,11 @@ let plan = null; // the portfolio: shown in the Opportunities tab and on Today
 const storedPlan = load('bt.plan', null);
 let tracked = Array.isArray(storedPlan) ? storedPlan.filter((i) => typeof i?.id === 'string' && i.buy > 0) : null;
 let alerts = [];  // warnings about the tracked plan, each with the item's name
+// Today's "new since your last visit": the opportunities of the last visit, or null when there was none.
+const storedOpps = load('bt.opps', null);
+let lastVisit = Array.isArray(storedOpps) ? new Set(storedOpps) : null;
+let opps = [];    // the opportunities right now, best profit per hour first
+const AWAY_MS = 30 * 60000; // back after this long counts as a new visit
 let lastFetch = 0;
 let timer;
 let busy = false;
@@ -204,6 +209,10 @@ function recompute() {
   if (!products) return;
   plan = buildPlan();
   watchPlan();
+  opps = opportunities(products, { ...oppOpts(), sort: 'profitHour' });
+  for (const f of opps) f.name = nameOf(f.id);
+  // without the stats the list is empty, and an empty list would make everything "new" next time
+  if (stats) save('bt.opps', opps.map((f) => f.id));
   if (route.view !== 'item') flips = compute(view());
 }
 
@@ -266,6 +275,16 @@ function renderRadar() {
 
 // The areas that are one page each. Trade is drawn by renderPage itself.
 function renderArea() {
+  if (area() === 'today') {
+    const now = Date.now();
+    const risks = flipRisks(election, now);
+    $('today').innerHTML = products ? todayView({
+      plan, capital: settings.portfolioCapital, slots: settings.portfolioSlots, alerts, dismiss: marketWarned(),
+      events: upcoming(now, election), vote: electionWindow(now), election,
+      voteItems: Object.keys(risks).filter((id) => risks[id].kind === 'election'),
+      fresh: (lastVisit ? opps.filter((f) => !lastVisit.has(f.id)) : opps).slice(0, 3), firstVisit: !lastVisit, now, name: nameOf,
+    }) : '<p class="count muted">Loading…</p>';
+  }
   if (area() === 'market') {
     renderRadar();
     if (products) $('trends').innerHTML = trendsView(compute('flips'));
@@ -296,7 +315,7 @@ function renderDetail() {
 // that has not been seen yet.
 function hintsNow() {
   if (route.view === 'item') return [detailSuspicious && 'suspicious', 'detail'];
-  if (area() !== 'trade') return [area() === 'market' && 'radar'];
+  if (area() !== 'trade') return [area() === 'market' && 'radar', area() === 'today' && alerts.length > 0 && 'planalerts', area() === 'today' && 'today'];
   const v = view();
   return [
     ...($('panel').open && !$('settings').classList.contains('filtering') ? ['alerts', 'settings'] : []),
@@ -534,7 +553,11 @@ addEventListener('hashchange', () => {
   if (area() !== from) scrollTo(0, 0);
 });
 
+let hiddenAt = 0;
 document.addEventListener('visibilitychange', () => {
+  // the app often stays open in the background for days: coming back after a while is a new visit
+  if (document.hidden) hiddenAt = Date.now();
+  else if (hiddenAt && Date.now() - hiddenAt > AWAY_MS && stats) lastVisit = new Set(opps.map((f) => f.id));
   if (document.hidden) clearTimeout(timer);
   else if (Date.now() - lastFetch >= settings.interval * 60000) refresh();
   else schedule();

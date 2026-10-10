@@ -665,3 +665,23 @@ Selbstständig getroffen (Auftrag: unbeaufsichtigt, ohne Rückfragen). Spec:
 - **Der Worker lädt `stats.json` nur noch einmal pro Lauf** (Markt-Alerts
   und Plan teilen sie). Fehlt die Datei, läuft die Plan-Prüfung ohne den
   Vergleich mit dem Normalpreis weiter.
+
+## Teil 3: Today
+
+- **Today ist ein eigener Bereich in der Leiste**, nicht ein sechster Tab in
+  Trade (der Auftrag ließ beides zu); so stand es schon in Teil 0.
+- **„Seit dem letzten Öffnen“ = seit dem letzten Besuch.** Die IDs der
+  Opportunities werden laufend gespeichert (`bt.opps`); beim Start gilt der
+  gespeicherte Stand als „letzter Besuch“. Weil die Android-App oft tagelang
+  im Hintergrund offen bleibt, zählt auch eine Rückkehr nach mehr als 30
+  Minuten als neuer Besuch.
+- **Ohne letzten Besuch (erster Start) heißt der Block „Top opportunities“**
+  und zeigt die drei besten nach Profit/h, statt alles als neu zu melden.
+- **Der Block „Coming up“ (Events und Wahl) ist Profi**, weil er nach Market
+  verlinkt und Market im Einfach-Modus fehlt. Einfach zeigt Portfolio,
+  Warnungen und neue Chancen.
+- **Countdowns laufen nicht sekündlich**, sie stimmen bei jedem Refresh (alle
+  1 bis 5 Minuten), wie der Radar.
+- **Betroffene Items der Wahl** sind die, bei denen der Führende oder der
+  kommende Minister den Preis drücken dürfte (dieselbe Quelle wie die
+  Portfolio-Warnung), höchstens drei mit „+N more“.

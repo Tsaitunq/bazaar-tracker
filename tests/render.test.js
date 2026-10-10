@@ -430,3 +430,38 @@ test('warningsView: one line per warning in plain words, "Got it" only for what 
   assert.ok(html.includes('data-act="plan-seen"'));
   assert.ok(!warningsView(list.slice(1)).includes('data-act="plan-seen"'));
 });
+
+test('todayView: portfolio in short, warnings, what comes next and what is new, each with its link', async () => {
+  const { todayView } = await import('../render.js');
+  const base = {
+    plan: { flips: [{ id: 'A' }, { id: 'B' }], profitHour: 1500000, used: 9000000 }, capital: 50000000, slots: 21,
+    events: [
+      { name: 'Traveling Zoo', active: true, start: -HOUR, end: 0.5 * HOUR, items: [] },
+      { name: 'Spooky Festival', active: false, start: 50 * HOUR, end: 51 * HOUR, items: ['GREEN_CANDY', 'PURPLE_CANDY', 'ECTOPLASM', 'SOUL_FRAGMENT'] },
+      { name: 'Third', active: false, start: 60 * HOUR, end: 61 * HOUR, items: [] },
+      { name: 'Fourth', active: false, start: 70 * HOUR, end: 71 * HOUR, items: [] },
+    ],
+    vote: { open: true, at: 2 * HOUR }, election: { vote: { candidates: [{ name: 'Cole', votes: 1 }, { name: 'Diana', votes: 9 }] } },
+    voteItems: ['GRIFFIN_FEATHER'], now: 0, name: (id) => `<${id}>`,
+    fresh: [{ id: 'X', name: 'Xeno', profitHour: 250000, margin: 0.12 }],
+  };
+  const html = todayView(base);
+  assert.ok(html.includes('1.5M') && html.includes('9M of 50M capital in use · 2 of 21 flips'));
+  assert.ok(html.includes('Traveling Zoo') && html.includes('now · 30m left') && html.includes('in 2d 2h'));
+  assert.ok(html.includes('Affected: &#60;GREEN_CANDY&#62;, &#60;PURPLE_CANDY&#62;, &#60;ECTOPLASM&#62; +1 more'));
+  assert.ok(html.includes('Third') && !html.includes('Fourth'), 'three events at most');
+  assert.ok(html.includes('Election · Diana leads') && html.includes('closes in 2h') && html.includes('Affected: &#60;GRIFFIN_FEATHER&#62;'));
+  assert.ok(html.includes('New since your last visit') && html.includes('href="#/item/X"') && html.includes('250k/h') && html.includes('12%'));
+  for (const href of ['#/opps', '#/market']) assert.ok(html.includes(`<a class="more" href="${href}">`), href);
+  // events and election are Pro; the rest is what Simple mode shows
+  assert.ok(html.includes('<section class="radar pro">') && !html.includes('<section class="portfolio pro">'));
+  assert.ok(!html.includes('class="alerts"'));
+
+  const warned = todayView({ ...base, alerts: [{ id: 'A', name: 'Alpha', kind: 'suspicious' }], dismiss: true });
+  assert.ok(warned.includes('Portfolio warnings') && warned.includes('data-act="plan-seen"'));
+  assert.ok(todayView({ ...base, firstVisit: true }).includes('Top opportunities'));
+  assert.ok(todayView({ ...base, fresh: [] }).includes('No new opportunity since your last visit.'));
+  assert.ok(todayView({ ...base, plan: { flips: [] } }).includes('No flip qualifies'));
+  assert.ok(todayView({ ...base, plan: { flips: [] }, capital: 0 }).includes('Set a total capital'));
+  assert.ok(todayView({ ...base, vote: { open: false, at: 30 * HOUR }, election: null }).includes('opens in 1d 6h'));
+});

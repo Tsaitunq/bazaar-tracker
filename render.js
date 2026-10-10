@@ -178,6 +178,9 @@ export const filterChips = (keys, settings) => keys.map((key) => {
   return `<button type="button" class="chip" data-unfilter="${key}" aria-label="Remove filter: ${text}">${text}${ICONS.close}</button>`;
 }).join('');
 
+const moreLink = (href, label) => `
+  <a class="more" href="${href}">${label}${ICONS.flat}</a>`;
+
 // One warning about a flip of the stored plan as a sentence. AlertLogic.planText says the same in a notification.
 export function warningText(w) {
   if (w.text) return w.text; // election and leaving come with their sentence (flipRisks)
@@ -187,13 +190,14 @@ export function warningText(w) {
 
 // The warnings of the stored plan, above the portfolio and on Today. alerts: [{ id, name, kind, ... }].
 // dismiss: a price or suspicious warning is in the list; "Got it" then stores the current plan.
-export function warningsView(alerts, { dismiss = false } = {}) {
+// more: add the link to the portfolio (Today shows the warnings without the plan below them).
+export function warningsView(alerts, { dismiss = false, more = false } = {}) {
   if (!alerts.length) return '';
   return `<section class="alerts" role="status">
   <h2>${ICONS.warn}Portfolio warnings</h2>
   <ul>${alerts.map((w) => `<li><a href="${esc(itemHref(w.id))}">${esc(w.name)}</a> <small>${esc(warningText(w))}</small></li>`).join('')}</ul>${dismiss ? `
-  <p class="muted">Compared with the plan you last saw. The plan below is already the new one.</p>
-  <div class="actions"><button type="button" data-act="plan-seen">Got it</button></div>` : ''}
+  <p class="muted">Compared with the plan you last saw. The portfolio already shows the new one.</p>
+  <div class="actions"><button type="button" data-act="plan-seen">Got it</button></div>` : ''}${more ? moreLink('#/opps', 'Open the portfolio') : ''}
 </section>`;
 }
 
@@ -330,6 +334,44 @@ export function trendsView(flips) {
   ${part('falling', 'Falling')}
   <p class="muted">A trend is a hint, not a forecast.</p>
 </section>`;
+}
+
+// The Today area: what the plan earns, what needs attention, what comes next and what is new.
+// Every block ends with a link to the tab behind it.
+// plan, capital, slots: as for portfolioView. alerts, dismiss: as for warningsView.
+// events: upcoming(); vote: electionWindow(); voteItems: ids the election may make cheaper (flipRisks).
+// fresh: up to three opportunities, best first, with a name; firstVisit: there is no last visit to compare with.
+const TODAY_EVENTS = 3;
+const TODAY_ITEMS = 3;
+export function todayView({ plan, capital, slots, alerts = [], dismiss = false, events = [], vote, election = null, voteItems = [], fresh = [], firstVisit = false, now, name }) {
+  const until = (t) => duration(Math.ceil(Math.max(0, t - now) / 60000) * 60);
+  const items = (ids) => (ids.length ? `<small>Affected: ${ids.slice(0, TODAY_ITEMS).map((id) => esc(name(id))).join(', ')}${
+    ids.length > TODAY_ITEMS ? ` +${ids.length - TODAY_ITEMS} more` : ''}</small>` : '');
+
+  const portfolio = `<section class="portfolio">
+  <h2>Portfolio</h2>${plan?.flips.length ? `
+  <div class="total"><span class="big gain">${num(plan.profitHour)}</span><span class="lbl">Profit/h</span></div>
+  <p class="muted">${num(plan.used)} of ${num(capital)} capital in use · ${plan.flips.length} of ${Math.floor(slots)} flips</p>` : `
+  <p class="muted">${capital > 0 ? 'No flip qualifies for the portfolio right now.' : 'Set a total capital in the settings to get a plan.'}</p>`}${moreLink('#/opps', 'Open the portfolio')}
+</section>`;
+
+  const lead = election?.vote && [...election.vote.candidates].sort((a, b) => b.votes - a.votes)[0];
+  const rows = [
+    ...events.slice(0, TODAY_EVENTS).map((e) => [e.name, e.active ? `now · ${until(e.end)} left` : `in ${until(e.start)}`, items(e.items)]),
+    vote && [lead?.votes > 0 ? `Election · ${lead.name} leads` : 'Election', vote.open ? `closes in ${until(vote.at)}` : `opens in ${until(vote.at)}`, items(voteItems)],
+  ].filter(Boolean);
+  const coming = `<section class="radar pro">
+  <h2><span class="radar-title">${ICONS.event}Coming up</span></h2>
+  <ul class="coming">${rows.map(([title, side, small]) => `<li><span>${esc(title)}</span> <span class="side">${esc(side)}</span>${small}</li>`).join('')}</ul>${moreLink('#/market', 'Open the market')}
+</section>`;
+
+  const news = `<section class="radar">
+  <h2><span class="radar-title">${ICONS.rising}${firstVisit ? 'Top opportunities' : 'New since your last visit'}</span></h2>${fresh.length ? `
+  <ul class="coming">${fresh.map((f) => `<li><a href="${esc(itemHref(f.id))}">${esc(f.name)}</a> <span class="side"><span class="gain">${num(f.profitHour)}/h</span> · ${percent.format(f.margin)}</span></li>`).join('')}</ul>` : `
+  <p class="muted">No new opportunity since your last visit.</p>`}${moreLink('#/opps', 'Open the opportunities')}
+</section>`;
+
+  return portfolio + warningsView(alerts, { dismiss, more: true }) + coming + news;
 }
 
 // The four areas of the bar at the bottom. Trade holds the tabs and the item page; the others are one page each.

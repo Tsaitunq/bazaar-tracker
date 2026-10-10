@@ -235,7 +235,7 @@ test('changelog.json is well formed', () => {
 test('help screen offers both tours, setup, news and explains the numbers in sections that unfold', () => {
   const html = helpHtml();
   for (const act of ['tour', 'tour-advanced', 'setup', 'news', 'hints-reset', 'close']) assert.ok(html.includes(`data-act="${act}"`), act);
-  const terms = ['What a flip is', 'Margin', 'Profit/h', 'Market share', 'Volume per week', 'Stability score', 'Suspicious', 'Favorites', 'Portfolio', 'NPC flips', 'Craft flips', 'Portfolio warnings', 'Craft hints in the portfolio', 'Forge', 'Areas', 'Events', 'Trends'];
+  const terms = ['What a flip is', 'Margin', 'Profit/h', 'Market share', 'Volume per week', 'Stability score', 'Suspicious', 'Favorites', 'Portfolio', 'NPC flips', 'Craft flips', 'Portfolio warnings', 'Craft hints in the portfolio', 'Forge', 'Today', 'Areas', 'Events', 'Trends'];
   for (const term of terms) assert.ok(html.includes(`<details><summary>${term}</summary>`), term);
   assert.equal(html.split('<details>').length - 1, terms.length);
   assert.ok(html.includes('estimate') && html.includes('lowest BIN'));
@@ -248,7 +248,7 @@ test('help screen offers both tours, setup, news and explains the numbers in sec
 test('help in Simple mode leaves out the advanced tour and the Pro topics', () => {
   const html = helpHtml({ pro: false });
   assert.ok(!html.includes('tour-advanced'));
-  for (const term of ['What a flip is', 'Margin', 'Profit/h', 'Stability score', 'Suspicious', 'Favorites', 'Portfolio', 'Portfolio warnings', 'Areas']) assert.ok(html.includes(`<summary>${term}</summary>`), term);
+  for (const term of ['What a flip is', 'Margin', 'Profit/h', 'Stability score', 'Suspicious', 'Favorites', 'Portfolio', 'Portfolio warnings', 'Today', 'Areas']) assert.ok(html.includes(`<summary>${term}</summary>`), term);
   for (const term of ['NPC flips', 'Craft flips', 'Forge', 'Events', 'Trends', 'Market share']) assert.ok(!html.includes(`<summary>${term}</summary>`), term);
 });
 
@@ -284,7 +284,7 @@ test('the help buttons live behind the ? in the header, not in the settings', ()
 });
 
 test('the context hints, each with a text and a place', () => {
-  assert.deepEqual(HINT_IDS, ['card', 'detail', 'suspicious', 'fav', 'opps', 'portfolio', 'planalerts', 'crafthint', 'npc', 'craft', 'forge', 'radar', 'search', 'settings', 'alerts']);
+  assert.deepEqual(HINT_IDS, ['today', 'card', 'detail', 'suspicious', 'fav', 'opps', 'portfolio', 'planalerts', 'crafthint', 'npc', 'craft', 'forge', 'radar', 'search', 'settings', 'alerts']);
   for (const id of HINT_IDS) {
     const html = hintHtml(id, { native: false, pro: true });
     assert.ok(HINTS[id].at && ['beforebegin', 'afterbegin', 'afterend'].includes(HINTS[id].where), id);
