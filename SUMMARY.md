@@ -46,7 +46,7 @@ einer Station neu gezeichnet wurde.
 - Browser (Edge, ohne Fenster) bei 360 × 740 und 1440 × 900, mit den
   Snapshot-Dateien des lokalen Stands von `origin/data` und daraus erzeugten
   Bazaar-Preisen; kein Live-Abruf. Drei Durchläufe je Größe, 90 automatische
-  Prüfungen, alle bestanden, keine JavaScript-Fehler, 72 Bilder erzeugt, 18
+  Prüfungen, alle bestanden, keine JavaScript-Fehler, 72 Bilder erzeugt, 16
   davon selbst angesehen.
 - `npm run android:build` läuft fehlerfrei; die APK meldet `versionName
   6.0.0`, `versionCode 60000` und enthält die neue `onboarding.js`.
