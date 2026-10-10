@@ -217,8 +217,8 @@ export function portfolioView(plan, { capital, slots, sharePercent, simple = fal
 </section>`;
 }
 
-// The mayor and event radar above every list. Folded it is one line; unfolded it lists the mayor's
-// perks, the election and the events, each of which unfolds to its details.
+// The mayor and event radar of the Market area: one line as a summary, then the mayor's perks, the
+// election and the events, each of which unfolds to its details.
 // perks: activePerks(); events: upcoming(); vote: electionWindow(); name(id): an item's name;
 // open: keys of the parts that are unfolded; timing: past runs per event and perk (timing.js).
 export function radarView({ election, perks, events, vote, now, name, open = new Set(), timing = {} }) {
@@ -270,8 +270,8 @@ export function radarView({ election, perks, events, vote, now, name, open = new
     `<p class="muted">${e.active ? 'Started' : 'Starts'} on ${day(e.start)} · lasts ${duration((e.end - e.start) / 1000)} (${Math.round((e.end - e.start) / DAY_MS)} SkyBlock days)${
       e.perk ? ` · only with the ${esc(e.perk)} perk` : ''}</p>${priced('Typically affected:', eventRows(e))}`)).join('');
 
-  return `<details class="radar" data-key="radar"${open.has('radar') ? ' open' : ''}>
-  <summary><span class="radar-title">${ICONS.event}Event radar</span> <span class="radar-line">${esc(line)}</span></summary>
+  return `<section class="radar">
+  <h2><span class="radar-title">${ICONS.event}Event radar</span> <span class="radar-line">${esc(line)}</span></h2>
   <h3>Mayor</h3>
   ${mayor}
   <h3>Election</h3>
@@ -279,7 +279,7 @@ export function radarView({ election, perks, events, vote, now, name, open = new
   <h3>Events</h3>
   <ul>${list}</ul>
   <p class="muted">Based on past events, not a guarantee.</p>
-</details>`;
+</section>`;
 }
 
 export function parseRoute(hash) {
@@ -287,8 +287,34 @@ export function parseRoute(hash) {
   if (view === 'item' && arg) {
     try { return { view, id: decodeURIComponent(arg) }; } catch {}
   }
-  return { view: TABS.includes(view) ? view : 'flips' };
+  return { view: TABS.includes(view) || AREAS.includes(view) ? view : 'flips' };
 }
+
+// The Market area's own list: the items whose sell price moved most over the last day.
+// flips: the Flips list with name and trend on every item (change per 24 hours, see trends.js).
+const TREND_ROWS = 5;
+export function trendsView(flips) {
+  const moving = (dir) => flips.filter((f) => direction(f.trend) === dir)
+    .sort((a, b) => (dir === 'rising' ? b.trend - a.trend : a.trend - b.trend)).slice(0, TREND_ROWS);
+  const part = (dir, title) => {
+    const rows = moving(dir);
+    return `<h3>${title}</h3>${rows.length ? `<ul class="timing">${rows.map((f) =>
+      `<li><a href="${esc(itemHref(f.id))}">${esc(f.name)}</a> <span class="side">${f.trend > 0 ? '+' : '−'}${percent.format(Math.abs(f.trend))} / day</span></li>`).join('')}</ul>`
+      : '<p class="muted">Nothing right now.</p>'}`;
+  };
+  return `<section class="radar trends">
+  <h2><span class="radar-title">${ICONS.rising}Trends</span> <span class="radar-line">Sell price over the last 24 hours, items from your Flips list</span></h2>
+  ${part('rising', 'Rising')}
+  ${part('falling', 'Falling')}
+  <p class="muted">A trend is a hint, not a forecast.</p>
+</section>`;
+}
+
+// The four areas of the bar at the bottom. Trade holds the tabs and the item page; the others are one page each.
+export const AREAS = ['today', 'minions', 'market'];
+export const areaOf = (view) => (AREAS.includes(view) ? view : 'trade');
+// The pages a mode can open; Simple mode has no Minions and no Market.
+export const viewsFor = (mode) => [...tabsFor(mode), ...(mode === 'simple' ? AREAS.slice(0, 1) : AREAS)];
 
 // Tab a horizontal swipe leads to, or null. A swipe to the left opens the tab on the right, like turning a page.
 // It has to be long enough and clearly more sideways than up or down, so scrolling the list never switches tabs.

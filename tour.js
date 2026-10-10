@@ -1,6 +1,6 @@
 // Wires the onboarding to the page: one <dialog> for windows, one overlay for the spotlight.
 import {
-  currentVersion, startupAction, migrateState, SCHEME, setupResult, tourSteps, advancedSteps,
+  currentVersion, startupAction, migrateState, SCHEME, setupResult, tourSteps, advancedSteps, newsRoute,
   welcomeHtml, newsHtml, helpHtml, advancedOfferHtml, setupOfferHtml, setupFormHtml, setupSummaryHtml, bubbleHtml,
   HINTS, HINT_IDS, PRO_OFFER, initialHints, pickHint, hintHtml,
 } from './onboarding.js';
@@ -149,7 +149,7 @@ function endTour(finished) {
   $('tour').hidden = true;
   $('tour-bubble').innerHTML = '';
   ctx.showSettings(false);
-  if (location.hash !== '#/flips') location.hash = '#/flips';
+  if (location.hash !== '#/today') location.hash = '#/today';
   scrollTo(0, 0);
   markSeen();
   if (finished) then?.();
@@ -209,7 +209,7 @@ export function refreshHints() {
 // "Show me" in the news window: one spotlight per entry that points at something
 function startNewsTour(versions) {
   const steps = versions.flatMap((v) => v.entries).filter((e) => e.target)
-    .map((e) => ({ title: e.title, text: e.text, target: e.target, route: e.route ?? '#/flips' }));
+    .map((e) => ({ title: e.title, text: e.text, target: e.target, route: newsRoute(e) }));
   startTour(steps);
 }
 

@@ -65,7 +65,7 @@
         <button type="button" data-set-mode="simple" aria-pressed="false">Simple</button>
         <button type="button" data-set-mode="pro" aria-pressed="false">Pro</button>
       </div>
-      <p class="intro">Simple shows flips, opportunities and the numbers you need for them. Pro adds NPC, craft and forge flips, the event radar, trends and every setting.</p>
+      <p class="intro">Simple shows Today, flips, opportunities and the numbers you need for them. Pro adds NPC, craft and forge flips, the Minions and Market areas, trends and every setting.</p>
       <button type="button" data-act="setup">Start setup</button>
     </fieldset>
 
@@ -187,8 +187,13 @@
   </dialog>
 
   <main>
+    <div id="today"></div>
+    <div id="minions"></div>
+    <div id="market">
+      <div id="radar" class="pro"></div>
+      <div id="trends"></div>
+    </div>
     <div id="chips" class="chips pro"></div>
-    <div id="radar" class="pro"></div>
     <div id="portfolio"></div>
     <p id="count" class="count muted">Loading…</p>
     <ul id="list" class="list"></ul>
@@ -198,6 +203,12 @@
   <footer>
     Icons: <a href="https://sky.coflnet.com/data" rel="noopener">sky.coflnet.com</a> · Recipes: <a href="https://github.com/NotEnoughUpdates/NotEnoughUpdates-REPO" rel="noopener">NotEnoughUpdates-REPO</a> · Not an official Hypixel product · <span id="version"></span>
   </footer>
+  <nav id="areas" aria-label="Areas">
+    <a href="#/today" data-area="today"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/></svg>Today</a>
+    <a href="#/flips" data-area="trade"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h14M14 4l4 4-4 4M20 16H6M10 12l-4 4 4 4"/></svg>Trade</a>
+    <a href="#/minions" data-area="minions" class="pro"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="4" width="10" height="9" rx="2"/><path d="M10 8v1M14 8v1M9 13v7M15 13v7M5 14l2-1M19 14l-2-1"/></svg>Minions</a>
+    <a href="#/market" data-area="market" class="pro"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="6" width="16" height="14" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>Market</a>
+  </nav>
 
   <dialog id="sheet" class="sheet"></dialog>
   <div id="tour" hidden>

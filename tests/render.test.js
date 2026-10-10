@@ -264,7 +264,7 @@ const radar = (over = {}) => radarView({
 test('radar: one line when folded, mayor, election and events inside', () => {
   const html = radar();
   assert.ok(html.includes('Mayor Paul · Traveling Zoo now · Spooky Festival in 2d 2h'));
-  assert.ok(!html.includes('data-key="radar" open'));
+  assert.ok(html.startsWith('<section class="radar">') && !html.includes('data-key="radar"'));
   assert.ok(html.includes('minister Cole') && html.includes('Chests are cheaper.') && html.includes('Cole, minister'));
   assert.ok(html.includes('now · 30m left') && html.includes('in 2d 2h'));
   assert.ok(html.includes('The next one opens in 1d 6h'));
@@ -275,7 +275,7 @@ test('radar: one line when folded, mayor, election and events inside', () => {
 
 test('radar: unfolded parts stay open, a running election lists its candidates', () => {
   const html = radar({ open: new Set(['radar', 'event:spooky']) });
-  assert.ok(html.includes('data-key="radar" open') && html.includes('data-key="event:spooky" open') && !html.includes('data-key="event:zoo" open'));
+  assert.ok(html.includes('data-key="event:spooky" open') && !html.includes('data-key="event:zoo" open'));
   const voting = radar({
     election: { mayor: { name: 'Paul', perks: [], minister: null }, vote: { year: 520, candidates: [{ name: 'Cole', votes: 25, perks: ['Mining Fiesta'] }, { name: 'Diana', votes: 75, perks: ['Pet XP Buff'] }] } },
     perks: [], vote: { open: true, at: 2 * HOUR },
@@ -378,4 +378,28 @@ test('a filter is active once it differs from its default, per tab', async () =>
     assert.ok(chips.includes(part), part);
   }
   assert.ok(filterChips(['marketMargin', 'hotm'], changed).includes('Margin ≥ 15%') && filterChips(['hotm'], changed).includes('HotM ≤ 6'));
+});
+
+test('areas: three pages next to Trade, Simple mode has only Today', async () => {
+  const { areaOf, viewsFor, AREAS, TABS } = await import('../render.js');
+  assert.deepEqual(AREAS, ['today', 'minions', 'market']);
+  for (const v of [...TABS, 'item']) assert.equal(areaOf(v), 'trade', v);
+  for (const v of AREAS) assert.equal(areaOf(v), v);
+  assert.deepEqual(viewsFor('simple'), ['flips', 'opps', 'today']);
+  assert.deepEqual(viewsFor('pro'), [...TABS, ...AREAS]);
+  for (const v of AREAS) assert.deepEqual(parseRoute(`#/${v}`), { view: v });
+  // the old addresses of the tabs stay valid
+  for (const v of TABS) assert.deepEqual(parseRoute(`#/${v}`), { view: v });
+});
+
+test('trendsView lists the strongest risers and fallers and leaves flat items out', async () => {
+  const { trendsView } = await import('../render.js');
+  const html = trendsView([
+    { id: 'A', name: 'Alpha', trend: 0.2 }, { id: 'B', name: 'Beta', trend: 0.5 }, { id: 'C', name: 'Gamma', trend: -0.08 },
+    { id: 'D', name: 'Delta', trend: 0.01 }, { id: 'E', name: '<Epsilon>', trend: null },
+  ]);
+  assert.ok(html.indexOf('Beta') < html.indexOf('Alpha') && html.indexOf('Alpha') < html.indexOf('Gamma'));
+  assert.ok(html.includes('+50% / day') && html.includes('−8% / day') && html.includes('href="#/item/C"'));
+  assert.ok(!html.includes('Delta') && !html.includes('Epsilon'));
+  assert.ok(trendsView([]).includes('Nothing right now.'));
 });

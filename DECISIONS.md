@@ -583,3 +583,36 @@ getroffen, Arbeit auf Branch `v6`, kein Push.
   Forge-Abschnitt.
 - **Favoriten-Alerts, die im Pro-Modus eingeschaltet wurden, laufen im
   Einfach-Modus weiter**, obwohl ihr Schalter dort nicht sichtbar ist.
+
+# Entscheidungen Version 0.7
+
+Selbstständig getroffen (Auftrag: unbeaufsichtigt, ohne Rückfragen). Spec:
+`docs/spec-v0.7.md`, Bericht: `docs/summary-v0.7.md`.
+
+## Teil 0: Navigation
+
+- **Die Trade-Tabs behalten ihre Adressen** (`#/flips`, `#/opps`, `#/npc`,
+  `#/craft`, `#/forge`, `#/item/…`). Neu sind nur `#/today`, `#/minions`,
+  `#/market`. Grund: Benachrichtigungen, Lesezeichen und die Tests zeigen
+  auf diese Adressen; `#/trade/flips` hätte nur Umleitungen gebracht. Kosten:
+  Die Adresse sagt nicht, dass Flips zu Trade gehört.
+- **„Show me“ wird im Code umgebogen, nicht im Changelog.** Alte Einträge
+  dürfen laut CLAUDE.md nicht geändert werden. `newsRoute` schickt jeden
+  Eintrag, der auf `#radar` zeigt, nach `#/market`. Alle anderen alten Ziele
+  liegen weiter in Trade.
+- **Beim Start öffnet die App den zuletzt benutzten Bereich**, beim
+  allerersten Start Today. Grund: „Letzter Bereich/Tab wird gemerkt“ stand
+  ausdrücklich im Auftrag. Kosten: Wer Today als feste Startseite will, muss
+  einmal tippen.
+- **Der Radar ist in Market immer aufgeklappt** (ein Abschnitt statt
+  `<details>`); `bt.radar` wird nicht mehr gelesen. Die Zeilen darin klappen
+  weiter einzeln auf.
+- **Trends in Market = die fünf stärksten Steiger und Faller aus der
+  Flips-Liste** (also mit deinem Mindestvolumen). Grund: Ohne den Filter
+  stünden dort Items, die kaum gehandelt werden.
+- **Die Leiste bleibt auch am Desktop unten.** Beim Tippen in die Suche wird
+  sie ausgeblendet, damit die Tastatur sie nicht über die Liste schiebt.
+- **Die Basic-Tour hat jetzt sieben Stationen** (neu: die Leiste) und endet
+  auf Today.
+- **Ein Profi-Bereich in der Adresse öffnet im Einfach-Modus weiter Flips**
+  (wie bisher bei Profi-Tabs).

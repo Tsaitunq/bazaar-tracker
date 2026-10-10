@@ -126,16 +126,19 @@ test('setupResult survives missing or odd answers', () => {
   });
 });
 
-test('the basic tour has six stations: flip, numbers, badges, opportunities, search, settings', () => {
+test('the basic tour has seven stations: areas, flip, numbers, badges, opportunities, search, settings', () => {
   const steps = tourSteps();
-  assert.deepEqual(steps.map((s) => s.title), ['A flip', 'Two numbers', 'Badges', 'Opportunities', 'Find, sort, favorites', 'Settings and help']);
-  assert.ok(steps.length <= 6);
+  assert.deepEqual(steps.map((s) => s.title), ['The areas', 'A flip', 'Two numbers', 'Badges', 'Opportunities', 'Find, sort, favorites', 'Settings and help']);
+  assert.ok(steps.length <= 7);
   assert.ok(steps.every((s) => s.title && s.text && s.target && s.route));
-  assert.equal(steps[3].route, '#/opps');
-  // the first station says what to do and that a card can be tapped
-  assert.match(steps[0].text, /buy order.*sell offer.*Tap a card/s);
-  assert.match(steps[1].text, /Profit\/h.*estimate.*Margin/s);
-  assert.match(steps[4].text, /only your favorites/);
+  // the tour starts at the bar at the bottom
+  assert.equal(steps[0].target, '#areas');
+  assert.match(steps[0].text, /Today.*Trade.*Minions and Market/s);
+  assert.equal(steps[4].route, '#/opps');
+  // the second station says what to do and that a card can be tapped
+  assert.match(steps[1].text, /buy order.*sell offer.*Tap a card/s);
+  assert.match(steps[2].text, /Profit\/h.*estimate.*Margin/s);
+  assert.match(steps[5].text, /only your favorites/);
   // nothing in the basic tour needs Pro mode
   assert.ok(steps.every((s) => ['#/flips', '#/opps'].includes(s.route)));
 });
@@ -144,7 +147,7 @@ test('the advanced tour follows the tabs: trends, radar, portfolio, forge, plus 
   const web = advancedSteps({ native: false });
   const app = advancedSteps({ native: true });
   assert.deepEqual(web.map((s) => s.title), ['Trends', 'Event radar', 'Portfolio', 'Forge']);
-  assert.deepEqual(web.map((s) => s.route), ['#/flips', '#/flips', '#/opps', '#/forge']);
+  assert.deepEqual(web.map((s) => s.route), ['#/flips', '#/market', '#/opps', '#/forge']);
   assert.ok(web[3].text.split(/\s+/).length < 40, 'the forge station is short');
   assert.equal(app.length, 5);
   assert.match(app[4].text, /Unrestricted/);
@@ -232,7 +235,7 @@ test('changelog.json is well formed', () => {
 test('help screen offers both tours, setup, news and explains the numbers in sections that unfold', () => {
   const html = helpHtml();
   for (const act of ['tour', 'tour-advanced', 'setup', 'news', 'hints-reset', 'close']) assert.ok(html.includes(`data-act="${act}"`), act);
-  const terms = ['What a flip is', 'Margin', 'Profit/h', 'Market share', 'Volume per week', 'Stability score', 'Suspicious', 'Favorites', 'Portfolio', 'NPC flips', 'Craft flips', 'Forge', 'Events', 'Trends'];
+  const terms = ['What a flip is', 'Margin', 'Profit/h', 'Market share', 'Volume per week', 'Stability score', 'Suspicious', 'Favorites', 'Portfolio', 'NPC flips', 'Craft flips', 'Forge', 'Areas', 'Events', 'Trends'];
   for (const term of terms) assert.ok(html.includes(`<details><summary>${term}</summary>`), term);
   assert.equal(html.split('<details>').length - 1, terms.length);
   assert.ok(html.includes('estimate') && html.includes('lowest BIN'));
@@ -337,9 +340,24 @@ test('the page marks what Simple mode leaves out and has the mode switch', () =>
   for (const tab of ['npc', 'craft', 'forge']) assert.ok(page.includes(`<a href="#/${tab}" class="pro">`), tab);
   assert.ok(page.includes('<a href="#/flips">') && page.includes('<a href="#/opps">'));
   assert.ok(page.includes('<div id="radar" class="pro">'));
+  // the bar at the bottom: Today and Trade for everyone, Minions and Market in Pro mode
+  assert.ok(page.includes('<a href="#/today" data-area="today">') && page.includes('<a href="#/flips" data-area="trade">'));
+  for (const a of ['minions', 'market']) assert.ok(page.includes(`<a href="#/${a}" data-area="${a}" class="pro">`), a);
   // every setting has its own name
   const labels = [...page.matchAll(/<label[^>]*>([^<\r\n]+)/g)].map((m) => m[1].trim()).filter(Boolean);
   assert.equal(new Set(labels).size, labels.length, labels.join(' | '));
   const css = fs.readFileSync(new URL('../style.css', import.meta.url), 'utf8');
   assert.ok(css.includes('[data-mode="simple"] .pro { display: none !important; }'));
+});
+
+test('"Show me" follows the radar to the Market area and keeps every other route', async () => {
+  const { newsRoute } = await import('../onboarding.js');
+  assert.equal(newsRoute({ target: '#radar', route: '#/opps' }), '#/market');
+  assert.equal(newsRoute({ target: '#radar .radar' }), '#/market');
+  assert.equal(newsRoute({ target: '#portfolio .portfolio', route: '#/opps' }), '#/opps');
+  assert.equal(newsRoute({ target: '#sort' }), '#/flips');
+  // every target of the real changelog still has a page to be shown on
+  const real = JSON.parse(fs.readFileSync(new URL('../changelog.json', import.meta.url), 'utf8'));
+  const pages = ['#/today', '#/flips', '#/opps', '#/npc', '#/craft', '#/forge', '#/minions', '#/market'];
+  for (const e of real.versions.flatMap((v) => v.entries)) if (e.target) assert.ok(pages.includes(newsRoute(e)), e.title);
 });

@@ -5,7 +5,7 @@ import { forgeFlips, forgeFlip } from './forge.js';
 import { loadItems, fallbackName } from './names.js';
 import { loadStats, loadRecipes, loadForge, loadAh, loadElection, loadTiming, loadHistory } from './data.js';
 import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission } from './native.js';
-import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, parseRoute, detailView, portfolioView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, coins, percent, PLACEHOLDER_ICON } from './render.js';
+import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, trendsView, parseRoute, detailView, portfolioView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, viewsFor, areaOf, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
 import { level } from './trends.js';
 import { activePerks, upcoming, electionWindow, eventItems, flipWarnings } from './events.js';
@@ -61,11 +61,13 @@ if (settings.mode !== 'simple' && settings.mode !== 'pro') {
 }
 const simple = () => settings.mode === 'simple';
 const tabs = () => tabsFor(settings.mode);
-// a tab that Simple mode does not show opens as Flips
+// a page that Simple mode does not show opens as Flips
 function readRoute() {
   const r = parseRoute(location.hash);
-  return r.view !== 'item' && !tabs().includes(r.view) ? { view: 'flips' } : r;
+  return r.view !== 'item' && !viewsFor(settings.mode).includes(r.view) ? { view: 'flips' } : r;
 }
+// Without an address the app opens where it was left; the very first time that is Today.
+if (!location.hash) history.replaceState(null, '', String(load('bt.route', '#/today')));
 const storedFavs = load('bt.favs', []);
 const favs = new Set(Array.isArray(storedFavs) ? storedFavs : []);
 
@@ -83,6 +85,7 @@ let marked = {};     // item id -> event or perk it belongs to right now
 let lastStats = 0;
 let route = readRoute();
 let lastList = route.view === 'item' ? 'flips' : route.view; // where the detail page's back link goes
+let lastTab = tabs().includes(route.view) ? route.view : 'flips'; // the Trade tab the bar's Trade button opens
 let flips = [];
 let plan = null; // portfolio for the Opportunities tab
 let lastFetch = 0;
@@ -96,7 +99,18 @@ let markReady; // resolved once the first list is on screen, so the tour has som
 const ready = new Promise((resolve) => { markReady = resolve; });
 const shown = new Map(); // last rendered big numbers per view and item, to flash the ones that changed
 
-const view = () => (route.view === 'item' ? 'flips' : route.view);
+// the Trade tab in use; in the other areas that is the one last opened
+const view = () => (tabs().includes(route.view) ? route.view : lastTab);
+const area = () => areaOf(route.view);
+// One place for what a new address means: the back link, the Trade button and where the next start opens.
+function noteRoute() {
+  if (route.view === 'item') return;
+  lastList = route.view;
+  if (tabs().includes(route.view)) lastTab = route.view;
+  else if (!tabs().includes(lastTab)) lastTab = 'flips'; // a Pro tab does not survive the switch to Simple
+  save('bt.route', `#/${route.view}`);
+}
+noteRoute();
 const nameOf = (id) => names[id] ?? fallbackName(id);
 // "Trend" only reorders what is shown: the lists are built in their usual order and sorted afterwards
 const baseOpts = () => ({ ...settings, tax: settings.tax / 100, share: settings.share / 100, stats, sort: settings.sort === 'trend' ? 'profitHour' : settings.sort,
@@ -212,9 +226,16 @@ function renderRadar() {
   if (plain === radarShown) return;
   const box = $('radar');
   const open = new Set([...box.querySelectorAll('details[open]')].map((d) => d.dataset.key));
-  if (!radarShown && load('bt.radar', false) === true) open.add('radar');
   radarShown = plain;
   box.innerHTML = radarView({ ...data, open });
+}
+
+// The areas that are one page each. Trade is drawn by renderPage itself.
+function renderArea() {
+  if (area() === 'market') {
+    renderRadar();
+    if (products) $('trends').innerHTML = trendsView(compute('flips').list);
+  }
 }
 
 function renderDetail() {
@@ -241,11 +262,11 @@ function renderDetail() {
 // that has not been seen yet.
 function hintsNow() {
   if (route.view === 'item') return [detailSuspicious && 'suspicious', 'detail'];
+  if (area() !== 'trade') return [area() === 'market' && 'radar'];
   const v = view();
   return [
     ...($('panel').open && !$('settings').classList.contains('filtering') ? ['alerts', 'settings'] : []),
     $('search').value.trim() && otherHits > 0 && 'search',
-    document.querySelector('#radar .radar[open]') && 'radar',
     favs.size > 0 && 'fav',
     v === 'flips' ? 'card' : v,
     v === 'opps' && plan?.flips.length > 0 && 'portfolio',
@@ -262,9 +283,15 @@ function renderPage() {
   // cards fade in on a normal render, but not when a swipe has just slid them into place
   document.querySelector('main').classList.toggle('sliding', switching);
   document.body.classList.toggle('detail', item);
+  document.body.dataset.area = area();
+  for (const a of document.querySelectorAll('#areas a')) {
+    if (a.dataset.area === area()) a.setAttribute('aria-current', 'page');
+    else a.removeAttribute('aria-current');
+  }
+  document.querySelector('#areas [data-area="trade"]').setAttribute('href', `#/${lastTab}`);
   if (item) return renderDetail();
   $('detail').innerHTML = '';
-  renderRadar();
+  renderArea();
   for (const a of document.querySelectorAll('#tabs a')) {
     if (a.getAttribute('href') !== `#/${view()}`) a.removeAttribute('aria-current');
     else if (!a.hasAttribute('aria-current')) {
@@ -395,16 +422,10 @@ $('settings').addEventListener('click', (e) => {
   // Simple mode offers two ways to sort; nothing else is reset
   if (simple() && !['profitHour', 'margin'].includes(settings.sort)) $('sort').value = settings.sort = 'profitHour';
   route = readRoute();
-  if (route.view !== 'item') lastList = route.view;
+  noteRoute();
   applySettings();
   if (!simple()) offerAdvanced();
 });
-// toggle does not bubble, so listen in the capture phase; only the radar itself is remembered
-$('radar').addEventListener('toggle', (e) => {
-  if (e.target.dataset.key !== 'radar') return;
-  save('bt.radar', e.target.open);
-  refreshHints();
-}, true);
 $('search').addEventListener('input', render);
 $('refresh').addEventListener('click', refresh);
 $('fav-only').addEventListener('click', () => {
@@ -462,11 +483,13 @@ document.querySelector('main').addEventListener('click', (e) => {
 });
 
 addEventListener('hashchange', () => {
+  const from = area();
   route = readRoute();
-  if (route.view !== 'item') lastList = route.view;
+  noteRoute();
   recompute();
   render();
   settle();
+  if (area() !== from) scrollTo(0, 0);
 });
 
 document.addEventListener('visibilitychange', () => {
@@ -520,8 +543,8 @@ addEventListener('touchend', endPull);
 addEventListener('touchcancel', () => { pullStart = null; if (pulling()) showPtr(); });
 
 // Swipe left or right on a list to change tabs, like a pager: the page follows the finger and the
-// neighbouring tab is already there next to it. Not on the detail page, and not from the screen
-// edge, where Android's own back gesture starts.
+// neighbouring tab is already there next to it. Only between the tabs of Trade: not on the detail
+// page, not in another area, and not from the screen edge, where Android's own back gesture starts.
 const EDGE_PX = 24;
 const SLIDE_MS = 180;
 const page = document.querySelector('main');
@@ -542,7 +565,7 @@ function showPeek(side) {
   if (!tab) return;
   const { list, plan: pf } = compute(tab);
   const markup = listMarkup(tab, list, pf);
-  peek.innerHTML = `<div class="chips">${filterChips(activeFilters(tab, settings, DEFAULTS), settings)}</div>${$('radar').innerHTML}${markup.portfolio}<p class="count muted">${markup.count}</p><ul class="list${tab === 'opps' ? ' opps' : ''}">${markup.list}</ul>`;
+  peek.innerHTML = `<div class="chips">${filterChips(activeFilters(tab, settings, DEFAULTS), settings)}</div>${markup.portfolio}<p class="count muted">${markup.count}</p><ul class="list${tab === 'opps' ? ' opps' : ''}">${markup.list}</ul>`;
   peek.style.left = `${side * 100}%`;
   peek.style.top = `${Math.max(0, document.querySelector('header').getBoundingClientRect().bottom - page.getBoundingClientRect().top)}px`;
 }
@@ -559,7 +582,7 @@ function settle() {
 
 page.addEventListener('touchstart', (e) => {
   const { clientX: x, clientY: y } = e.touches[0];
-  const usable = products && route.view !== 'item' && e.touches.length === 1 && x > EDGE_PX && x < innerWidth - EDGE_PX;
+  const usable = products && route.view !== 'item' && area() === 'trade' && e.touches.length === 1 && x > EDGE_PX && x < innerWidth - EDGE_PX;
   drag = usable ? { x, y, dx: 0, side: 0 } : null;
 }, { passive: true });
 page.addEventListener('touchmove', (e) => {
