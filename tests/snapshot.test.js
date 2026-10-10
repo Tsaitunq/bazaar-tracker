@@ -177,7 +177,11 @@ test('compactElection keeps mayor, perks and minister without colour codes', () 
 test('compactElection lists the candidates of a running election', () => {
   const e = compactElection({ ...election, current: { year: 519, candidates: election.mayor.election.candidates } }, 5);
   assert.equal(e.vote.year, 519);
-  assert.deepEqual(e.vote.candidates[0], { name: 'Cole', votes: 612905, perks: ['Prospection', 'Mining Fiesta'] });
+  assert.deepEqual(e.vote.candidates[0], { name: 'Cole', votes: 612905, perks: ['Prospection', 'Mining Fiesta'], minister: 'Mining Fiesta' });
+  // the perk each candidate would bring along as minister
+  assert.deepEqual(e.vote.candidates.slice(1, 3).map((c) => [c.name, c.minister]), [['Aatrox', 'Pathfinder'], ['Paul', 'Benediction']]);
+  const bare = compactElection({ ...election, current: { year: 519, candidates: [{ name: 'Diana', votes: 1, perks: [{ name: 'Lucky!' }] }] } }, 5);
+  assert.equal(bare.vote.candidates[0].minister, null);
 });
 
 test('runExtras writes election.json and ah.json; a failure keeps the old file', async (t) => {

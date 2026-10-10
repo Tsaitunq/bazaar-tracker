@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { skyDate, skyTime, upcoming, activePerks, electionWindow, eventItems, electionRisks, PERK_EXPECT, EVENTS, PERK_ITEMS, DAY_MS, YEAR_DAYS, SOON_MS, MONTHS } from '../events.js';
+import { skyDate, skyTime, upcoming, activePerks, electionWindow, eventItems, flipWarnings, termStart, LEAVING_MS, PERK_EXPECT, EVENTS, PERK_ITEMS, DAY_MS, YEAR_DAYS, SOON_MS, MONTHS } from '../events.js';
 import { compactElection } from '../scripts/election.mjs';
 
 const raw = JSON.parse(fs.readFileSync(new URL('./fixtures/election.json', import.meta.url), 'utf8'));
@@ -91,23 +91,56 @@ test('every curated item and event is documented with its source', () => {
   }
 });
 
-test('electionRisks names the leading candidate for the items their perk brings', () => {
+test('flipWarnings: the leader of the election and the runner-up as minister may lower a price', () => {
+  const calm = at(8, 1); // months before the term ends
   const vote = (dianaVotes, perks = ['Mythological Ritual', 'Pet XP Buff']) => ({ vote: { year: 520, candidates: [
-    { name: 'Marina', votes: 500, perks: ['Fishing Festival'] },
-    { name: 'Diana', votes: dianaVotes, perks },
+    { name: 'Marina', votes: 500, perks: ['Fishing Festival'], minister: 'Fishing Festival' },
+    { name: 'Diana', votes: dianaVotes, perks, minister: perks.at(-1) },
+    { name: 'Cole', votes: 10, perks: ['Mining Fiesta'], minister: 'Mining Fiesta' },
   ] } });
-  const leading = electionRisks(vote(900));
-  assert.equal(leading.GRIFFIN_FEATHER, 'Diana');
-  assert.deepEqual(Object.keys(leading).sort(), [...PERK_EXPECT['Mythological Ritual'].items].sort());
+  const leading = flipWarnings(vote(900), calm);
+  assert.equal(leading.GRIFFIN_FEATHER, 'Diana may lower this price');
   // the drops added from the wiki page are covered too
-  for (const id of ['BRAIDED_GRIFFIN_FEATHER', 'ENCHANTMENT_ULTIMATE_CHIMERA_1', 'FATEFUL_STINGER', 'SHARD_MINOTAUR']) assert.equal(leading[id], 'Diana', id);
-  // behind in the votes: the leader's items count, not hers
-  const behind = electionRisks(vote(100));
+  for (const id of ['BRAIDED_GRIFFIN_FEATHER', 'ENCHANTMENT_ULTIMATE_CHIMERA_1', 'FATEFUL_STINGER', 'SHARD_MINOTAUR']) assert.equal(leading[id], 'Diana may lower this price', id);
+  // Marina is second: her minister perk comes along; Cole in third place brings nothing
+  assert.equal(leading.SHARK_FIN, 'Marina may lower this price');
+  assert.equal(leading.REFINED_MINERAL, undefined);
+  assert.equal(Object.keys(leading).length, PERK_EXPECT['Mythological Ritual'].items.length + PERK_EXPECT['Fishing Festival'].items.length);
+
+  // Diana second: only her minister perk counts, and here that is not the ritual
+  const behind = flipWarnings(vote(100), calm);
   assert.equal(behind.GRIFFIN_FEATHER, undefined);
-  assert.equal(behind.SHARK_FIN, 'Marina');
-  // leading without the perk, no election, or no vote cast yet: nothing
-  assert.deepEqual(electionRisks(vote(900, ['Pet XP Buff'])), {});
-  assert.deepEqual(electionRisks({ mayor: { name: 'Paul' }, vote: null }), {});
-  assert.deepEqual(electionRisks(null), {});
-  assert.deepEqual(electionRisks({ vote: { candidates: [{ name: 'Diana', votes: 0, perks: ['Mythological Ritual'] }] } }), {});
+  assert.equal(behind.SHARK_FIN, 'Marina may lower this price');
+  assert.equal(flipWarnings(vote(100, ['Pet XP Buff', 'Mythological Ritual']), calm).GRIFFIN_FEATHER, 'Diana may lower this price');
+  // a file from before the minister perk was stored: the leader still counts
+  const old = vote(900);
+  for (const c of old.vote.candidates) delete c.minister;
+  assert.deepEqual(Object.keys(flipWarnings(old, calm)).sort(), [...PERK_EXPECT['Mythological Ritual'].items].sort());
+
+  // no election, or no vote cast yet: nothing
+  assert.deepEqual(flipWarnings({ mayor: { name: 'Paul' }, vote: null }, calm), {});
+  assert.deepEqual(flipWarnings(null, calm), {});
+  assert.deepEqual(flipWarnings({ vote: { candidates: [{ name: 'Diana', votes: 0, perks: ['Mythological Ritual'] }] } }, calm), {});
+});
+
+test('flipWarnings: in the last 24 hours of a term the mayor and the minister are about to leave', () => {
+  const end = termStart(at(8, 1)) + YEAR_MS; // Paul, elected in 518, is in office in 519
+  assert.deepEqual(flipWarnings(election, end - LEAVING_MS), {});
+  const soon = flipWarnings(election, end - LEAVING_MS + 1);
+  assert.equal(soon.RECOMBOBULATOR_3000, 'Paul leaves in 24h – price may rise back');
+  // chest loot added from the wiki's tables per floor, and the minister's perk
+  assert.equal(soon.WITHER_BLOOD, 'Paul leaves in 24h – price may rise back');
+  assert.equal(soon.REFINED_MINERAL, 'Cole leaves in 24h – price may rise back');
+  assert.equal(flipWarnings(election, end - 5.5 * 3600000).GIANT_TOOTH, 'Paul leaves in 6h – price may rise back');
+  assert.equal(flipWarnings(election, end - 60000).GIANT_TOOTH, 'Paul leaves in 1h – price may rise back');
+  // the election file still names last term's mayor after the change: no warning for the new term
+  assert.deepEqual(flipWarnings(election, end + YEAR_MS - 3600000), {});
+  // a perk that stays keeps the election's sentence: Cole is about to be minister again
+  const again = { ...election, vote: { year: 519, candidates: [
+    { name: 'Diana', votes: 9, perks: ['Pet XP Buff'], minister: 'Pet XP Buff' },
+    { name: 'Cole', votes: 5, perks: ['Mining Fiesta'], minister: 'Mining Fiesta' },
+  ] } };
+  const both = flipWarnings(again, end - 3600000);
+  assert.equal(both.REFINED_MINERAL, 'Cole may lower this price');
+  assert.equal(both.DARK_ORB, 'Paul leaves in 1h – price may rise back');
 });

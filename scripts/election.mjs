@@ -17,7 +17,9 @@ export function compactElection(json, nowMs) {
     },
     vote: json.current?.candidates?.length ? {
       year: json.current.year,
-      candidates: json.current.candidates.map((c) => ({ name: clean(c.name), votes: c.votes ?? 0, perks: (c.perks ?? []).map((p) => clean(p.name)) })),
+      // minister: the one perk this candidate brings along as runner-up (the API flags it), or null
+      candidates: json.current.candidates.map((c) => ({ name: clean(c.name), votes: c.votes ?? 0, perks: (c.perks ?? []).map((p) => clean(p.name)),
+        minister: clean((c.perks ?? []).find((p) => p.minister)?.name) || null })),
     } : null,
   };
 }

@@ -1,6 +1,15 @@
 {
   "versions": [
     {
+      "version": "6.7.0",
+      "date": "2026-10-10",
+      "entries": [
+        { "title": "Warning before a mayor leaves", "text": "In the last 24 hours of a term, a portfolio flip is marked when the mayor's or minister's perk kept its price down, for example Paul leaves in 5h – price may rise back.", "target": "#portfolio .portfolio", "route": "#/opps" },
+        { "title": "The next minister counts too", "text": "The election warning now also looks at the perk the runner-up would bring along as minister.", "target": "#portfolio .portfolio", "route": "#/opps" },
+        { "title": "More dungeon chest items for Paul", "text": "Marauder now also lists Wither Blood, the three Necron scrolls, Giant Tooth, Sadan's Brooch, Dark Orb, Necromancer's Brooch, Spirit Bone and Spirit Wing.", "target": "#radar", "route": "#/opps" }
+      ]
+    },
+    {
       "version": "6.6.0",
       "date": "2026-10-10",
       "entries": [
