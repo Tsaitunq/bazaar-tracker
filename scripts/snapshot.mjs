@@ -81,7 +81,8 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     const now = Date.now();
     const { day, count } = runSnapshot(dataDir, json.products, now);
     console.log(`snapshot ${day}: ${count} products`);
-    if (recipesStale(path.join(dataDir, 'recipes.json'), now)) {
+    // forge.json came later than recipes.json: fetch both as soon as it is missing
+    if (recipesStale(path.join(dataDir, 'recipes.json'), now) || !fs.existsSync(path.join(dataDir, 'forge.json'))) {
       try {
         const r = refreshRecipes(dataDir, new Set(Object.keys(json.products)), now);
         console.log(`recipes: ${Object.keys(r.recipes).length}, forge: ${Object.keys(r.forge).length}`);

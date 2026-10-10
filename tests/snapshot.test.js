@@ -101,6 +101,7 @@ test('compactElection keeps mayor, perks and minister without colour codes', () 
   assert.equal(e.mayor.minister.name, 'Cole');
   assert.equal(e.mayor.minister.perk.name, 'Mining Fiesta');
   assert.ok(!JSON.stringify(e).includes('§'));
+  assert.equal(e.mayor.minister.perk.text, 'Gain +25 Mining Wisdom, +25% Mining Fortune, and collect Refined Minerals and Glossy Gemstones from mining!');
   assert.equal(e.vote, null);
   assert.throws(() => compactElection({ success: true }, 5));
 });

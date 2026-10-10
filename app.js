@@ -195,7 +195,8 @@ function renderDetail() {
   }
   const nowMin = Date.now() / 60000;
   const points = hist.points && (range === '24h' ? hist.points.filter(([t]) => t >= nowMin - 1440) : hist.points);
-  const stat = statOf(stats, id);
+  // an item that is not on the bazaar (a forge result) has no history to be provisional about
+  const stat = { ...statOf(stats, id), ...(products && !products[id] && { provisional: false }) };
   const flip = products?.[id] ? computeFlip(id, products[id], settings.tax / 100, settings.maxCapital, settings.share / 100, stat.median) : null;
   $('detail').innerHTML = detailView({ ...decorate({ id, sell: flip?.sell }), flip, ...stat, back: lastList, isFav: favs.has(id), range, points, tax: settings.tax / 100 });
   flashChanges();

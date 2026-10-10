@@ -1,5 +1,6 @@
 // The election resource, cut down to what the app shows.
-const clean = (s) => String(s ?? '').replace(/§./g, '').replace(/\s+/g, ' ').trim();
+// Perk texts carry colour codes and the game's stat icons; most fonts have no glyph for the icons.
+const clean = (s) => String(s ?? '').replace(/§./g, '').replace(/[☀-➿-]/g, '').replace(/\s+/g, ' ').trim();
 const perk = (p) => ({ name: clean(p?.name), text: clean(p?.description) });
 
 // json: the answer of /v2/resources/skyblock/election. `current` is only there while an election runs.
