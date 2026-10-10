@@ -20,6 +20,8 @@
   --stable: #4ADE80;
   --medium: #60A5FA;
   --unstable: #F472B6;
+  /* events and mayor perks: its own colour, because the accent is for controls */
+  --event: #5EEAD4;
   /* rarity: stripe on the card, a word in the corner and the tile on the detail page; never on the item name,
      so green text always means profit */
   --r-common: #BBACA0;
@@ -90,9 +92,11 @@ input[type="checkbox"] { accent-color: var(--accent); }
 
 #search { flex: 1; min-width: 0; }
 
-#tabs { display: flex; gap: 8px; margin-top: 8px; }
+/* five tabs: on a narrow screen the bar scrolls sideways, app.js keeps the active tab in view */
+#tabs { position: relative; display: flex; gap: 8px; margin-top: 8px; overflow-x: auto; scrollbar-width: none; }
+#tabs::-webkit-scrollbar { display: none; }
 /* tabs are underlined labels */
-#tabs a { flex: 1 1 auto; padding: 0 6px; font-size: 14px; min-height: 44px; display: grid; place-items: center; border-bottom: 2px solid var(--line); color: var(--muted); text-decoration: none; }
+#tabs a { white-space: nowrap; flex: 1 1 auto; padding: 0 6px; font-size: 14px; min-height: 44px; display: grid; place-items: center; border-bottom: 2px solid var(--line); color: var(--muted); text-decoration: none; }
 #tabs a[aria-current="page"] { color: var(--accent); border-color: var(--accent); font-weight: 600; }
 
 #error { margin: 8px 0 0; color: var(--loss); font-size: 13px; }
@@ -152,6 +156,22 @@ footer { padding-bottom: calc(24px + var(--safe-area-inset-bottom, env(safe-area
 footer a { color: inherit; }
 .count { margin: 0 0 8px; }
 
+/* radar: mayor and events, folded to one line above every list */
+.radar { margin: 4px 0 12px; padding: 0 12px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; max-width: 720px; font-size: 14px; }
+.radar summary { cursor: pointer; padding: 10px 0; }
+.radar > summary { min-height: 44px; }
+.radar-title { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--event); text-transform: uppercase; letter-spacing: .06em; vertical-align: middle; }
+.radar-title .ico { width: 16px; height: 16px; }
+.radar-line { display: block; margin-top: 2px; font-size: 13px; color: var(--muted); }
+.radar h3 { margin: 10px 0 4px; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.radar p { margin: 0 0 8px; }
+.radar ul, .radar ol { list-style: none; margin: 0 0 8px; padding: 0; }
+.radar li { border-top: 1px solid var(--line); }
+.radar .side { float: right; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.radar .affected a { color: var(--event); }
+.votes li { padding: 8px 0; }
+.votes small { display: block; color: var(--muted); font-size: 12px; }
+
 /* portfolio: the plan at the top of the Opportunities tab */
 .portfolio { margin: 4px 0 16px; padding: 12px; background: var(--card); border: 1px solid var(--accent); border-radius: 12px; max-width: 720px; }
 .portfolio h2 { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: .06em; }
@@ -202,6 +222,9 @@ footer a { color: inherit; }
 .badge-bad { color: var(--unstable); }
 .badge-prov { color: var(--muted); border-style: dashed; }
 .badge-warn { color: var(--warn); }
+/* neutral on purpose: green and red mean profit and loss, a rising price is neither */
+.badge-trend { color: var(--muted); }
+.badge-event { color: var(--event); }
 
 .key { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--accent); }
 .key > div { display: grid; }
@@ -220,7 +243,7 @@ footer a { color: inherit; }
 .ingredients { margin: 8px 0 0; padding-left: 18px; color: var(--muted); font-size: 12px; }
 
 /* detail page */
-body.detail #tabs, body.detail .filters, body.detail #count, body.detail #list, body.detail #portfolio { display: none; }
+body.detail #tabs, body.detail .filters, body.detail #count, body.detail #list, body.detail #portfolio, body.detail #radar { display: none; }
 .back { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; color: var(--accent); text-decoration: none; }
 .detail-head { display: flex; align-items: center; gap: 12px; }
 .detail-head .star { position: static; order: 3; }
@@ -230,6 +253,7 @@ body.detail #tabs, body.detail .filters, body.detail #count, body.detail #list, 
 #detail .key, #detail .facts { max-width: 560px; }
 .ranges { margin: 16px 0 4px; }
 .ranges button { flex: 1; max-width: 200px; }
+.forge-filter { margin: 0 0 8px; }
 .charts { display: grid; gap: 8px 24px; }
 #detail h3 { font-size: 14px; color: var(--muted); margin: 16px 0 4px; font-weight: 600; }
 .legend { margin: 0 0 4px; font-size: 12px; display: flex; gap: 12px; }
@@ -312,7 +336,7 @@ body.detail #tabs, body.detail .filters, body.detail #count, body.detail #list, 
 .choice input[type="radio"] { min-height: 0; width: 20px; height: 20px; flex: none; accent-color: var(--accent); }
 .choice span { display: grid; flex: 1; min-width: 0; }
 .choice small { color: var(--muted); font-size: 12px; }
-.choice input[type="number"] { margin-top: 6px; width: 100%; }
+.choice input[type="number"], .choice select { margin-top: 6px; width: 100%; }
 .summary-list { margin: 0 0 12px; display: grid; gap: 10px; }
 .summary-list > div { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
 .summary-list dt { font-weight: 600; }

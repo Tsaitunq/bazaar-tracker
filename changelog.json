@@ -1,6 +1,16 @@
 {
   "versions": [
     {
+      "version": "5.0.0",
+      "date": "2026-10-10",
+      "entries": [
+        { "title": "Forge tab", "text": "A new tab shows what is worth forging: what the ingredients cost, the profit per item and per forge hour, how long it takes and the HotM tier you need. Results that sell on the Auction House are marked as estimates.", "target": "#tabs a[href=\"#/forge\"]", "route": "#/forge" },
+        { "title": "Event radar", "text": "A card above every list shows the mayor, the active perks and the next SkyBlock events with a countdown. Tap a line to see the items that are typically affected.", "target": "#radar .radar" },
+        { "title": "Trend badges", "text": "An arrow on each card tells you whether the sell price was rising, falling or flat over the last day, and whether it is below or above its normal price. You can sort by Trend here.", "target": "#sort" },
+        { "title": "Two tours", "text": "The tour now covers the basics in six steps. A second, optional tour explains portfolio, forge, event radar and trends. Both start from the ? at the top.", "target": "#open-help" }
+      ]
+    },
+    {
       "version": "4.2.0",
       "date": "2026-10-10",
       "entries": [

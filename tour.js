@@ -1,7 +1,7 @@
 // Wires the onboarding to the page: one <dialog> for windows, one overlay for the spotlight.
 import {
-  currentVersion, startupAction, setupResult, tourSteps,
-  welcomeHtml, newsHtml, helpHtml, setupFormHtml, setupSummaryHtml, bubbleHtml,
+  currentVersion, startupAction, setupResult, tourSteps, advancedSteps,
+  welcomeHtml, newsHtml, helpHtml, advancedOfferHtml, setupFormHtml, setupSummaryHtml, bubbleHtml,
 } from './onboarding.js';
 
 const STATE_KEY = 'bt.onboarding';
@@ -14,7 +14,7 @@ const hadData = (() => {
 })();
 const readState = () => { try { return JSON.parse(localStorage.getItem(STATE_KEY)); } catch { return null; } };
 
-let ctx;          // what app.js hands over: { native, ready, slots, apply }
+let ctx;          // what app.js hands over: { native, ready, slots, forge, apply }
 let log;          // changelog.json
 let run = null;   // the tour in progress: { steps, index, then, settingsWereHidden }
 let answers = {}; // the setup assistant's answers while its window is open
@@ -39,14 +39,14 @@ const showWelcome = () => sheet(welcomeHtml(), 'welcome');
 const showNews = (versions, options) => sheet(newsHtml(versions, options), 'news');
 
 function showSetup() {
-  answers = { capital: undefined, activity: 'rarely', style: 'safe', ...answers };
+  answers = { capital: undefined, activity: 'rarely', style: 'safe', ...ctx.forge(), ...answers };
   sheet(setupFormHtml(answers), 'setup');
 }
 
 function readSetupForm() {
   const data = new FormData($('setup-form'));
   const capital = data.get('capital') === 'custom' ? Number(data.get('custom')) : Number(data.get('capital'));
-  answers = { capital, activity: data.get('activity'), style: data.get('style') };
+  answers = { capital, activity: data.get('activity'), style: data.get('style'), hotm: Number(data.get('hotm')), ah: data.get('ah') !== 'no' };
 }
 
 // ---- spotlight tour
@@ -144,11 +144,22 @@ function moveTour(by) {
   showStep();
 }
 
-async function startFullTour() {
+// The basic tour ends with the offer of the advanced one. `then` runs after whichever comes last:
+// the setup assistant on a first visit, nothing when the tour was started from the help screen.
+let afterTours = null;
+const listReady = () => Promise.race([ctx.ready, new Promise((r) => setTimeout(r, 8000))]);
+
+async function startBasicTour(then) {
+  afterTours = then;
   closeSheet();
-  await Promise.race([ctx.ready, new Promise((r) => setTimeout(r, 8000))]);
-  const firstId = document.querySelector('#list .card .star')?.dataset.id;
-  startTour(tourSteps({ native: ctx.native, firstId }), showSetup);
+  await listReady();
+  startTour(tourSteps(), () => sheet(advancedOfferHtml(), 'offer'));
+}
+
+async function startAdvancedTour(then) {
+  closeSheet();
+  await listReady();
+  startTour(advancedSteps({ native: ctx.native }), then);
 }
 
 // "Show me" in the news window: one spotlight per entry that points at something
@@ -202,7 +213,10 @@ export async function initOnboarding(context) {
 
   $('sheet').addEventListener('click', (e) => {
     const act = e.target.closest('[data-act]')?.dataset.act;
-    if (act === 'tour') startFullTour();
+    const from = $('sheet').dataset.name;
+    if (act === 'tour') startBasicTour(from === 'help' ? null : showSetup);
+    else if (act === 'tour-advanced') startAdvancedTour(from === 'offer' ? afterTours : null);
+    else if (act === 'offer-skip') { closeSheet(); afterTours?.(); }
     else if (act === 'skip' || act === 'close') closeSheet();
     else if (act === 'news-show') startNewsTour(shownNews);
     else if (act === 'setup') showSetup();
@@ -239,5 +253,5 @@ export async function initOnboarding(context) {
   shownNews = action.news ?? [];
   if (action.type === 'welcome') showWelcome();
   else if (action.type === 'tourOffer') showNews(action.news, { offerTour: true });
-  else if (action.type === 'whatsNew') showNews(action.news);
+  else if (action.type === 'whatsNew') showNews(action.news, { offerAdvanced: action.advanced });
 }

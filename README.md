@@ -12,10 +12,13 @@ It runs in any browser, can be installed as an app from the browser menu, and th
 - **Opportunities:** only the flips that are stable, liquid, not suspicious and within your budget.
 - **Portfolio:** your capital split evenly over the best safe flips, with the total profit per hour.
 - **NPC and Craft:** buy on the bazaar and sell to an NPC, or craft and sell the result.
+- **Forge:** forge recipes with bazaar ingredients, with profit per item and per forge hour, forge time and HotM tier. Results that sell on the Auction House use the lowest BIN minus fees and are marked as estimates.
+- **Event radar:** the mayor, the active perks and the next SkyBlock events with a countdown, plus the items that are typically affected (sources in `docs/events-sources.md`).
+- **Trends:** a badge shows whether an item's sell price is rising, falling or flat over the last day and whether it is below or above its 7 day median.
 - **Item pages:** price and margin charts for the last 24 hours or 7 days. Tap or hover a chart for exact values.
 - **Warnings:** a *suspicious* badge when the numbers look manipulated, a *provisional* badge when an item has less than a day of history.
 - **Favorites, search and sorting**, plus swiping between tabs on a phone.
-- **Tour and setup assistant:** a guided tour of the app and three questions that suggest settings for you.
+- **Tours and setup assistant:** a basic tour in six steps, an optional advanced tour, and five questions that suggest settings for you.
 - **Android app:** notifications for favorites and for new market opportunities, checked about every 15 minutes.
 
 ## How it calculates

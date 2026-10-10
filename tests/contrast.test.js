@@ -18,7 +18,7 @@ const contrast = (a, b) => {
 
 const AA = 4.5;
 const SURFACES = ['bg', 'page-top', 'header-bg', 'card', 'card-hover', 'raised'];
-const TEXT_COLOURS = ['text', 'muted', 'accent', 'gain', 'loss', 'warn', 'stable', 'medium', 'unstable'];
+const TEXT_COLOURS = ['text', 'muted', 'accent', 'gain', 'loss', 'warn', 'stable', 'medium', 'unstable', 'event'];
 // the rarity word on a card is text; the stripe and tile border use the same colours
 const RARITY_COLOURS = ['r-common', 'r-uncommon', 'r-rare', 'r-epic', 'r-legendary', 'r-mythic', 'r-divine', 'r-special'];
 

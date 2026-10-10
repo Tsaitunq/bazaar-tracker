@@ -1,21 +1,24 @@
 import { buildFlips, computeFlip, opportunities, portfolio, statOf, searchFlip, flipIssues, oppIssues, bySort } from './flips.js';
 import { npcFlips } from './npc.js';
 import { craftFlips } from './craft.js';
+import { forgeFlips } from './forge.js';
 import { loadItems, fallbackName } from './names.js';
-import { loadStats, loadRecipes, loadHistory } from './data.js';
+import { loadStats, loadRecipes, loadForge, loadAh, loadElection, loadHistory } from './data.js';
 import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission } from './native.js';
-import { flipCard, npcCard, craftCard, searchCard, parseRoute, detailView, portfolioView, swipeTab, dragOffset, TABS, coins, percent, PLACEHOLDER_ICON } from './render.js';
+import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, parseRoute, detailView, portfolioView, swipeTab, dragOffset, TABS, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
+import { level } from './trends.js';
+import { activePerks, upcoming, electionWindow, eventItems } from './events.js';
 import { initOnboarding } from './tour.js';
 
 const API = 'https://api.hypixel.net/v2/skyblock/bazaar';
 const MAX_ROWS = 100;
 const PULL_PX = 70;
 const STATS_TTL = 20 * 60000;
-const CARDS = { flips: flipCard, opps: flipCard, npc: npcCard, craft: craftCard };
+const CARDS = { flips: flipCard, opps: flipCard, npc: npcCard, craft: craftCard, forge: forgeCard };
 const DEFAULTS = { tax: 1.25, minVolume: 100000, maxCapital: 5000000, interval: 2, share: 5, sort: 'profitHour', favOnly: false, alerts: false, alertMargin: 5,
   marketAlerts: false, marketMargin: 10, marketMinVolume: 100000, marketMinProfit: 100000, marketCooldown: 6,
-  portfolioCapital: 50000000, portfolioSlots: 10 };
+  portfolioCapital: 50000000, portfolioSlots: 10, hotm: 10, forgeAh: true };
 
 const $ = (id) => document.getElementById(id);
 const load = (key, fallback) => { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } };
@@ -38,6 +41,9 @@ function sanitize() {
   settings.marketAlerts = settings.marketAlerts === true;
   settings.portfolioSlots = Math.floor(settings.portfolioSlots);
   if (!(settings.portfolioSlots >= 1 && settings.portfolioSlots <= 50)) settings.portfolioSlots = DEFAULTS.portfolioSlots;
+  settings.hotm = Math.floor(settings.hotm);
+  if (!(settings.hotm >= 0 && settings.hotm <= 10)) settings.hotm = DEFAULTS.hotm;
+  settings.forgeAh = settings.forgeAh !== false;
 }
 sanitize();
 const storedFavs = load('bt.favs', []);
@@ -49,6 +55,10 @@ let npc = {};
 let tiers = {}; // rarity per item id
 let stats = null; // score, median and hours of history per item; null until loaded
 let recipes;
+let forge;   // forge recipes; undefined while loading, null when there are none
+let ah = {}; // lowest BIN of forge results that are not on the bazaar
+let election = null; // mayor, perks and a running election; null when unknown
+let marked = {};     // item id -> event or perk it belongs to right now
 let lastStats = 0;
 let route = parseRoute(location.hash);
 let lastList = route.view === 'item' ? 'flips' : route.view; // where the detail page's back link goes
@@ -65,11 +75,22 @@ const shown = new Map(); // last rendered big numbers per view and item, to flas
 
 const view = () => (route.view === 'item' ? 'flips' : route.view);
 const nameOf = (id) => names[id] ?? fallbackName(id);
-const baseOpts = () => ({ ...settings, tax: settings.tax / 100, share: settings.share / 100, stats });
+// "Trend" only reorders what is shown: the lists are built in their usual order and sorted afterwards
+const baseOpts = () => ({ ...settings, tax: settings.tax / 100, share: settings.share / 100, stats, sort: settings.sort === 'trend' ? 'profitHour' : settings.sort });
+// What a row shows besides its numbers: name, rarity and the trend signals.
+function decorate(f) {
+  f.name = nameOf(f.id);
+  f.tier = tiers[f.id];
+  f.trend = stats?.[f.id]?.[3] ?? null;
+  f.level = level(f.sell, statOf(stats, f.id).median);
+  f.event = marked[f.id];
+  return f;
+}
 const oppOpts = () => ({ ...baseOpts(), minMargin: settings.marketMargin / 100, minVolume: settings.marketMinVolume, minProfitHour: settings.marketMinProfit });
 
 // The flips of one tab, with names. plan is the portfolio and only exists for the Opportunities tab.
 function compute(v) {
+  marked = eventItems(Date.now(), election);
   const opts = baseOpts();
   let list;
   let pf = null;
@@ -80,25 +101,26 @@ function compute(v) {
     pf = portfolio(products, { ...conditions, capital: settings.portfolioCapital, slots: settings.portfolioSlots });
   }
   else if (v === 'npc') list = npcFlips(products, npc, opts);
+  else if (v === 'forge') list = forge ? forgeFlips(products, forge, ah, opts) : [];
   else list = recipes ? craftFlips(products, recipes, opts) : [];
   for (const f of pf?.flips ?? []) f.name = nameOf(f.id);
   for (const f of list) {
-    f.name = nameOf(f.id);
-    f.tier = tiers[f.id];
+    decorate(f);
     for (const i of f.ingredients ?? []) i.name = nameOf(i.id);
   }
+  if (settings.sort === 'trend') list.sort(bySort('trend'));
   return { list, plan: pf };
 }
 
 // Search hits the tab's list does not hold: every other bazaar item with a matching name, each with
 // the reason it is missing. The search always covers the whole bazaar, whatever the filters say.
-const NOT_HERE = { npc: 'No NPC flip right now', craft: 'No craft flip right now' };
+const NOT_HERE = { npc: 'No NPC flip right now', craft: 'No craft flip right now', forge: 'No forge flip right now' };
 function searchRest(v, q, listed) {
   const opts = v === 'opps' ? oppOpts() : baseOpts();
   const issues = v === 'opps' ? oppIssues : v === 'flips' ? flipIssues : () => [NOT_HERE[v]];
   return Object.keys(products)
     .filter((id) => !listed.has(id) && nameOf(id).toLowerCase().includes(q))
-    .map((id) => ({ ...searchFlip(id, products[id], opts, issues), name: nameOf(id), tier: tiers[id] }))
+    .map((id) => decorate(searchFlip(id, products[id], opts, issues)))
     .sort(bySort(settings.sort));
 }
 
@@ -107,10 +129,11 @@ function recompute() {
   ({ list: flips, plan } = compute(view()));
 }
 
-// The three pieces of a list view as HTML: portfolio, the "x of y" line and the cards.
+// The three pieces of a list view as HTML: what stands above the list (portfolio or the forge switch),
+// the "x of y" line and the cards.
 function listMarkup(v, list, pf) {
   const q = $('search').value.trim().toLowerCase();
-  if (v === 'craft' && recipes === null && !q) {
+  if (!q && ((v === 'craft' && recipes === null) || (v === 'forge' && forge === null))) {
     return { portfolio: '', count: '', list: '<li class="muted">No recipe data yet. The snapshot workflow has to run once.</li>' };
   }
   // a search ignores the favorites switch too: it has to find every item
@@ -123,9 +146,13 @@ function listMarkup(v, list, pf) {
       ? 'No item meets all conditions right now. Items need 24 hours of price history before they can show up here.'
       : 'Price history could not be loaded, so stability cannot be checked right now.'}</li>`;
   }
+  if (v === 'forge' && forge && !list.length && !q) {
+    cards = '<li class="muted">No forge recipe makes a profit with these settings.</li>';
+  }
   return {
     portfolio: v === 'opps' && pf
-      ? portfolioView(pf, { capital: settings.portfolioCapital, slots: settings.portfolioSlots, sharePercent: settings.share }) : '',
+      ? portfolioView(pf, { capital: settings.portfolioCapital, slots: settings.portfolioSlots, sharePercent: settings.share })
+      : v === 'forge' ? forgeFilter(settings.forgeAh) : '',
     count: q ? `${rows.length} ${rows.length === 1 ? 'flip' : 'flips'}, ${rest.length} other ${rest.length === 1 ? 'item' : 'items'}`
       : `${Math.min(rows.length, MAX_ROWS)} of ${rows.length} flips`,
     list: cards,
@@ -145,17 +172,33 @@ function flashChanges() {
   }
 }
 
+// The radar is only rebuilt when its content changed, so parts the user unfolded stay open.
+let radarShown = '';
+function renderRadar() {
+  const now = Date.now();
+  const data = { election, perks: activePerks(election), events: upcoming(now, election), vote: electionWindow(now), now, name: nameOf };
+  const plain = radarView(data);
+  if (plain === radarShown) return;
+  const box = $('radar');
+  const open = new Set([...box.querySelectorAll('details[open]')].map((d) => d.dataset.key));
+  if (!radarShown && load('bt.radar', false) === true) open.add('radar');
+  radarShown = plain;
+  box.innerHTML = radarView({ ...data, open });
+}
+
 function renderDetail() {
   const { id } = route;
+  marked = eventItems(Date.now(), election);
   if (hist.id !== id) {
     hist = { id, points: null };
     loadHistory(id, 7).then((points) => { if (hist.id === id) { hist.points = points; render(); } });
   }
   const nowMin = Date.now() / 60000;
   const points = hist.points && (range === '24h' ? hist.points.filter(([t]) => t >= nowMin - 1440) : hist.points);
-  const stat = statOf(stats, id);
+  // an item that is not on the bazaar (a forge result) has no history to be provisional about
+  const stat = { ...statOf(stats, id), ...(products && !products[id] && { provisional: false }) };
   const flip = products?.[id] ? computeFlip(id, products[id], settings.tax / 100, settings.maxCapital, settings.share / 100, stat.median) : null;
-  $('detail').innerHTML = detailView({ id, name: names[id] ?? fallbackName(id), tier: tiers[id], flip, ...stat, back: lastList, isFav: favs.has(id), range, points, tax: settings.tax / 100 });
+  $('detail').innerHTML = detailView({ ...decorate({ id, sell: flip?.sell }), flip, ...stat, back: lastList, isFav: favs.has(id), range, points, tax: settings.tax / 100 });
   flashChanges();
 }
 
@@ -166,9 +209,14 @@ function render() {
   document.body.classList.toggle('detail', item);
   if (item) return renderDetail();
   $('detail').innerHTML = '';
+  renderRadar();
   for (const a of document.querySelectorAll('#tabs a')) {
-    if (a.getAttribute('href') === `#/${view()}`) a.setAttribute('aria-current', 'page');
-    else a.removeAttribute('aria-current');
+    if (a.getAttribute('href') !== `#/${view()}`) a.removeAttribute('aria-current');
+    else if (!a.hasAttribute('aria-current')) {
+      a.setAttribute('aria-current', 'page');
+      // the tab bar scrolls sideways on a narrow screen: bring the active tab to its middle
+      $('tabs').scrollLeft = a.offsetLeft - ($('tabs').clientWidth - a.offsetWidth) / 2;
+    }
   }
   if (!products) return;
   const markup = listMarkup(view(), flips, plan);
@@ -218,7 +266,7 @@ async function refresh() {
 
 async function refreshStats() {
   lastStats = Date.now();
-  stats = await loadStats();
+  [stats, ah, election] = await Promise.all([loadStats(), loadAh(), loadElection()]);
   recompute();
   render();
 }
@@ -231,7 +279,7 @@ function applySettings() {
   render();
 }
 
-for (const key of ['tax', 'interval', 'share', 'sort', 'minVolume', 'maxCapital', 'alertMargin', 'marketMargin', 'marketMinVolume', 'marketMinProfit', 'marketCooldown', 'portfolioCapital', 'portfolioSlots']) {
+for (const key of ['tax', 'interval', 'share', 'sort', 'minVolume', 'maxCapital', 'alertMargin', 'marketMargin', 'marketMinVolume', 'marketMinProfit', 'marketCooldown', 'portfolioCapital', 'portfolioSlots', 'hotm']) {
   $(key).value = settings[key];
   $(key).addEventListener('change', (e) => {
     settings[key] = key === 'sort' ? e.target.value : Math.max(0, Number(e.target.value) || 0);
@@ -242,6 +290,8 @@ for (const key of ['tax', 'interval', 'share', 'sort', 'minVolume', 'maxCapital'
   });
 }
 $('settings').addEventListener('submit', (e) => e.preventDefault());
+// toggle does not bubble, so listen in the capture phase; only the radar itself is remembered
+$('radar').addEventListener('toggle', (e) => { if (e.target.dataset.key === 'radar') save('bt.radar', e.target.open); }, true);
 $('search').addEventListener('input', render);
 $('refresh').addEventListener('click', refresh);
 $('fav-only').addEventListener('click', () => {
@@ -282,6 +332,11 @@ function chartPointer(e) {
 $('detail').addEventListener('pointermove', chartPointer);
 $('detail').addEventListener('pointerdown', chartPointer);
 document.querySelector('main').addEventListener('click', (e) => {
+  const withAh = e.target.closest('[data-forge-ah]')?.dataset.forgeAh;
+  if (withAh) {
+    settings.forgeAh = withAh === '1';
+    return applySettings();
+  }
   const id = e.target.closest('.star')?.dataset.id;
   if (!id) return;
   if (!favs.delete(id)) favs.add(id);
@@ -371,7 +426,7 @@ function showPeek(side) {
   if (!tab) return;
   const { list, plan: pf } = compute(tab);
   const markup = listMarkup(tab, list, pf);
-  peek.innerHTML = `${markup.portfolio}<p class="count muted">${markup.count}</p><ul class="list${tab === 'opps' ? ' opps' : ''}">${markup.list}</ul>`;
+  peek.innerHTML = `${$('radar').innerHTML}${markup.portfolio}<p class="count muted">${markup.count}</p><ul class="list${tab === 'opps' ? ' opps' : ''}">${markup.list}</ul>`;
   peek.style.left = `${side * 100}%`;
   peek.style.top = `${Math.max(0, document.querySelector('header').getBoundingClientRect().bottom - page.getBoundingClientRect().top)}px`;
 }
@@ -468,10 +523,12 @@ loadItems().then((items) => {
   render();
 });
 loadRecipes().then((r) => { recipes = r; recompute(); render(); });
+loadForge().then((r) => { forge = r; recompute(); render(); });
 initOnboarding({
   native: !!plugin(),
   ready,
   slots: () => settings.portfolioSlots,
+  forge: () => ({ hotm: settings.hotm, ah: settings.forgeAh }),
   // the setup assistant hands over setting values; they go through the same checks as typed ones
   apply(values) {
     Object.assign(settings, values);
