@@ -33,7 +33,7 @@ export function lowestBins(auctions, wanted, into = {}) {
 
 // getPage(n) resolves to one page of the endpoint. Any failing page rejects the whole result,
 // so a half read list never replaces a complete one.
-export async function fetchLowestBins(getPage, wanted, parallel = 8) {
+export async function fetchLowestBins(getPage, wanted, parallel = 4) {
   const first = await getPage(0);
   const out = lowestBins(first.auctions, wanted);
   for (let n = 1; n < first.totalPages; n += parallel) {

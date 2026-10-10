@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import zlib from 'node:zlib';
-import { runSnapshot, runExtras } from '../scripts/snapshot.mjs';
+import { runSnapshot, runExtras, retry } from '../scripts/snapshot.mjs';
 import { itemIds, lowestBins, fetchLowestBins } from '../scripts/auctions.mjs';
 import { compactElection } from '../scripts/election.mjs';
 import { shardOf, dayKey } from '../history.js';
@@ -127,4 +127,13 @@ test('runExtras writes election.json and ah.json; a failure keeps the old file',
   assert.deepEqual(await runExtras(dir, new Set(['PLATE', 'REFINED']), 10, failing), []);
   assert.equal(readJson(dir, 'ah.json').t, 9);
   assert.equal(readJson(dir, 'election.json').t, 9);
+});
+
+test('retry runs a failing call again and gives up after the last wait', async () => {
+  let calls = 0;
+  assert.equal(await retry(async () => { if (++calls < 3) throw new Error('terminated'); return 'ok'; }, [0, 0]), 'ok');
+  assert.equal(calls, 3);
+  calls = 0;
+  await assert.rejects(retry(async () => { calls++; throw new Error('HTTP 500'); }, [0, 0]), /HTTP 500/);
+  assert.equal(calls, 3);
 });

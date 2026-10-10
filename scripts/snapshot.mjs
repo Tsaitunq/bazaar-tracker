@@ -42,13 +42,25 @@ export function runSnapshot(dataDir, products, nowMs) {
 }
 
 const API = 'https://api.hypixel.net/v2/';
-async function getJson(url) {
+// Runs fn again after a failure: the auction pages are large, and now and then a connection drops mid-way.
+export async function retry(fn, waits = [1000, 3000]) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fn();
+    } catch (e) {
+      if (attempt >= waits.length) throw e;
+      await new Promise((resolve) => setTimeout(resolve, waits[attempt]));
+    }
+  }
+}
+
+const getJson = (url) => retry(async () => {
   const res = await fetch(url, { signal: AbortSignal.timeout(30000) });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const json = await res.json();
   if (!json.success) throw new Error('API reported success=false');
   return json;
-}
+});
 
 // Mayor and lowest BINs ride along with the snapshot. If one of them fails, its old file stays
 // and the snapshot still counts.
@@ -69,7 +81,7 @@ export async function runExtras(dataDir, bazaarIds, nowMs, get = getJson) {
       done.push('ah');
     }
   } catch (e) {
-    console.error(`auctions failed: ${e.message}`);
+    console.error(`auctions failed: ${e.message}${e.cause ? ` (${e.cause.code ?? e.cause.message})` : ''}`);
   }
   return done;
 }
