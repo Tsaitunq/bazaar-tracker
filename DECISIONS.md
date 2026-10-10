@@ -616,3 +616,21 @@ Selbstständig getroffen (Auftrag: unbeaufsichtigt, ohne Rückfragen). Spec:
   auf Today.
 - **Ein Profi-Bereich in der Adresse öffnet im Einfach-Modus weiter Flips**
   (wie bisher bei Profi-Tabs).
+
+## Teil 1: Crafts im Portfolio
+
+- **Der Craft rechnet mit dem Einsatz des Flips** (seinem Stake aus dem
+  Plan), nicht mit dem ganzen Kapital. Grund: Nur so ist „mehr Profit/h als
+  der reine Flip“ ein Vergleich mit denselben Coins. Kosten: Ein Craft, der
+  mehr Kapital bräuchte als der Flip bekommen hat, erscheint nicht.
+- **„+Y/h“ ist der Mehrertrag** (Craft minus Flip), nicht der Craft-Profit.
+- **Volumen wie im Craft-Tab:** Verkäufe je Woche bei jeder Zutat, Käufe je
+  Woche beim Endprodukt, davon dein Market share.
+- **Ein Endprodukt mit „suspicious“ gibt keinen Hinweis.** Grund: Sonst
+  empfiehlt der Plan genau die manipulierten Preise, vor denen er schützt.
+  Stabilität und 24 h Verlauf des Endprodukts werden nicht verlangt (wie im
+  Craft-Tab).
+- **Pro Flip nur der beste Craft**, nur im Profi-Modus (Craft ist ein
+  Profi-Tab).
+- **Der Plan wird jetzt bei jeder Neuberechnung gebaut**, nicht nur im
+  Opportunities-Tab; Teil 2 und 3 brauchen ihn überall.

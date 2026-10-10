@@ -403,3 +403,15 @@ test('trendsView lists the strongest risers and fallers and leaves flat items ou
   assert.ok(!html.includes('Delta') && !html.includes('Epsilon'));
   assert.ok(trendsView([]).includes('Nothing right now.'));
 });
+
+test('portfolio: a craft hint is a line on the row, with a note that the recipe must be unlocked', async () => {
+  const { portfolioView } = await import('../render.js');
+  const flip = { id: 'A', name: 'Alpha', stake: 1000, profitHour: 50 };
+  const plan = (flips) => ({ flips, limit: null, more: null, profitHour: 50, used: 1000 });
+  const opts = { capital: 1000, slots: 21, sharePercent: 5 };
+  const html = portfolioView(plan([{ ...flip, craft: { name: '<Beta>', extra: 12345, orders: 3 } }]), opts);
+  assert.ok(html.includes('<small class="craft pro">Craft into &#60;Beta&#62;: +12.3k/h · uses 3 orders</small>'));
+  assert.ok(html.includes('unlocked the recipe') && html.includes('not part of the plan'));
+  const none = portfolioView(plan([flip]), opts);
+  assert.ok(!none.includes('Craft into') && !none.includes('craft-note'));
+});

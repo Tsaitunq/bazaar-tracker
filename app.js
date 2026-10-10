@@ -1,6 +1,6 @@
 import { buildFlips, computeFlip, opportunities, portfolio, MAX_SLOTS, statOf, searchFlip, flipIssues, oppIssues, bySort } from './flips.js';
 import { npcFlips } from './npc.js';
-import { craftFlips } from './craft.js';
+import { craftFlips, craftHints } from './craft.js';
 import { forgeFlips, forgeFlip } from './forge.js';
 import { loadItems, fallbackName } from './names.js';
 import { loadStats, loadRecipes, loadForge, loadAh, loadElection, loadTiming, loadHistory } from './data.js';
@@ -87,7 +87,7 @@ let route = readRoute();
 let lastList = route.view === 'item' ? 'flips' : route.view; // where the detail page's back link goes
 let lastTab = tabs().includes(route.view) ? route.view : 'flips'; // the Trade tab the bar's Trade button opens
 let flips = [];
-let plan = null; // portfolio for the Opportunities tab
+let plan = null; // the portfolio: shown in the Opportunities tab and on Today
 let lastFetch = 0;
 let timer;
 let busy = false;
@@ -126,34 +126,37 @@ function decorate(f) {
 }
 const oppOpts = () => ({ ...baseOpts(), minMargin: settings.marketMargin / 100, minVolume: settings.marketMinVolume, minProfitHour: settings.marketMinProfit });
 
-// The flips of one tab, with names. plan is the portfolio and only exists for the Opportunities tab.
+// The portfolio, with what a row shows besides its numbers.
+function buildPlan() {
+  // The plan has its own floors: a lower margin, because items that trade a lot rarely have a high one,
+  // and the week's turnover in coins instead of units, so expensive items can take part.
+  const pf = portfolio(products, { ...oppOpts(), minMargin: settings.portfolioMargin / 100, minTurnover: settings.portfolioTurnover, capital: settings.portfolioCapital, slots: settings.portfolioSlots });
+  const risks = flipWarnings(election, Date.now());
+  const crafts = recipes ? craftHints(pf.flips, products, recipes, baseOpts()) : {};
+  for (const f of pf.flips) {
+    f.name = nameOf(f.id);
+    f.risk = risks[f.id]; // what the election may do to this item's price, in words
+    f.craft = crafts[f.id] && { ...crafts[f.id], name: nameOf(crafts[f.id].id) };
+  }
+  return pf;
+}
+
+// The flips of one tab, with names.
 function compute(v) {
   marked = eventItems(Date.now(), election);
   const opts = baseOpts();
   let list;
-  let pf = null;
   if (v === 'flips') list = buildFlips(products, { ...opts, favs });
-  else if (v === 'opps') {
-    const conditions = oppOpts();
-    list = opportunities(products, conditions);
-    // The plan has its own floors: a lower margin, because items that trade a lot rarely have a high one,
-    // and the week's turnover in coins instead of units, so expensive items can take part.
-    pf = portfolio(products, { ...conditions, minMargin: settings.portfolioMargin / 100, minTurnover: settings.portfolioTurnover, capital: settings.portfolioCapital, slots: settings.portfolioSlots });
-  }
+  else if (v === 'opps') list = opportunities(products, oppOpts());
   else if (v === 'npc') list = npcFlips(products, npc, opts);
   else if (v === 'forge') list = forge ? forgeFlips(products, forge, ah, opts) : [];
   else list = recipes ? craftFlips(products, recipes, opts) : [];
-  const risks = flipWarnings(election, Date.now());
-  for (const f of pf?.flips ?? []) {
-    f.name = nameOf(f.id);
-    f.risk = risks[f.id]; // what the election may do to this item's price, in words
-  }
   for (const f of list) {
     decorate(f);
     for (const i of f.ingredients ?? []) i.name = nameOf(i.id);
   }
   if (settings.sort === 'trend') list.sort(bySort('trend'));
-  return { list, plan: pf };
+  return list;
 }
 
 // Search hits the tab's list does not hold: every other bazaar item with a matching name, each with
@@ -169,8 +172,9 @@ function searchRest(v, q, listed) {
 }
 
 function recompute() {
-  if (!products || route.view === 'item') return;
-  ({ list: flips, plan } = compute(view()));
+  if (!products) return;
+  plan = buildPlan();
+  if (route.view !== 'item') flips = compute(view());
 }
 
 // The three pieces of a list view as HTML: what stands above the list (portfolio or the forge switch),
@@ -234,7 +238,7 @@ function renderRadar() {
 function renderArea() {
   if (area() === 'market') {
     renderRadar();
-    if (products) $('trends').innerHTML = trendsView(compute('flips').list);
+    if (products) $('trends').innerHTML = trendsView(compute('flips'));
   }
 }
 
@@ -270,6 +274,7 @@ function hintsNow() {
     favs.size > 0 && 'fav',
     v === 'flips' ? 'card' : v,
     v === 'opps' && plan?.flips.length > 0 && 'portfolio',
+    v === 'opps' && plan?.flips.some((f) => f.craft) && 'crafthint',
   ];
 }
 
@@ -563,8 +568,7 @@ function showPeek(side) {
   const tab = tabs()[tabs().indexOf(view()) + side];
   peek.hidden = !tab;
   if (!tab) return;
-  const { list, plan: pf } = compute(tab);
-  const markup = listMarkup(tab, list, pf);
+  const markup = listMarkup(tab, compute(tab), plan);
   peek.innerHTML = `<div class="chips">${filterChips(activeFilters(tab, settings, DEFAULTS), settings)}</div>${markup.portfolio}<p class="count muted">${markup.count}</p><ul class="list${tab === 'opps' ? ' opps' : ''}">${markup.list}</ul>`;
   peek.style.left = `${side * 100}%`;
   peek.style.top = `${Math.max(0, document.querySelector('header').getBoundingClientRect().bottom - page.getBoundingClientRect().top)}px`;

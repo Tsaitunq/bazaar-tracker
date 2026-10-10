@@ -197,6 +197,7 @@ function limitNote(plan, { capital, slots, simple }) {
 // The plan at the top of the Opportunities tab: total first, then what it is made of.
 // plan comes from portfolio() with a name on every flip, and `risk` (a sentence from flipWarnings) where
 // the election may move the item's price; sharePercent is the market share setting.
+// craft: { name, extra, orders } from craftHints where crafting the item pays more than flipping it.
 // slots: the "Max. flips" setting; simple: Simple mode (see limitNote).
 export function portfolioView(plan, { capital, slots, sharePercent, simple = false }) {
   const hint = `<p class="assume">Assumes ${num(sharePercent)}% market share – only realistic if you relist actively</p>`;
@@ -205,14 +206,16 @@ export function portfolioView(plan, { capital, slots, sharePercent, simple = fal
       ? 'No flip qualifies for the portfolio right now. It takes stable, unsuspicious items with 24 hours of price history.'
       : 'Set a total capital in the settings to get a plan.'}</p></section>`;
   }
-  const rows = plan.flips.map((f) => `<li><a href="${esc(itemHref(f.id))}"><span class="pick">${esc(f.name)}${f.risk ? `<small>${esc(f.risk)}</small>` : ''}</span><span class="stake">${num(f.stake)}</span><span class="gain">${num(f.profitHour)}/h</span></a></li>`).join('');
+  const rows = plan.flips.map((f) => `<li><a href="${esc(itemHref(f.id))}"><span class="pick">${esc(f.name)}${f.risk ? `<small>${esc(f.risk)}</small>` : ''}${f.craft
+    ? `<small class="craft pro">Craft into ${esc(f.craft.name)}: +${num(f.craft.extra)}/h · uses ${f.craft.orders} orders</small>` : ''}</span><span class="stake">${num(f.stake)}</span><span class="gain">${num(f.profitHour)}/h</span></a></li>`).join('');
   return `<section class="portfolio">
   <h2>Portfolio</h2>
   <div class="total"><span class="big gain">${num(plan.profitHour)}</span><span class="lbl">Profit/h</span></div>
   <p class="muted">Using ${plan.flips.length} of ${Math.floor(slots)} flips · ${num(plan.used)} of ${num(capital)} capital in use · ${percent.format(plan.profitHour / plan.used)} return per hour</p>
   ${plan.limit ? limitNote(plan, { capital, slots: Math.floor(slots), simple }) : ''}
   <div class="picks-head"><span>Item</span><span>Stake</span><span>Profit/h</span></div>
-  <ol class="picks">${rows}</ol>
+  <ol class="picks">${rows}</ol>${plan.flips.some((f) => f.craft) ? `
+  <p class="craft-note muted pro">Craft hints are not part of the plan. They only work if you have unlocked the recipe.</p>` : ''}
   ${hint}
 </section>`;
 }

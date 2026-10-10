@@ -235,7 +235,7 @@ test('changelog.json is well formed', () => {
 test('help screen offers both tours, setup, news and explains the numbers in sections that unfold', () => {
   const html = helpHtml();
   for (const act of ['tour', 'tour-advanced', 'setup', 'news', 'hints-reset', 'close']) assert.ok(html.includes(`data-act="${act}"`), act);
-  const terms = ['What a flip is', 'Margin', 'Profit/h', 'Market share', 'Volume per week', 'Stability score', 'Suspicious', 'Favorites', 'Portfolio', 'NPC flips', 'Craft flips', 'Forge', 'Areas', 'Events', 'Trends'];
+  const terms = ['What a flip is', 'Margin', 'Profit/h', 'Market share', 'Volume per week', 'Stability score', 'Suspicious', 'Favorites', 'Portfolio', 'NPC flips', 'Craft flips', 'Craft hints in the portfolio', 'Forge', 'Areas', 'Events', 'Trends'];
   for (const term of terms) assert.ok(html.includes(`<details><summary>${term}</summary>`), term);
   assert.equal(html.split('<details>').length - 1, terms.length);
   assert.ok(html.includes('estimate') && html.includes('lowest BIN'));
@@ -283,8 +283,8 @@ test('the help buttons live behind the ? in the header, not in the settings', ()
   for (const id of ['restart-tour', 'restart-setup', 'show-news']) assert.ok(!page.includes(id), id);
 });
 
-test('thirteen context hints, each with a text and a place', () => {
-  assert.deepEqual(HINT_IDS, ['card', 'detail', 'suspicious', 'fav', 'opps', 'portfolio', 'npc', 'craft', 'forge', 'radar', 'search', 'settings', 'alerts']);
+test('the context hints, each with a text and a place', () => {
+  assert.deepEqual(HINT_IDS, ['card', 'detail', 'suspicious', 'fav', 'opps', 'portfolio', 'crafthint', 'npc', 'craft', 'forge', 'radar', 'search', 'settings', 'alerts']);
   for (const id of HINT_IDS) {
     const html = hintHtml(id, { native: false, pro: true });
     assert.ok(HINTS[id].at && ['beforebegin', 'afterbegin', 'afterend'].includes(HINTS[id].where), id);
@@ -296,6 +296,7 @@ test('thirteen context hints, each with a text and a place', () => {
   assert.match(hintHtml('npc'), /NPC shop.*no bazaar tax.*instant buy/s);
   assert.match(hintHtml('craft'), /ingredients.*Crafts\/h/s);
   assert.match(hintHtml('radar'), /three times/);
+  assert.match(hintHtml('crafthint'), /same coins.*one buy order per ingredient.*need the recipe/s);
   assert.match(hintHtml('detail'), /Tap a chart/);
   assert.ok(hintHtml('settings').includes('data-act="setup"') && !hintHtml('card').includes('data-act="setup"'));
   assert.match(hintHtml('alerts'), /Unrestricted/);
