@@ -217,7 +217,7 @@ test('trend badge: an arrow with the direction, plus the price level when it is 
   assert.match(trendBadge(0.2, null), /badge-trend.*<svg.*rising/);
   assert.match(trendBadge(-0.2, 'below'), /falling · below normal/);
   assert.match(trendBadge(0, 'above'), /flat · above normal/);
-  assert.match(trendBadge(null, 'below'), /badge-trend">below normal/);
+  assert.match(trendBadge(null, 'below'), /badge-trend pro">below normal/);
   assert.equal(trendBadge(null, null), '');
   assert.equal(trendBadge(undefined, undefined), '');
 });
@@ -277,12 +277,12 @@ test('radar: price patterns per item, expectations for the mayor, and never a pr
   assert.ok(plain.includes('Cheaper during Paul:') && !plain.includes('More expensive during Paul:'));
   assert.ok(plain.includes('href="#/item/RECOMBOBULATOR_3000"') && plain.includes('Expected: dungeon reward chests cost 20% less · not enough data yet (0/3)'));
   const learned = radar({ timing: { 'event:spooky': runs('GREEN_CANDY', 112), 'perk:Marauder': runs('RECOMBOBULATOR_3000', 90), 'perk:Mining Fiesta': runs('REFINED_MINERAL', 130) } });
-  assert.ok(learned.includes('Usually +12% during event (seen 3 times) · Buy before / Sell during: the 24h before the start, then the 1h it runs'));
+  assert.ok(learned.includes('Usually +12% during event (seen 3 times) · Buy in the 24h before it starts, sell during the 1h it runs'));
   assert.ok(learned.includes('Usually −10% during term (seen 3 times) · Buy during term, sell after'));
   assert.ok(learned.includes('More expensive during Paul:') && learned.includes('Usually +30% during term (seen 3 times) · Buy before term'));
   assert.ok(learned.indexOf('More expensive during Paul:') < learned.indexOf('Usually +30%'));
   const falling = radar({ timing: { 'event:spooky': runs('GREEN_CANDY', 80) } });
-  assert.ok(falling.includes('Usually −20% during event (seen 3 times) · Sell before / Buy during'));
+  assert.ok(falling.includes('Usually −20% during event (seen 3 times) · Sell in the 24h before it starts, buy during the 1h it runs'));
 });
 
 test('radar without mayor data still shows the events', () => {
@@ -313,4 +313,34 @@ test('the page of a bazaar item with a recipe keeps its charts and adds the forg
   assert.ok(page.includes('<h3>Forge</h3>') && page.includes('Sell offer') && page.includes('data-range') && page.includes('No history yet'));
   assert.ok(!page.includes('AH sale'));
   assert.ok(!detailView({ id: 'A', name: 'Name', flip, provisional: false, isFav: false, range: '24h', points: [], tax: 0.0125 }).includes('<h3>Forge</h3>'));
+});
+
+test('Simple mode: what it leaves out is marked .pro, the rest is not', () => {
+  const html = flipCard({ ...flip, median: 15, trend: 0.1, level: 'below', event: 'Spooky Festival' }, false);
+  // the stylesheet hides .pro in Simple mode
+  for (const part of ['<div class="pro"><dt>Profit/item</dt>', '<div class="pro"><dt>Vol./week</dt>', 'class="normal pro"', 'badge-trend pro', 'badge-event pro', 'stable<span class="pro"> 80</span>']) {
+    assert.ok(html.includes(part), part);
+  }
+  for (const part of ['<div><dt>Buy order</dt>', '<div><dt>Sell offer</dt>', '<span class="lbl">Profit/h', '<span class="lbl">Margin']) assert.ok(html.includes(part), part);
+  assert.ok(flipCard({ ...flip, suspicious: true }, false).includes('<span class="badge badge-warn">'));
+  assert.ok(scoreBadge(null, true).includes('<span class="badge badge-prov">provisional</span>'));
+
+  const points = [[1, 10, 20], [2, 11, 21]];
+  const page = detailView({ id: 'A', name: 'Name', flip, score: 80, median: 15, provisional: false, isFav: false, range: '24h', points, tax: 0.0125,
+    forge: { ah: false, profit: 1, profitHour: 1, margin: 0.1, cost: 1, sell: 2, seconds: 60, hotm: 2, limit: 'forge', ingredients: [] } });
+  assert.ok(page.includes('<section><h3>Prices</h3>') && page.includes('<section class="pro"><h3>Margin</h3>'));
+  assert.ok(page.includes('<section class="forged pro">'));
+});
+
+test('Simple mode has two tabs, and a swipe never leaves them', async () => {
+  const { tabsFor, swipeTab, dragOffset, TABS } = await import('../render.js');
+  assert.deepEqual(tabsFor('simple'), ['flips', 'opps']);
+  assert.deepEqual(tabsFor('pro'), TABS);
+  assert.deepEqual(tabsFor(undefined), TABS);
+  const two = tabsFor('simple');
+  assert.equal(swipeTab('flips', -80, 0, two), 'opps');
+  assert.equal(swipeTab('opps', -80, 0, two), null);
+  assert.equal(swipeTab('opps', 80, 0, two), 'flips');
+  assert.equal(dragOffset('opps', -100, two), -25);
+  assert.equal(dragOffset('opps', -100), -100);
 });

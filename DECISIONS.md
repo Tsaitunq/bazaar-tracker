@@ -482,3 +482,104 @@ Grund, was es kostet, falls sie falsch ist.
 - **Die Detailseite zeigt den Forge-Abschnitt für jedes Item mit Rezept**,
   auch für Bazaar-Ergebnisse und unabhängig von HotM-Stufe und AH-Filter. Bei
   AH-Items entfallen die leeren Verlaufs-Charts.
+
+# Entscheidungen Version 6 (UX)
+
+Grundlage: `docs/ux-audit.md`, Plan: `docs/plan-v6.md`. Selbstständig
+getroffen, Arbeit auf Branch `v6`, kein Push.
+
+## Einstellungen und Portfolio
+
+- **Das Portfolio gibt einem Flip höchstens „Max. capital per flip“.** Budget
+  je Flip = Minimum aus Total capital ÷ Parallel flips und Max. capital per
+  flip; 0 heißt keine Grenze. Einzige Änderung an `flips.js`. Kosten: Wer den
+  Wert klein gelassen hat (Standard 5M) und das Total capital erhöht, sieht
+  ein Portfolio, das nicht das ganze Kapital nutzt. Die Zeile „x of y capital
+  in use · up to z per flip“ zeigt das.
+- **`AlertLogic.java` bleibt unverändert.** Grund: Die Android-Logik kennt
+  kein Portfolio; Market Alerts haben `maxCapital` schon vorher respektiert.
+- **Doppelte Namen bekommen den Bereich in Klammern**: „(Flips & NPC)“,
+  „(Opportunities)“, „(Favorite alerts)“. Auch „Min. profit/h“ trägt den
+  Zusatz, obwohl es nur einmal vorkommt, damit die drei Schwellen gleich
+  aussehen.
+
+## Touren
+
+- **Erster Start: Welcome → Basis-Tour → Setup.** Das Angebot der
+  Advanced-Tour nach der Basis-Tour entfällt.
+- **„Skip“ im Welcome und in einer Tour, die vom Welcome oder vom
+  Tour-Angebot aus begann, zeigt einmal „Set up in 30 seconds?“.** Escape
+  schließt ohne Angebot. Aus dem Hilfe-Fenster gestartete Touren haben kein
+  Nachspiel.
+- **Die Advanced-Tour wird genau einmal angeboten, beim ersten Wechsel auf
+  Pro.** Bestandsnutzer bekommen das Angebot nicht mehr (sie hatten es in v5).
+  Im Hilfe-Fenster steht sie nur im Pro-Modus, weil ihre Ziele im
+  Einfach-Modus ausgeblendet sind.
+- **Station „Opportunities“ zeigt auf die Tab-Leiste statt auf eine Karte.**
+  Grund: Sie erklärt jetzt auch die Tabs und das Wischen.
+- **„provisional“ steht nicht mehr in der Tour**, nur noch in „How it works“
+  unter „Stability score“. Ein eigener Hinweis dafür wäre der vierzehnte
+  gewesen; verlangt waren die dreizehn aus dem Audit.
+- **Nebenbei behoben:** Das Spotlight verlor sein Ziel, wenn die Liste während
+  einer Station neu gezeichnet wurde (Nachladen der Preise). Es sucht das Ziel
+  jetzt neu. Der Fehler bestand schon vorher und fiel bei der Sichtprüfung auf.
+
+## Kontext-Hinweise
+
+- **Ein Hinweis ist eine Zeile im Seitenfluss mit „Got it“**, kein Overlay.
+  Es steht immer höchstens einer da, nie neben Tour oder Fenster.
+- **Welche Hinweise passen, ergibt sich bei jedem Zeichnen aus dem Zustand**
+  (Tab, Suche, Favoriten, Radar offen, Einstellungen offen), nicht aus
+  Ereignissen. Grund: kein Zustand, der hängen bleiben kann. Folge: „erster
+  gesetzter Stern“ heißt „es gibt mindestens einen Favoriten“.
+- **Reihenfolge, wenn mehrere passen:** Einstellungen, Suche, Radar, Favorit,
+  Tab, Portfolio. Auf der Detailseite: suspicious vor Diagramm.
+- **Bestandsnutzer starten mit allen 13 Hinweisen als gesehen.** Das Audit sah
+  eine Ausnahme für neuere Features vor; alle 13 betreffen Features von vor
+  6.0.0, also gibt es keine. Kosten: Wer NPC oder Craft nie verstanden hat,
+  muss „Show hints again“ im Hilfe-Fenster drücken.
+- **„Bestandsnutzer“ = es gab vor diesem Start gespeicherte Einstellungen,
+  Favoriten, Item-Namen oder einen Tour-Stand.** Modus und Hinweis-Liste
+  werden beim ersten Start geschrieben, sonst gälte ein neuer Nutzer beim
+  zweiten Start als Bestandsnutzer.
+- **Tour-Stationen tragen den Hinweis zum selben Thema als gesehen ein**
+  (card, opps, radar, portfolio, forge, alerts).
+- **Der Portfolio-Hinweis sagt das Gegenteil des Audit-Texts.** Das Audit
+  beschrieb das alte Verhalten (Max. capital wird ignoriert); Punkt 0 hat es
+  geändert.
+- **Der Alerts-Hinweis hängt unter dem ersten eingeschalteten Schalter.** Er
+  ist im Browser nicht prüfbar, weil die Schalter nur in der Android-App
+  sichtbar sind.
+
+## How it works
+
+- **14 Abschnitte als `<details>`, alle zu.** Über das Verlangte hinaus:
+  „Portfolio“ und „Volume per week“, beide im Audit als Lücke geführt.
+- **Der Forge-Absatz ist von rund 110 auf rund 70 Wörter gekürzt.** Die
+  einzelnen AH-Gebührensätze stehen nicht mehr dort; die Karte nennt Derpy
+  weiterhin selbst.
+
+## Einfach und Profi
+
+- **Zuordnung wie in der Tabelle des Audits.** Umsetzung: Klasse `pro` und
+  eine CSS-Regel; in JS nur Tab-Liste, Sortier-Optionen und Adresse.
+- **Der Abschnitt „Opportunities“ bleibt im Einfach-Modus als reiner
+  Erklärtext stehen.** Grund: In der Android-App steht dort „Market alerts“,
+  und der Satz sagt, was der Tab filtert.
+- **Im Einfach-Modus folgt „Max. capital per flip“ dem Total capital**
+  (÷ Parallel flips), sobald man das Total capital ändert. Der Wechsel des
+  Modus selbst setzt nichts zurück, außer einer Sortierung, die es im
+  Einfach-Modus nicht gibt (dann Profit/h).
+- **Ein Profi-Tab in der Adresse öffnet im Einfach-Modus Flips.**
+  Benachrichtigungen verlinken nur auf Flips, Opportunities und Items.
+- **Das Setup lässt im Einfach-Modus die beiden Forge-Fragen weg** und ändert
+  HotM-Stufe und AH-Schalter dann nicht.
+- **„Show me“ in What's new bleibt, wie es ist.** Zeigt ein Eintrag auf etwas,
+  das der Einfach-Modus ausblendet, steht die Sprechblase mittig. Der
+  Zusatz „in Pro mode“ aus dem Audit ist nicht gebaut: Neue Nutzer sehen
+  What's new erst beim nächsten Update.
+- **Auf der Detailseite blendet der Einfach-Modus dieselben Felder aus wie
+  auf der Karte** (normal, Profit/item, Vol./week), dazu Margin-Chart und
+  Forge-Abschnitt.
+- **Favoriten-Alerts, die im Pro-Modus eingeschaltet wurden, laufen im
+  Einfach-Modus weiter**, obwohl ihr Schalter dort nicht sichtbar ist.

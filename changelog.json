@@ -1,6 +1,16 @@
 {
   "versions": [
     {
+      "version": "6.0.0",
+      "date": "2026-10-10",
+      "entries": [
+        { "title": "Simple and Pro mode", "text": "Simple shows only flips, opportunities and the numbers you need for them; Pro shows everything, as before. You stay in Pro and can switch at the top of the settings.", "target": "#toggle-settings" },
+        { "title": "Hints where you need them", "text": "The first time a feature shows up, a short note explains it, for example what suspicious means or how NPC and craft flips work. Tap Got it and it stays away; the ? at the top brings all hints back.", "target": "#open-help" },
+        { "title": "Shorter tour, clearer help", "text": "The tour now starts with what a flip is and leads straight into the setup. How it works is a list you unfold, with new entries for suspicious, favorites, NPC and craft flips.", "target": "#open-help" },
+        { "title": "Portfolio respects your max. capital", "text": "The portfolio never puts more into one flip than your Max. capital per flip. Settings that had the same name now say what they belong to.", "target": "#portfolio .portfolio", "route": "#/opps" }
+      ]
+    },
+    {
       "version": "5.1.0",
       "date": "2026-10-10",
       "entries": [

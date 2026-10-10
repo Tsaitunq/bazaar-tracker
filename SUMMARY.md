@@ -1,111 +1,98 @@
-# Version 5 (Forge, Events & Trends) – Zusammenfassung
+# Version 6 (UX) – Zusammenfassung
 
-Stand: 2026-10-10. Alles liegt auf dem lokalen Branch `v5` (ab `main`, Version
-4.2.0). Nichts ist gepusht; `main`, die Live-Seite und der Branch `data` sind
+Stand: 2026-10-10. Alles liegt auf dem lokalen Branch `v6` (ab `main`, Version
+5.1.0). Nichts ist gepusht; `main`, die Live-Seite und der Branch `data` sind
 unverändert. Frühere Zusammenfassungen: `docs/summary-v2.md`,
-`docs/summary-android.md`, `docs/summary-v3.md`, `docs/summary-v4.md`.
+`docs/summary-android.md`, `docs/summary-v3.md`, `docs/summary-v4.md`,
+`docs/summary-v5.md`.
 
-## Wichtig vor dem Testen
-
-Forge-Rezepte, AH-Preise, Mayor und Trendwerte liefert der Snapshot-Workflow.
-Er läuft mit den Skripten von `main`. Solange `v5` nicht gemergt ist und der
-Workflow nicht einmal gelaufen ist, zeigt die App: Forge-Tab „No recipe data
-yet“, Radar ohne Mayor, keine Trend-Pfeile (nur „below/above normal“). Das ist
-im Emulator so geprüft. Nach dem Merge füllt der erste Lauf alles.
+Grundlage ist `docs/ux-audit.md`, der Plan steht in `docs/plan-v6.md`, die
+Entscheidungen in `DECISIONS.md`, Abschnitt „Entscheidungen Version 6 (UX)“.
 
 ## Fertig
 
 | Nr. | Punkt | Umsetzung |
 |---|---|---|
-| 1 | Forge-Flips | Tab „Forge“: Rezepte aus dem NEU-Repo, Zutaten zum Buy-Order-Preis, Ergebnis im Bazaar oder per Lowest BIN minus AH-Gebühren. Karte mit Profit/forge hour, Margin, Profit/item, Dauer, HotM-Stufe, Zutaten. Badge „AH sale – estimate“ mit Hinweis. Filter „Bazaar only / Incl. AH“, Einstellung „HotM tier“. |
-| 1 | Fünf Tabs | Tab-Leiste scrollt horizontal und holt den aktiven Tab ins Bild; bei 360 px passen alle fünf. Wischen erreicht „Forge“. |
-| 2 | Event-Radar | Einklappbare Karte über jeder Liste: Mayor, Perks, Minister, Wahl, Events mit Countdown. Jede Zeile klappt auf und nennt die Items, die „typically affected“ sind. Diese Items tragen ein Event-Badge. |
-| 3 | Trends | Badge mit Pfeil (rising / falling / flat) und „below normal“ / „above normal“ auf Karte und Detailseite, Sortierung „Trend“. |
-| 4 | Erklärung | Changelog 5.0.0 mit vier Einträgen und Spotlight-Zielen; „How it works“ um Forge, Events, Trends ergänzt. |
-| Ergänzung | Tour | Basis-Tour mit 6 Stationen, danach das Angebot „Take the advanced tour?“; Advanced-Tour mit 4 Stationen (Android: 5). Beide über Help startbar. |
-| Ergänzung | What's new | Nutzer von vor 5.0.0 sehen die v5-Einträge und den Button „Advanced tour“. |
-| Ergänzung | Assistent | Zwei weitere Fragen: HotM-Stufe und „Include Auction House sales“. |
+| 0 | Einstellungen entwirren | Vier Felder tragen ihren Bereich im Namen: „Min. volume/week (Flips & NPC)“, „Min. margin % (Opportunities)“, „Min. volume/week (Opportunities)“, „Min. margin % (Favorite alerts)“. Das Portfolio gibt einem Flip höchstens „Max. capital per flip“; die Hilfetexte beider Felder sagen das. |
+| 1 | Touren | Erster Start: Welcome → Basis-Tour → Setup. „Skip“ bietet das Setup trotzdem einmal an. Basis-Tour: A flip, Two numbers, Badges, Opportunities, Find, sort, favorites, Settings and help. Advanced-Tour in Tab-Reihenfolge (Trends, Event radar, Portfolio, Forge, in der Android-App zusätzlich Alerts), Forge in zwei Sätzen, Angebot nennt 4 oder 5 Stationen. Sie startet nur noch über `?` und beim ersten Wechsel auf Pro. |
+| 2 | Kontext-Hinweise | 13 Hinweise, einmalig, als Zeile im Seitenfluss mit „Got it“, gespeichert in `bt.hints`: card, detail, suspicious, fav, opps, portfolio, npc, craft, forge, radar, search, settings, alerts. Bestandsnutzer sehen keinen; „Show hints again“ im Hilfe-Fenster holt sie zurück. |
+| 3 | How it works | 14 Abschnitte zum Aufklappen. Neu: What a flip is, Suspicious (vier Regeln), Favorites, NPC flips, Craft flips, Portfolio, Volume per week; Events mit der Dreier-Regel; Forge gekürzt. |
+| 4 | Einfach und Profi | Umschalter und „Start setup“ oben in den Einstellungen. Neue Nutzer starten in Simple, Bestandsnutzer in Pro. Simple: Tabs Flips und Opportunities, Karte mit Profit/h, Margin, Buy order, Sell offer, Stabilität und suspicious, zwei Sortierungen, zwei Einstellungen (Tax, Total capital), in der Android-App dazu Market alerts. Der erste Wechsel auf Pro bietet die Advanced-Tour an. |
+| – | Changelog | Version 6.0.0 mit vier Einträgen. |
 
-Die Bewertungslogik ist unverändert: `flips.js`, `npc.js`, `craft.js`,
-`history.js` und der Android-Code unter `java/` haben gegenüber `main` keine
-Änderung.
+Die Bewertungslogik ist bis auf `portfolio()` unverändert: `npc.js`,
+`craft.js`, `forge.js`, `history.js`, `trends.js`, `timing.js`, `events.js`
+und der Android-Code unter `java/` haben gegenüber `main` keine Änderung. In
+`flips.js` sind es drei Zeilen in `portfolio()`.
 
-## Neue Daten aus dem Workflow
+Nebenbei behoben: Das Tour-Spotlight verlor sein Ziel, wenn die Liste während
+einer Station neu gezeichnet wurde.
 
-| Datei | Inhalt | Größe im Testlauf |
-|---|---|---|
-| `forge.json` | 62 Forge-Rezepte (30 mit Bazaar-Ergebnis, 32 mit AH-Ergebnis) | 5,9 KB |
-| `ah.json` | Lowest BIN für 29 Forge-Ergebnisse | 0,8 KB |
-| `election.json` | Mayor, Perks, Minister, laufende Wahl | 0,4 KB |
-| `stats.json` | viertes Feld je Item: Trend | 80 KB (vorher 70 KB) |
+## Was sich für Bestandsnutzer ändert
 
-Die Workflow-Datei selbst ist unverändert; die Zusatzabrufe stecken in
-`scripts/snapshot.mjs`. Ein Lauf dauerte lokal 21 Sekunden (46 Auktionsseiten,
-NEU-Klon inklusive).
+- Sie bleiben in Pro und sehen nach dem Update nur das What's-new-Fenster.
+- Das Portfolio kann kleiner ausfallen: Wer „Max. capital per flip“ unter
+  Total capital ÷ Parallel flips gesetzt hat, bekommt jetzt diese Obergrenze.
+  Mit den Standardwerten (5M, 50M, 10) ändert sich nichts.
+- Im Radar heißt es statt „Buy before / Sell during: the 24h before the
+  start, then the 6h it runs“ jetzt „Buy in the 24h before it starts, sell
+  during the 6h it runs“.
 
 ## Wie geprüft wurde
 
-- `node --test`: 160 Tests grün (vorher 119). Kein Test ruft die Hypixel-API
+- `node --test`: 192 Tests grün (vorher 181). Kein Test ruft die Hypixel-API
   auf.
 - `gradlew testDebugUnitTest`: grün (Android-Logik unverändert).
-- Workflow lokal gegen ein Test-Repo: Daten-Branch wiederhergestellt, ein
-  Live-Lauf von `scripts/snapshot.mjs`, als einzelner Commit veröffentlicht,
-  zweite Runde aus dem Test-Repo wiederhergestellt und erneut veröffentlicht.
-  Ergebnis: ein Commit auf `data`, alle sieben Einträge vorhanden.
-- Browser, 360 px und 1440 px, mit gespeicherten API-Antworten (keine
-  Live-Abrufe, keine JavaScript-Fehler): What's new mit „Advanced tour“,
-  Liste mit Radar und Trend-Badges, Radar aufgeklappt, Sortierung „Trend“,
-  Forge-Tab mit beiden Filtern, Assistent mit den neuen Fragen bis „Apply“,
-  Basis-Tour mit Angebot, Advanced-Tour, „Show me“. 46 Bilder erzeugt, 11
+- Browser (Edge, ohne Fenster) bei 360 × 740 und 1440 × 900, mit den
+  Snapshot-Dateien des lokalen Stands von `origin/data` und daraus erzeugten
+  Bazaar-Preisen; kein Live-Abruf. Drei Durchläufe je Größe, 90 automatische
+  Prüfungen, alle bestanden, keine JavaScript-Fehler, 72 Bilder erzeugt, 16
   davon selbst angesehen.
-- Einzelprüfungen im Browser: Event-Badge „Mining Fiesta“ auf Refined Mineral
-  in Liste und Detailseite; aufgeklappte Radar-Zeilen bleiben nach einem
-  Neuzeichnen offen; HotM 5 blendet Rezepte über Stufe 5 aus.
-- Android-Emulator (Android 15): APK 5.0.0 installiert, What's new erscheint,
-  fünf Tabs passen, Radar und Forge-Tab verhalten sich ohne die neuen Daten
-  wie oben beschrieben.
-- `npm run android:build` läuft fehlerfrei; die APK meldet `versionName 5.0.0`,
-  `versionCode 50000` und enthält `forge.js`, `events.js`, `trends.js`.
+- `npm run android:build` läuft fehlerfrei; die APK meldet `versionName
+  6.0.0`, `versionCode 60000` und enthält die neue `onboarding.js`.
 
-Dabei gefunden und behoben:
+Die drei Durchläufe im Browser:
 
-- `forge.json` wäre nach dem Update bis zu 24 Stunden ausgeblieben; sie wird
-  jetzt geholt, sobald sie fehlt.
-- Perk-Texte enthielten ein Spiel-Icon, das als leeres Kästchen erschien.
-- Die Detailseite eines AH-Items zeigte fälschlich „provisional“.
+| Durchlauf | Geprüft |
+|---|---|
+| A: neuer Nutzer nimmt die Tour | Kein Hinweis neben dem Welcome-Fenster; sechs Stationen mit den neuen Titeln; danach das Setup mit drei Fragen und sechs Zeilen in der Übersicht; Modus Simple; zwei Tabs; Radar aus; Karte ohne Profit/item; zwei Sortierungen; `#/forge` öffnet Flips; Hinweise portfolio, fav, search, detail, settings erscheinen und verschwinden nach „Got it“; Detailseite mit einem Diagramm; zwei Felder in den Einstellungen; Total capital 80M setzt Max. capital per flip auf 8M; Wechsel auf Pro zeigt das Angebot mit „4 short stops“; Advanced-Tour in der neuen Reihenfolge; fünf Tabs, fünf Sortierungen; Hinweise npc und craft; kein Hinweis für forge und radar nach der Tour; das Angebot kommt kein zweites Mal; Neuladen behält Pro und zeigt kein Fenster. |
+| B: neuer Nutzer überspringt | „Skip“ zeigt das Setup-Angebot; Hinweise card und opps; zweiter Start bleibt in Simple und behält ungesehene Hinweise; nach Wechsel auf Pro ohne Tour: Hinweise forge, radar und suspicious. |
+| C: Bestandsnutzer von 5.1.0 | What's new zeigt nur 6.0.0; Modus Pro; fünf Tabs; kein Hinweis, auch nicht im NPC-Tab; elf Felder in den Einstellungen; Hilfe mit 14 zugeklappten Abschnitten; „Show hints again“ bringt einen Hinweis zurück. |
 
 ## Tests
 
-| Datei | Neu in v5 |
+| Datei | Neu in v6 |
 |---|---|
-| `tests/forge.test.js` | AH-Gebühren nach Preisstufe; Bazaar-Ergebnis; AH-Ergebnis mit Coins als Kosten; Gewinn pro Stück und pro Forge-Stunde; Filter (HotM, Bazaar only, Kapital, Verlust, fehlende Preise); Sortierung und Stats |
-| `tests/events.test.js` | SkyBlock-Jahr und Datum; Abgleich mit den Election-Daten; Reihenfolge der Events; nächster Termin über den Jahreswechsel; Perk-Events nur mit aktivem Perk; aktive Perks mit Minister; Wahlfenster; Event-Items; jede kuratierte ID steht in `docs/events-sources.md` |
-| `tests/trends.test.js` | Steigung pro 24 h; nur die letzten 24 h zählen; Mindestpunkte und Mindestspanne; Schwellen für Richtung und Niveau |
-| `tests/recipes.test.js` | Forge-Rezept lesen (Zutaten, Coins, Dauer, HotM); nur Bazaar-Zutaten, keine Pets |
-| `tests/snapshot.test.js` | Item-ID aus gepackten Auktionsdaten; Lowest BIN; alle Seiten, ein Fehler verwirft alles; Election-Verdichtung mit und ohne laufende Wahl; Zusatzdateien und Verhalten bei Fehlern; Trend als viertes Feld |
-| `tests/render.test.js` | Dauer-Format; Forge-Karte; AH-Badge mit Hinweis; Forge-Filter; Trend-Badge; Event-Badge; Radar (eingeklappt, aufgeklappt, laufende Wahl, ohne Mayor-Daten); fünf Tabs und Wischen |
-| `tests/onboarding.test.js` | Basis-Tour mit sechs Stationen; Advanced-Tour; Angebot danach; Help mit beiden Touren und den neuen Erklärungen; „Advanced tour“ im What's-new-Fenster; Assistent mit fünf Antworten |
-| `tests/contrast.test.js` | neue Farbe `--event` in der Kontrastprüfung |
+| `tests/flips.test.js` | Portfolio: Obergrenze durch „Max. capital per flip“ greift, eine höhere Grenze und 0 ändern nichts, zu teure Items fallen heraus |
+| `tests/onboarding.test.js` | Basis-Tour mit neuen Titeln, Texten und nur Simple-Zielen; Advanced-Tour in Tab-Reihenfolge mit kurzer Forge-Station; Angebot mit Stationszahl je Plattform; Setup-Angebot nach „Skip“; Hilfe mit 14 aufklappbaren Abschnitten, den vier Suspicious-Regeln und der Dreier-Regel; Hilfe im Simple-Modus; 13 Hinweise mit Text und Ort; Auswahl des einen passenden Hinweises; Bestandsnutzer gegen neue Nutzer; Tour-Stationen und ihre Hinweise; Setup im Simple-Modus; Seite mit Modus-Schalter, `pro`-Markierungen und eindeutigen Feldnamen |
+| `tests/render.test.js` | `pro`-Markierungen auf Karte und Detailseite; Tab-Liste je Modus, Wischen bleibt im Simple-Modus bei zwei Tabs; neuer Radar-Satz |
 
 ## Offen und bekannt
 
-- Der Lowest BIN ist ein einzelnes Angebot und kann daneben liegen. Einen
-  Verlauf der AH-Preise gibt es nicht.
-- „Profit/forge hour“ ist seit 5.0.1 durch den Absatz begrenzt (Marktanteil am
-  stündlichen Kaufvolumen). Für AH-Ergebnisse gibt es keine Absatzdaten; dort
-  begrenzt weiter nur die Schmiede.
-- Rezepte mit geschmiedeten Zwischenteilen (höhere Drills) und Pets fehlen.
-- Mining Fiesta erscheint als aktiver Perk ohne Countdown, weil sich die
-  Quellen bei den Terminen widersprechen.
-- Die Laufzeit-Gebühr einer Auktion ist nicht eingerechnet. Derpys vierfache
-  Steuer wird seit 5.0.1 eingerechnet, wenn Derpy Mayor ist.
-- Die Detailseite zeigt seit 5.0.1 für jedes Item mit Rezept den
-  Forge-Abschnitt; einen Preisverlauf für AH-Items gibt es weiterhin nicht.
-- Nicht geprüft: echtes Gerät, die Touren im Emulator, „Bewegung reduzieren“.
+- Nicht geprüft: echtes Gerät und Emulator. Die APK ist gebaut, aber nicht
+  installiert. Damit ungeprüft: der Alerts-Hinweis (nur in der Android-App
+  sichtbar), die fünfte Station der Advanced-Tour, „5 short stops“ im
+  Angebot und die Zeile „Market alerts“ in den Simple-Einstellungen. Die
+  Texte und die Stationszahl sind in Node getestet.
+- Nicht geprüft: Wischen zwischen den Tabs im Browser (die Logik ist in Node
+  getestet) und „Bewegung reduzieren“ aus (die Bilder entstanden mit
+  reduzierter Bewegung).
+- Die Bazaar-Preise der Sichtprüfung sind erzeugt, nicht echt; viele Karten
+  zeigen deshalb denselben Profit/h.
+- „Show me“ in What's new zeigt im Simple-Modus mittig, wenn das Ziel
+  ausgeblendet ist. Betrifft erst das nächste Update.
+- Die Simple-Einstellungen zeigen kurz zwei „Start setup“-Knöpfe: einen im
+  Hinweis, einen im Abschnitt „Mode“. Der Hinweis verschwindet nach „Got it“.
+- `docs/ux-audit.md` beschreibt den Stand vor v6 und ist nicht nachgeführt.
 
 ## Zum Testen
 
 Lokal: `node scripts/serve.mjs`, dann http://127.0.0.1:8123. Die App liest
-dann `./data/`; ohne diesen Ordner fehlen Verlauf, Forge und Radar-Mayor.
+dann `./data/`; ohne diesen Ordner fehlen Verlauf, Forge und Radar-Mayor,
+und Opportunities bleibt leer.
+
+Als neuer Nutzer: Website-Daten löschen und neu laden. Als Bestandsnutzer
+kommt man mit `?` → „Show hints again“ an die Hinweise und über die
+Einstellungen an den Simple-Modus.
+
 APK: `android/app/build/outputs/apk/debug/app-debug.apk`.
-Entscheidungen: `DECISIONS.md`, Abschnitt „Entscheidungen Version 5“.
