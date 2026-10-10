@@ -157,7 +157,12 @@ test('portfolioView shows the total, the picks and the market share assumption',
   assert.match(html, /class="big gain">31M</);
   assert.ok(html.includes('Profit/h with 2 flips'));
   assert.ok(html.includes('Assumes 20% market share – only realistic if you relist actively'));
-  assert.ok(html.includes('42M of 50M capital in use'));
+  assert.ok(html.includes('42M of 50M capital in use · 73.8% return per hour'));
+  assert.ok(!html.includes('limited by'));
+  const hint = (limit) => portfolioView({ ...plan, limit }, { capital: 50000000, slots: 10, sharePercent: 20 });
+  assert.ok(hint('slots').includes('Using 42M of 50M – limited by your 10 parallel flips. Raise Parallel flips to use more.'));
+  assert.ok(hint('maxCapital').includes('limited by your max. capital per flip. Raise Max. capital per flip to use more.'));
+  assert.ok(hint('volume').includes('limited by how much these items trade. Raise Market share or loosen the filters to use more.'));
   assert.ok(html.includes('4.9M') && html.includes('3.9M/h'));
   assert.ok(html.includes('&#60;b&#62;Worm') && !html.includes('<b>'));
   assert.ok(html.includes('href="#/item/INK_SACK%3A4"'));

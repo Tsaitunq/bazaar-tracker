@@ -1,6 +1,15 @@
 {
   "versions": [
     {
+      "version": "6.2.0",
+      "date": "2026-10-10",
+      "entries": [
+        { "title": "Portfolio uses your whole capital", "text": "Coins one flip cannot use now go to the other flips, up to your Max. capital per flip and never more than an item trades.", "target": "#portfolio .portfolio", "route": "#/opps" },
+        { "title": "Why capital stays unused", "text": "If part of your capital is left over, the portfolio says what limits it and which setting to raise.", "target": "#portfolio .portfolio", "route": "#/opps" },
+        { "title": "Return per hour", "text": "The portfolio shows the capital in use, the profit per hour and the return per hour in percent.", "target": "#portfolio .portfolio", "route": "#/opps" }
+      ]
+    },
+    {
       "version": "6.1.0",
       "date": "2026-10-10",
       "entries": [
