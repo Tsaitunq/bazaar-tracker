@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { esc, coins, percent, iconUrl, itemHref, icon, scoreBadge, flipCard, npcCard, craftCard, parseRoute } from '../render.js';
+import { esc, coins, percent, iconUrl, itemHref, icon, scoreBadge, flipCard, searchCard, npcCard, craftCard, parseRoute } from '../render.js';
 
 const flip = { id: 'A', name: 'Name', buy: 10, sell: 20, profit: 5, margin: 0.1, weekVol: 1000, hourVol: 10, profitHour: 50, score: 80 };
 
@@ -175,4 +175,12 @@ test('dragOffset follows the finger, with resistance where there is no tab', asy
   assert.equal(dragOffset('opps', 100), 100);
   assert.equal(dragOffset('flips', 100), 25);
   assert.equal(dragOffset('craft', -100), -25);
+});
+
+test('a search hit outside the list shows why, and still links to its detail page', () => {
+  const hidden = searchCard({ ...flip, why: ['Above your max capital', '<b>'] }, false);
+  assert.ok(hidden.includes('class="why"') && hidden.includes('Above your max capital · &#60;b&#62;') && hidden.includes('Profit/h'));
+  const bare = searchCard({ id: 'BOOSTER_COOKIE', name: 'Booster Cookie', why: ['No buy orders or sell offers right now'] }, false);
+  assert.ok(bare.includes('href="#/item/BOOSTER_COOKIE"') && bare.includes('No buy orders') && !bare.includes('Profit/h'));
+  assert.ok(!flipCard(flip, false).includes('class="why"'));
 });

@@ -1,7 +1,7 @@
 // Wires the onboarding to the page: one <dialog> for windows, one overlay for the spotlight.
 import {
   currentVersion, startupAction, setupResult, tourSteps,
-  welcomeHtml, newsHtml, setupFormHtml, setupSummaryHtml, bubbleHtml,
+  welcomeHtml, newsHtml, helpHtml, setupFormHtml, setupSummaryHtml, bubbleHtml,
 } from './onboarding.js';
 
 const STATE_KEY = 'bt.onboarding';
@@ -205,6 +205,8 @@ export async function initOnboarding(context) {
     if (act === 'tour') startFullTour();
     else if (act === 'skip' || act === 'close') closeSheet();
     else if (act === 'news-show') startNewsTour(shownNews);
+    else if (act === 'setup') showSetup();
+    else if (act === 'news') showNews(log.versions, { history: true });
     else if (act === 'setup-next') { readSetupForm(); sheet(setupSummaryHtml(setupResult(answers, ctx.slots())), 'setup'); }
     else if (act === 'setup-back') showSetup();
     else if (act === 'setup-apply') {
@@ -231,9 +233,7 @@ export async function initOnboarding(context) {
   addEventListener('resize', again);
   addEventListener('scroll', again, { passive: true });
 
-  $('restart-tour').addEventListener('click', startFullTour);
-  $('restart-setup').addEventListener('click', showSetup);
-  $('show-news').addEventListener('click', () => showNews(log.versions, { history: true }));
+  $('open-help').addEventListener('click', () => sheet(helpHtml(), 'help'));
 
   const action = startupAction(readState(), log, hadData);
   shownNews = action.news ?? [];

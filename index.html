@@ -19,6 +19,9 @@
       <button id="refresh" type="button" aria-label="Refresh">
         <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
       </button>
+      <button id="open-help" type="button" aria-label="Help">
+        <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.6 2.2c-.7.4-1.1.9-1.1 1.8M12 16.9v.1"/></svg>
+      </button>
       <button id="toggle-settings" type="button" aria-label="Settings" aria-expanded="false" aria-controls="settings">
         <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h8M18 6h2M4 12h2M12 12h8M4 18h10M20 18h0"/><circle cx="15" cy="6" r="2.5"/><circle cx="9" cy="12" r="2.5"/><circle cx="17" cy="18" r="2.5"/></svg>
       </button>
@@ -118,16 +121,6 @@
         <input id="portfolioSlots" type="number" min="1" max="50" step="1" inputmode="numeric">
         <small>How many items you flip at once. Each one gets the same share of the capital.</small>
       </label>
-    </fieldset>
-
-    <fieldset>
-      <legend>Help</legend>
-      <p class="intro">New here, or want a refresher?</p>
-      <div class="help-actions">
-        <button id="restart-tour" type="button">Restart tour</button>
-        <button id="restart-setup" type="button">Restart setup</button>
-        <button id="show-news" type="button">What's new</button>
-      </div>
     </fieldset>
 
     <fieldset id="alert-settings" hidden>

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { portfolio, opportunities, computeFlip, buildFlips, bookPrices, statOf, MEDIAN_SPIKE, PROVISIONAL_HOURS, STABLE } from '../flips.js';
+import { searchFlip, flipIssues, oppIssues, portfolio, opportunities, computeFlip, buildFlips, bookPrices, statOf, MEDIAN_SPIKE, PROVISIONAL_HOURS, STABLE } from '../flips.js';
 
 const product = (buy, sell, qs = {}) => ({
   sell_summary: buy == null ? [] : [{ pricePerUnit: buy }],
@@ -222,4 +222,26 @@ test('portfolio is empty without capital, slots or stats', () => {
   }
   // 2.9 slots count as 2
   assert.equal(portfolio(products, { ...opts, slots: 2.9 }).budget, 5000);
+});
+
+test('search keeps every item and says why it is not a flip', () => {
+  const opts = { tax: 0.0125, minVolume: 1000, maxCapital: 5000, share: 1, stats: null };
+  const why = (p, o = opts, issues = flipIssues) => searchFlip('X', p, o, issues).why;
+  assert.deepEqual(why(product(100, 200)), []);
+  assert.deepEqual(why(product(100, 100)), ['Margin is 0 or below']);
+  assert.deepEqual(why(product(100, 200, { buyMovingWeek: 10 })), ['Volume too low']);
+  assert.deepEqual(why(product(9000, 12000)), ['Above your max capital']);
+  assert.deepEqual(why(product(9000, 9000, { buyMovingWeek: 10 })), ['Margin is 0 or below', 'Volume too low', 'Above your max capital']);
+  // no orders on one side: no flip, but still an entry that leads to the detail page
+  assert.deepEqual(searchFlip('X', product(100, null), opts, flipIssues), { id: 'X', why: ['No buy orders or sell offers right now'] });
+  assert.equal(searchFlip('X', product(9000, 12000), opts, flipIssues).buy, 9000);
+
+  const opp = { ...opts, minMargin: 0.1, minVolume: 100000, minProfitHour: 900 };
+  const scored = (score, hours = 48) => ({ ...opp, stats: { X: [score, 120, hours] } });
+  assert.deepEqual(why(product(100, 120), scored(90), oppIssues), []);
+  assert.deepEqual(why(product(100, 120), scored(69), oppIssues), ['Not stable enough']);
+  assert.deepEqual(why(product(100, 120), scored(90, 5), oppIssues), ['Under 24 hours of price history']);
+  assert.deepEqual(why(product(100, 120), opp, oppIssues), ['No stability score yet']);
+  assert.deepEqual(why(product(100, 105), { ...opp, stats: { X: [90, 105, 48] } }, oppIssues), ['Margin below your minimum', 'Profit/h below your minimum']);
+  assert.deepEqual(why(product(100, 400), { ...opp, stats: { X: [90, 400, 48] } }, oppIssues), ['Suspicious prices']);
 });

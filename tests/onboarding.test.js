@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {
   compareVersions, currentVersion, newsSince, startupAction, setupResult, tourSteps,
-  welcomeHtml, newsHtml, setupFormHtml, setupSummaryHtml, bubbleHtml, CAPITALS,
+  welcomeHtml, newsHtml, helpHtml, setupFormHtml, setupSummaryHtml, bubbleHtml, CAPITALS,
 } from '../onboarding.js';
 
 // a small changelog instead of the real file, so the tests do not change with every release
@@ -99,9 +99,10 @@ test('setupResult survives missing or odd answers', () => {
 test('the tour has the Android station only inside the app', () => {
   const web = tourSteps({ native: false, firstId: 'INK_SACK:4' });
   const app = tourSteps({ native: true, firstId: 'INK_SACK:4' });
-  assert.equal(web.length, 7);
-  assert.equal(app.length, 8);
-  assert.match(app[7].text, /Unrestricted/);
+  assert.equal(web.length, 8);
+  assert.equal(app.length, 9);
+  assert.match(app[8].text, /Unrestricted/);
+  assert.ok(web.some((s) => s.target === '#open-help'));
   assert.ok(web.every((s) => s.title && s.text && s.target && s.route));
   assert.ok(web.some((s) => s.route === '#/item/INK_SACK%3A4'));
   assert.ok(web.some((s) => s.route === '#/opps' && s.target === '#portfolio .portfolio'));
@@ -169,4 +170,16 @@ test('changelog.json is well formed', () => {
     for (const e of v.entries) assert.ok(e.title && e.text, `${v.version} entry needs title and text`);
     if (i > 0) assert.equal(compareVersions(real.versions[i - 1].version, v.version), 1, `${v.version} is out of order`);
   });
+});
+
+test('help screen offers tour, setup, news and explains the numbers', () => {
+  const html = helpHtml();
+  for (const act of ['tour', 'setup', 'news', 'close']) assert.ok(html.includes(`data-act="${act}"`), act);
+  for (const term of ['Profit/h', 'Margin', 'Market share', 'Stability score']) assert.ok(html.includes(`<dt>${term}</dt>`), term);
+});
+
+test('the help buttons live behind the ? in the header, not in the settings', () => {
+  const page = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  assert.ok(page.includes('id="open-help"'));
+  for (const id of ['restart-tour', 'restart-setup', 'show-news']) assert.ok(!page.includes(id), id);
 });

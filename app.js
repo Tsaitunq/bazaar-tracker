@@ -1,10 +1,10 @@
-import { buildFlips, computeFlip, opportunities, portfolio, statOf } from './flips.js';
+import { buildFlips, computeFlip, opportunities, portfolio, statOf, searchFlip, flipIssues, oppIssues, bySort } from './flips.js';
 import { npcFlips } from './npc.js';
 import { craftFlips } from './craft.js';
 import { loadItems, fallbackName } from './names.js';
 import { loadStats, loadRecipes, loadHistory } from './data.js';
 import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission } from './native.js';
-import { flipCard, npcCard, craftCard, parseRoute, detailView, portfolioView, swipeTab, dragOffset, TABS, coins, percent, PLACEHOLDER_ICON } from './render.js';
+import { flipCard, npcCard, craftCard, searchCard, parseRoute, detailView, portfolioView, swipeTab, dragOffset, TABS, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
 import { initOnboarding } from './tour.js';
 
@@ -64,28 +64,42 @@ const ready = new Promise((resolve) => { markReady = resolve; });
 const shown = new Map(); // last rendered big numbers per view and item, to flash the ones that changed
 
 const view = () => (route.view === 'item' ? 'flips' : route.view);
+const nameOf = (id) => names[id] ?? fallbackName(id);
+const baseOpts = () => ({ ...settings, tax: settings.tax / 100, share: settings.share / 100, stats });
+const oppOpts = () => ({ ...baseOpts(), minMargin: settings.marketMargin / 100, minVolume: settings.marketMinVolume, minProfitHour: settings.marketMinProfit });
 
 // The flips of one tab, with names. plan is the portfolio and only exists for the Opportunities tab.
 function compute(v) {
-  const opts = { ...settings, tax: settings.tax / 100, share: settings.share / 100, stats };
+  const opts = baseOpts();
   let list;
   let pf = null;
   if (v === 'flips') list = buildFlips(products, { ...opts, favs });
   else if (v === 'opps') {
-    const conditions = { ...opts, minMargin: settings.marketMargin / 100, minVolume: settings.marketMinVolume, minProfitHour: settings.marketMinProfit };
+    const conditions = oppOpts();
     list = opportunities(products, conditions);
     pf = portfolio(products, { ...conditions, capital: settings.portfolioCapital, slots: settings.portfolioSlots });
   }
   else if (v === 'npc') list = npcFlips(products, npc, opts);
   else list = recipes ? craftFlips(products, recipes, opts) : [];
-  const name = (id) => names[id] ?? fallbackName(id);
-  for (const f of pf?.flips ?? []) f.name = name(f.id);
+  for (const f of pf?.flips ?? []) f.name = nameOf(f.id);
   for (const f of list) {
-    f.name = name(f.id);
+    f.name = nameOf(f.id);
     f.tier = tiers[f.id];
-    for (const i of f.ingredients ?? []) i.name = name(i.id);
+    for (const i of f.ingredients ?? []) i.name = nameOf(i.id);
   }
   return { list, plan: pf };
+}
+
+// Search hits the tab's list does not hold: every other bazaar item with a matching name, each with
+// the reason it is missing. The search always covers the whole bazaar, whatever the filters say.
+const NOT_HERE = { npc: 'No NPC flip right now', craft: 'No craft flip right now' };
+function searchRest(v, q, listed) {
+  const opts = v === 'opps' ? oppOpts() : baseOpts();
+  const issues = v === 'opps' ? oppIssues : v === 'flips' ? flipIssues : () => [NOT_HERE[v]];
+  return Object.keys(products)
+    .filter((id) => !listed.has(id) && nameOf(id).toLowerCase().includes(q))
+    .map((id) => ({ ...searchFlip(id, products[id], opts, issues), name: nameOf(id), tier: tiers[id] }))
+    .sort(bySort(settings.sort));
 }
 
 function recompute() {
@@ -95,13 +109,16 @@ function recompute() {
 
 // The three pieces of a list view as HTML: portfolio, the "x of y" line and the cards.
 function listMarkup(v, list, pf) {
-  if (v === 'craft' && recipes === null) {
+  const q = $('search').value.trim().toLowerCase();
+  if (v === 'craft' && recipes === null && !q) {
     return { portfolio: '', count: '', list: '<li class="muted">No recipe data yet. The snapshot workflow has to run once.</li>' };
   }
-  const q = $('search').value.trim().toLowerCase();
-  const rows = list.filter((f) => (!settings.favOnly || favs.has(f.id)) && f.name.toLowerCase().includes(q));
-  let cards = rows.slice(0, MAX_ROWS).map((f) => CARDS[v](f, favs.has(f.id))).join('');
-  if (v === 'opps' && !list.length) {
+  // a search ignores the favorites switch too: it has to find every item
+  const rows = list.filter((f) => (q || !settings.favOnly || favs.has(f.id)) && f.name.toLowerCase().includes(q));
+  const rest = q ? searchRest(v, q, new Set(rows.map((f) => f.id))) : [];
+  let cards = [...rows.map((f) => [CARDS[v], f]), ...rest.map((f) => [searchCard, f])]
+    .slice(0, MAX_ROWS).map(([card, f]) => card(f, favs.has(f.id))).join('');
+  if (v === 'opps' && !list.length && !q) {
     cards = `<li class="muted">${stats
       ? 'No item meets all conditions right now. Items need 24 hours of price history before they can show up here.'
       : 'Price history could not be loaded, so stability cannot be checked right now.'}</li>`;
@@ -109,7 +126,8 @@ function listMarkup(v, list, pf) {
   return {
     portfolio: v === 'opps' && pf
       ? portfolioView(pf, { capital: settings.portfolioCapital, slots: settings.portfolioSlots, sharePercent: settings.share }) : '',
-    count: `${Math.min(rows.length, MAX_ROWS)} of ${rows.length} flips`,
+    count: q ? `${rows.length} ${rows.length === 1 ? 'flip' : 'flips'}, ${rest.length} other ${rest.length === 1 ? 'item' : 'items'}`
+      : `${Math.min(rows.length, MAX_ROWS)} of ${rows.length} flips`,
     list: cards,
   };
 }

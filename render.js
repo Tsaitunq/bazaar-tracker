@@ -8,7 +8,7 @@ const UNITS = [[1e9, 'B'], [1e6, 'M'], [1e3, 'k']];
 // Hypixel style: 1,234.5 below ten thousand, then 350k, 1.2M, 3.4B
 export function coins(v) {
   if (!Number.isFinite(v)) return '–';
-  if (Math.abs(v) < 9999.95) return plain.format(v);
+  if (Math.abs(v) < 9999.95) return plain.format(v || 0); // || 0: no "-0" for a loss on zero units
   // 0.99995: a value that rounds up to 1000 of a unit moves to the next unit (999,950 is 1M, not 1000k)
   const [div, unit] = UNITS.find(([d]) => Math.abs(v) >= d * 0.99995) ?? UNITS[2];
   return plain.format(v / div) + unit;
@@ -67,9 +67,10 @@ const card = (f, isFav, warn, facts, extra = '') => `<li class="card" data-rarit
   ${star(f.id, f.name, isFav)}
   <a class="body" href="${esc(itemHref(f.id))}">
     <div class="name">${tile(f.id, 32)}<span>${esc(f.name)}</span></div>
-    ${badges(f, warn)}
-    ${keyStats(f)}
-    <dl class="facts">${facts.join('')}</dl>${extra}
+    ${badges(f, warn)}${f.why?.length ? `
+    <p class="why">${esc(f.why.join(' · '))}</p>` : ''}
+    ${facts.length ? `${keyStats(f)}
+    <dl class="facts">${facts.join('')}</dl>` : ''}${extra}
   </a>
 </li>`;
 
@@ -79,6 +80,9 @@ export const flipCard = (f, isFav) => card(f, isFav, f.suspicious, [
   fact('Profit/item', num(f.profit), gain(f.profit)),
   fact('Vol./week', num(f.weekVol)),
 ]);
+
+// a search hit the current list does not hold; without prices only the name and the reason are left
+export const searchCard = (f, isFav) => (f.buy ? flipCard(f, isFav) : card(f, isFav, false, []));
 
 export const npcCard = (f, isFav) => card(f, isFav, false, [
   fact('Buy order', num(f.buy)),
