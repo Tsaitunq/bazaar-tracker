@@ -415,3 +415,18 @@ test('portfolio: a craft hint is a line on the row, with a note that the recipe 
   const none = portfolioView(plan([flip]), opts);
   assert.ok(!none.includes('Craft into') && !none.includes('craft-note'));
 });
+
+test('warningsView: one line per warning in plain words, "Got it" only for what the market did', async () => {
+  const { warningsView, warningText } = await import('../render.js');
+  assert.equal(warningsView([]), '');
+  assert.equal(warningText({ kind: 'price', fall: 0.072 }), 'Buy order 7.2% below your plan price');
+  assert.equal(warningText({ kind: 'price', margin: 0.004 }), 'Margin down to 0.4%');
+  assert.equal(warningText({ kind: 'suspicious' }), 'Prices look suspicious now');
+  assert.equal(warningText({ kind: 'election', text: 'Diana may lower this price' }), 'Diana may lower this price');
+  const list = [{ id: 'A', name: '<Alpha>', kind: 'price', fall: 0.072 }, { id: 'B', name: 'Beta', kind: 'leaving', text: 'Paul leaves in 5h – price may rise back' }];
+  const html = warningsView(list, { dismiss: true });
+  assert.ok(html.includes('Portfolio warnings') && html.includes('href="#/item/A"') && html.includes('&#60;Alpha&#62;'));
+  assert.ok(html.includes('Buy order 7.2% below your plan price') && html.includes('Paul leaves in 5h'));
+  assert.ok(html.includes('data-act="plan-seen"'));
+  assert.ok(!warningsView(list.slice(1)).includes('data-act="plan-seen"'));
+});

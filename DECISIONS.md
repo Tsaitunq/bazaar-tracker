@@ -634,3 +634,34 @@ Selbstständig getroffen (Auftrag: unbeaufsichtigt, ohne Rückfragen). Spec:
   Profi-Tab).
 - **Der Plan wird jetzt bei jeder Neuberechnung gebaut**, nicht nur im
   Opportunities-Tab; Teil 2 und 3 brauchen ihn überall.
+
+## Teil 2: Warnungen fürs Portfolio
+
+- **Gespeichert wird „der Plan, den du zuletzt gesehen hast“** (`bt.plan`:
+  Item und Kaufpreis beim Eintritt in den Plan). Grund: Der Plan auf dem
+  Bildschirm wird alle paar Minuten neu gerechnet; gegen ihn selbst kann
+  nichts fallen. Ohne Warnung folgt der gespeicherte Plan dem aktuellen, ein
+  Item, das bleibt, behält seinen ersten Preis. Mit einer Preis- oder
+  Suspicious-Warnung bleibt er stehen, bis du „Got it“ tippst. Kosten: Ein
+  Item, das sehr lange im Plan steht und langsam 5 % verliert, wird gemeldet,
+  obwohl du längst zu neuen Preisen handelst; „Got it“ setzt neu auf.
+- **Kein Knopf „Orders platziert“.** Die App weiß nicht, was du im Spiel
+  wirklich gekauft hast; der gespeicherte Plan ist die beste Näherung.
+- **„Preis fällt“ = Buy-Order mehr als X % unter dem Plan-Preis ODER Marge
+  unter 1 %.** X ist einstellbar (Portfolio → Price drop warning %, Default
+  5), die 1 % sind fest (`PLAN_MIN_MARGIN`).
+- **Die Schalter gelten nur für Benachrichtigungen.** Das Banner in der App
+  zeigt immer alle vier Arten; im Browser gibt es die Schalter gar nicht.
+- **Wahl im Hintergrund:** Der Worker lädt `election.json` selbst. Welcher
+  Perk welches Plan-Item betrifft und wann die Amtszeit endet, schickt die
+  App mit (`planElection`), damit Java keine Kopie der Perk-Listen und des
+  Kalenders braucht. Kosten: Wird die App eine ganze Amtszeit (124 h) nicht
+  geöffnet, kennt der Worker das neue Amtsende nicht und meldet „Mayor geht“
+  nicht.
+- **Ein Cooldown für alle vier Arten** (Default 6 h, je Item und Art), eine
+  Benachrichtigung pro Lauf mit bis zu drei Zeilen.
+- **Die Schalter sind standardmäßig aus**, wie alle Benachrichtigungen: Erst
+  das Einschalten fragt nach der Android-Berechtigung.
+- **Der Worker lädt `stats.json` nur noch einmal pro Lauf** (Markt-Alerts
+  und Plan teilen sie). Fehlt die Datei, läuft die Plan-Prüfung ohne den
+  Vergleich mit dem Normalpreis weiter.

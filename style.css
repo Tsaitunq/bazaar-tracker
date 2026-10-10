@@ -154,7 +154,7 @@ button:active { filter: brightness(.8); }
 .help-actions button { padding: 0 14px; }
 #settings label.check { display: flex; align-items: center; gap: 10px; font-weight: 600; }
 #settings label.check input { width: 22px; height: 22px; min-height: 0; flex: none; }
-#market-alert-settings { display: grid; gap: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+#market-alert-settings, #plan-alert-settings { display: grid; gap: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
 #settings .hint { margin: 0; font-size: 12px; color: var(--loss); }
 #settings .ranges { margin: 0; }
 
@@ -206,6 +206,17 @@ body:not([data-area="today"]) #today, body:not([data-area="minions"]) #minions, 
 .radar .timing small { display: block; color: var(--muted); }
 .votes li { padding: 8px 0; }
 .votes small { display: block; color: var(--muted); font-size: 12px; }
+
+/* warnings about the stored plan: a banner above the portfolio and on Today */
+.alerts { margin: 4px 0 12px; padding: 12px; background: var(--card); border: 1px solid var(--warn); border-radius: 12px; max-width: 720px; }
+.alerts h2 { display: flex; align-items: center; gap: 6px; margin: 0 0 4px; font-size: 13px; font-weight: 600; color: var(--warn); text-transform: uppercase; letter-spacing: .06em; }
+.alerts h2 .ico { width: 16px; height: 16px; }
+.alerts ul { list-style: none; margin: 0; padding: 0; }
+.alerts li { padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.alerts li a { color: var(--text); }
+.alerts li small { display: block; font-size: 12px; color: var(--warn); }
+.alerts .muted { margin: 8px 0; }
+.alerts button { min-height: 36px; }
 
 /* portfolio: the plan at the top of the Opportunities tab */
 .portfolio { margin: 4px 0 16px; padding: 12px; background: var(--card); border: 1px solid var(--accent); border-radius: 12px; max-width: 720px; }

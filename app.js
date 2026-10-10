@@ -1,14 +1,14 @@
-import { buildFlips, computeFlip, opportunities, portfolio, MAX_SLOTS, statOf, searchFlip, flipIssues, oppIssues, bySort } from './flips.js';
+import { buildFlips, computeFlip, opportunities, portfolio, MAX_SLOTS, statOf, searchFlip, flipIssues, oppIssues, bySort, planWarnings, trackPlan } from './flips.js';
 import { npcFlips } from './npc.js';
 import { craftFlips, craftHints } from './craft.js';
 import { forgeFlips, forgeFlip } from './forge.js';
 import { loadItems, fallbackName } from './names.js';
 import { loadStats, loadRecipes, loadForge, loadAh, loadElection, loadTiming, loadHistory } from './data.js';
 import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission } from './native.js';
-import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, trendsView, parseRoute, detailView, portfolioView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, viewsFor, areaOf, coins, percent, PLACEHOLDER_ICON } from './render.js';
+import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, trendsView, parseRoute, detailView, portfolioView, warningsView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, viewsFor, areaOf, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
 import { level } from './trends.js';
-import { activePerks, upcoming, electionWindow, eventItems, flipWarnings } from './events.js';
+import { activePerks, upcoming, electionWindow, eventItems, flipRisks, planElection } from './events.js';
 import { bindSheet, openSheet } from './sheet.js';
 import { initOnboarding, refreshHints, offerAdvanced, returning } from './tour.js';
 
@@ -19,14 +19,16 @@ const STATS_TTL = 20 * 60000;
 const CARDS = { flips: flipCard, opps: flipCard, npc: npcCard, craft: craftCard, forge: forgeCard };
 const DEFAULTS = { tax: 1.25, minVolume: 100000, maxCapital: 5000000, interval: 2, share: 5, sort: 'profitHour', favOnly: false, alerts: false, alertMargin: 5,
   marketAlerts: false, marketMargin: 10, marketMinVolume: 100000, marketMinProfit: 100000, marketCooldown: 6, eventAlerts: false, mayorAlerts: false,
-  portfolioCapital: 50000000, portfolioSlots: MAX_SLOTS, portfolioMargin: 3, portfolioTurnover: 1000000000, hotm: 10, forgeAh: true };
+  portfolioCapital: 50000000, portfolioSlots: MAX_SLOTS, portfolioMargin: 3, portfolioTurnover: 1000000000, hotm: 10, forgeAh: true,
+  portfolioDrop: 5, portfolioCooldown: 6, planPriceAlerts: false, planSuspiciousAlerts: false, planElectionAlerts: false, planLeavingAlerts: false };
+const PLAN_ALERTS = ['planPriceAlerts', 'planSuspiciousAlerts', 'planElectionAlerts', 'planLeavingAlerts'];
 
 const $ = (id) => document.getElementById(id);
 const load = (key, fallback) => { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } };
 const save = (key, value) => { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} };
 
 // the fields of the panel; they take effect together, on Apply
-const FIELDS = ['tax', 'interval', 'share', 'minVolume', 'maxCapital', 'alertMargin', 'marketMargin', 'marketMinVolume', 'marketMinProfit', 'marketCooldown', 'portfolioCapital', 'portfolioSlots', 'portfolioMargin', 'portfolioTurnover', 'hotm'];
+const FIELDS = ['tax', 'interval', 'share', 'minVolume', 'maxCapital', 'alertMargin', 'marketMargin', 'marketMinVolume', 'marketMinProfit', 'marketCooldown', 'portfolioCapital', 'portfolioSlots', 'portfolioMargin', 'portfolioTurnover', 'hotm', 'portfolioDrop', 'portfolioCooldown'];
 const settings = { ...DEFAULTS, ...load('bt.settings', {}) };
 // A stored interval of 0 would refresh in a tight loop, so bad values fall back to defaults.
 function sanitize() {
@@ -51,6 +53,9 @@ function sanitize() {
   settings.hotm = Math.floor(settings.hotm);
   if (!(settings.hotm >= 0 && settings.hotm <= 10)) settings.hotm = DEFAULTS.hotm;
   settings.forgeAh = settings.forgeAh !== false;
+  if (!(settings.portfolioDrop > 0 && settings.portfolioDrop <= 90)) settings.portfolioDrop = DEFAULTS.portfolioDrop;
+  if (!(settings.portfolioCooldown > 0 && settings.portfolioCooldown <= 168)) settings.portfolioCooldown = DEFAULTS.portfolioCooldown;
+  for (const key of PLAN_ALERTS) settings[key] = settings[key] === true;
 }
 sanitize();
 // A new user starts in Simple mode; whoever used the app before keeps everything (Pro). Stored at once,
@@ -88,6 +93,10 @@ let lastList = route.view === 'item' ? 'flips' : route.view; // where the detail
 let lastTab = tabs().includes(route.view) ? route.view : 'flips'; // the Trade tab the bar's Trade button opens
 let flips = [];
 let plan = null; // the portfolio: shown in the Opportunities tab and on Today
+// The plan the player last saw, as [{ id, buy }]: what the warnings and the Android worker compare the market with.
+const storedPlan = load('bt.plan', null);
+let tracked = Array.isArray(storedPlan) ? storedPlan.filter((i) => typeof i?.id === 'string' && i.buy > 0) : null;
+let alerts = [];  // warnings about the tracked plan, each with the item's name
 let lastFetch = 0;
 let timer;
 let busy = false;
@@ -131,11 +140,11 @@ function buildPlan() {
   // The plan has its own floors: a lower margin, because items that trade a lot rarely have a high one,
   // and the week's turnover in coins instead of units, so expensive items can take part.
   const pf = portfolio(products, { ...oppOpts(), minMargin: settings.portfolioMargin / 100, minTurnover: settings.portfolioTurnover, capital: settings.portfolioCapital, slots: settings.portfolioSlots });
-  const risks = flipWarnings(election, Date.now());
+  const risks = flipRisks(election, Date.now());
   const crafts = recipes ? craftHints(pf.flips, products, recipes, baseOpts()) : {};
   for (const f of pf.flips) {
     f.name = nameOf(f.id);
-    f.risk = risks[f.id]; // what the election may do to this item's price, in words
+    f.risk = risks[f.id]?.text; // what the election may do to this item's price, in words
     f.craft = crafts[f.id] && { ...crafts[f.id], name: nameOf(crafts[f.id].id) };
   }
   return pf;
@@ -171,9 +180,30 @@ function searchRest(v, q, listed) {
     .sort(bySort(settings.sort));
 }
 
+// What the Android worker gets about the plan; sent again only when it changed.
+let planSent = '';
+const planConfig = () => ({ items: tracked ?? [], ...planElection((tracked ?? []).map((i) => i.id), election, Date.now()) });
+const sync = () => syncAlerts(settings, favs, names, planConfig());
+
+// Compares the tracked plan with the market, then lets it follow the current plan (see trackPlan).
+// Without the stats there is no plan at all, so nothing is stored until they are there.
+function watchPlan() {
+  if (!stats) return;
+  const market = planWarnings(tracked ?? [], products, { tax: settings.tax / 100, drop: settings.portfolioDrop / 100, stats });
+  tracked = trackPlan(tracked, plan.flips, market.length > 0);
+  save('bt.plan', tracked);
+  const risks = flipRisks(election, Date.now());
+  alerts = [...market, ...tracked.filter((i) => risks[i.id]).map((i) => ({ id: i.id, ...risks[i.id] }))]
+    .map((w) => ({ ...w, name: nameOf(w.id) }));
+  const config = JSON.stringify(planConfig());
+  if (config !== planSent) { planSent = config; sync(); }
+}
+const marketWarned = () => alerts.some((w) => w.kind === 'price' || w.kind === 'suspicious');
+
 function recompute() {
   if (!products) return;
   plan = buildPlan();
+  watchPlan();
   if (route.view !== 'item') flips = compute(view());
 }
 
@@ -199,7 +229,7 @@ function listMarkup(v, list, pf) {
   }
   return {
     portfolio: v === 'opps' && pf
-      ? portfolioView(pf, { capital: settings.portfolioCapital, slots: settings.portfolioSlots, sharePercent: settings.share, simple: simple() })
+      ? warningsView(alerts, { dismiss: marketWarned() }) + portfolioView(pf, { capital: settings.portfolioCapital, slots: settings.portfolioSlots, sharePercent: settings.share, simple: simple() })
       : v === 'forge' ? forgeFilter(settings.forgeAh) : '',
     count: q ? `${rows.length} ${rows.length === 1 ? 'flip' : 'flips'}, ${rest.length} other ${rest.length === 1 ? 'item' : 'items'}`
       : `${Math.min(rows.length, MAX_ROWS)} of ${rows.length} flips`,
@@ -273,6 +303,7 @@ function hintsNow() {
     $('search').value.trim() && otherHits > 0 && 'search',
     favs.size > 0 && 'fav',
     v === 'flips' ? 'card' : v,
+    v === 'opps' && alerts.length > 0 && 'planalerts',
     v === 'opps' && plan?.flips.length > 0 && 'portfolio',
     v === 'opps' && plan?.flips.some((f) => f.craft) && 'crafthint',
   ];
@@ -376,7 +407,7 @@ function applySettings() {
   applyMode();
   save('bt.settings', settings);
   $('fav-only').setAttribute('aria-pressed', settings.favOnly);
-  syncAlerts(settings, favs, names);
+  sync();
   recompute();
   render();
 }
@@ -472,6 +503,12 @@ document.querySelector('main').addEventListener('click', (e) => {
     settings.forgeAh = withAh === '1';
     return applySettings();
   }
+  // "Got it" on the warnings: from now on the market is compared with the plan as it is now
+  if (e.target.closest('[data-act="plan-seen"]')) {
+    tracked = trackPlan(null, plan?.flips ?? []);
+    recompute();
+    return render();
+  }
   const drop = e.target.closest('[data-unfilter]')?.dataset.unfilter;
   if (drop) {
     settings[drop] = DEFAULTS[drop];
@@ -482,7 +519,7 @@ document.querySelector('main').addEventListener('click', (e) => {
   if (!id) return;
   if (!favs.delete(id)) favs.add(id);
   save('bt.favs', [...favs]);
-  syncAlerts(settings, favs, names);
+  sync();
   recompute();
   render();
 });
@@ -639,6 +676,8 @@ if (plugin()) {
   $('alert-settings').hidden = false;
   $('market-alert-settings').hidden = false;
   $('timing-alert-settings').hidden = false;
+  $('plan-alert-settings').hidden = false;
+  for (const key of PLAN_ALERTS) bindAlertToggle(key, 'plan-hint');
   bindAlertToggle('alerts', 'alert-hint');
   bindAlertToggle('marketAlerts', 'market-hint');
   bindAlertToggle('eventAlerts', 'timing-hint');
@@ -664,7 +703,7 @@ loadItems().then((items) => {
   npc = items.npc;
   tiers = items.tiers;
   itemsLoaded = true;
-  syncAlerts(settings, favs, names);
+  sync();
   sendNames();
   recompute();
   render();

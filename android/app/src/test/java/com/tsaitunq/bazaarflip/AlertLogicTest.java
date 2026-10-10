@@ -5,10 +5,13 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import com.tsaitunq.bazaarflip.AlertLogic.Candidate;
 import com.tsaitunq.bazaarflip.AlertLogic.Flip;
 import com.tsaitunq.bazaarflip.AlertLogic.Notice;
+import com.tsaitunq.bazaarflip.AlertLogic.PlanItem;
 import com.tsaitunq.bazaarflip.AlertLogic.Product;
 import com.tsaitunq.bazaarflip.AlertLogic.Stat;
+import com.tsaitunq.bazaarflip.AlertLogic.Warning;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -26,6 +29,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -311,6 +315,132 @@ public class AlertLogicTest {
         assertEquals("Enchanted Diamond: 12.3%", AlertLogic.line("Enchanted Diamond", 0.1234));
         assertEquals("1 market opportunity", AlertLogic.marketTitle(1));
         assertEquals("4 market opportunities", AlertLogic.marketTitle(4));
+    }
+
+    private static List<String> found(List<Warning> warnings) {
+        List<String> out = new ArrayList<>();
+        for (Warning w : warnings) out.add(w.id + " " + w.kind + ": " + w.text);
+        return out;
+    }
+
+    /** The same cases as the planWarnings test in tests/flips.test.js. */
+    @Test
+    public void planWarningsFollowTheRulesOfTheWebApp() {
+        List<PlanItem> plan = new ArrayList<>();
+        for (String id : Arrays.asList("HELD", "FELL", "THIN", "ODD", "BOTH", "GONE", "SPIKE")) plan.add(new PlanItem(id, 100));
+        Map<String, Product> market = new HashMap<>();
+        market.put("HELD", product(96, 120));
+        market.put("FELL", product(94, 120));
+        market.put("THIN", product(100, 102));
+        market.put("ODD", new Product(100, 120, 1_680_000, 3_360_000, 50, 2));
+        market.put("BOTH", product(90, 400));
+        market.put("SPIKE", product(100, 140));
+        Map<String, Stat> none = new HashMap<>();
+        assertEquals(Arrays.asList(
+            "FELL price: Buy order 6.0% below your plan price",
+            "THIN price: Margin down to 0.7%",
+            "ODD suspicious: Prices look suspicious now",
+            "BOTH price: Buy order 10.0% below your plan price",
+            "BOTH suspicious: Prices look suspicious now"), found(AlertLogic.planWarnings(plan, market, none, TAX, 0.05)));
+        // the threshold is the player's
+        List<String> prices = new ArrayList<>();
+        for (Warning w : AlertLogic.planWarnings(plan, market, none, TAX, 0.03)) if (w.kind.equals("price")) prices.add(w.id);
+        assertEquals(Arrays.asList("HELD", "FELL", "THIN", "BOTH"), prices);
+        // with stats the sell price is compared with its median, as everywhere
+        Map<String, Stat> stats = new HashMap<>();
+        stats.put("SPIKE", new Stat(90, 100, 100));
+        assertTrue(found(AlertLogic.planWarnings(plan, market, stats, TAX, 0.05)).contains("SPIKE suspicious: Prices look suspicious now"));
+        assertTrue(AlertLogic.planWarnings(new ArrayList<>(), market, none, TAX, 0.05).isEmpty());
+        assertEquals(0.01, AlertLogic.PLAN_MIN_MARGIN, 0);
+    }
+
+    private static Map<String, List<String>> itemPerks() {
+        Map<String, List<String>> out = new LinkedHashMap<>();
+        out.put("GRIFFIN_FEATHER", Arrays.asList("Mythological Ritual"));
+        out.put("SHARK_FIN", Arrays.asList("Fishing Festival"));
+        out.put("REFINED_MINERAL", Arrays.asList("Mining Fiesta"));
+        return out;
+    }
+
+    private static List<Candidate> vote(double dianaVotes, String... dianaPerks) {
+        return Arrays.asList(
+            new Candidate("Marina", 500, Arrays.asList("Fishing Festival"), "Fishing Festival"),
+            new Candidate("Diana", dianaVotes, Arrays.asList(dianaPerks), dianaPerks[dianaPerks.length - 1]),
+            new Candidate("Cole", 10, Arrays.asList("Mining Fiesta"), "Mining Fiesta"));
+    }
+
+    /** The same cases as the flipWarnings election test in tests/events.test.js. */
+    @Test
+    public void electionWarningsNameTheLeaderAndTheRunnerUpAsMinister() {
+        assertEquals(Arrays.asList("GRIFFIN_FEATHER election: Diana may lower this price", "SHARK_FIN election: Marina may lower this price"),
+            found(AlertLogic.electionWarnings(vote(900, "Mythological Ritual", "Pet XP Buff"), itemPerks())));
+        // Diana second: only her minister perk counts, and here that is not the ritual
+        assertEquals(Arrays.asList("SHARK_FIN election: Marina may lower this price"),
+            found(AlertLogic.electionWarnings(vote(100, "Mythological Ritual", "Pet XP Buff"), itemPerks())));
+        assertEquals(Arrays.asList("SHARK_FIN election: Marina may lower this price", "GRIFFIN_FEATHER election: Diana may lower this price"),
+            found(AlertLogic.electionWarnings(vote(100, "Pet XP Buff", "Mythological Ritual"), itemPerks())));
+        // no election, or no vote cast yet: nothing
+        assertTrue(AlertLogic.electionWarnings(new ArrayList<>(), itemPerks()).isEmpty());
+        assertTrue(AlertLogic.electionWarnings(
+            Arrays.asList(new Candidate("Diana", 0, Arrays.asList("Mythological Ritual"), null)), itemPerks()).isEmpty());
+        // a file from before the minister perk was stored: the leader still counts
+        assertEquals(Arrays.asList("GRIFFIN_FEATHER election: Diana may lower this price"), found(AlertLogic.electionWarnings(Arrays.asList(
+            new Candidate("Diana", 9, Arrays.asList("Mythological Ritual"), null),
+            new Candidate("Marina", 5, Arrays.asList("Fishing Festival"), null)), itemPerks())));
+    }
+
+    /** The same cases as the "about to leave" test in tests/events.test.js. */
+    @Test
+    public void leavingWarningsComeInTheLastDayOfATerm() {
+        long end = 1_000 * HOUR;
+        Map<String, String> term = new LinkedHashMap<>();
+        term.put("Marauder", "Paul");
+        term.put("Mining Fiesta", "Cole");
+        Map<String, List<String>> perks = new LinkedHashMap<>();
+        perks.put("RECOMBOBULATOR_3000", Arrays.asList("Marauder"));
+        perks.put("REFINED_MINERAL", Arrays.asList("Mining Fiesta"));
+        perks.put("GRIFFIN_FEATHER", Arrays.asList("Mythological Ritual"));
+        assertTrue(AlertLogic.leavingWarnings(end, term, perks, end - AlertLogic.LEAVING_MS).isEmpty());
+        assertEquals(Arrays.asList("RECOMBOBULATOR_3000 leaving: Paul leaves in 24h – price may rise back",
+            "REFINED_MINERAL leaving: Cole leaves in 24h – price may rise back"),
+            found(AlertLogic.leavingWarnings(end, term, perks, end - AlertLogic.LEAVING_MS + 1)));
+        assertEquals("RECOMBOBULATOR_3000 leaving: Paul leaves in 6h – price may rise back",
+            found(AlertLogic.leavingWarnings(end, term, perks, end - 5 * HOUR - HOUR / 2)).get(0));
+        // a term that is over (the app was not opened since) says nothing
+        assertTrue(AlertLogic.leavingWarnings(end, term, perks, end).isEmpty());
+        assertTrue(AlertLogic.leavingWarnings(end, term, perks, end + HOUR).isEmpty());
+    }
+
+    @Test
+    public void readCandidatesTakesTheRunningElectionFromTheElectionFile() throws IOException {
+        String json = "{\"t\":1,\"mayor\":{\"name\":\"Paul\"},\"vote\":{\"year\":520,\"candidates\":["
+            + "{\"name\":\"Diana\",\"votes\":75,\"perks\":[\"Mythological Ritual\",\"Pet XP Buff\"],\"minister\":\"Pet XP Buff\"},"
+            + "{\"name\":\"Cole\",\"votes\":25,\"perks\":[\"Mining Fiesta\"],\"minister\":null},"
+            + "{\"name\":\"Old\",\"votes\":1,\"perks\":[]}]}}";
+        List<Candidate> list = AlertLogic.readCandidates(new StringReader(json));
+        assertEquals(3, list.size());
+        assertEquals("Diana", list.get(0).name);
+        assertEquals(75, list.get(0).votes, 0);
+        assertEquals(Arrays.asList("Mythological Ritual", "Pet XP Buff"), list.get(0).perks);
+        assertEquals("Pet XP Buff", list.get(0).minister);
+        assertEquals(null, list.get(1).minister);
+        assertEquals(null, list.get(2).minister);
+        assertTrue(AlertLogic.readCandidates(new StringReader("{\"mayor\":{\"name\":\"Paul\"},\"vote\":null}")).isEmpty());
+        assertTrue(AlertLogic.readCandidates(new StringReader("{}")).isEmpty());
+        assertThrows(IOException.class, () -> AlertLogic.readCandidates(new StringReader("{\"vote\":{\"candidates\":[{}]}}")));
+    }
+
+    @Test
+    public void planLinesShowTopThreeAndTheRest() {
+        List<Warning> warnings = new ArrayList<>();
+        for (int i = 1; i <= 5; i++) warnings.add(new Warning("ID" + i, "price", "Margin down to 0." + i + "%"));
+        Map<String, String> names = new HashMap<>();
+        names.put("ID1", "First Item");
+        assertEquals(Arrays.asList("First Item: Margin down to 0.1%", "ID2: Margin down to 0.2%", "ID3: Margin down to 0.3%", "+2 more"),
+            AlertLogic.planLines(warnings, names));
+        assertEquals(1, AlertLogic.planLines(warnings.subList(0, 1), names).size());
+        assertEquals("1 portfolio warning", AlertLogic.planTitle(1));
+        assertEquals("3 portfolio warnings", AlertLogic.planTitle(3));
     }
 
     @Test

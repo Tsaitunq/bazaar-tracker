@@ -178,3 +178,33 @@ export function portfolio(products, { capital, slots, ...opts }) {
     used: flips.reduce((sum, f) => sum + f.stake, 0),
   };
 }
+
+// ---- warnings for a stored plan. AlertLogic.planWarnings repeats this for the background check.
+
+export const PLAN_MIN_MARGIN = 0.01; // a plan flip whose margin falls below this is reported
+
+// What the market did to the flips of a stored plan.
+// items: [{ id, buy }], buy being the buy order price the item entered the plan at. drop: how far below that
+// price the buy order may fall, as a fraction. Returns one entry per finding:
+// { id, kind: 'price', fall } (fall: fraction below the plan price), { id, kind: 'price', margin } when the
+// price held but the margin is gone, and { id, kind: 'suspicious' }. An item without both book sides is skipped.
+export function planWarnings(items, products, { tax, drop, stats = null }) {
+  const out = [];
+  for (const { id, buy } of items) {
+    const f = products[id] && computeFlip(id, products[id], tax, 0, 1, statOf(stats, id).median);
+    if (!f) continue;
+    if (f.buy < buy * (1 - drop)) out.push({ id, kind: 'price', fall: 1 - f.buy / buy });
+    else if (f.margin < PLAN_MIN_MARGIN) out.push({ id, kind: 'price', margin: f.margin });
+    if (f.suspicious) out.push({ id, kind: 'suspicious' });
+  }
+  return out;
+}
+
+// The plan to store next. While the stored plan has a market warning (warned) it is kept as it is, so the
+// warning stays until the player has seen it. Otherwise it follows the current plan; an item that stays
+// keeps the buy price it came in with, so a slow slide still adds up to a warning.
+export function trackPlan(stored, flips, warned) {
+  if (warned && stored) return stored;
+  const before = new Map((stored ?? []).map((i) => [i.id, i.buy]));
+  return flips.map((f) => ({ id: f.id, buy: before.get(f.id) ?? f.buy }));
+}

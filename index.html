@@ -150,6 +150,25 @@
         <input id="portfolioTurnover" type="number" min="0" step="1" inputmode="numeric">
         <small>Coins an item has to trade per week (items sold × price). Unlike the volume filter of the Opportunities list it counts coins, so expensive items that sell steadily can be in the plan. An item also needs about 10 sales an hour.</small>
       </label>
+      <label class="pro">Price drop warning %
+        <input id="portfolioDrop" type="number" min="0.5" max="90" step="0.5" inputmode="decimal">
+        <small>A flip of your plan gets a warning when its buy order falls this far below the price it had when it entered the plan, or when its margin drops under 1%.</small>
+      </label>
+      <div id="plan-alert-settings" hidden>
+        <label class="check"><input id="planPriceAlerts" type="checkbox"> Notify me when a plan price drops</label>
+        <small>A flip of your plan fell below the price drop warning above, or its margin is under 1%. Checked about every 15 minutes, also when the app is closed.</small>
+        <label class="check"><input id="planSuspiciousAlerts" type="checkbox"> Notify me when a plan flip turns suspicious</label>
+        <small>The prices of a flip in your plan look manipulated now.</small>
+        <label class="check"><input id="planElectionAlerts" type="checkbox"> Notify me about the election</label>
+        <small>The leading candidate, or the runner-up as minister, has a perk that is expected to lower the price of a flip in your plan.</small>
+        <label class="check"><input id="planLeavingAlerts" type="checkbox"> Notify me before a mayor leaves</label>
+        <small>In the last 24 hours of a term, for flips whose price the mayor's or minister's perk kept down.</small>
+        <label class="pro">Warning cooldown (hours)
+          <input id="portfolioCooldown" type="number" min="0.5" max="168" step="0.5" inputmode="decimal">
+          <small>Shortest time before the same warning about the same item is sent again.</small>
+        </label>
+        <p id="plan-hint" class="hint" role="alert" hidden>Notifications for this app are blocked in the Android settings.</p>
+      </div>
     </fieldset>
 
     <fieldset class="pro">

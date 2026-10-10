@@ -178,6 +178,25 @@ export const filterChips = (keys, settings) => keys.map((key) => {
   return `<button type="button" class="chip" data-unfilter="${key}" aria-label="Remove filter: ${text}">${text}${ICONS.close}</button>`;
 }).join('');
 
+// One warning about a flip of the stored plan as a sentence. AlertLogic.planText says the same in a notification.
+export function warningText(w) {
+  if (w.text) return w.text; // election and leaving come with their sentence (flipRisks)
+  if (w.kind === 'suspicious') return 'Prices look suspicious now';
+  return w.fall != null ? `Buy order ${percent.format(w.fall)} below your plan price` : `Margin down to ${percent.format(w.margin)}`;
+}
+
+// The warnings of the stored plan, above the portfolio and on Today. alerts: [{ id, name, kind, ... }].
+// dismiss: a price or suspicious warning is in the list; "Got it" then stores the current plan.
+export function warningsView(alerts, { dismiss = false } = {}) {
+  if (!alerts.length) return '';
+  return `<section class="alerts" role="status">
+  <h2>${ICONS.warn}Portfolio warnings</h2>
+  <ul>${alerts.map((w) => `<li><a href="${esc(itemHref(w.id))}">${esc(w.name)}</a> <small>${esc(warningText(w))}</small></li>`).join('')}</ul>${dismiss ? `
+  <p class="muted">Compared with the plan you last saw. The plan below is already the new one.</p>
+  <div class="actions"><button type="button" data-act="plan-seen">Got it</button></div>` : ''}
+</section>`;
+}
+
 // Why a plan leaves capital unused (plan.limit) and what would change it. Simple mode hides the settings
 // the advice names, so there it sends the player to Pro instead.
 function limitNote(plan, { capital, slots, simple }) {

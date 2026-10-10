@@ -51,6 +51,7 @@ public class AlertsPlugin extends Plugin {
     static final String KEY_MARKET_QUALIFIED = "marketQualified";
     static final String KEY_MARKET_NOTIFIED = "marketNotified";
     static final String KEY_TIMING_SHOWN = "timingShown";
+    static final String KEY_PLAN_NOTIFIED = "planNotified";
     static final String EXTRA_ROUTE = "route";
     private static final String NAMES_FILE = "names.json";
     private static final String WORK = "bazaar-alerts";
@@ -80,6 +81,9 @@ public class AlertsPlugin extends Plugin {
         boolean marketEnabled = market.optBoolean("enabled");
         JSObject timing = call.getObject("timing", new JSObject());
         boolean timingEnabled = timing.optBoolean("events") || timing.optBoolean("mayor");
+        // the stored portfolio, with a switch per kind of warning
+        JSObject portfolio = call.getObject("portfolio", new JSObject());
+        boolean portfolioEnabled = portfolioEnabled(portfolio);
         JSONObject favs = new JSONObject();
         JSArray list = call.getArray("favs", new JSArray());
         try {
@@ -93,12 +97,14 @@ public class AlertsPlugin extends Plugin {
                 .put("tax", call.getDouble("tax", 0.0125))
                 .put("favs", favs)
                 .put("market", market)
-                .put("timing", timing);
+                .put("timing", timing)
+                .put("portfolio", portfolio);
             SharedPreferences.Editor edit = prefs(getContext()).edit().putString(KEY_CONFIG, config.toString());
             // Forget the last result when switched off, so switching on again reports current hits.
             if (!enabled) edit.remove(KEY_ABOVE);
             if (!marketEnabled) edit.remove(KEY_MARKET_QUALIFIED).remove(KEY_MARKET_NOTIFIED);
             if (!timingEnabled) edit.remove(KEY_TIMING_SHOWN);
+            if (!portfolioEnabled) edit.remove(KEY_PLAN_NOTIFIED);
             edit.apply();
         } catch (JSONException e) {
             call.reject("invalid alert configuration", e);
@@ -106,7 +112,7 @@ public class AlertsPlugin extends Plugin {
         }
 
         WorkManager work = WorkManager.getInstance(getContext());
-        boolean scheduled = (enabled && favs.length() > 0) || marketEnabled || timingEnabled;
+        boolean scheduled = (enabled && favs.length() > 0) || marketEnabled || timingEnabled || portfolioEnabled;
         if (scheduled) {
             // 15 minutes is the shortest period Android allows; KEEP leaves a running schedule untouched.
             PeriodicWorkRequest request = new PeriodicWorkRequest.Builder(AlertWorker.class, 15, TimeUnit.MINUTES)
@@ -117,6 +123,13 @@ public class AlertsPlugin extends Plugin {
             work.cancelUniqueWork(WORK);
         }
         call.resolve(new JSObject().put("scheduled", scheduled));
+    }
+
+    /** A plan with items and at least one kind of warning switched on. */
+    static boolean portfolioEnabled(JSONObject portfolio) {
+        return portfolio != null && portfolio.optJSONArray("items") != null && portfolio.optJSONArray("items").length() > 0
+            && (portfolio.optBoolean("price") || portfolio.optBoolean("suspicious")
+                || portfolio.optBoolean("election") || portfolio.optBoolean("leaving"));
     }
 
     /** Item names for market notifications; the worker cannot ask the web app for them. */

@@ -324,3 +324,42 @@ test('search keeps every item and says why it is not a flip', () => {
   assert.deepEqual(why(product(100, 105), { ...opp, stats: { X: [90, 105, 48] } }, oppIssues), ['Margin below your minimum', 'Profit/h below your minimum']);
   assert.deepEqual(why(product(100, 400), { ...opp, stats: { X: [90, 400, 48] } }, oppIssues), ['Suspicious prices']);
 });
+
+// The same cases as planWarningsFollowTheRulesOfTheWebApp in AlertLogicTest.java.
+test('planWarnings: a price drop, a lost margin and a suspicious flip, each against the stored plan', async () => {
+  const { planWarnings, PLAN_MIN_MARGIN } = await import('../flips.js');
+  assert.equal(PLAN_MIN_MARGIN, 0.01);
+  const plan = ['HELD', 'FELL', 'THIN', 'ODD', 'BOTH', 'GONE', 'SPIKE'].map((id) => ({ id, buy: 100 }));
+  const market = {
+    HELD: product(96, 120),                      // 4% below: inside the 5%
+    FELL: product(94, 120),                      // 6% below
+    THIN: product(100, 102),                     // price held, margin 0.7%
+    ODD: product(100, 120, { sellOrders: 2 }),   // suspicious, price fine
+    BOTH: product(90, 400),                      // 10% below and a margin above 200%
+    SPIKE: product(100, 140),                    // only suspicious next to its normal price
+  };
+  const found = planWarnings(plan, market, { tax: 0.0125, drop: 0.05 });
+  assert.deepEqual(found.map((w) => [w.id, w.kind]), [['FELL', 'price'], ['THIN', 'price'], ['ODD', 'suspicious'], ['BOTH', 'price'], ['BOTH', 'suspicious']]);
+  near(found[0].fall, 0.06);
+  near(found[1].margin, 0.00725);
+  near(found[3].fall, 0.1);
+  // the threshold is the player's
+  assert.deepEqual(planWarnings(plan, market, { tax: 0.0125, drop: 0.03 }).filter((w) => w.kind === 'price').map((w) => w.id), ['HELD', 'FELL', 'THIN', 'BOTH']);
+  // with stats the sell price is compared with its median, as everywhere
+  const withStats = planWarnings(plan, market, { tax: 0.0125, drop: 0.05, stats: { SPIKE: [90, 100, 100] } });
+  assert.ok(withStats.some((w) => w.id === 'SPIKE' && w.kind === 'suspicious'));
+  assert.deepEqual(planWarnings([], market, { tax: 0.0125, drop: 0.05 }), []);
+});
+
+test('trackPlan: the stored plan follows the current one, keeps first prices and freezes while a warning is active', async () => {
+  const { trackPlan } = await import('../flips.js');
+  const flips = [{ id: 'A', buy: 110, stake: 1 }, { id: 'C', buy: 50 }];
+  assert.deepEqual(trackPlan(null, flips, false), [{ id: 'A', buy: 110 }, { id: 'C', buy: 50 }]);
+  const stored = [{ id: 'A', buy: 100 }, { id: 'B', buy: 7 }];
+  // A stays with the price it came in with, B left the plan, C is new
+  assert.deepEqual(trackPlan(stored, flips, false), [{ id: 'A', buy: 100 }, { id: 'C', buy: 50 }]);
+  assert.equal(trackPlan(stored, flips, true), stored);
+  assert.deepEqual(trackPlan(stored, [], false), []);
+  // "Got it": start again from the current plan
+  assert.deepEqual(trackPlan(null, flips), [{ id: 'A', buy: 110 }, { id: 'C', buy: 50 }]);
+});
