@@ -1,6 +1,14 @@
 {
   "versions": [
     {
+      "version": "4.2.0",
+      "date": "2026-10-10",
+      "entries": [
+        { "title": "Pull to refresh you can see", "text": "Pull down on a list or an item page: an arrow appears below the header, then a spinner while prices load and a short \"Updated\" when they are in." },
+        { "title": "Nicer touch feedback", "text": "The light blue flash on every tap is gone. Cards now give way a little and glow orange when you press them, and buttons darken.", "target": "#list .card" }
+      ]
+    },
+    {
       "version": "4.1.0",
       "date": "2026-10-10",
       "entries": [
