@@ -207,7 +207,17 @@
 
   <main>
     <div id="today"></div>
-    <div id="minions"></div>
+    <div id="minions">
+      <form id="minion-setup" class="setup" novalidate>
+        <label>Tier <select id="m-tier"></select></label>
+        <label>Minions <input id="m-count" type="number" min="1" max="50" step="1" inputmode="numeric"></label>
+        <label>Fuel <select id="m-fuel"></select></label>
+        <label>Upgrade 1 <select id="m-up1"></select></label>
+        <label>Upgrade 2 <select id="m-up2"></select></label>
+      </form>
+      <p id="minion-note" class="count muted">Loading…</p>
+      <ul id="minion-list" class="list"></ul>
+    </div>
     <div id="market">
       <div id="radar" class="pro"></div>
       <div id="trends"></div>

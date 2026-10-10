@@ -2,10 +2,11 @@ import { buildFlips, computeFlip, opportunities, portfolio, MAX_SLOTS, statOf, s
 import { npcFlips } from './npc.js';
 import { craftFlips, craftHints } from './craft.js';
 import { forgeFlips, forgeFlip } from './forge.js';
+import { minionRows, FUELS, UPGRADES, MAX_TIER } from './minions.js';
 import { loadItems, fallbackName } from './names.js';
 import { loadStats, loadRecipes, loadForge, loadAh, loadElection, loadTiming, loadHistory } from './data.js';
 import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission } from './native.js';
-import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, trendsView, todayView, parseRoute, detailView, portfolioView, warningsView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, viewsFor, areaOf, coins, percent, PLACEHOLDER_ICON } from './render.js';
+import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, trendsView, todayView, minionCard, parseRoute, detailView, portfolioView, warningsView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, viewsFor, areaOf, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
 import { level } from './trends.js';
 import { activePerks, upcoming, electionWindow, eventItems, flipRisks, planElection } from './events.js';
@@ -273,8 +274,34 @@ function renderRadar() {
   box.innerHTML = radarView({ ...data, open });
 }
 
+// The minion setup: its own small form, stored apart from the settings because it changes nothing else.
+const MINION_FIELDS = { tier: 'm-tier', count: 'm-count', fuel: 'm-fuel', up1: 'm-up1', up2: 'm-up2' };
+const minionSetup = { tier: 11, count: 1, fuel: 'lava', up1: 'compactor', up2: 'spreading', ...load('bt.minions', {}) };
+const options = (list) => list.map((o) => `<option value="${o.key}">${o.name}</option>`).join('');
+$('m-tier').innerHTML = Array.from({ length: MAX_TIER }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('');
+$('m-fuel').innerHTML = options(FUELS);
+$('m-up1').innerHTML = $('m-up2').innerHTML = options(UPGRADES);
+for (const [key, id] of Object.entries(MINION_FIELDS)) {
+  $(id).value = minionSetup[key];
+  // a stored value the lists no longer have falls back to the first option
+  if ($(id).tagName === 'SELECT' && $(id).selectedIndex < 0) $(id).selectedIndex = 0;
+}
+$('minion-setup').addEventListener('change', () => {
+  for (const [key, id] of Object.entries(MINION_FIELDS)) minionSetup[key] = key === 'tier' || key === 'count' ? Number($(id).value) : $(id).value;
+  minionSetup.count = Math.min(50, Math.max(1, Math.floor(minionSetup.count) || 1));
+  $('m-count').value = minionSetup.count;
+  save('bt.minions', minionSetup);
+  render();
+});
+$('minion-setup').addEventListener('submit', (e) => e.preventDefault());
+
 // The areas that are one page each. Trade is drawn by renderPage itself.
 function renderArea() {
+  if (area() === 'minions' && products) {
+    const rows = minionRows(products, npc, { ...minionSetup, upgrades: [minionSetup.up1, minionSetup.up2] }, { tax: settings.tax / 100 });
+    $('minion-note').textContent = `${rows.length} minions, best first · coins per day for ${minionSetup.count === 1 ? '1 minion' : `${minionSetup.count} minions`} · Bazaar = sold at once to buy orders, after tax`;
+    $('minion-list').innerHTML = rows.map(minionCard).join('');
+  }
   if (area() === 'today') {
     const now = Date.now();
     const risks = flipRisks(election, now);
@@ -315,7 +342,7 @@ function renderDetail() {
 // that has not been seen yet.
 function hintsNow() {
   if (route.view === 'item') return [detailSuspicious && 'suspicious', 'detail'];
-  if (area() !== 'trade') return [area() === 'market' && 'radar', area() === 'today' && alerts.length > 0 && 'planalerts', area() === 'today' && 'today'];
+  if (area() !== 'trade') return [area() === 'market' && 'radar', area() === 'minions' && 'minions', area() === 'today' && alerts.length > 0 && 'planalerts', area() === 'today' && 'today'];
   const v = view();
   return [
     ...($('panel').open && !$('settings').classList.contains('filtering') ? ['alerts', 'settings'] : []),

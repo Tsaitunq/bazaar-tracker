@@ -136,6 +136,8 @@ export function advancedSteps({ native }) {
     { route: '#/forge', target: ['#list .card', '#tabs a[href="#/forge"]'], title: 'Forge', hint: 'forge',
       text: 'What is worth forging, with the profit per hour of one forge slot. "AH sale – estimate" means the result sells on the Auction House, which is slower and less certain.' },
   ];
+  steps.push({ route: '#/minions', target: '#minion-setup', title: 'Minions', hint: 'minions',
+    text: 'Choose a tier, a fuel and two upgrades, and the list ranks the minions by coins per day: sold at the Bazaar or to an NPC, whichever pays more, minus the fuel that is used up.' });
   if (native) {
     steps.push({ route: '#/flips', target: '#market-alert-settings', open: true, title: 'Alerts on your phone', hint: 'alerts',
       text: `Switch on Market alerts and allow notifications when Android asks. ${BATTERY}` });
@@ -154,6 +156,8 @@ export const newsRoute = (entry) => (/^#radar\b/.test(entry.target ?? '') ? '#/m
 export const HINTS = {
   today: { at: '#today', where: 'afterbegin',
     text: 'Today is your overview: what your plan earns, what needs your attention and what is new since your last visit. Each block has a link to the tab behind it.' },
+  minions: { at: '#minion-note', where: 'beforebegin',
+    text: 'Pick a tier, how many minions you place, a fuel and two upgrades. The list shows what each minion earns per day with that setup, the best one first. "not confirmed" marks a number the wiki leaves open.' },
   card: { at: '#count', where: 'beforebegin',
     text: 'Tap a card for its price history. To flip, place a buy order at the Buy order price, then sell with a sell offer.' },
   detail: { at: '#detail .ranges', where: 'beforebegin',
@@ -214,8 +218,8 @@ const versionHtml = (v) => `<section><h3>Version ${esc(v.version)} <span class="
 <ul class="news">${v.entries.map((e) => `<li><strong>${esc(e.title)}</strong> ${esc(e.text)}</li>`).join('')}</ul></section>`;
 
 // Shown once, on the first switch to Pro mode. count: the number of stations on this platform.
-export const advancedOfferHtml = (count = 4) => `<h2>Take the advanced tour?</h2>
-<p>${count} short stops: trends, the event radar, the portfolio${count > 4 ? ', forge flips and alerts' : ' and forge flips'}. You can also start it later from the ? at the top.</p>
+export const advancedOfferHtml = (count = 5) => `<h2>Take the advanced tour?</h2>
+<p>${count} short stops: trends, the event radar, the portfolio, forge flips${count > 5 ? ', minions and alerts' : ' and minions'}. You can also start it later from the ? at the top.</p>
 <div class="actions">${button('close', 'Not now')}${button('tour-advanced', 'Take the advanced tour', true)}</div>`;
 
 // Shown after "Skip", so nobody misses the setup.
@@ -255,6 +259,7 @@ const HOW = [
   ['Craft hints in the portfolio', 'When an item of your plan is an ingredient of a recipe that earns more per hour than the flip, its row says "Craft into …". The craft is worked out with the coins the plan gave that flip, your tax and market share, and no faster than every ingredient and the result trade. The number after the plus is what it earns on top. "uses N orders" counts one buy order per ingredient and one sell offer, out of the 21 the bazaar allows. The plan itself does not change, and the hint cannot know whether you have unlocked the recipe.', true],
   ['Forge', 'The cost is all ingredients bought with buy orders. A Bazaar result sells at its sell offer price minus tax. Any other result is priced at the lowest BIN on the Auction House minus the fees there, which makes it an estimate. Profit/forge hour is what one forge slot can earn, but never more than you can sell; the card says which of the two limits it.', true],
   ['Today', 'The overview you start with. Portfolio shows what your plan earns per hour, how much of your capital it uses and how many of your flips are taken. Warnings lists what went wrong with the plan you last saw. New since your last visit shows up to three opportunities that were not there when you last had the app open; after 30 minutes away it counts as a new visit. In Pro mode, Coming up names the next events and the election with a countdown.'],
+  ['Minions', 'What a minion earns per day with the setup you pick. A minion needs two actions for one harvest, so it harvests 86,400 ÷ (2 × time between actions) times a day; fuel and speed upgrades add their percentages and shorten that time. Bazaar/day is everything sold at once to the highest buy orders, after tax. NPC/day is the NPC sell price. The better one counts, and fuel that is used up is taken off at its lowest sell offer; a lava bucket lasts forever and costs nothing per day. Diamond Spreading adds one Diamond per 10 items, the Super Compactor 3000 turns items into their enchanted form. "Full after" is how long one minion takes to fill its own storage. The numbers are from the Hypixel SkyBlock wiki; "not confirmed" marks what it leaves open.', true],
   ['Areas', 'The bar at the bottom has the areas of the app. Today is the overview. Trade holds every kind of flip, with its tabs at the top; search, sorting and filters work there. Pro mode adds Minions and Market.'],
   ['Events', 'You find them in the Market area. The countdowns come from the SkyBlock calendar, the mayor and perks from Hypixel\'s election data. An item with an event badge is typically obtained during that event or through that perk. The rule of three: only when an item\'s price moved the same way in three past events or terms does the radar say how much it usually changes. Before that it says "not enough data yet". It is never a guarantee.', true],
   ['Trends', 'The Market area lists the items of your Flips list that rose and fell most. The arrow on a card is the direction of the sell price over the last 24 hours; rising or falling means more than 3% in a day. "below normal" and "above normal" mean the price is more than 10% off its 7 day median. Trends are a hint and never change Opportunities or alerts.', true],

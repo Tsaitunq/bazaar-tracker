@@ -465,3 +465,15 @@ test('todayView: portfolio in short, warnings, what comes next and what is new, 
   assert.ok(todayView({ ...base, plan: { flips: [] }, capital: 0 }).includes('Set a total capital'));
   assert.ok(todayView({ ...base, vote: { open: false, at: 30 * HOUR }, election: null }).includes('opens in 1d 6h'));
 });
+
+test('minionCard: coins per day, where to sell, and a mark on numbers that are not confirmed', async () => {
+  const { minionCard } = await import('../render.js');
+  const row = { key: 'snow', name: 'Snow Minion', id: 'SNOW_BALL', tier: 11, maxTier: 12, bazaar: 52000, npcCoins: 26000, fuelCost: 400, best: 'bazaar', net: 51600, itemsDay: 26584.6, fillHours: 0.87, unsure: [] };
+  const html = minionCard(row);
+  assert.ok(html.includes('Snow Minion') && html.includes('Tier XI<') && html.includes('51.6k') && html.includes('Coins/day'));
+  assert.ok(html.includes('<span class="big">Bazaar</span>') && html.includes('−400') && html.includes('about 52m'));
+  assert.ok(!html.includes('not confirmed') && !html.includes('class="why"'));
+  const open = minionCard({ ...row, tier: 12, best: 'npc', fuelCost: 0, unsure: ['The wiki gives 2 to 5 <per> harvest.'] });
+  assert.ok(open.includes('Tier XII (highest)') && open.includes('<span class="big">NPC</span>') && open.includes('not confirmed'));
+  assert.ok(open.includes('2 to 5 &#60;per&#62; harvest'));
+});

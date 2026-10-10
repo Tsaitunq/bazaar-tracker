@@ -374,6 +374,28 @@ export function todayView({ plan, capital, slots, alerts = [], dismiss = false, 
   return portfolio + warningsView(alerts, { dismiss, more: true }) + coming + news;
 }
 
+// One minion of the Minions area. row comes from minionRows; all coins are per day and for every minion placed.
+const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+export const minionCard = (row) => `<li class="card minion">
+  <a class="body" href="${esc(itemHref(row.id))}">
+    <div class="name">${tile(row.id, 32)}<span>${esc(row.name)}</span></div>
+    <div class="badges"><span class="badge badge-trend">Tier ${ROMAN[row.tier - 1]}${row.tier === row.maxTier ? ' (highest)' : ''}</span>${
+      row.unsure.length ? `<span class="badge badge-warn">${ICONS.warn}not confirmed</span>` : ''}</div>
+    <div class="key">
+      <div><span class="big ${gain(row.net)}">${num(row.net)}</span><span class="lbl">Coins/day</span></div>
+      <div><span class="big">${row.best === 'npc' ? 'NPC' : 'Bazaar'}</span><span class="lbl">Sell at</span></div>
+    </div>
+    <dl class="facts">${[
+      fact('Bazaar/day', num(row.bazaar)),
+      fact('NPC/day', num(row.npcCoins)),
+      fact('Fuel/day', row.fuelCost > 0 ? `−${num(row.fuelCost)}` : '–'),
+      fact('Items/day', num(row.itemsDay)),
+      fact('Full after', `about ${duration(row.fillHours * 3600)}`),
+    ].join('')}</dl>${row.unsure.length ? `
+    <p class="why">${esc(row.unsure.join(' '))}</p>` : ''}
+  </a>
+</li>`;
+
 // The four areas of the bar at the bottom. Trade holds the tabs and the item page; the others are one page each.
 export const AREAS = ['today', 'minions', 'market'];
 export const areaOf = (view) => (AREAS.includes(view) ? view : 'trade');

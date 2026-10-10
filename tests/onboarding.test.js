@@ -143,14 +143,14 @@ test('the basic tour has seven stations: areas, flip, numbers, badges, opportuni
   assert.ok(steps.every((s) => ['#/flips', '#/opps'].includes(s.route)));
 });
 
-test('the advanced tour follows the tabs: trends, radar, portfolio, forge, plus alerts inside the app', () => {
+test('the advanced tour: trends, radar, portfolio, forge, minions, plus alerts inside the app', () => {
   const web = advancedSteps({ native: false });
   const app = advancedSteps({ native: true });
-  assert.deepEqual(web.map((s) => s.title), ['Trends', 'Event radar', 'Portfolio', 'Forge']);
-  assert.deepEqual(web.map((s) => s.route), ['#/flips', '#/market', '#/opps', '#/forge']);
+  assert.deepEqual(web.map((s) => s.title), ['Trends', 'Event radar', 'Portfolio', 'Forge', 'Minions']);
+  assert.deepEqual(web.map((s) => s.route), ['#/flips', '#/market', '#/opps', '#/forge', '#/minions']);
   assert.ok(web[3].text.split(/\s+/).length < 40, 'the forge station is short');
-  assert.equal(app.length, 5);
-  assert.match(app[4].text, /Unrestricted/);
+  assert.equal(app.length, 6);
+  assert.match(app[5].text, /Unrestricted/);
   assert.ok(app.every((s) => s.title && s.text && s.target && s.route));
   assert.ok(web.some((s) => s.route === '#/opps' && s.target === '#portfolio .portfolio'));
   assert.ok(web.some((s) => s.route === '#/forge'));
@@ -161,8 +161,8 @@ test('the offer of the advanced tour names the number of stations on this platfo
   const web = advancedOfferHtml(advancedSteps({ native: false }).length);
   const app = advancedOfferHtml(advancedSteps({ native: true }).length);
   assert.ok(web.includes('Take the advanced tour?') && web.includes('data-act="tour-advanced"') && web.includes('data-act="close"'));
-  assert.ok(web.includes('4 short stops') && !web.includes('alerts'));
-  assert.ok(app.includes('5 short stops') && app.includes('alerts'));
+  assert.ok(web.includes('5 short stops') && web.includes('and minions') && !web.includes('alerts'));
+  assert.ok(app.includes('6 short stops') && app.includes('minions and alerts'));
 });
 
 test('skipping the welcome or the tour still offers the setup', () => {
@@ -235,7 +235,7 @@ test('changelog.json is well formed', () => {
 test('help screen offers both tours, setup, news and explains the numbers in sections that unfold', () => {
   const html = helpHtml();
   for (const act of ['tour', 'tour-advanced', 'setup', 'news', 'hints-reset', 'close']) assert.ok(html.includes(`data-act="${act}"`), act);
-  const terms = ['What a flip is', 'Margin', 'Profit/h', 'Market share', 'Volume per week', 'Stability score', 'Suspicious', 'Favorites', 'Portfolio', 'NPC flips', 'Craft flips', 'Portfolio warnings', 'Craft hints in the portfolio', 'Forge', 'Today', 'Areas', 'Events', 'Trends'];
+  const terms = ['What a flip is', 'Margin', 'Profit/h', 'Market share', 'Volume per week', 'Stability score', 'Suspicious', 'Favorites', 'Portfolio', 'NPC flips', 'Craft flips', 'Portfolio warnings', 'Craft hints in the portfolio', 'Forge', 'Today', 'Minions', 'Areas', 'Events', 'Trends'];
   for (const term of terms) assert.ok(html.includes(`<details><summary>${term}</summary>`), term);
   assert.equal(html.split('<details>').length - 1, terms.length);
   assert.ok(html.includes('estimate') && html.includes('lowest BIN'));
@@ -249,7 +249,7 @@ test('help in Simple mode leaves out the advanced tour and the Pro topics', () =
   const html = helpHtml({ pro: false });
   assert.ok(!html.includes('tour-advanced'));
   for (const term of ['What a flip is', 'Margin', 'Profit/h', 'Stability score', 'Suspicious', 'Favorites', 'Portfolio', 'Portfolio warnings', 'Today', 'Areas']) assert.ok(html.includes(`<summary>${term}</summary>`), term);
-  for (const term of ['NPC flips', 'Craft flips', 'Forge', 'Events', 'Trends', 'Market share']) assert.ok(!html.includes(`<summary>${term}</summary>`), term);
+  for (const term of ['NPC flips', 'Craft flips', 'Forge', 'Events', 'Trends', 'Market share', 'Minions', 'Craft hints in the portfolio']) assert.ok(!html.includes(`<summary>${term}</summary>`), term);
 });
 
 test('users from before version 5 are offered the advanced tour with the news', () => {
@@ -284,7 +284,7 @@ test('the help buttons live behind the ? in the header, not in the settings', ()
 });
 
 test('the context hints, each with a text and a place', () => {
-  assert.deepEqual(HINT_IDS, ['today', 'card', 'detail', 'suspicious', 'fav', 'opps', 'portfolio', 'planalerts', 'crafthint', 'npc', 'craft', 'forge', 'radar', 'search', 'settings', 'alerts']);
+  assert.deepEqual(HINT_IDS, ['today', 'minions', 'card', 'detail', 'suspicious', 'fav', 'opps', 'portfolio', 'planalerts', 'crafthint', 'npc', 'craft', 'forge', 'radar', 'search', 'settings', 'alerts']);
   for (const id of HINT_IDS) {
     const html = hintHtml(id, { native: false, pro: true });
     assert.ok(HINTS[id].at && ['beforebegin', 'afterbegin', 'afterend'].includes(HINTS[id].where), id);
@@ -326,7 +326,7 @@ test('a returning user has seen every hint, a new user none', () => {
 
 test('tour stations mark the hint they make unnecessary', () => {
   const marked = [...tourSteps(), ...advancedSteps({ native: true })].map((s) => s.hint).filter(Boolean);
-  assert.deepEqual(marked, ['card', 'opps', 'radar', 'portfolio', 'forge', 'alerts']);
+  assert.deepEqual(marked, ['card', 'opps', 'radar', 'portfolio', 'forge', 'minions', 'alerts']);
   assert.ok(marked.every((id) => HINT_IDS.includes(id)));
 });
 

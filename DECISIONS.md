@@ -685,3 +685,36 @@ Selbstständig getroffen (Auftrag: unbeaufsichtigt, ohne Rückfragen). Spec:
 - **Betroffene Items der Wahl** sind die, bei denen der Führende oder der
   kommende Minister den Preis drücken dürfte (dieselbe Quelle wie die
   Portfolio-Warnung), höchstens drei mit „+N more“.
+
+## Teil 4: Minion-Rechner
+
+- **Quelle ist das Archiv des offiziellen Wikis.** `wiki.hypixel.net` wurde
+  im Juli 2026 abgeschaltet und leitet nur noch auf die Ankündigung um. Alle
+  Zahlen stammen aus den letzten Kopien im Internet Archive (Januar bis März
+  2026); drei Regeln, die dort nicht stehen (zwei Aktionen je Ernte,
+  Speed-Formel, Diamond Spreading je Item), aus dem Fandom-Wiki. Jede Zahl
+  mit Link in `docs/minions-sources.md`. Kosten: Ändert Hypixel später etwas,
+  merkt das Archiv es nicht.
+- **13 Minions statt 15.** Iron und Gold fehlen absichtlich: Sie liefern Erz
+  (nicht am Bazaar), und der Super Compactor braucht Barren, also den Auto
+  Smelter im zweiten Slot. Sechs weitere Seiten (Wheat, Melon, Pumpkin,
+  Cactus, Glowstone, Fishing) ließen sich im Lauf nicht laden.
+- **„Bazaar“ heißt Sofortverkauf an die höchste Buy-Order, mit deiner Tax.**
+  Grund: „Sell-Preis“ ist in der Hypixel-API der Sofortverkauf, und Minion-
+  Mengen stellt kaum jemand als Sell-Offer ein. Ob beim Sofortverkauf Tax
+  anfällt, steht in keinem der beiden Wikis; abgezogen ist die vorsichtige
+  Lesart. Kosten: Wer Sell-Offers stellt, verdient etwas mehr als gezeigt.
+- **Als „not confirmed“ markiert:** Spannen ohne Mittelwert (Lapis, Redstone,
+  String, Rotten Flesh; gerechnet wird die Mitte) und Diamond Spreading
+  zusammen mit einem Catalyst (Diamanten zählen einfach).
+- **Fuel-Kosten nur für Verbrauchs-Fuel**, zum niedrigsten Sell-Offer. Ein
+  Lava Bucket hält ewig und kostet pro Tag nichts; sein Kaufpreis ist nicht
+  eingerechnet.
+- **Ergebnis = alle Minions mit demselben Setup, bester zuerst.** „Bestes
+  Setup oben“ habe ich so gelesen; eine Suche über alle Fuel-/Upgrade-
+  Kombinationen je Minion gibt es nicht.
+- **Der Super Compactor rechnet nur die erste Enchanted-Stufe**, nicht den
+  Block darüber.
+- **Das Setup liegt in `bt.minions`**, getrennt von den Einstellungen, und
+  gilt sofort (kein Apply).
+- **Kein Compactor, Auto Smelter, Hopper, Storage, Beacon, Mayor-Perk.**
