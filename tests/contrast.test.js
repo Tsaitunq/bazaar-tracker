@@ -44,7 +44,7 @@ test('text on the accent colour reaches WCAG AA', () => {
 
 test('every colour used in the stylesheet is a checked token', () => {
   const used = new Set([...css.matchAll(/var\(--([a-z-]+)/g)].map((m) => m[1]));
-  const known = new Set([...SURFACES, ...TEXT_COLOURS, ...RARITY_COLOURS, 'on-accent', 'line', 'rarity', 'page', 'safe-area-inset-top', 'safe-area-inset-bottom']);
+  const known = new Set([...SURFACES, ...TEXT_COLOURS, ...RARITY_COLOURS, 'on-accent', 'line', 'rarity', 'page', 'safe-area-inset-top', 'safe-area-inset-bottom', 'pull', 'turn']);
   assert.deepEqual([...used].filter((t) => !known.has(t)), []);
   // no colour is written directly into a rule
   const rules = css.slice(css.indexOf('}') + 1);

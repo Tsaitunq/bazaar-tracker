@@ -184,9 +184,11 @@ function schedule() {
   if (!document.hidden) timer = setTimeout(refresh, settings.interval * 60000);
 }
 
+// Resolves to true when new prices arrived.
 async function refresh() {
-  if (busy) return;
+  if (busy) return false;
   busy = true;
+  let ok = false;
   $('refresh').classList.add('busy');
   try {
     const res = await fetch(API, { cache: 'no-store' });
@@ -201,6 +203,7 @@ async function refresh() {
     render();
     markReady();
     if (Date.now() - lastStats > STATS_TTL) refreshStats();
+    ok = true;
   } catch (e) {
     $('error').textContent = `Update failed: ${e.message}`;
     $('error').hidden = false;
@@ -210,6 +213,7 @@ async function refresh() {
   busy = false;
   $('refresh').classList.remove('busy');
   schedule();
+  return ok;
 }
 
 async function refreshStats() {
@@ -301,21 +305,48 @@ document.addEventListener('visibilitychange', () => {
   else schedule();
 });
 
-// Pull-to-refresh: only starts at the top of the page.
+// Pull-to-refresh: only starts at the top of the page. The indicator is a pill that slides out from
+// under the header, so the status bar never covers it: pull (arrow turns with the distance), ready,
+// busy (spinner), done ("Updated").
+const PTR_REST = 56; // how far below the header's edge the pill's own bottom edge rests, in px
+const PTR_DONE_MS = 1200;
+const ptr = $('ptr');
 let pullStart = null;
 let pulled = 0;
-addEventListener('touchstart', (e) => { pullStart = scrollY === 0 ? e.touches[0].clientY : null; pulled = 0; }, { passive: true });
+function showPtr(state, text, pull = PTR_REST) {
+  if (state) ptr.dataset.state = state;
+  else delete ptr.dataset.state;
+  ptr.style.setProperty('--pull', `${state ? pull : 0}px`);
+  // only on a change, so a screen reader hears each text once
+  if (text && $('ptr-text').textContent !== text) $('ptr-text').textContent = text;
+}
+const pulling = () => ptr.dataset.state === 'pull' || ptr.dataset.state === 'ready';
+addEventListener('touchstart', (e) => {
+  pullStart = scrollY === 0 && !ptr.dataset.state ? e.touches[0].clientY : null;
+  pulled = 0;
+  ptr.style.top = `${document.querySelector('header').getBoundingClientRect().bottom}px`;
+}, { passive: true });
 addEventListener('touchmove', (e) => {
   if (pullStart === null) return;
   pulled = e.touches[0].clientY - pullStart;
-  $('ptr').style.height = `${Math.max(0, Math.min(pulled / 2, 40))}px`;
-  $('ptr').textContent = pulled > PULL_PX ? 'Release to refresh' : 'Pull to refresh';
+  // a sideways swipe between tabs is not a pull
+  if (drag?.side) pullStart = null;
+  if (pullStart === null || pulled <= 0) return showPtr();
+  ptr.style.setProperty('--turn', `${Math.min(pulled / PULL_PX, 1) * 180}deg`);
+  if (pulled > PULL_PX) showPtr('ready', 'Release to refresh');
+  else showPtr('pull', 'Pull to refresh', Math.min(pulled / 2, PTR_REST));
 }, { passive: true });
-addEventListener('touchend', () => {
-  $('ptr').style.height = '0';
-  if (pullStart !== null && pulled > PULL_PX) refresh();
+async function endPull() {
+  const go = pullStart !== null && pulled > PULL_PX;
   pullStart = null;
-});
+  if (!go) { if (pulling()) showPtr(); return; }
+  showPtr('busy', 'Updating…');
+  if (!await refresh()) return showPtr(); // the error line in the header says what went wrong
+  showPtr('done', 'Updated');
+  setTimeout(() => { if (ptr.dataset.state === 'done') showPtr(); }, PTR_DONE_MS);
+}
+addEventListener('touchend', endPull);
+addEventListener('touchcancel', () => { pullStart = null; if (pulling()) showPtr(); });
 
 // Swipe left or right on a list to change tabs, like a pager: the page follows the finger and the
 // neighbouring tab is already there next to it. Not on the detail page, and not from the screen

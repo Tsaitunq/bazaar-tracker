@@ -35,7 +35,8 @@
   color-scheme: dark;
 }
 
-* { box-sizing: border-box; }
+/* no browser highlight on touch; the things you can press answer themselves (see "touch feedback") */
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 html { overscroll-behavior-y: contain; }
 
@@ -95,7 +96,25 @@ input[type="checkbox"] { accent-color: var(--accent); }
 #tabs a[aria-current="page"] { color: var(--accent); border-color: var(--accent); font-weight: 600; }
 
 #error { margin: 8px 0 0; color: var(--loss); font-size: 13px; }
-#ptr { height: 0; overflow: hidden; text-align: center; color: var(--muted); font-size: 13px; line-height: 40px; }
+/* pull to refresh: a pill that slides out from under the header (it comes before the header in the page,
+   so the header covers it). app.js sets top to the header's lower edge, --pull and --turn. */
+#ptr { --pull: 0px; --turn: 0deg; position: fixed; z-index: 1; left: 50%; transform: translate(-50%, calc(var(--pull) - 100%)); display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--raised); color: var(--muted); font-size: 13px; white-space: nowrap; visibility: hidden; pointer-events: none; }
+#ptr[data-state] { visibility: visible; }
+#ptr[data-state="ready"] { color: var(--accent); border-color: var(--accent); }
+#ptr[data-state="done"] { color: var(--text); }
+.ptr-ico { display: block; width: 16px; height: 16px; border-radius: 50%; }
+.ptr-ico svg { transform: rotate(var(--turn)); }
+#ptr[data-state="busy"] .ptr-ico { border: 2px solid var(--line); border-top-color: var(--accent); }
+#ptr[data-state="busy"] svg, #ptr[data-state="done"] .ptr-ico { display: none; }
+
+/* touch feedback: a pressed card lights up in the accent colour, buttons get darker */
+/* a long press must not lift the link off the page as a drag label with its address */
+a { -webkit-user-drag: none; }
+button:active { filter: brightness(.8); }
+.card:has(.body:active) { background: var(--card-hover); border-top-color: var(--accent); border-right-color: var(--accent); border-bottom-color: var(--accent); box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 35%, transparent); }
+.star:active { color: var(--accent); filter: none; }
+#tabs a:active, .picks a:active { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--text); }
+.back:active { filter: brightness(.8); }
 
 /* settings */
 #settings { display: grid; gap: 12px; padding-block: 12px; border-bottom: 1px solid var(--line); }
@@ -160,7 +179,7 @@ footer a { color: inherit; }
 [data-rarity="special"], [data-rarity="very_special"] { --rarity: var(--r-special); }
 
 /* the stripe on the left is the item's rarity */
-.card { position: relative; background: var(--card); border: 1px solid var(--line); border-left: 3px solid var(--rarity); border-radius: 6px 12px 12px 6px; transition: background-color .15s; }
+.card { position: relative; background: var(--card); border: 1px solid var(--line); border-left: 3px solid var(--rarity); border-radius: 6px 12px 12px 6px; transition: background-color .15s, border-color .25s, box-shadow .25s; }
 .card:hover { background: var(--card-hover); }
 .card .body { display: block; padding: 12px; color: var(--text); text-decoration: none; }
 /* the rarity as a word too, so it does not depend on colour alone */
@@ -257,6 +276,17 @@ body.detail #tabs, body.detail .filters, body.detail #count, body.detail #list, 
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  /* press: things give way a little and ease back; without motion only the colours change */
+  .card { transition: background-color .15s, border-color .25s, box-shadow .25s, transform .12s ease-out; }
+  .card:has(.body:active) { transform: scale(.98); }
+  button, #tabs a, .picks a, .back { transition: filter .12s ease-out, background-color .12s ease-out, transform .12s ease-out; }
+  .star:active { transform: scale(.85); }
+  /* the pill follows the finger directly and eases everywhere else */
+  #ptr { transition: transform .2s ease-out, visibility 0s .2s; }
+  #ptr[data-state] { transition: transform .2s ease-out; }
+  #ptr[data-state="pull"], #ptr[data-state="ready"] { transition: none; }
+  #ptr[data-state="busy"] .ptr-ico { animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(1turn); } }
   .card { animation: rise .2s ease-out both; }
   @keyframes rise { from { opacity: 0; } }
   /* app.js adds .flash to a big number whose value changed since the last refresh */
