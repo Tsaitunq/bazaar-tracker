@@ -1,6 +1,14 @@
 {
   "versions": [
     {
+      "version": "4.1.0",
+      "date": "2026-10-10",
+      "entries": [
+        { "title": "Search finds every item", "text": "The search now covers the whole bazaar. Items your filters hide still show up, with a short note why they are not a flip right now.", "target": "#search" },
+        { "title": "Help screen", "text": "The new ? at the top opens the tour, the setup, What's new and a short explanation of how the numbers are calculated.", "target": "#open-help" }
+      ]
+    },
+    {
       "version": "4.0.0",
       "date": "2026-10-10",
       "entries": [

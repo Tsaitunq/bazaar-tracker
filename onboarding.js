@@ -98,6 +98,8 @@ export function tourSteps({ native, firstId }) {
       text: 'Tap a card to see its price and margin over time. Tap or hover a chart to read the exact value at any point.' },
     { route: '#/flips', target: '#toggle-settings', title: 'Settings',
       text: 'Set your tax, capital and filters here. Every option has a small ? that explains it.' },
+    { route: '#/flips', target: '#open-help', title: 'Help',
+      text: 'The ? up here brings back this tour and the setup, shows what is new and explains how the numbers are calculated.' },
   ];
   if (native) {
     steps.push({ route: '#/flips', target: '#market-alert-settings', open: true, title: 'Alerts on your phone',
@@ -118,7 +120,7 @@ const versionHtml = (v) => `<section><h3>Version ${esc(v.version)} <span class="
 <ul class="news">${v.entries.map((e) => `<li><strong>${esc(e.title)}</strong> ${esc(e.text)}</li>`).join('')}</ul></section>`;
 
 // versions: newest first. offerTour: add the tour offer for people who used the app before it had one.
-// history: the full list from the settings, without the "Show me" walk through.
+// history: the full list from the help screen, without the "Show me" walk through.
 export function newsHtml(versions, { offerTour = false, history = false } = {}) {
   const spotlight = !history && versions.some((v) => v.entries.some((e) => e.target));
   const offer = offerTour ? `<p class="offer"><strong>New: app tour – take it now?</strong></p>` : '';
@@ -129,6 +131,19 @@ export function newsHtml(versions, { offerTour = false, history = false } = {}) 
 <div class="scroll">${versions.map(versionHtml).join('')}</div>
 ${offer}<div class="actions">${actions}</div>`;
 }
+
+// The help screen behind the ? in the header.
+const HOW = [
+  ['Margin', 'Your profit on one item after tax, compared with what you paid: (sell offer price − tax − buy order price) ÷ buy order price.'],
+  ['Market share', "Your guess at how much of an item's trade ends up with you. Other players flip the same items, so nobody gets all of it. 5% is careful; raise it if you relist often."],
+  ['Profit/h', "Profit per item × the items you can expect to trade in an hour. That is your market share of the item's hourly volume (the weekly volume ÷ 168), and never more than your max. capital can buy."],
+  ['Stability score', 'A number from 0 to 100 from the last 7 days of prices. It starts with how often the flip made a profit and loses points the more the buy and sell prices jumped around. 70 or more counts as stable; under 24 hours of data there is no score yet.'],
+];
+export const helpHtml = () => `<h2>Help</h2>
+<div class="help-actions">${button('tour', 'Start tour')}${button('setup', 'Start setup')}${button('news', "What's new")}</div>
+<h3>How it works</h3>
+<dl class="how">${HOW.map(([term, text]) => `<dt>${term}</dt><dd>${esc(text)}</dd>`).join('')}</dl>
+<div class="actions">${button('close', 'Close', true)}</div>`;
 
 const radio = (name, value, label, hint, checked) =>
   `<label class="choice"><input type="radio" name="${name}" value="${value}"${checked ? ' checked' : ''}><span>${label}<small>${hint}</small></span></label>`;

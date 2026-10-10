@@ -53,11 +53,39 @@ function flipWithStats(id, product, { tax, maxCapital, share = 1 }, stats) {
 // descending by a[sort]; null/undefined last
 export const bySort = (sort) => (a, b) => (a[sort] == null) - (b[sort] == null) || b[sort] - a[sort];
 
+// Why a flip is not in a list, in words for the player; empty when it passes. The lists filter with
+// these, so a reason shown in the search is always the real one.
+export function flipIssues(f, { minVolume, maxCapital }) {
+  return [
+    !(f.profit > 0) && 'Margin is 0 or below',
+    !(f.weekVol >= minVolume) && 'Volume too low',
+    maxCapital > 0 && f.buy > maxCapital && 'Above your max capital',
+  ].filter(Boolean);
+}
+
+export function oppIssues(f, { maxCapital, minMargin, minVolume, minProfitHour }) {
+  return [
+    f.suspicious && 'Suspicious prices',
+    f.provisional ? 'Under 24 hours of price history' : !(f.score >= STABLE) && (f.score == null ? 'No stability score yet' : 'Not stable enough'),
+    !(f.margin >= minMargin) && 'Margin below your minimum',
+    !(f.weekVol >= minVolume) && 'Volume too low',
+    !(f.profitHour >= minProfitHour) && 'Profit/h below your minimum',
+    maxCapital > 0 && f.buy > maxCapital && 'Above your max capital',
+  ].filter(Boolean);
+}
+
+// One item for the search, whatever the filters say: its flip plus `why` it is not in the list.
+// An item without orders on both sides has no flip; it still gets an entry so its detail page can be opened.
+export function searchFlip(id, product, opts, issues) {
+  const f = flipWithStats(id, product, opts, opts.stats);
+  return f ? { ...f, why: issues(f, opts) } : { id, why: ['No buy orders or sell offers right now'] };
+}
+
 // favs are kept even when they fail the filters
 export function buildFlips(products, { tax, minVolume, maxCapital, sort, share = 1, favs = new Set(), stats = null }) {
   return Object.entries(products)
     .map(([id, p]) => flipWithStats(id, p, { tax, maxCapital, share }, stats))
-    .filter((f) => f && (favs.has(f.id) || (f.profit > 0 && f.weekVol >= minVolume && !(maxCapital > 0 && f.buy > maxCapital))))
+    .filter((f) => f && (favs.has(f.id) || !flipIssues(f, { minVolume, maxCapital }).length))
     .sort(bySort(sort));
 }
 
@@ -65,8 +93,7 @@ export function buildFlips(products, { tax, minVolume, maxCapital, sort, share =
 export function opportunities(products, { tax, maxCapital, share = 1, sort, stats = null, minMargin, minVolume, minProfitHour }) {
   return Object.entries(products)
     .map(([id, p]) => flipWithStats(id, p, { tax, maxCapital, share }, stats))
-    .filter((f) => f && !f.suspicious && !f.provisional && f.score >= STABLE && f.margin >= minMargin
-      && f.weekVol >= minVolume && f.profitHour >= minProfitHour && !(maxCapital > 0 && f.buy > maxCapital))
+    .filter((f) => f && !oppIssues(f, { maxCapital, minMargin, minVolume, minProfitHour }).length)
     .sort(bySort(sort));
 }
 
