@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "6.5.1",
+      "date": "2026-10-10",
+      "entries": [
+        { "title": "Max. flips explained", "text": "The help text for Max. flips now says what the portfolio does: it picks the flips that earn the most with your budget, up to that many." }
+      ]
+    },
+    {
       "version": "6.5.0",
       "date": "2026-10-10",
       "entries": [

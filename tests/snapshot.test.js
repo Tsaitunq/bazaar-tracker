@@ -42,6 +42,23 @@ test('old day folders are pruned', () => withDir((dir) => {
   assert.ok(fs.existsSync(path.join(dir, 'h', '2026-10-02')));
 }));
 
+test('the week\'s volume per item is collected next to the prices, one file per day', () => withDir((dir) => {
+  const withVolume = (bought, sold) => ({ ...prod(), quick_status: { buyMovingWeek: bought, sellMovingWeek: sold } });
+  fs.mkdirSync(path.join(dir, 'v'), { recursive: true });
+  for (const d of ['2026-09-30', '2026-10-02']) fs.writeFileSync(path.join(dir, 'v', `${d}.json`), '{}');
+  runSnapshot(dir, { X: withVolume(5000, 7000), BARE: prod() }, T0);
+  runSnapshot(dir, { X: withVolume(5100, 6900), BARE: prod() }, T0 + 20 * 60000);
+  const v = readJson(dir, 'v', `${dayKey(T0)}.json`);
+  assert.deepEqual(v.t, [Math.round(T0 / 60000), Math.round(T0 / 60000) + 20]);
+  assert.deepEqual(v.p.X, [[5000, 5100], [7000, 6900]]);
+  // a product without volume numbers keeps its place, so the columns stay aligned
+  assert.deepEqual(v.p.BARE, [[null, null], [null, null]]);
+  // pruned like the price folders, and the prices do not change shape
+  assert.deepEqual(fs.readdirSync(path.join(dir, 'v')).sort(), ['2026-10-02.json', `${dayKey(T0)}.json`]);
+  assert.deepEqual(readJson(dir, 'h', dayKey(T0), `${shardOf('X')}.json`).p.X, [[100, 100], [200, 200]]);
+  assert.equal(fs.readdirSync(path.join(dir, 'h', dayKey(T0))).length, 16);
+}));
+
 test('scores need 12 points', () => withDir((dir) => {
   for (let i = 0; i < 2; i++) runSnapshot(dir, { X: prod() }, T0 + i * 20 * 60000);
   assert.ok(!('X' in readJson(dir, 'scores.json').s));
