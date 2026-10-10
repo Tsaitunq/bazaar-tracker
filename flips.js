@@ -103,6 +103,8 @@ export function opportunities(products, { tax, maxCapital, share = 1, sort, stat
 // Uses exactly the opportunity conditions, so suspicious and provisional items never appear.
 // opts.maxCapital ("Max. capital per flip") caps the stake of one flip; 0 means no cap.
 // limit says what keeps capital unused: 'slots', 'maxCapital' or 'volume'; null when the capital is in use.
+// more: when slots are the limit, { slots, used, profitHour } of the plan that more parallel flips would give.
+export const MAX_SLOTS = 50; // the most parallel flips the settings accept
 export function portfolio(products, { capital, slots, ...opts }) {
   const n = Math.floor(slots);
   const cap = opts.maxCapital > 0 ? opts.maxCapital : capital;
@@ -131,9 +133,19 @@ export function portfolio(products, { capital, slots, ...opts }) {
     limit = flips.length >= n && ranked.some(fits) ? 'slots'
       : opts.maxCapital > 0 && flips.some((f) => f.hourVol * share - f.units >= 1) ? 'maxCapital' : 'volume';
   }
+  // What more slots would do, worked out once with the most the app allows. If fewer are enough, the
+  // numbers are those of a plan with exactly that many, so the hint holds when the player sets it.
+  let more = null;
+  if (limit === 'slots' && n < MAX_SLOTS) {
+    const plan = (slots) => portfolio(products, { capital, slots, ...opts });
+    const most = plan(MAX_SLOTS);
+    const { used, profitHour } = most.flips.length < MAX_SLOTS ? plan(most.flips.length) : most;
+    more = { slots: most.flips.length, used, profitHour };
+  }
   return {
     flips,
     limit,
+    more,
     profitHour: flips.reduce((sum, f) => sum + f.profitHour, 0),
     used: flips.reduce((sum, f) => sum + f.stake, 0),
   };

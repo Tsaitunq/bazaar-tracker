@@ -1,6 +1,15 @@
 {
   "versions": [
     {
+      "version": "6.4.0",
+      "date": "2026-10-10",
+      "entries": [
+        { "title": "Portfolio min. margin", "text": "The portfolio has its own margin floor, 3% to start with, so items that trade a lot can take part even if your Opportunities list asks for more.", "target": "#portfolio .portfolio", "route": "#/opps" },
+        { "title": "How many flips would use your capital", "text": "When your parallel flips hold capital back, the note says how many flips would use how much, with the estimated profit per hour.", "target": "#portfolio .portfolio", "route": "#/opps" },
+        { "title": "No cap per flip in Simple mode", "text": "Simple mode no longer limits one flip to an even share of your capital; a flip gets as much as the item trades.", "target": "#portfolio .portfolio", "route": "#/opps" }
+      ]
+    },
+    {
       "version": "6.3.0",
       "date": "2026-10-10",
       "entries": [

@@ -71,10 +71,10 @@ test('a stored version from the future or a broken state never throws', () => {
 });
 
 test('setupResult maps the five answers to settings with a reason each', () => {
-  const result = setupResult({ capital: 200e6, activity: 'often', style: 'profit', hotm: 6, ah: false }, 10);
+  const result = setupResult({ capital: 200e6, activity: 'often', style: 'profit', hotm: 6, ah: false });
   const values = Object.fromEntries(result.map((r) => [r.key, r.value]));
   assert.deepEqual(values, {
-    portfolioCapital: 200000000, maxCapital: 20000000, share: 20,
+    portfolioCapital: 200000000, maxCapital: 0, share: 20,
     marketMargin: 8, marketMinVolume: 100000, marketMinProfit: 250000,
     hotm: 6, forgeAh: false,
   });
@@ -83,20 +83,22 @@ test('setupResult maps the five answers to settings with a reason each', () => {
   for (const r of result) assert.ok(r.label && r.shown && r.reason.endsWith('.'), r.key);
   assert.equal(result.find((r) => r.key === 'share').shown, '20%');
   assert.equal(result.find((r) => r.key === 'portfolioCapital').shown, '200M');
+  // no cap per flip: the portfolio decides how much a flip gets
+  assert.equal(result.find((r) => r.key === 'maxCapital').shown, 'No limit');
 
-  const safe = Object.fromEntries(setupResult({ capital: 10e6, activity: 'rarely', style: 'safe' }, 4).map((r) => [r.key, r.value]));
+  const safe = Object.fromEntries(setupResult({ capital: 10e6, activity: 'rarely', style: 'safe' }).map((r) => [r.key, r.value]));
   assert.deepEqual(safe, {
-    portfolioCapital: 10000000, maxCapital: 2500000, share: 5,
+    portfolioCapital: 10000000, maxCapital: 0, share: 5,
     marketMargin: 15, marketMinVolume: 500000, marketMinProfit: 100000,
     hotm: 10, forgeAh: true,
   });
-  assert.equal(setupResult({ capital: 10e6, activity: 'sometimes', style: 'safe' }, 10).find((r) => r.key === 'share').value, 10);
+  assert.equal(setupResult({ capital: 10e6, activity: 'sometimes', style: 'safe' }).find((r) => r.key === 'share').value, 10);
 });
 
 test('setupResult survives missing or odd answers', () => {
-  const values = Object.fromEntries(setupResult({ capital: NaN, activity: 'x', style: undefined, hotm: 42, ah: 'maybe' }, 0).map((r) => [r.key, r.value]));
+  const values = Object.fromEntries(setupResult({ capital: NaN, activity: 'x', style: undefined, hotm: 42, ah: 'maybe' }).map((r) => [r.key, r.value]));
   assert.deepEqual(values, {
-    portfolioCapital: 50000000, maxCapital: 50000000, share: 5,
+    portfolioCapital: 50000000, maxCapital: 0, share: 5,
     marketMargin: 15, marketMinVolume: 500000, marketMinProfit: 100000,
     hotm: 10, forgeAh: true,
   });
@@ -186,7 +188,7 @@ test('setup form preselects the answers and offers a free amount', () => {
 });
 
 test('summary lists every setting with its reason', () => {
-  const html = setupSummaryHtml(setupResult({ capital: 50e6, activity: 'rarely', style: 'safe' }, 10));
+  const html = setupSummaryHtml(setupResult({ capital: 50e6, activity: 'rarely', style: 'safe' }));
   assert.ok(html.includes('Your settings') && html.includes('data-act="setup-apply"'));
   for (const label of ['Total capital', 'Max. capital per flip', 'Market share', 'Min. margin', 'Min. volume/week', 'Min. profit/h']) {
     assert.ok(html.includes(label), label);
@@ -246,7 +248,7 @@ test('setup asks for the HotM tier and the auction house', () => {
   assert.match(html, /name="ah" value="no" checked/);
   assert.match(setupFormHtml(), /<option value="10" selected>/);
   assert.match(setupFormHtml(), /name="ah" value="yes" checked/);
-  const summary = setupSummaryHtml(setupResult({ capital: 50e6, hotm: 6, ah: false }, 10));
+  const summary = setupSummaryHtml(setupResult({ capital: 50e6, hotm: 6, ah: false }));
   assert.ok(summary.includes('HotM tier') && summary.includes('Tier 6') && summary.includes('Forge results'));
 });
 
@@ -303,7 +305,7 @@ test('tour stations mark the hint they make unnecessary', () => {
 test('setup in Simple mode leaves the forge questions and settings alone', () => {
   const form = setupFormHtml({ capital: 50e6, pro: false });
   assert.ok(!form.includes('name="hotm"') && !form.includes('name="ah"') && form.includes('name="style"'));
-  const keys = setupResult({ capital: 50e6, activity: 'rarely', style: 'safe' }, 10, false).map((r) => r.key);
+  const keys = setupResult({ capital: 50e6, activity: 'rarely', style: 'safe' }, false).map((r) => r.key);
   assert.deepEqual(keys, ['portfolioCapital', 'maxCapital', 'share', 'marketMargin', 'marketMinVolume', 'marketMinProfit']);
 });
 

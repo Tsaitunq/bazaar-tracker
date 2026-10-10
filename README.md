@@ -10,7 +10,7 @@ It runs in any browser, can be installed as an app from the browser menu, and th
 
 - **Flips:** every bazaar item you can flip with buy orders and sell offers, ranked by profit per hour.
 - **Opportunities:** only the flips that are stable, liquid, not suspicious and within your budget.
-- **Portfolio:** your capital split evenly over the best safe flips, with the total profit per hour.
+- **Portfolio:** your capital put into the safe flips with the best return, with the total profit and return per hour.
 - **NPC and Craft:** buy on the bazaar and sell to an NPC, or craft and sell the result.
 - **Forge:** forge recipes with bazaar ingredients, with profit per item and per forge hour, forge time and HotM tier. Results that sell on the Auction House use the lowest BIN minus fees and are marked as estimates.
 - **Event radar:** the mayor, the active perks and the next SkyBlock events with a countdown, plus the items that are typically affected (sources in `docs/events-sources.md`).
@@ -64,7 +64,7 @@ score      = round(100 × profitable × max(0, 1 − 2 × volatility))
 
 An opportunity has to pass every check: minimum margin, a stable score, not suspicious, not provisional, minimum weekly volume, minimum profit per hour, and a buy price within your capital limit.
 
-The portfolio divides your total capital by the number of parallel flips and picks the best opportunities for that budget. If an item cannot use its full share, the rest stays unused.
+The portfolio gives its slots (parallel flips) to the flips that can earn the most per hour and fills the best return per coin first. A flip gets as much as the item trades at your market share, never more than your max. capital per flip. It has its own minimum margin (3% by default); stable, not suspicious and not provisional stay required. If capital is left over, a note names the limit.
 
 ### NPC and craft flips
 

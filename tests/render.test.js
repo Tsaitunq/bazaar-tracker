@@ -160,12 +160,14 @@ test('portfolioView shows the total, the picks and the market share assumption',
   assert.ok(html.includes('42M of 50M capital in use · 73.8% return per hour'));
   assert.ok(!html.includes('limited by'));
   const hint = (limit) => portfolioView({ ...plan, limit }, { capital: 50000000, slots: 10, sharePercent: 20 });
-  assert.ok(hint('slots').includes('Using 42M of 50M – limited by your 10 parallel flips. Raise Parallel flips to use more.'));
+  const more = portfolioView({ ...plan, limit: 'slots', more: { slots: 25, used: 50000000, profitHour: 36000000 } }, { capital: 50000000, slots: 10, sharePercent: 20 });
+  assert.ok(more.includes('Using 42M of 50M – limited by your 10 parallel flips. With 25 parallel flips you could use 50M (est. 36M/h).'));
+  assert.ok(hint('slots').includes('limited by your 10 parallel flips. </p>'));
   assert.ok(hint('maxCapital').includes('limited by your max. capital per flip. Raise Max. capital per flip to use more.'));
   // Simple mode hides those settings, so it does not name them
   const simple = portfolioView({ ...plan, limit: 'slots' }, { capital: 50000000, slots: 10, sharePercent: 20, simple: true });
   assert.ok(simple.includes('Using 42M of 50M – limited by your 10 parallel flips. Switch to Pro to adjust.') && !simple.includes('Raise'));
-  assert.ok(hint('volume').includes('limited by how much these items trade. Raise Market share or loosen the filters to use more.'));
+  assert.ok(hint('volume').includes('limited by how much these items trade. Raise Market share or lower Portfolio min. margin to use more.'));
   assert.ok(html.includes('4.9M') && html.includes('3.9M/h'));
   assert.ok(html.includes('&#60;b&#62;Worm') && !html.includes('<b>'));
   assert.ok(html.includes('href="#/item/INK_SACK%3A4"'));

@@ -19,14 +19,14 @@ const STATS_TTL = 20 * 60000;
 const CARDS = { flips: flipCard, opps: flipCard, npc: npcCard, craft: craftCard, forge: forgeCard };
 const DEFAULTS = { tax: 1.25, minVolume: 100000, maxCapital: 5000000, interval: 2, share: 5, sort: 'profitHour', favOnly: false, alerts: false, alertMargin: 5,
   marketAlerts: false, marketMargin: 10, marketMinVolume: 100000, marketMinProfit: 100000, marketCooldown: 6, eventAlerts: false, mayorAlerts: false,
-  portfolioCapital: 50000000, portfolioSlots: 10, hotm: 10, forgeAh: true };
+  portfolioCapital: 50000000, portfolioSlots: 10, portfolioMargin: 3, hotm: 10, forgeAh: true };
 
 const $ = (id) => document.getElementById(id);
 const load = (key, fallback) => { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } };
 const save = (key, value) => { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} };
 
 // the fields of the panel; they take effect together, on Apply
-const FIELDS = ['tax', 'interval', 'share', 'minVolume', 'maxCapital', 'alertMargin', 'marketMargin', 'marketMinVolume', 'marketMinProfit', 'marketCooldown', 'portfolioCapital', 'portfolioSlots', 'hotm'];
+const FIELDS = ['tax', 'interval', 'share', 'minVolume', 'maxCapital', 'alertMargin', 'marketMargin', 'marketMinVolume', 'marketMinProfit', 'marketCooldown', 'portfolioCapital', 'portfolioSlots', 'portfolioMargin', 'hotm'];
 const settings = { ...DEFAULTS, ...load('bt.settings', {}) };
 // A stored interval of 0 would refresh in a tight loop, so bad values fall back to defaults.
 function sanitize() {
@@ -40,6 +40,7 @@ function sanitize() {
   if (!(settings.alertMargin > 0 && settings.alertMargin <= 1000)) settings.alertMargin = DEFAULTS.alertMargin;
   settings.alerts = settings.alerts === true;
   if (!(settings.marketMargin > 0 && settings.marketMargin <= 1000)) settings.marketMargin = DEFAULTS.marketMargin;
+  if (!(settings.portfolioMargin > 0 && settings.portfolioMargin <= 1000)) settings.portfolioMargin = DEFAULTS.portfolioMargin;
   if (!(settings.marketCooldown > 0 && settings.marketCooldown <= 168)) settings.marketCooldown = DEFAULTS.marketCooldown;
   settings.marketAlerts = settings.marketAlerts === true;
   settings.eventAlerts = settings.eventAlerts === true;
@@ -120,7 +121,8 @@ function compute(v) {
   else if (v === 'opps') {
     const conditions = oppOpts();
     list = opportunities(products, conditions);
-    pf = portfolio(products, { ...conditions, capital: settings.portfolioCapital, slots: settings.portfolioSlots });
+    // the plan has its own, lower margin floor: items that trade a lot rarely have a high margin
+    pf = portfolio(products, { ...conditions, minMargin: settings.portfolioMargin / 100, capital: settings.portfolioCapital, slots: settings.portfolioSlots });
   }
   else if (v === 'npc') list = npcFlips(products, npc, opts);
   else if (v === 'forge') list = forge ? forgeFlips(products, forge, ah, opts) : [];
@@ -324,6 +326,8 @@ async function refreshStats() {
 }
 
 function applyMode() {
+  // Simple mode has no field for the cap per flip, so there is none
+  if (simple()) settings.maxCapital = 0;
   document.body.dataset.mode = settings.mode;
   for (const b of document.querySelectorAll('[data-set-mode]')) b.setAttribute('aria-pressed', b.dataset.setMode === settings.mode);
   // an option cannot be hidden by the stylesheet in every browser
@@ -331,8 +335,8 @@ function applyMode() {
 }
 
 function applySettings() {
-  save('bt.settings', settings);
   applyMode();
+  save('bt.settings', settings);
   $('fav-only').setAttribute('aria-pressed', settings.favOnly);
   syncAlerts(settings, favs, names);
   recompute();
@@ -352,8 +356,6 @@ $('settings').addEventListener('submit', (e) => {
   const before = { ...settings };
   for (const key of FIELDS) settings[key] = Math.max(0, Number($(key).value) || 0);
   sanitize();
-  // Simple mode has no field for the cap per flip: it follows the total capital
-  if (simple() && settings.portfolioCapital !== before.portfolioCapital) settings.maxCapital = Math.round(settings.portfolioCapital / settings.portfolioSlots);
   applySettings();
   if (settings.interval !== before.interval) schedule();
   $('panel').close();
@@ -639,7 +641,6 @@ loadForge().then((r) => { forge = r; recompute(); render(); });
 initOnboarding({
   native: !!plugin(),
   ready,
-  slots: () => settings.portfolioSlots,
   forge: () => ({ hotm: settings.hotm, ah: settings.forgeAh }),
   pro: () => !simple(),
   hints: hintsNow,

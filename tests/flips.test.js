@@ -230,8 +230,31 @@ test('portfolio says what keeps capital unused', () => {
   const one = portfolio({ BEST, OK }, { ...planOpts, slots: 1 });
   assert.deepEqual(stakes(one), [['BEST', 120e6]]);
   assert.equal(one.limit, 'slots');
+  // two flips would use all that trades; a plan that is not short of slots has nothing to add
+  assert.deepEqual(one.more, { slots: 2, used: 130e6, profitHour: thin.profitHour });
+  assert.equal(thin.more, null);
   // a single slot goes to the flip that earns the most with it, not to the best return
   assert.deepEqual(stakes(portfolio(PLAN, { ...planOpts, slots: 1 })), [['DEEP', 200e6]]);
+});
+
+test('portfolio: the hint for more parallel flips stops at 50', () => {
+  // 60 items that each take 1M: 10 slots use 10M, and 50 is the most the settings accept
+  const products = Object.fromEntries(Array.from({ length: 60 }, (_, i) => [`I${i}`, product(100, 120)]));
+  const plan = portfolio(products, { ...planOpts, stats: planStats(products) });
+  assert.deepEqual([plan.flips.length, plan.used, plan.limit], [10, 10e6, 'slots']);
+  assert.deepEqual([plan.more.slots, plan.more.used], [50, 50e6]);
+  near(plan.more.profitHour, 50 * 10000 * 18.5);
+  // already at 50: still the limit, but there is nothing to suggest
+  const full = portfolio(products, { ...planOpts, stats: planStats(products), slots: 50 });
+  assert.deepEqual([full.limit, full.more], ['slots', null]);
+});
+
+test('a lower margin floor lets items with more volume into the portfolio', () => {
+  // WIDE has 4.8% margin and trades ten times as much as BEST
+  const products = { BEST: PLAN.BEST, WIDE: product(10000, 10600, { buyMovingWeek: 16800000, sellMovingWeek: 16800000 }) };
+  const opts = { ...planOpts, stats: planStats(products), capital: 1000e6 };
+  assert.deepEqual(stakes(portfolio(products, { ...opts, minMargin: 0.15 })), [['BEST', 120e6]]);
+  assert.deepEqual(stakes(portfolio(products, { ...opts, minMargin: 0.03 })), [['WIDE', 880e6], ['BEST', 120e6]]);
 });
 
 // Apply recomputes from the prices already loaded: every setting has to change the plan without new data

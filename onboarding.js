@@ -64,19 +64,18 @@ const SETTING_LABELS = {
 };
 
 // Settings for the five answers, each with the value as shown and one sentence why.
-// slots: the current "Parallel flips" setting. hotm: 0 to 10; ah: false leaves auction house results out.
+// hotm: 0 to 10; ah: false leaves auction house results out.
 // pro: false leaves the two forge settings out, so they stay as they are.
-export function setupResult({ capital, activity, style, hotm, ah }, slots, pro = true) {
+export function setupResult({ capital, activity, style, hotm, ah }, pro = true) {
   const tier = Number.isInteger(hotm) && hotm >= 0 && hotm <= 10 ? hotm : 10;
   const withAh = ah !== false;
   const act = ACTIVITY[activity] ?? ACTIVITY.rarely;
   const sty = STYLES[style] ?? STYLES.safe;
   const total = capital > 0 ? Math.round(capital) : CAPITALS[1];
-  const perFlip = Math.round(total / Math.max(1, Math.floor(slots) || 1));
   const row = (key, value, shown, reason) => ({ key, value, label: SETTING_LABELS[key], shown, reason });
   return [
     row('portfolioCapital', total, coins(total), 'The coins you told us you want to flip with.'),
-    row('maxCapital', perFlip, coins(perFlip), `Your capital split evenly over ${Math.max(1, Math.floor(slots) || 1)} flips at the same time.`),
+    row('maxCapital', 0, 'No limit', 'The portfolio gives each flip as much as the item trades.'),
     row('share', act.share, `${act.share}%`, act.reason),
     row('marketMargin', sty.marketMargin[0], `${sty.marketMargin[0]}%`, sty.marketMargin[1]),
     row('marketMinVolume', sty.marketMinVolume[0], coins(sty.marketMinVolume[0]), sty.marketMinVolume[1]),
