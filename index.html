@@ -22,7 +22,7 @@
       <button id="open-help" type="button" aria-label="Help">
         <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.6 2.2c-.7.4-1.1.9-1.1 1.8M12 16.9v.1"/></svg>
       </button>
-      <button id="toggle-settings" type="button" aria-label="Settings" aria-expanded="false" aria-controls="settings">
+      <button id="toggle-settings" type="button" aria-label="Settings" aria-haspopup="dialog">
         <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h8M18 6h2M4 12h2M12 12h8M4 18h10M20 18h0"/><circle cx="15" cy="6" r="2.5"/><circle cx="9" cy="12" r="2.5"/><circle cx="17" cy="18" r="2.5"/></svg>
       </button>
     </div>
@@ -38,6 +38,10 @@
       <button id="fav-only" type="button" aria-pressed="false" aria-label="Favorites only">
         <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.6l1-5.8L3.5 9.7l5.9-.9z"/></svg>
       </button>
+      <button id="open-filters" type="button" class="pro" aria-label="Filter" aria-haspopup="dialog">
+        <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16l-6 8v6l-4-2v-4z"/></svg>
+        <span class="filter-word">Filter</span><span id="filter-count"></span>
+      </button>
     </div>
     <nav id="tabs">
       <a href="#/flips">Flips</a>
@@ -49,7 +53,12 @@
     <p id="error" role="alert" hidden></p>
   </header>
 
-  <form id="settings" hidden>
+  <dialog id="panel" class="sheet panel" aria-labelledby="panel-title">
+  <div class="panel-head">
+    <h2 id="panel-title">Settings</h2>
+    <button type="button" data-act="close" aria-label="Close"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <form id="settings" class="sheet-body" novalidate>
     <fieldset>
       <legend>Mode</legend>
       <div class="bar ranges" role="group" aria-label="Mode">
@@ -163,8 +172,14 @@
       <p id="timing-hint" class="hint" role="alert" hidden>Notifications for this app are blocked in the Android settings.</p>
     </fieldset>
   </form>
+  <div class="actions panel-foot">
+    <button type="button" data-act="reset">Reset</button>
+    <button type="submit" form="settings" class="primary">Apply</button>
+  </div>
+  </dialog>
 
   <main>
+    <div id="chips" class="chips pro"></div>
     <div id="radar" class="pro"></div>
     <div id="portfolio"></div>
     <p id="count" class="count muted">Loading…</p>

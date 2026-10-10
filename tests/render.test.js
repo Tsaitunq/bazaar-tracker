@@ -344,3 +344,23 @@ test('Simple mode has two tabs, and a swipe never leaves them', async () => {
   assert.equal(dragOffset('opps', -100, two), -25);
   assert.equal(dragOffset('opps', -100), -100);
 });
+
+test('a filter is active once it differs from its default, per tab', async () => {
+  const { FILTERS, activeFilters, filterChips, TABS } = await import('../render.js');
+  const defaults = { minVolume: 100000, maxCapital: 5000000, marketMargin: 10, marketMinVolume: 100000, marketMinProfit: 100000, hotm: 10 };
+  assert.deepEqual(Object.keys(FILTERS), TABS);
+  for (const tab of TABS) assert.deepEqual(activeFilters(tab, defaults, defaults), [], tab);
+  const changed = { ...defaults, minVolume: 50000, marketMargin: 15, maxCapital: 0, hotm: 6 };
+  assert.deepEqual(activeFilters('flips', changed, defaults), ['minVolume', 'maxCapital']);
+  assert.deepEqual(activeFilters('opps', changed, defaults), ['marketMargin', 'maxCapital']);
+  assert.deepEqual(activeFilters('forge', changed, defaults), ['hotm', 'maxCapital']);
+  assert.deepEqual(activeFilters('nonsense', changed, defaults), []);
+
+  assert.equal(filterChips([], changed), '');
+  const chips = filterChips(activeFilters('flips', changed, defaults), changed);
+  assert.equal(chips.match(/<button type="button" class="chip"/g).length, 2);
+  for (const part of ['data-unfilter="minVolume"', 'Vol./week ≥ 50k', 'data-unfilter="maxCapital"', 'No capital limit', 'aria-label="Remove filter: No capital limit"']) {
+    assert.ok(chips.includes(part), part);
+  }
+  assert.ok(filterChips(['marketMargin', 'hotm'], changed).includes('Margin ≥ 15%') && filterChips(['hotm'], changed).includes('HotM ≤ 6'));
+});

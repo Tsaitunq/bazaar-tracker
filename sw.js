@@ -1,7 +1,7 @@
 const CACHE = 'bt-shell';
 const ICONS = 'bt-icons';
 const ICON_URL = 'https://sky.coflnet.com/static/icon/';
-const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'chart.js', 'craft.js', 'data.js', 'events.js', 'flips.js', 'forge.js', 'history.js', 'names.js', 'native.js', 'npc.js', 'onboarding.js', 'render.js', 'timing.js', 'tour.js', 'trends.js', 'changelog.json', 'manifest.webmanifest', 'icons/icon-192.png'];
+const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'chart.js', 'craft.js', 'data.js', 'events.js', 'flips.js', 'forge.js', 'history.js', 'names.js', 'native.js', 'npc.js', 'onboarding.js', 'render.js', 'sheet.js', 'timing.js', 'tour.js', 'trends.js', 'changelog.json', 'manifest.webmanifest', 'icons/icon-192.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)));
