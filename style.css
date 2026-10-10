@@ -204,6 +204,8 @@ footer a { color: inherit; }
 .badge-bad { color: var(--unstable); }
 .badge-prov { color: var(--muted); border-style: dashed; }
 .badge-warn { color: var(--warn); }
+/* neutral on purpose: green and red mean profit and loss, a rising price is neither */
+.badge-trend { color: var(--muted); }
 
 .key { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--accent); }
 .key > div { display: grid; }

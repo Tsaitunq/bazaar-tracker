@@ -187,8 +187,8 @@ export const dragOffset = (view, dx) => (TABS[TABS.indexOf(view) + (dx < 0 ? 1 :
 const RANGES = [['24h', '24 h'], ['7d', '7 days']];
 
 // flip is the item's bazaar flip or null while prices are unknown; points are already cut to the range.
-export function detailView({ id, name, tier, flip, score, median, provisional, back = 'flips', isFav, range, points, tax }) {
-  const stat = { score, provisional, median };
+export function detailView({ id, name, tier, flip, score, median, provisional, trend, level, event, back = 'flips', isFav, range, points, tax }) {
+  const stat = { score, provisional, median, trend, level, event };
   const current = flip ? `<div class="summary">${keyStats(flip)}<dl class="facts">${[
     fact('Buy order', num(flip.buy)),
     sellFact({ ...flip, median }),

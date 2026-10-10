@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { esc, coins, percent, iconUrl, itemHref, icon, scoreBadge, flipCard, searchCard, npcCard, craftCard, forgeCard, forgeFilter, duration, parseRoute } from '../render.js';
+import { esc, coins, percent, iconUrl, itemHref, icon, scoreBadge, flipCard, searchCard, npcCard, craftCard, forgeCard, forgeFilter, duration, trendBadge, detailView, parseRoute } from '../render.js';
 
 const flip = { id: 'A', name: 'Name', buy: 10, sell: 20, profit: 5, margin: 0.1, weekVol: 1000, hourVol: 10, profitHour: 50, score: 80 };
 
@@ -211,4 +211,20 @@ test('an auction house result carries the estimate badge and the warning', () =>
 test('forgeFilter marks the chosen side', () => {
   assert.match(forgeFilter(true), /data-forge-ah="0" aria-pressed="false"[^]*data-forge-ah="1" aria-pressed="true"/);
   assert.match(forgeFilter(false), /data-forge-ah="0" aria-pressed="true"[^]*data-forge-ah="1" aria-pressed="false"/);
+});
+
+test('trend badge: an arrow with the direction, plus the price level when it is off', () => {
+  assert.match(trendBadge(0.2, null), /badge-trend.*<svg.*rising/);
+  assert.match(trendBadge(-0.2, 'below'), /falling · below normal/);
+  assert.match(trendBadge(0, 'above'), /flat · above normal/);
+  assert.match(trendBadge(null, 'below'), /badge-trend">below normal/);
+  assert.equal(trendBadge(null, null), '');
+  assert.equal(trendBadge(undefined, undefined), '');
+});
+
+test('cards and the detail page carry the trend badge', () => {
+  assert.ok(flipCard({ ...flip, trend: 0.1, level: 'below' }, false).includes('rising · below normal'));
+  assert.ok(!flipCard(flip, false).includes('badge-trend'));
+  const page = detailView({ id: 'A', name: 'Name', flip, score: 80, median: 20, provisional: false, trend: -0.1, level: null, isFav: false, range: '24h', points: [], tax: 0.0125 });
+  assert.ok(page.includes('badge-trend') && page.includes('falling'));
 });

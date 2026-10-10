@@ -7,6 +7,7 @@ import { loadStats, loadRecipes, loadForge, loadAh, loadHistory } from './data.j
 import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission } from './native.js';
 import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, parseRoute, detailView, portfolioView, swipeTab, dragOffset, TABS, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
+import { level } from './trends.js';
 import { initOnboarding } from './tour.js';
 
 const API = 'https://api.hypixel.net/v2/skyblock/bazaar';
@@ -71,7 +72,16 @@ const shown = new Map(); // last rendered big numbers per view and item, to flas
 
 const view = () => (route.view === 'item' ? 'flips' : route.view);
 const nameOf = (id) => names[id] ?? fallbackName(id);
-const baseOpts = () => ({ ...settings, tax: settings.tax / 100, share: settings.share / 100, stats });
+// "Trend" only reorders what is shown: the lists are built in their usual order and sorted afterwards
+const baseOpts = () => ({ ...settings, tax: settings.tax / 100, share: settings.share / 100, stats, sort: settings.sort === 'trend' ? 'profitHour' : settings.sort });
+// What a row shows besides its numbers: name, rarity and the trend signals.
+function decorate(f) {
+  f.name = nameOf(f.id);
+  f.tier = tiers[f.id];
+  f.trend = stats?.[f.id]?.[3] ?? null;
+  f.level = level(f.sell, statOf(stats, f.id).median);
+  return f;
+}
 const oppOpts = () => ({ ...baseOpts(), minMargin: settings.marketMargin / 100, minVolume: settings.marketMinVolume, minProfitHour: settings.marketMinProfit });
 
 // The flips of one tab, with names. plan is the portfolio and only exists for the Opportunities tab.
@@ -90,10 +100,10 @@ function compute(v) {
   else list = recipes ? craftFlips(products, recipes, opts) : [];
   for (const f of pf?.flips ?? []) f.name = nameOf(f.id);
   for (const f of list) {
-    f.name = nameOf(f.id);
-    f.tier = tiers[f.id];
+    decorate(f);
     for (const i of f.ingredients ?? []) i.name = nameOf(i.id);
   }
+  if (settings.sort === 'trend') list.sort(bySort('trend'));
   return { list, plan: pf };
 }
 
@@ -105,7 +115,7 @@ function searchRest(v, q, listed) {
   const issues = v === 'opps' ? oppIssues : v === 'flips' ? flipIssues : () => [NOT_HERE[v]];
   return Object.keys(products)
     .filter((id) => !listed.has(id) && nameOf(id).toLowerCase().includes(q))
-    .map((id) => ({ ...searchFlip(id, products[id], opts, issues), name: nameOf(id), tier: tiers[id] }))
+    .map((id) => decorate(searchFlip(id, products[id], opts, issues)))
     .sort(bySort(settings.sort));
 }
 
@@ -167,7 +177,7 @@ function renderDetail() {
   const points = hist.points && (range === '24h' ? hist.points.filter(([t]) => t >= nowMin - 1440) : hist.points);
   const stat = statOf(stats, id);
   const flip = products?.[id] ? computeFlip(id, products[id], settings.tax / 100, settings.maxCapital, settings.share / 100, stat.median) : null;
-  $('detail').innerHTML = detailView({ id, name: names[id] ?? fallbackName(id), tier: tiers[id], flip, ...stat, back: lastList, isFav: favs.has(id), range, points, tax: settings.tax / 100 });
+  $('detail').innerHTML = detailView({ ...decorate({ id, sell: flip?.sell }), flip, ...stat, back: lastList, isFav: favs.has(id), range, points, tax: settings.tax / 100 });
   flashChanges();
 }
 
