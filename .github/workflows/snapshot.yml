@@ -31,6 +31,17 @@ jobs:
             if [ "$code" -ne 2 ]; then exit "$code"; fi
             mkdir -p data
           fi
+      - name: Fetch timing backups
+        run: |
+          if git ls-remote --exit-code --heads origin timing-backup >/dev/null; then
+            git clone --quiet --depth 1 --branch timing-backup "https://github.com/${GITHUB_REPOSITORY}.git" backup
+          else
+            code=$?
+            if [ "$code" -ne 2 ]; then exit "$code"; fi
+            git init --quiet --initial-branch timing-backup backup
+          fi
+      - name: Restore timing.json if it is missing or broken
+        run: node scripts/timing-backup.mjs restore data backup
       - name: Take snapshot
         run: node scripts/snapshot.mjs data
       - name: Publish data branch as a single commit
@@ -43,3 +54,14 @@ jobs:
           git add --all
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit --quiet --message "snapshot"
           git push --quiet --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:data
+      - name: Weekly timing backup
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node scripts/timing-backup.mjs backup data backup
+          cd backup
+          git add --all
+          # no new copy this run: nothing to commit
+          if git diff --cached --quiet; then exit 0; fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit --quiet --message "timing backup $(date -u +%F)"
+          git push --quiet "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:timing-backup
