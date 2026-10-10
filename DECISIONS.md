@@ -380,8 +380,8 @@ Grund, was es kostet, falls sie falsch ist.
 
 ## Forge
 
-- **Nur Rezepte, deren Zutaten alle im Bazaar sind** (71 von 124; 30 mit
-  Bazaar-Ergebnis, 41 mit AH-Ergebnis). Grund: Der Auftrag rechnet Zutaten zum
+- **Nur Rezepte, deren Zutaten alle im Bazaar sind** (62 von 124 nach
+  Abzug der Pets; 30 mit Bazaar-Ergebnis, 32 mit AH-Ergebnis). Grund: Der Auftrag rechnet Zutaten zum
   Bazaar-Preis. Kosten: Rezepte mit geschmiedeten Zwischenteilen (z. B.
   höhere Drills) fehlen.
 - **Pets als Ergebnis fallen weg.** Grund: Im Auktionshaus haben alle Pets
@@ -389,8 +389,17 @@ Grund, was es kostet, falls sie falsch ist.
 - **Lowest BIN aus dem offiziellen Auktions-Endpunkt, nicht von Dritten.**
   Der Workflow liest alle Seiten (zuletzt 46, je ca. 2,4 MB), acht
   gleichzeitig, und merkt sich nur den niedrigsten BIN der Forge-Ergebnisse.
-  `ah.json` hat rund 40 Einträge und keinen Verlauf. Kosten: einige Sekunden
-  mehr pro Lauf, keine spürbare Repo-Größe.
+  `ah.json` hatte im Testlauf 29 Einträge (803 Bytes) und keinen Verlauf.
+  Kosten: Der ganze Lauf dauerte lokal 21 Sekunden, inklusive NEU-Klon; die
+  neuen Dateien wiegen zusammen rund 7 KB.
+- **`forge.json` wird geholt, sobald sie fehlt**, nicht erst beim nächsten
+  täglichen Rezept-Lauf. Grund: Sonst bliebe der Forge-Tab nach dem Update bis
+  zu 24 Stunden leer.
+- **Stat-Icons des Spiels werden aus den Perk-Texten entfernt.** Grund: Die
+  Zeichen liegen im privaten Unicode-Bereich und erscheinen als leeres
+  Kästchen.
+- **Die Detailseite eines AH-Items zeigt nur den Namen.** Für Items außerhalb
+  des Bazaars gibt es keinen Verlauf. Kosten: Die Seite ist fast leer.
 - **Die Item-ID wird direkt aus den gepackten Auktionsdaten gesucht**, ohne
   NBT-Bibliothek: Gesucht wird das Text-Feld `id`. Grund: keine neue
   Abhängigkeit. Kosten: Ändert Hypixel das Format, bleibt `ah.json` leer und
