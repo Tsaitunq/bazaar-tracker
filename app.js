@@ -527,6 +527,7 @@ initOnboarding({
   native: !!plugin(),
   ready,
   slots: () => settings.portfolioSlots,
+  forge: () => ({ hotm: settings.hotm, ah: settings.forgeAh }),
   // the setup assistant hands over setting values; they go through the same checks as typed ones
   apply(values) {
     Object.assign(settings, values);

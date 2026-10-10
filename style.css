@@ -336,7 +336,7 @@ body.detail #tabs, body.detail .filters, body.detail #count, body.detail #list, 
 .choice input[type="radio"] { min-height: 0; width: 20px; height: 20px; flex: none; accent-color: var(--accent); }
 .choice span { display: grid; flex: 1; min-width: 0; }
 .choice small { color: var(--muted); font-size: 12px; }
-.choice input[type="number"] { margin-top: 6px; width: 100%; }
+.choice input[type="number"], .choice select { margin-top: 6px; width: 100%; }
 .summary-list { margin: 0 0 12px; display: grid; gap: 10px; }
 .summary-list > div { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
 .summary-list dt { font-weight: 600; }

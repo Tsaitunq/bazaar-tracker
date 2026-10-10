@@ -2,8 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {
-  compareVersions, currentVersion, newsSince, startupAction, setupResult, tourSteps,
-  welcomeHtml, newsHtml, helpHtml, setupFormHtml, setupSummaryHtml, bubbleHtml, CAPITALS,
+  compareVersions, currentVersion, newsSince, startupAction, setupResult, tourSteps, advancedSteps,
+  welcomeHtml, newsHtml, helpHtml, advancedOfferHtml, setupFormHtml, setupSummaryHtml, bubbleHtml, CAPITALS,
 } from '../onboarding.js';
 
 // a small changelog instead of the real file, so the tests do not change with every release
@@ -69,13 +69,16 @@ test('a stored version from the future or a broken state never throws', () => {
   }
 });
 
-test('setupResult maps the three answers to settings with a reason each', () => {
-  const result = setupResult({ capital: 200e6, activity: 'often', style: 'profit' }, 10);
+test('setupResult maps the five answers to settings with a reason each', () => {
+  const result = setupResult({ capital: 200e6, activity: 'often', style: 'profit', hotm: 6, ah: false }, 10);
   const values = Object.fromEntries(result.map((r) => [r.key, r.value]));
   assert.deepEqual(values, {
     portfolioCapital: 200000000, maxCapital: 20000000, share: 20,
     marketMargin: 8, marketMinVolume: 100000, marketMinProfit: 250000,
+    hotm: 6, forgeAh: false,
   });
+  assert.equal(result.find((r) => r.key === 'hotm').shown, 'Tier 6');
+  assert.equal(result.find((r) => r.key === 'forgeAh').shown, 'Bazaar only');
   for (const r of result) assert.ok(r.label && r.shown && r.reason.endsWith('.'), r.key);
   assert.equal(result.find((r) => r.key === 'share').shown, '20%');
   assert.equal(result.find((r) => r.key === 'portfolioCapital').shown, '200M');
@@ -84,39 +87,52 @@ test('setupResult maps the three answers to settings with a reason each', () => 
   assert.deepEqual(safe, {
     portfolioCapital: 10000000, maxCapital: 2500000, share: 5,
     marketMargin: 15, marketMinVolume: 500000, marketMinProfit: 100000,
+    hotm: 10, forgeAh: true,
   });
   assert.equal(setupResult({ capital: 10e6, activity: 'sometimes', style: 'safe' }, 10).find((r) => r.key === 'share').value, 10);
 });
 
 test('setupResult survives missing or odd answers', () => {
-  const values = Object.fromEntries(setupResult({ capital: NaN, activity: 'x', style: undefined }, 0).map((r) => [r.key, r.value]));
+  const values = Object.fromEntries(setupResult({ capital: NaN, activity: 'x', style: undefined, hotm: 42, ah: 'maybe' }, 0).map((r) => [r.key, r.value]));
   assert.deepEqual(values, {
     portfolioCapital: 50000000, maxCapital: 50000000, share: 5,
     marketMargin: 15, marketMinVolume: 500000, marketMinProfit: 100000,
+    hotm: 10, forgeAh: true,
   });
 });
 
-test('the tour has the Android station only inside the app', () => {
-  const web = tourSteps({ native: false, firstId: 'INK_SACK:4' });
-  const app = tourSteps({ native: true, firstId: 'INK_SACK:4' });
-  assert.equal(web.length, 8);
-  assert.equal(app.length, 9);
-  assert.match(app[8].text, /Unrestricted/);
-  assert.ok(web.some((s) => s.target === '#open-help'));
-  assert.ok(web.every((s) => s.title && s.text && s.target && s.route));
-  assert.ok(web.some((s) => s.route === '#/item/INK_SACK%3A4'));
+test('the basic tour has six stations: card, badges, tabs, opportunities, search, settings', () => {
+  const steps = tourSteps();
+  assert.deepEqual(steps.map((s) => s.title), ['A flip', 'Badges', 'Five lists', 'Opportunities', 'Find and sort', 'Settings']);
+  assert.ok(steps.length <= 6);
+  assert.ok(steps.every((s) => s.title && s.text && s.target && s.route));
+  assert.equal(steps[3].route, '#/opps');
+});
+
+test('the advanced tour covers portfolio, forge, radar and trends, plus alerts inside the app', () => {
+  const web = advancedSteps({ native: false });
+  const app = advancedSteps({ native: true });
+  assert.deepEqual(web.map((s) => s.title), ['Portfolio', 'Forge', 'Event radar', 'Trends']);
+  assert.equal(app.length, 5);
+  assert.match(app[4].text, /Unrestricted/);
+  assert.ok(app.every((s) => s.title && s.text && s.target && s.route));
   assert.ok(web.some((s) => s.route === '#/opps' && s.target === '#portfolio .portfolio'));
-  // without an item to open, the detail station stays on the list
-  assert.ok(tourSteps({ native: false, firstId: undefined }).every((s) => !s.route.startsWith('#/item/')));
+  assert.ok(web.some((s) => s.route === '#/forge'));
+  assert.ok(web.some((s) => s.target === '#radar .radar'));
+});
+
+test('after the basic tour comes the offer of the advanced one', () => {
+  const html = advancedOfferHtml();
+  assert.ok(html.includes('Take the advanced tour?') && html.includes('data-act="tour-advanced"') && html.includes('data-act="offer-skip"'));
 });
 
 test('bubble shows progress and the right buttons', () => {
-  const steps = tourSteps({ native: false, firstId: 'A' });
-  const first = bubbleHtml(steps[0], 0, 7);
-  assert.ok(first.includes('1/7') && first.includes('data-act="tour-next"') && first.includes('data-act="tour-skip"'));
+  const steps = tourSteps();
+  const first = bubbleHtml(steps[0], 0, 6);
+  assert.ok(first.includes('1/6') && first.includes('data-act="tour-next"') && first.includes('data-act="tour-skip"'));
   assert.ok(!first.includes('tour-back'));
-  const last = bubbleHtml(steps[6], 6, 7);
-  assert.ok(last.includes('7/7') && last.includes('tour-back') && last.includes('>Done<'));
+  const last = bubbleHtml(steps[5], 5, 6);
+  assert.ok(last.includes('6/6') && last.includes('tour-back') && last.includes('>Done<'));
   assert.ok(!bubbleHtml({ title: '<b>', text: '<i>', target: 'x' }, 0, 1).includes('<b>'));
 });
 
@@ -172,10 +188,36 @@ test('changelog.json is well formed', () => {
   });
 });
 
-test('help screen offers tour, setup, news and explains the numbers', () => {
+test('help screen offers both tours, setup, news and explains the numbers', () => {
   const html = helpHtml();
-  for (const act of ['tour', 'setup', 'news', 'close']) assert.ok(html.includes(`data-act="${act}"`), act);
-  for (const term of ['Profit/h', 'Margin', 'Market share', 'Stability score']) assert.ok(html.includes(`<dt>${term}</dt>`), term);
+  for (const act of ['tour', 'tour-advanced', 'setup', 'news', 'close']) assert.ok(html.includes(`data-act="${act}"`), act);
+  for (const term of ['Profit/h', 'Margin', 'Market share', 'Stability score', 'Forge', 'Events', 'Trends']) assert.ok(html.includes(`<dt>${term}</dt>`), term);
+  assert.ok(html.includes('estimate') && html.includes('lowest BIN'));
+});
+
+test('users from before version 5 are offered the advanced tour with the news', () => {
+  const v5 = { versions: [{ version: '5.0.0', date: '2026-10-10', entries: [entry('Forge', '#tabs')] }, ...log.versions] };
+  const update = startupAction({ done: true, version: '4.2.0' }, v5, true);
+  assert.equal(update.type, 'whatsNew');
+  assert.equal(update.advanced, true);
+  assert.deepEqual(versions(update), ['5.0.0']);
+  const later = { versions: [{ version: '5.1.0', date: '2026-10-11', entries: [entry('More')] }, ...v5.versions] };
+  assert.equal(startupAction({ done: true, version: '5.0.0' }, later, true).advanced, false);
+  assert.equal(startupAction(null, v5, false).type, 'welcome');
+
+  const html = newsHtml(update.news, { offerAdvanced: true });
+  assert.ok(html.includes('data-act="tour-advanced"') && html.includes('data-act="news-show"') && html.includes('Got it'));
+  assert.ok(!newsHtml(update.news).includes('tour-advanced'));
+});
+
+test('setup asks for the HotM tier and the auction house', () => {
+  const html = setupFormHtml({ capital: 50e6, hotm: 6, ah: false });
+  assert.match(html, /<option value="6" selected>/);
+  assert.match(html, /name="ah" value="no" checked/);
+  assert.match(setupFormHtml(), /<option value="10" selected>/);
+  assert.match(setupFormHtml(), /name="ah" value="yes" checked/);
+  const summary = setupSummaryHtml(setupResult({ capital: 50e6, hotm: 6, ah: false }, 10));
+  assert.ok(summary.includes('HotM tier') && summary.includes('Tier 6') && summary.includes('Forge results'));
 });
 
 test('the help buttons live behind the ? in the header, not in the settings', () => {
