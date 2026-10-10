@@ -1,10 +1,11 @@
 import { buildFlips, computeFlip, opportunities, portfolio, statOf, searchFlip, flipIssues, oppIssues, bySort } from './flips.js';
 import { npcFlips } from './npc.js';
 import { craftFlips } from './craft.js';
+import { forgeFlips } from './forge.js';
 import { loadItems, fallbackName } from './names.js';
-import { loadStats, loadRecipes, loadHistory } from './data.js';
+import { loadStats, loadRecipes, loadForge, loadAh, loadHistory } from './data.js';
 import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission } from './native.js';
-import { flipCard, npcCard, craftCard, searchCard, parseRoute, detailView, portfolioView, swipeTab, dragOffset, TABS, coins, percent, PLACEHOLDER_ICON } from './render.js';
+import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, parseRoute, detailView, portfolioView, swipeTab, dragOffset, TABS, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
 import { initOnboarding } from './tour.js';
 
@@ -12,10 +13,10 @@ const API = 'https://api.hypixel.net/v2/skyblock/bazaar';
 const MAX_ROWS = 100;
 const PULL_PX = 70;
 const STATS_TTL = 20 * 60000;
-const CARDS = { flips: flipCard, opps: flipCard, npc: npcCard, craft: craftCard };
+const CARDS = { flips: flipCard, opps: flipCard, npc: npcCard, craft: craftCard, forge: forgeCard };
 const DEFAULTS = { tax: 1.25, minVolume: 100000, maxCapital: 5000000, interval: 2, share: 5, sort: 'profitHour', favOnly: false, alerts: false, alertMargin: 5,
   marketAlerts: false, marketMargin: 10, marketMinVolume: 100000, marketMinProfit: 100000, marketCooldown: 6,
-  portfolioCapital: 50000000, portfolioSlots: 10 };
+  portfolioCapital: 50000000, portfolioSlots: 10, hotm: 10, forgeAh: true };
 
 const $ = (id) => document.getElementById(id);
 const load = (key, fallback) => { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } };
@@ -38,6 +39,9 @@ function sanitize() {
   settings.marketAlerts = settings.marketAlerts === true;
   settings.portfolioSlots = Math.floor(settings.portfolioSlots);
   if (!(settings.portfolioSlots >= 1 && settings.portfolioSlots <= 50)) settings.portfolioSlots = DEFAULTS.portfolioSlots;
+  settings.hotm = Math.floor(settings.hotm);
+  if (!(settings.hotm >= 0 && settings.hotm <= 10)) settings.hotm = DEFAULTS.hotm;
+  settings.forgeAh = settings.forgeAh !== false;
 }
 sanitize();
 const storedFavs = load('bt.favs', []);
@@ -49,6 +53,8 @@ let npc = {};
 let tiers = {}; // rarity per item id
 let stats = null; // score, median and hours of history per item; null until loaded
 let recipes;
+let forge;   // forge recipes; undefined while loading, null when there are none
+let ah = {}; // lowest BIN of forge results that are not on the bazaar
 let lastStats = 0;
 let route = parseRoute(location.hash);
 let lastList = route.view === 'item' ? 'flips' : route.view; // where the detail page's back link goes
@@ -80,6 +86,7 @@ function compute(v) {
     pf = portfolio(products, { ...conditions, capital: settings.portfolioCapital, slots: settings.portfolioSlots });
   }
   else if (v === 'npc') list = npcFlips(products, npc, opts);
+  else if (v === 'forge') list = forge ? forgeFlips(products, forge, ah, opts) : [];
   else list = recipes ? craftFlips(products, recipes, opts) : [];
   for (const f of pf?.flips ?? []) f.name = nameOf(f.id);
   for (const f of list) {
@@ -92,7 +99,7 @@ function compute(v) {
 
 // Search hits the tab's list does not hold: every other bazaar item with a matching name, each with
 // the reason it is missing. The search always covers the whole bazaar, whatever the filters say.
-const NOT_HERE = { npc: 'No NPC flip right now', craft: 'No craft flip right now' };
+const NOT_HERE = { npc: 'No NPC flip right now', craft: 'No craft flip right now', forge: 'No forge flip right now' };
 function searchRest(v, q, listed) {
   const opts = v === 'opps' ? oppOpts() : baseOpts();
   const issues = v === 'opps' ? oppIssues : v === 'flips' ? flipIssues : () => [NOT_HERE[v]];
@@ -107,10 +114,11 @@ function recompute() {
   ({ list: flips, plan } = compute(view()));
 }
 
-// The three pieces of a list view as HTML: portfolio, the "x of y" line and the cards.
+// The three pieces of a list view as HTML: what stands above the list (portfolio or the forge switch),
+// the "x of y" line and the cards.
 function listMarkup(v, list, pf) {
   const q = $('search').value.trim().toLowerCase();
-  if (v === 'craft' && recipes === null && !q) {
+  if (!q && ((v === 'craft' && recipes === null) || (v === 'forge' && forge === null))) {
     return { portfolio: '', count: '', list: '<li class="muted">No recipe data yet. The snapshot workflow has to run once.</li>' };
   }
   // a search ignores the favorites switch too: it has to find every item
@@ -123,9 +131,13 @@ function listMarkup(v, list, pf) {
       ? 'No item meets all conditions right now. Items need 24 hours of price history before they can show up here.'
       : 'Price history could not be loaded, so stability cannot be checked right now.'}</li>`;
   }
+  if (v === 'forge' && forge && !list.length && !q) {
+    cards = '<li class="muted">No forge recipe makes a profit with these settings.</li>';
+  }
   return {
     portfolio: v === 'opps' && pf
-      ? portfolioView(pf, { capital: settings.portfolioCapital, slots: settings.portfolioSlots, sharePercent: settings.share }) : '',
+      ? portfolioView(pf, { capital: settings.portfolioCapital, slots: settings.portfolioSlots, sharePercent: settings.share })
+      : v === 'forge' ? forgeFilter(settings.forgeAh) : '',
     count: q ? `${rows.length} ${rows.length === 1 ? 'flip' : 'flips'}, ${rest.length} other ${rest.length === 1 ? 'item' : 'items'}`
       : `${Math.min(rows.length, MAX_ROWS)} of ${rows.length} flips`,
     list: cards,
@@ -167,8 +179,12 @@ function render() {
   if (item) return renderDetail();
   $('detail').innerHTML = '';
   for (const a of document.querySelectorAll('#tabs a')) {
-    if (a.getAttribute('href') === `#/${view()}`) a.setAttribute('aria-current', 'page');
-    else a.removeAttribute('aria-current');
+    if (a.getAttribute('href') !== `#/${view()}`) a.removeAttribute('aria-current');
+    else if (!a.hasAttribute('aria-current')) {
+      a.setAttribute('aria-current', 'page');
+      // the tab bar scrolls sideways on a narrow screen: bring the active tab to its middle
+      $('tabs').scrollLeft = a.offsetLeft - ($('tabs').clientWidth - a.offsetWidth) / 2;
+    }
   }
   if (!products) return;
   const markup = listMarkup(view(), flips, plan);
@@ -218,7 +234,7 @@ async function refresh() {
 
 async function refreshStats() {
   lastStats = Date.now();
-  stats = await loadStats();
+  [stats, ah] = await Promise.all([loadStats(), loadAh()]);
   recompute();
   render();
 }
@@ -231,7 +247,7 @@ function applySettings() {
   render();
 }
 
-for (const key of ['tax', 'interval', 'share', 'sort', 'minVolume', 'maxCapital', 'alertMargin', 'marketMargin', 'marketMinVolume', 'marketMinProfit', 'marketCooldown', 'portfolioCapital', 'portfolioSlots']) {
+for (const key of ['tax', 'interval', 'share', 'sort', 'minVolume', 'maxCapital', 'alertMargin', 'marketMargin', 'marketMinVolume', 'marketMinProfit', 'marketCooldown', 'portfolioCapital', 'portfolioSlots', 'hotm']) {
   $(key).value = settings[key];
   $(key).addEventListener('change', (e) => {
     settings[key] = key === 'sort' ? e.target.value : Math.max(0, Number(e.target.value) || 0);
@@ -282,6 +298,11 @@ function chartPointer(e) {
 $('detail').addEventListener('pointermove', chartPointer);
 $('detail').addEventListener('pointerdown', chartPointer);
 document.querySelector('main').addEventListener('click', (e) => {
+  const withAh = e.target.closest('[data-forge-ah]')?.dataset.forgeAh;
+  if (withAh) {
+    settings.forgeAh = withAh === '1';
+    return applySettings();
+  }
   const id = e.target.closest('.star')?.dataset.id;
   if (!id) return;
   if (!favs.delete(id)) favs.add(id);
@@ -468,6 +489,7 @@ loadItems().then((items) => {
   render();
 });
 loadRecipes().then((r) => { recipes = r; recompute(); render(); });
+loadForge().then((r) => { forge = r; recompute(); render(); });
 initOnboarding({
   native: !!plugin(),
   ready,

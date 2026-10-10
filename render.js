@@ -1,5 +1,6 @@
 import { lineChart } from './chart.js';
 import { marginSeries } from './history.js';
+import { direction } from './trends.js';
 
 export const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
@@ -37,6 +38,10 @@ const ICONS = {
   star: svg('<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.6l1-5.8L3.5 9.7l5.9-.9z"/>'),
   back: svg('<path d="M15 5l-7 7 7 7"/>'),
   warn: svg('<path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.4v.1"/>'),
+  rising: svg('<path d="M6 18L18 6M10 6h8v8"/>'),
+  falling: svg('<path d="M6 6l12 12M18 10v8h-8"/>'),
+  flat: svg('<path d="M4 12h16M14 6l6 6-6 6"/>'),
+  event: svg('<rect x="4" y="6" width="16" height="14" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>'),
 };
 
 export function scoreBadge(score, provisional = false) {
@@ -50,26 +55,37 @@ const gain = (v) => (v > 0 ? 'gain' : 'loss');
 const num = coins;
 const star = (id, name, isFav) =>
   `<button class="star" type="button" data-id="${esc(id)}" aria-pressed="${isFav}" aria-label="Favorite: ${esc(name)}">${ICONS.star}</button>`;
+// trend: change of the sell price per 24 hours (see trends.js); level: 'below' or 'above' its normal price
+const LEVELS = { below: 'below normal', above: 'above normal' };
+export function trendBadge(trend, level) {
+  const dir = direction(trend);
+  const text = [dir, LEVELS[level]].filter(Boolean).join(' · ');
+  return text && `<span class="badge badge-trend">${dir ? ICONS[dir] : ''}${text}</span>`;
+}
+// f.ah: sold on the auction house; f.event: name of an event or mayor perk the item belongs to
 const badges = (f, warn) => {
-  const html = (warn ? `<span class="badge badge-warn">${ICONS.warn}suspicious</span>` : '') + scoreBadge(f.score, f.provisional);
+  const html = (warn ? `<span class="badge badge-warn">${ICONS.warn}suspicious</span>` : '')
+    + (f.ah ? '<span class="badge badge-warn">AH sale – estimate</span>' : '')
+    + scoreBadge(f.score, f.provisional) + trendBadge(f.trend, f.level)
+    + (f.event ? `<span class="badge badge-event">${ICONS.event}${esc(f.event)}</span>` : '');
   return html && `<div class="badges">${html}</div>`;
 };
 // the two numbers a flip is judged by
-const keyStats = (f) => `<div class="key">
-      <div><span class="big ${gain(f.profit)}">${num(f.profitHour)}</span><span class="lbl">Profit/h</span></div>
+const keyStats = (f, label = 'Profit/h') => `<div class="key">
+      <div><span class="big ${gain(f.profit)}">${num(f.profitHour)}</span><span class="lbl">${label}</span></div>
       <div><span class="big">${percent.format(f.margin)}</span><span class="lbl">Margin</span></div>
     </div>`;
 const fact = (label, value, cls = '') => `<div><dt>${label}</dt><dd${cls ? ` class="${cls}"` : ''}>${value}</dd></div>`;
 // sell price with its 7 day median next to it, so an unusual price stands out
 const sellFact = (f) => fact('Sell offer', num(f.sell) + (f.median > 0 ? ` <span class="normal">normal: ${num(f.median)}</span>` : ''));
 
-const card = (f, isFav, warn, facts, extra = '') => `<li class="card" data-rarity="${rarity(f.tier)}">
+const card = (f, isFav, warn, facts, extra = '', label) => `<li class="card" data-rarity="${rarity(f.tier)}">
   ${star(f.id, f.name, isFav)}
   <a class="body" href="${esc(itemHref(f.id))}">
     <div class="name">${tile(f.id, 32)}<span>${esc(f.name)}</span></div>
     ${badges(f, warn)}${f.why?.length ? `
     <p class="why">${esc(f.why.join(' · '))}</p>` : ''}
-    ${facts.length ? `${keyStats(f)}
+    ${facts.length ? `${keyStats(f, label)}
     <dl class="facts">${facts.join('')}</dl>` : ''}${extra}
   </a>
 </li>`;
@@ -92,12 +108,42 @@ export const npcCard = (f, isFav) => card(f, isFav, false, [
   fact('Vol./week', num(f.weekVol)),
 ]);
 
+const ingredientList = (f) => `<ul class="ingredients">${f.ingredients.map((i) => `<li>${num(i.qty)}× ${esc(i.name)} @ ${num(i.price)}</li>`).join('')}${
+  f.coins ? `<li>${num(f.coins)} coins</li>` : ''}</ul>`;
+
 export const craftCard = (f, isFav) => card(f, isFav, false, [
   fact('Cost', num(f.cost)),
   fact('Revenue', num(f.revenue)),
   fact('Profit/craft', num(f.profit), gain(f.profit)),
   fact('Crafts/h', num(f.craftsHour)),
-], `<ul class="ingredients">${f.ingredients.map((i) => `<li>${num(i.qty)}× ${esc(i.name)} @ ${num(i.price)}</li>`).join('')}</ul>`);
+], ingredientList(f));
+
+// 21600 -> "6h", 5400 -> "1h 30m": the two largest units are enough for a forge time
+export function duration(seconds) {
+  let rest = Math.round(seconds);
+  const parts = [];
+  for (const [size, unit] of [[86400, 'd'], [3600, 'h'], [60, 'm'], [1, 's']]) {
+    const n = Math.floor(rest / size);
+    rest -= n * size;
+    if (n) parts.push(n + unit);
+  }
+  return parts.slice(0, 2).join(' ') || '0s';
+}
+
+const AH_HINT = 'Sells on the Auction House: slower and less certain than the Bazaar. The price is the lowest BIN right now.';
+export const forgeCard = (f, isFav) => card(f.ah ? { ...f, why: [AH_HINT] } : f, isFav, false, [
+  fact('Cost', num(f.cost)),
+  fact(f.ah ? 'Lowest BIN' : 'Sell offer', num(f.sell)),
+  fact('Profit/item', num(f.profit), gain(f.profit)),
+  fact('Duration', duration(f.seconds)),
+  fact('HotM tier', f.hotm || '–'),
+], ingredientList(f), 'Profit/forge hour');
+
+// the switch above the Forge list
+export const forgeFilter = (withAh) => `<div class="bar ranges forge-filter" role="group" aria-label="Forge results">
+  <button type="button" data-forge-ah="0" aria-pressed="${!withAh}">Bazaar only</button>
+  <button type="button" data-forge-ah="1" aria-pressed="${!!withAh}">Incl. AH</button>
+</div>`;
 
 // The plan at the top of the Opportunities tab: total first, then what it is made of.
 // plan comes from portfolio() with a name on every flip; sharePercent is the market share setting.
@@ -129,7 +175,7 @@ export function parseRoute(hash) {
 
 // Tab a horizontal swipe leads to, or null. A swipe to the left opens the tab on the right, like turning a page.
 // It has to be long enough and clearly more sideways than up or down, so scrolling the list never switches tabs.
-export const TABS = ['flips', 'opps', 'npc', 'craft'];
+export const TABS = ['flips', 'opps', 'npc', 'craft', 'forge'];
 const SWIPE_MIN_PX = 60;
 export function swipeTab(view, dx, dy) {
   if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < 2 * Math.abs(dy)) return null;

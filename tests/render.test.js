@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { esc, coins, percent, iconUrl, itemHref, icon, scoreBadge, flipCard, searchCard, npcCard, craftCard, parseRoute } from '../render.js';
+import { esc, coins, percent, iconUrl, itemHref, icon, scoreBadge, flipCard, searchCard, npcCard, craftCard, forgeCard, forgeFilter, duration, parseRoute } from '../render.js';
 
 const flip = { id: 'A', name: 'Name', buy: 10, sell: 20, profit: 5, margin: 0.1, weekVol: 1000, hourVol: 10, profitHour: 50, score: 80 };
 
@@ -133,12 +133,14 @@ test('cards carry a known rarity and the picture sits on a tile', async () => {
 
 test('swipeTab: left opens the next tab, right the previous one, no wrap around', async () => {
   const { swipeTab, TABS } = await import('../render.js');
-  assert.deepEqual(TABS, ['flips', 'opps', 'npc', 'craft']);
+  assert.deepEqual(TABS, ['flips', 'opps', 'npc', 'craft', 'forge']);
   assert.equal(swipeTab('flips', -80, 5), 'opps');
   assert.equal(swipeTab('opps', 80, -5), 'flips');
   assert.equal(swipeTab('npc', -200, 30), 'craft');
   assert.equal(swipeTab('flips', 80, 0), null);
-  assert.equal(swipeTab('craft', -80, 0), null);
+  assert.equal(swipeTab('craft', -80, 0), 'forge');
+  assert.equal(swipeTab('forge', 80, 0), 'craft');
+  assert.equal(swipeTab('forge', -80, 0), null);
   // too short, or more of a scroll than a swipe
   assert.equal(swipeTab('flips', -59, 0), null);
   assert.equal(swipeTab('flips', -80, 41), null);
@@ -174,7 +176,8 @@ test('dragOffset follows the finger, with resistance where there is no tab', asy
   assert.equal(dragOffset('flips', -100), -100);
   assert.equal(dragOffset('opps', 100), 100);
   assert.equal(dragOffset('flips', 100), 25);
-  assert.equal(dragOffset('craft', -100), -25);
+  assert.equal(dragOffset('craft', -100), -100);
+  assert.equal(dragOffset('forge', -100), -25);
 });
 
 test('a search hit outside the list shows why, and still links to its detail page', () => {
@@ -183,4 +186,29 @@ test('a search hit outside the list shows why, and still links to its detail pag
   const bare = searchCard({ id: 'BOOSTER_COOKIE', name: 'Booster Cookie', why: ['No buy orders or sell offers right now'] }, false);
   assert.ok(bare.includes('href="#/item/BOOSTER_COOKIE"') && bare.includes('No buy orders') && !bare.includes('Profit/h'));
   assert.ok(!flipCard(flip, false).includes('class="why"'));
+});
+
+test('duration shows the two largest units', () => {
+  assert.deepEqual([21600, 5400, 90000, 30, 3661, 0].map(duration), ['6h', '1h 30m', '1d 1h', '30s', '1h 1m', '0s']);
+});
+
+const forged = { ...flip, n: 1, cost: 1600, sell: 5000, seconds: 21600, hotm: 4, coins: 0, ah: false, ingredients: [{ id: 'ING', name: 'Ing', qty: 160, price: 10 }] };
+
+test('forgeCard shows profit per forge hour, duration, HotM tier and ingredients', () => {
+  const html = forgeCard(forged, false);
+  for (const part of ['Profit/forge hour', 'Profit/item', 'Sell offer', '<dd>6h</dd>', 'HotM tier', '<dd>4</dd>', '160× Ing @ 10']) assert.ok(html.includes(part), part);
+  assert.ok(!html.includes('AH sale') && !html.includes('class="why"'));
+  assert.ok(forgeCard({ ...forged, hotm: 0, coins: 50000 }, false).includes('50k coins'));
+  assert.equal(parseRoute('#/forge').view, 'forge');
+});
+
+test('an auction house result carries the estimate badge and the warning', () => {
+  const html = forgeCard({ ...forged, ah: true }, false);
+  assert.ok(html.includes('AH sale – estimate') && html.includes('Lowest BIN') && !html.includes('Sell offer'));
+  assert.ok(html.includes('slower and less certain than the Bazaar'));
+});
+
+test('forgeFilter marks the chosen side', () => {
+  assert.match(forgeFilter(true), /data-forge-ah="0" aria-pressed="false"[^]*data-forge-ah="1" aria-pressed="true"/);
+  assert.match(forgeFilter(false), /data-forge-ah="0" aria-pressed="true"[^]*data-forge-ah="1" aria-pressed="false"/);
 });

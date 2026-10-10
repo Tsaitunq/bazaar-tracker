@@ -43,6 +43,7 @@
       <a href="#/opps">Opportunities</a>
       <a href="#/npc">NPC</a>
       <a href="#/craft">Craft</a>
+      <a href="#/forge">Forge</a>
     </nav>
     <p id="error" role="alert" hidden></p>
   </header>
@@ -120,6 +121,14 @@
       <label>Parallel flips
         <input id="portfolioSlots" type="number" min="1" max="50" step="1" inputmode="numeric">
         <small>How many items you flip at once. Each one gets the same share of the capital.</small>
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Forge</legend>
+      <label>HotM tier
+        <input id="hotm" type="number" min="0" max="10" step="1" inputmode="numeric">
+        <small>Your Heart of the Mountain tier. The Forge tab hides recipes that need a higher one; 10 shows them all.</small>
       </label>
     </fieldset>
 

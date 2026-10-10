@@ -90,9 +90,11 @@ input[type="checkbox"] { accent-color: var(--accent); }
 
 #search { flex: 1; min-width: 0; }
 
-#tabs { display: flex; gap: 8px; margin-top: 8px; }
+/* five tabs: on a narrow screen the bar scrolls sideways, app.js keeps the active tab in view */
+#tabs { position: relative; display: flex; gap: 8px; margin-top: 8px; overflow-x: auto; scrollbar-width: none; }
+#tabs::-webkit-scrollbar { display: none; }
 /* tabs are underlined labels */
-#tabs a { flex: 1 1 auto; padding: 0 6px; font-size: 14px; min-height: 44px; display: grid; place-items: center; border-bottom: 2px solid var(--line); color: var(--muted); text-decoration: none; }
+#tabs a { white-space: nowrap; flex: 1 1 auto; padding: 0 6px; font-size: 14px; min-height: 44px; display: grid; place-items: center; border-bottom: 2px solid var(--line); color: var(--muted); text-decoration: none; }
 #tabs a[aria-current="page"] { color: var(--accent); border-color: var(--accent); font-weight: 600; }
 
 #error { margin: 8px 0 0; color: var(--loss); font-size: 13px; }
@@ -230,6 +232,7 @@ body.detail #tabs, body.detail .filters, body.detail #count, body.detail #list, 
 #detail .key, #detail .facts { max-width: 560px; }
 .ranges { margin: 16px 0 4px; }
 .ranges button { flex: 1; max-width: 200px; }
+.forge-filter { margin: 0 0 8px; }
 .charts { display: grid; gap: 8px 24px; }
 #detail h3 { font-size: 14px; color: var(--muted); margin: 16px 0 4px; font-weight: 600; }
 .legend { margin: 0 0 4px; font-size: 12px; display: flex; gap: 12px; }
