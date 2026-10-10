@@ -1,6 +1,14 @@
 {
   "versions": [
     {
+      "version": "6.3.0",
+      "date": "2026-10-10",
+      "entries": [
+        { "title": "Portfolio fills the best flips first", "text": "Your capital is no longer split evenly: the flips with the best return get as much as the item trades, up to your Max. capital per flip. Parallel flips is only the most flips you run.", "target": "#portfolio .portfolio", "route": "#/opps" },
+        { "title": "Clearer note in Simple mode", "text": "When capital stays unused in Simple mode, the note says why and sends you to Pro mode, where the setting can be changed.", "target": "#portfolio .portfolio", "route": "#/opps" }
+      ]
+    },
+    {
       "version": "6.2.0",
       "date": "2026-10-10",
       "entries": [

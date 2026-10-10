@@ -97,50 +97,42 @@ export function opportunities(products, { tax, maxCapital, share = 1, sort, stat
     .sort(bySort(sort));
 }
 
-// A plan for running several flips at once. The total capital is first split evenly over `slots` flips and the
-// best opportunities are picked. Capital a flip cannot use (the item does not trade enough, or whole units do
-// not divide the budget) then goes to the picked flips in rank order, and after that to further opportunities
-// while slots are free. `slots` stays the most flips the plan ever holds.
+// A plan for running several flips at once. There is no even split: the flips with the highest return per coin
+// are filled first, each up to what its volume takes (hourly volume × market share), the max. capital per flip
+// and the capital that is left. `slots` is the most flips the plan holds; fewer are fine.
 // Uses exactly the opportunity conditions, so suspicious and provisional items never appear.
 // opts.maxCapital ("Max. capital per flip") caps the stake of one flip; 0 means no cap.
 // limit says what keeps capital unused: 'slots', 'maxCapital' or 'volume'; null when the capital is in use.
 export function portfolio(products, { capital, slots, ...opts }) {
   const n = Math.floor(slots);
-  const even = capital > 0 && n >= 1 ? capital / n : 0;
   const cap = opts.maxCapital > 0 ? opts.maxCapital : capital;
-  const budget = Math.min(even, cap);
   const share = opts.share ?? 1;
   const unitsFor = (f, coins) => Math.min(f.hourVol * share, Math.floor(coins / f.buy));
-  const ranked = budget > 0 ? opportunities(products, { ...opts, maxCapital: cap, sort: 'profitHour' }) : [];
-  const picked = new Map(); // flip -> units
+  const ranked = capital > 0 && n >= 1 ? opportunities(products, { ...opts, maxCapital: cap, sort: 'profitHour' }) : [];
+  // The slots go to the flips that can earn the most per hour; picking by return alone would fill them with
+  // items that trade too little to use the capital. Within them the best return per coin is served first.
+  // shortcut: not an exact optimum when capital and slots both run out; solve it as a knapsack if that matters
+  const order = [...ranked.slice(0, n).sort(bySort('margin')), ...ranked.slice(n)];
+  const flips = [];
   let left = capital;
-  const pick = (f, coins) => {
-    const units = unitsFor(f, coins);
-    if (!(units >= 1) || units * f.profit < (opts.minProfitHour ?? 0)) return;
-    picked.set(f, units);
+  for (const f of order) {
+    if (flips.length >= n) break;
+    const units = unitsFor(f, Math.min(cap, left));
+    if (!(units >= 1) || units * f.profit < (opts.minProfitHour ?? 0)) continue;
     left -= units * f.buy;
-  };
-  for (const f of ranked) if (picked.size < n) pick(f, budget);
-  for (const [f, units] of picked) {
-    const more = unitsFor(f, Math.min(cap, units * f.buy + left));
-    picked.set(f, more);
-    left -= (more - units) * f.buy;
+    flips.push({ ...f, units, stake: units * f.buy, profitHour: units * f.profit });
   }
-  for (const f of ranked) if (picked.size < n && !picked.has(f)) pick(f, Math.min(cap, left));
+  flips.sort(bySort('profitHour'));
 
-  const flips = [...picked]
-    .map(([f, units]) => ({ ...f, units, stake: units * f.buy, profitHour: units * f.profit }))
-    .sort(bySort('profitHour'));
   let limit = null;
   // whole units always leave some coins over, so under 1% counts as in use
   if (flips.length && left > capital * 0.01) {
-    const fits = (f) => !picked.has(f) && unitsFor(f, Math.min(cap, left)) >= 1;
-    limit = picked.size >= n && ranked.some(fits) ? 'slots'
+    const fits = (f) => !flips.some((p) => p.id === f.id) && unitsFor(f, Math.min(cap, left)) >= 1;
+    limit = flips.length >= n && ranked.some(fits) ? 'slots'
       : opts.maxCapital > 0 && flips.some((f) => f.hourVol * share - f.units >= 1) ? 'maxCapital' : 'volume';
   }
   return {
     flips,
-    budget,
     limit,
     profitHour: flips.reduce((sum, f) => sum + f.profitHour, 0),
     used: flips.reduce((sum, f) => sum + f.stake, 0),

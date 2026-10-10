@@ -178,16 +178,18 @@ export const filterChips = (keys, settings) => keys.map((key) => {
   return `<button type="button" class="chip" data-unfilter="${key}" aria-label="Remove filter: ${text}">${text}${ICONS.close}</button>`;
 }).join('');
 
-// why a plan leaves capital unused (plan.limit), and the setting that changes it
+// why a plan leaves capital unused (plan.limit): the reason, and the setting that changes it
 const PLAN_LIMITS = {
-  slots: (n) => `your ${n} parallel flips. Raise Parallel flips`,
-  maxCapital: () => 'your max. capital per flip. Raise Max. capital per flip',
-  volume: () => 'how much these items trade. Raise Market share or loosen the filters',
+  slots: (n) => [`your ${n} parallel flips`, 'Raise Parallel flips'],
+  maxCapital: () => ['your max. capital per flip', 'Raise Max. capital per flip'],
+  volume: () => ['how much these items trade', 'Raise Market share or loosen the filters'],
 };
 
 // The plan at the top of the Opportunities tab: total first, then what it is made of.
 // plan comes from portfolio() with a name on every flip; sharePercent is the market share setting.
-export function portfolioView(plan, { capital, slots, sharePercent }) {
+// simple: Simple mode hides the settings a limit points at, so the hint sends the player to Pro instead.
+export function portfolioView(plan, { capital, slots, sharePercent, simple = false }) {
+  const [why, raise] = plan.limit ? PLAN_LIMITS[plan.limit](Math.floor(slots)) : [];
   const hint = `<p class="assume">Assumes ${num(sharePercent)}% market share – only realistic if you relist actively</p>`;
   if (!plan.flips.length) {
     return `<section class="portfolio"><h2>Portfolio</h2><p class="muted">${capital > 0
@@ -199,7 +201,7 @@ export function portfolioView(plan, { capital, slots, sharePercent }) {
   <h2>Portfolio</h2>
   <div class="total"><span class="big gain">${num(plan.profitHour)}</span><span class="lbl">Profit/h with ${plan.flips.length} ${plan.flips.length === 1 ? 'flip' : 'flips'}</span></div>
   <p class="muted">${num(plan.used)} of ${num(capital)} capital in use · ${percent.format(plan.profitHour / plan.used)} return per hour</p>
-  ${plan.limit ? `<p class="assume">Using ${num(plan.used)} of ${num(capital)} – limited by ${PLAN_LIMITS[plan.limit](Math.floor(slots))} to use more.</p>` : ''}
+  ${why ? `<p class="assume">Using ${num(plan.used)} of ${num(capital)} – limited by ${why}. ${simple ? 'Switch to Pro to adjust.' : `${raise} to use more.`}</p>` : ''}
   <div class="picks-head"><span>Item</span><span>Stake</span><span>Profit/h</span></div>
   <ol class="picks">${rows}</ol>
   ${hint}

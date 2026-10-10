@@ -133,14 +133,14 @@
 
     <fieldset>
       <legend>Portfolio</legend>
-      <p class="intro">A plan at the top of the Opportunities tab: your capital split over several flips that run at the same time. What one flip cannot use goes to the others. No flip gets more than your max. capital per flip.</p>
+      <p class="intro">A plan at the top of the Opportunities tab: your capital put into the flips with the best return, each as far as the item trades. No flip gets more than your max. capital per flip.</p>
       <label>Total capital
         <input id="portfolioCapital" type="number" min="0" step="1" inputmode="numeric">
         <small>All the coins you want to flip with. 0 switches the plan off.</small>
       </label>
       <label class="pro">Parallel flips
         <input id="portfolioSlots" type="number" min="1" max="50" step="1" inputmode="numeric">
-        <small>The most items you flip at once. Each one starts with the same share of the capital; what is left over fills them up to your max. capital per flip.</small>
+        <small>The most items you flip at once. The plan uses fewer when your capital is spent before that.</small>
       </label>
     </fieldset>
 
