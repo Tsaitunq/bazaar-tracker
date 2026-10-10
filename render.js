@@ -132,13 +132,19 @@ export function duration(seconds) {
 }
 
 const AH_HINT = 'Sells on the Auction House: slower and less certain than the Bazaar. The price is the lowest BIN right now.';
-export const forgeCard = (f, isFav) => card(f.ah ? { ...f, why: [AH_HINT] } : f, isFav, false, [
+const DERPY_HINT = 'Mayor Derpy: the tax on collecting the coins is 4% instead of 1%. It is already taken off.';
+// what limits the profit per hour: how fast the forge is, or how much of the item is bought
+const LIMITS = { forge: 'Forge time', sales: 'Sales volume' };
+const forgeNotes = (f) => (f.ah ? [AH_HINT, ...(f.derpy ? [DERPY_HINT] : [])] : []);
+const forgeFacts = (f) => [
   fact('Cost', num(f.cost)),
   fact(f.ah ? 'Lowest BIN' : 'Sell offer', num(f.sell)),
   fact('Profit/item', num(f.profit), gain(f.profit)),
   fact('Duration', duration(f.seconds)),
   fact('HotM tier', f.hotm || '–'),
-], ingredientList(f), 'Profit/forge hour');
+  fact('Limited by', LIMITS[f.limit] ?? '–'),
+];
+export const forgeCard = (f, isFav) => card({ ...f, why: forgeNotes(f) }, isFav, false, forgeFacts(f), ingredientList(f), 'Profit/forge hour');
 
 // the switch above the Forge list
 export const forgeFilter = (withAh) => `<div class="bar ranges forge-filter" role="group" aria-label="Forge results">
@@ -234,8 +240,12 @@ export const dragOffset = (view, dx) => (TABS[TABS.indexOf(view) + (dx < 0 ? 1 :
 const RANGES = [['24h', '24 h'], ['7d', '7 days']];
 
 // flip is the item's bazaar flip or null while prices are unknown; points are already cut to the range.
-export function detailView({ id, name, tier, flip, score, median, provisional, trend, level, event, back = 'flips', isFav, range, points, tax }) {
-  const stat = { score, provisional, median, trend, level, event };
+// forge is the item's forge recipe as a flip (forgeFlip, with names on the ingredients), or null.
+export function detailView({ id, name, tier, flip, forge = null, score, median, provisional, trend, level, event, back = 'flips', isFav, range, points, tax }) {
+  const stat = { score, provisional, median, trend, level, event, ah: forge?.ah };
+  const forged = forge ? `<section class="forged"><h3>Forge</h3>${forge.ah ? `<p class="why">${esc(forgeNotes(forge).join(' · '))}</p>` : ''}
+<div class="summary">${keyStats(forge, 'Profit/forge hour')}<dl class="facts">${forgeFacts(forge).join('')}</dl></div>
+${ingredientList(forge)}</section>` : '';
   const current = flip ? `<div class="summary">${keyStats(flip)}<dl class="facts">${[
     fact('Buy order', num(flip.buy)),
     sellFact({ ...flip, median }),
@@ -254,5 +264,5 @@ export function detailView({ id, name, tier, flip, score, median, provisional, t
 <div class="detail-head" data-rarity="${rarity(tier)}">${star(id, name, isFav)}
 ${tile(id, 48)}<h2 class="name">${esc(name)}</h2></div>
 ${badges(stat, flip?.suspicious)}
-${current}<div class="bar ranges">${buttons}</div>${charts}`;
+${current}${forged}${forge?.ah ? '' : `<div class="bar ranges">${buttons}</div>${charts}`}`;
 }

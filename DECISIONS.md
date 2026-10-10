@@ -463,3 +463,22 @@ Grund, was es kostet, falls sie falsch ist.
 - **„Advanced tour“ im What's-new-Fenster sehen alle, deren zuletzt gesehene
   Version vor 5.0.0 liegt.**
 - **Assistent: HotM-Stufe als Auswahlliste 1 bis 10, AH-Frage mit Ja/Nein.**
+
+## Forge-Korrekturen (5.0.1)
+
+- **Profit/forge hour = Minimum aus Schmiede-Tempo und Absatz.** Absatz ist
+  der Marktanteil am stündlichen Kaufvolumen des Ergebnisses
+  (`buyMovingWeek / 168 × Market share`), wie bei den Craft-Flips. Die Karte
+  nennt unter „Limited by“, was begrenzt.
+- **Für AH-Ergebnisse begrenzt nur die Schmiede.** Grund: Der
+  Auktions-Endpunkt liefert Angebote, keine Verkäufe; ein Absatz lässt sich
+  daraus nicht ableiten. Kosten: Kurzzeit-Rezepte mit AH-Ergebnis können
+  weiter zu hoch wirken; das Badge „estimate“ bleibt.
+- **Der Nachschub der Zutaten begrenzt nicht.** Verlangt war die Grenze durch
+  das Verkaufsvolumen.
+- **Derpy wird am Namen des Mayors erkannt**, nicht am Perk-Namen. Grund: Der
+  Mayor-Name ist in den Daten eindeutig; den genauen Perk-Namen habe ich nicht
+  belegt. Es zählt nur der Mayor, nicht ein Minister.
+- **Die Detailseite zeigt den Forge-Abschnitt für jedes Item mit Rezept**,
+  auch für Bazaar-Ergebnisse und unabhängig von HotM-Stufe und AH-Filter. Bei
+  AH-Items entfallen die leeren Verlaufs-Charts.

@@ -192,7 +192,7 @@ test('duration shows the two largest units', () => {
   assert.deepEqual([21600, 5400, 90000, 30, 3661, 0].map(duration), ['6h', '1h 30m', '1d 1h', '30s', '1h 1m', '0s']);
 });
 
-const forged = { ...flip, n: 1, cost: 1600, sell: 5000, seconds: 21600, hotm: 4, coins: 0, ah: false, ingredients: [{ id: 'ING', name: 'Ing', qty: 160, price: 10 }] };
+const forged = { ...flip, n: 1, cost: 1600, sell: 5000, seconds: 21600, hotm: 4, coins: 0, ah: false, limit: 'sales', ingredients: [{ id: 'ING', name: 'Ing', qty: 160, price: 10 }] };
 
 test('forgeCard shows profit per forge hour, duration, HotM tier and ingredients', () => {
   const html = forgeCard(forged, false);
@@ -273,4 +273,28 @@ test('radar without mayor data still shows the events', () => {
   const html = radar({ election: null, perks: [] });
   assert.ok(html.includes('Mayor data is not available') && html.includes('Spooky Festival'));
   assert.ok(html.includes('Traveling Zoo now · Spooky Festival in 2d 2h') && !html.includes('Mayor undefined'));
+});
+
+test('forgeCard says what limits the profit per hour and notes Derpy\'s tax', () => {
+  assert.match(forgeCard(forged, false), /Limited by<\/dt><dd>Sales volume/);
+  assert.match(forgeCard({ ...forged, limit: 'forge' }, false), /Limited by<\/dt><dd>Forge time/);
+  const derpy = forgeCard({ ...forged, ah: true, derpy: true }, false);
+  assert.ok(derpy.includes('Mayor Derpy') && derpy.includes('4% instead of 1%') && derpy.includes('slower and less certain'));
+  assert.ok(!forgeCard({ ...forged, ah: true, derpy: false }, false).includes('Derpy'));
+  assert.ok(!forgeCard({ ...forged, derpy: false }, false).includes('Derpy'));
+});
+
+test('the page of an auction house item shows its forge recipe instead of empty charts', () => {
+  const page = detailView({ id: 'DRILL', name: 'Drill', flip: null, forge: { ...forged, ah: true, limit: 'forge' }, provisional: false, isFav: false, range: '24h', points: [], tax: 0.0125 });
+  for (const part of ['<h3>Forge</h3>', 'AH sale – estimate', 'Lowest BIN', '<dd>5,000</dd>', '160× Ing @ 10', '<dd>6h</dd>', 'HotM tier', '<dd>4</dd>', 'Profit/forge hour', 'slower and less certain']) {
+    assert.ok(page.includes(part), part);
+  }
+  assert.ok(!page.includes('No history yet') && !page.includes('data-range'));
+});
+
+test('the page of a bazaar item with a recipe keeps its charts and adds the forge part', () => {
+  const page = detailView({ id: 'A', name: 'Name', flip, forge: forged, score: 80, median: 20, provisional: false, isFav: false, range: '24h', points: [], tax: 0.0125 });
+  assert.ok(page.includes('<h3>Forge</h3>') && page.includes('Sell offer') && page.includes('data-range') && page.includes('No history yet'));
+  assert.ok(!page.includes('AH sale'));
+  assert.ok(!detailView({ id: 'A', name: 'Name', flip, provisional: false, isFav: false, range: '24h', points: [], tax: 0.0125 }).includes('<h3>Forge</h3>'));
 });
