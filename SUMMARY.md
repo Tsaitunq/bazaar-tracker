@@ -91,14 +91,16 @@ Dabei gefunden und behoben:
 
 - Der Lowest BIN ist ein einzelnes Angebot und kann daneben liegen. Einen
   Verlauf der AH-Preise gibt es nicht.
-- „Profit/forge hour“ wirkt bei Rezepten mit 30 Sekunden Dauer sehr hoch; die
-  Grenze ist dort der Verkauf, nicht die Schmiede.
+- „Profit/forge hour“ ist seit 5.0.1 durch den Absatz begrenzt (Marktanteil am
+  stündlichen Kaufvolumen). Für AH-Ergebnisse gibt es keine Absatzdaten; dort
+  begrenzt weiter nur die Schmiede.
 - Rezepte mit geschmiedeten Zwischenteilen (höhere Drills) und Pets fehlen.
 - Mining Fiesta erscheint als aktiver Perk ohne Countdown, weil sich die
   Quellen bei den Terminen widersprechen.
-- Die Laufzeit-Gebühr einer Auktion und Derpys vierfache Steuer sind nicht
-  eingerechnet.
-- Die Detailseite eines AH-Items zeigt nur den Namen.
+- Die Laufzeit-Gebühr einer Auktion ist nicht eingerechnet. Derpys vierfache
+  Steuer wird seit 5.0.1 eingerechnet, wenn Derpy Mayor ist.
+- Die Detailseite zeigt seit 5.0.1 für jedes Item mit Rezept den
+  Forge-Abschnitt; einen Preisverlauf für AH-Items gibt es weiterhin nicht.
 - Nicht geprüft: echtes Gerät, die Touren im Emulator, „Bewegung reduzieren“.
 
 ## Zum Testen

@@ -1,6 +1,15 @@
 {
   "versions": [
     {
+      "version": "5.0.1",
+      "date": "2026-10-10",
+      "entries": [
+        { "title": "More realistic forge profit", "text": "Profit/forge hour no longer assumes you can sell everything a quick recipe makes. It is now capped by your market share of what is bought per hour, and each card says what limits it.", "target": "#tabs a[href=\"#/forge\"]", "route": "#/forge" },
+        { "title": "Derpy's tax", "text": "While Derpy is mayor, forge results sold on the Auction House are calculated with the higher tax, and the card says so." },
+        { "title": "Forge details on item pages", "text": "The page of a forged item now shows the lowest BIN or sell offer, the ingredients with prices, the forge time and the HotM tier." }
+      ]
+    },
+    {
       "version": "5.0.0",
       "date": "2026-10-10",
       "entries": [

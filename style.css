@@ -251,6 +251,8 @@ body.detail #tabs, body.detail .filters, body.detail #count, body.detail #list, 
 .detail-head .tile { width: 60px; height: 60px; border-color: var(--rarity); }
 .detail-head .icon { width: 42px; height: 42px; }
 #detail .key, #detail .facts { max-width: 560px; }
+.forged { margin-top: 8px; }
+.forged .ingredients { max-width: 560px; }
 .ranges { margin: 16px 0 4px; }
 .ranges button { flex: 1; max-width: 200px; }
 .forge-filter { margin: 0 0 8px; }

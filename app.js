@@ -1,7 +1,7 @@
 import { buildFlips, computeFlip, opportunities, portfolio, statOf, searchFlip, flipIssues, oppIssues, bySort } from './flips.js';
 import { npcFlips } from './npc.js';
 import { craftFlips } from './craft.js';
-import { forgeFlips } from './forge.js';
+import { forgeFlips, forgeFlip } from './forge.js';
 import { loadItems, fallbackName } from './names.js';
 import { loadStats, loadRecipes, loadForge, loadAh, loadElection, loadHistory } from './data.js';
 import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission } from './native.js';
@@ -76,7 +76,8 @@ const shown = new Map(); // last rendered big numbers per view and item, to flas
 const view = () => (route.view === 'item' ? 'flips' : route.view);
 const nameOf = (id) => names[id] ?? fallbackName(id);
 // "Trend" only reorders what is shown: the lists are built in their usual order and sorted afterwards
-const baseOpts = () => ({ ...settings, tax: settings.tax / 100, share: settings.share / 100, stats, sort: settings.sort === 'trend' ? 'profitHour' : settings.sort });
+const baseOpts = () => ({ ...settings, tax: settings.tax / 100, share: settings.share / 100, stats, sort: settings.sort === 'trend' ? 'profitHour' : settings.sort,
+  derpy: election?.mayor?.name === 'Derpy' });
 // What a row shows besides its numbers: name, rarity and the trend signals.
 function decorate(f) {
   f.name = nameOf(f.id);
@@ -198,7 +199,10 @@ function renderDetail() {
   // an item that is not on the bazaar (a forge result) has no history to be provisional about
   const stat = { ...statOf(stats, id), ...(products && !products[id] && { provisional: false }) };
   const flip = products?.[id] ? computeFlip(id, products[id], settings.tax / 100, settings.maxCapital, settings.share / 100, stat.median) : null;
-  $('detail').innerHTML = detailView({ ...decorate({ id, sell: flip?.sell }), flip, ...stat, back: lastList, isFav: favs.has(id), range, points, tax: settings.tax / 100 });
+  // the item's forge recipe, shown whatever the Forge tab's filters say
+  const forged = products && forge?.[id] ? forgeFlip(id, forge[id], products, ah, baseOpts()) : null;
+  for (const i of forged?.ingredients ?? []) i.name = nameOf(i.id);
+  $('detail').innerHTML = detailView({ ...decorate({ id, sell: flip?.sell }), flip, forge: forged, ...stat, back: lastList, isFav: favs.has(id), range, points, tax: settings.tax / 100 });
   flashChanges();
 }
 

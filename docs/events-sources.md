@@ -66,8 +66,12 @@ Source: https://hypixelskyblock.minecraft.wiki/w/Auction_House
 | Listing a BIN | 1 % of the price below 10,000,000 coins, 2 % from 10,000,000 to 100,000,000, 2.5 % above |
 | Collecting the coins | up to 1 % on sales above 1,000,000 coins; the payout never drops below 1,000,000 |
 
+While Derpy is mayor the collection tax is quadrupled (4 %), the listing fee
+is not; same page. The app applies this when the election data names Derpy as
+mayor.
+
 Not included in the app's estimate: the fee for the auction's duration (the
-page gives no table for it) and Derpy's quadrupled collection tax.
+page gives no table for it).
 
 ## Forge recipes
 
