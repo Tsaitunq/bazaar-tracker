@@ -101,8 +101,10 @@ export function opportunities(products, { tax, maxCapital, share = 1, sort, stat
 // opportunities for that budget are picked. A flip that cannot use its whole share (the item does not trade
 // enough, or whole units do not divide the budget) keeps the smaller stake; nothing is moved to other flips.
 // Uses exactly the opportunity conditions, so suspicious and provisional items never appear.
+// opts.maxCapital ("Max. capital per flip") caps the share of one flip; 0 means no cap.
 export function portfolio(products, { capital, slots, ...opts }) {
-  const budget = capital > 0 && slots >= 1 ? capital / Math.floor(slots) : 0;
+  const even = capital > 0 && slots >= 1 ? capital / Math.floor(slots) : 0;
+  const budget = opts.maxCapital > 0 ? Math.min(even, opts.maxCapital) : even;
   const flips = budget > 0
     ? opportunities(products, { ...opts, maxCapital: budget, sort: 'profitHour' })
       .filter((f) => f.units >= 1)

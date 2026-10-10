@@ -224,6 +224,22 @@ test('portfolio is empty without capital, slots or stats', () => {
   assert.equal(portfolio(products, { ...opts, slots: 2.9 }).budget, 5000);
 });
 
+test('portfolio never puts more into one flip than the max. capital per flip', () => {
+  const products = { A: product(100, 120), B: product(1000, 1300) };
+  const stats = { A: [90, 120, 48], B: [90, 1300, 48] };
+  const opts = { tax: 0.0125, share: 1, stats, minMargin: 0.1, minVolume: 0, minProfitHour: 0, capital: 10000, slots: 2 };
+  // an even share would be 5,000; the cap of 2,000 wins
+  const capped = portfolio(products, { ...opts, maxCapital: 2000 });
+  assert.equal(capped.budget, 2000);
+  assert.deepEqual(capped.flips.map((f) => [f.id, f.stake]), [['B', 2000], ['A', 2000]]);
+  near(capped.used, 4000);
+  // a cap above the even share changes nothing, and 0 means no cap
+  assert.equal(portfolio(products, { ...opts, maxCapital: 9000 }).budget, 5000);
+  assert.equal(portfolio(products, { ...opts, maxCapital: 0 }).budget, 5000);
+  // an item that costs more than the cap is left out
+  assert.deepEqual(portfolio(products, { ...opts, maxCapital: 500 }).flips.map((f) => f.id), ['A']);
+});
+
 test('search keeps every item and says why it is not a flip', () => {
   const opts = { tax: 0.0125, minVolume: 1000, maxCapital: 5000, share: 1, stats: null };
   const why = (p, o = opts, issues = flipIssues) => searchFlip('X', p, o, issues).why;
