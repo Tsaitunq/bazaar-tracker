@@ -135,15 +135,24 @@ button:active { filter: brightness(.8); }
 .help { min-width: 28px; min-height: 28px; width: 28px; padding: 0; border-radius: 50%; font-size: 13px; font-weight: 700; color: var(--muted); }
 .help[aria-expanded="true"] { color: var(--accent); border-color: var(--accent); }
 .help-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.how { margin: 0 0 12px; }
-.how dt { margin-top: 8px; font-weight: 600; }
-.how dd { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+/* how it works: one line per term, unfolded on tap */
+.how { margin: 0 0 12px; border-bottom: 1px solid var(--line); }
+.how details { border-top: 1px solid var(--line); }
+.how summary { padding: 12px 0; cursor: pointer; font-weight: 600; }
+.how p { margin: 0 0 12px; font-size: 13px; color: var(--muted); }
 .why { margin: 8px 0 0; font-size: 12px; color: var(--muted); font-style: italic; }
 .help-actions button { padding: 0 14px; }
 #settings label.check { display: flex; align-items: center; gap: 10px; font-weight: 600; }
 #settings label.check input { width: 22px; height: 22px; min-height: 0; flex: none; }
 #market-alert-settings { display: grid; gap: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
 #settings .hint { margin: 0; font-size: 12px; color: var(--loss); }
+#settings .ranges { margin: 0; }
+
+/* context hints: a note in the flow of the page, shown once, never in the way */
+.tip { margin: 0 0 8px; padding: 10px 12px; max-width: 720px; border: 1px dashed var(--muted); border-radius: 10px; background: var(--raised); color: var(--text); font-size: 13px; font-style: normal; }
+.tip p { margin: 0 0 8px; }
+.tip button { min-height: 36px; }
+#settings .tip { grid-column: 1 / -1; max-width: none; }
 
 /* a sideways drag on a list changes tabs; the browser keeps vertical scrolling */
 body { overflow-x: clip; }
@@ -362,3 +371,7 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
   #tour-hole { transition: left .2s, top .2s, width .2s, height .2s; }
   #tour-bubble { transition: top .2s; }
 }
+
+/* Simple mode: everything marked .pro is left out, and so is the rarity word on a card */
+[data-mode="simple"] .pro { display: none !important; }
+[data-mode="simple"] .card::after { content: none; }

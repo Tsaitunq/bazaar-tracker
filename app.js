@@ -5,11 +5,11 @@ import { forgeFlips, forgeFlip } from './forge.js';
 import { loadItems, fallbackName } from './names.js';
 import { loadStats, loadRecipes, loadForge, loadAh, loadElection, loadTiming, loadHistory } from './data.js';
 import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission } from './native.js';
-import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, parseRoute, detailView, portfolioView, swipeTab, dragOffset, TABS, coins, percent, PLACEHOLDER_ICON } from './render.js';
+import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, parseRoute, detailView, portfolioView, swipeTab, dragOffset, tabsFor, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
 import { level } from './trends.js';
 import { activePerks, upcoming, electionWindow, eventItems } from './events.js';
-import { initOnboarding } from './tour.js';
+import { initOnboarding, refreshHints, offerAdvanced, returning } from './tour.js';
 
 const API = 'https://api.hypixel.net/v2/skyblock/bazaar';
 const MAX_ROWS = 100;
@@ -48,6 +48,19 @@ function sanitize() {
   settings.forgeAh = settings.forgeAh !== false;
 }
 sanitize();
+// A new user starts in Simple mode; whoever used the app before keeps everything (Pro). Stored at once,
+// so the second start does not take a new user for a returning one.
+if (settings.mode !== 'simple' && settings.mode !== 'pro') {
+  settings.mode = returning ? 'pro' : 'simple';
+  save('bt.settings', settings);
+}
+const simple = () => settings.mode === 'simple';
+const tabs = () => tabsFor(settings.mode);
+// a tab that Simple mode does not show opens as Flips
+function readRoute() {
+  const r = parseRoute(location.hash);
+  return r.view !== 'item' && !tabs().includes(r.view) ? { view: 'flips' } : r;
+}
 const storedFavs = load('bt.favs', []);
 const favs = new Set(Array.isArray(storedFavs) ? storedFavs : []);
 
@@ -63,7 +76,7 @@ let election = null; // mayor, perks and a running election; null when unknown
 let timing = {};     // past runs per event and perk, for the radar's price patterns
 let marked = {};     // item id -> event or perk it belongs to right now
 let lastStats = 0;
-let route = parseRoute(location.hash);
+let route = readRoute();
 let lastList = route.view === 'item' ? 'flips' : route.view; // where the detail page's back link goes
 let flips = [];
 let plan = null; // portfolio for the Opportunities tab
@@ -72,6 +85,8 @@ let timer;
 let busy = false;
 let hist = { id: null, points: null }; // 7 days of history for the open item, loaded once
 let range = '24h';
+let otherHits = 0;        // search hits below the tab's own flips
+let detailSuspicious = false;
 let markReady; // resolved once the first list is on screen, so the tour has something to point at
 const ready = new Promise((resolve) => { markReady = resolve; });
 const shown = new Map(); // last rendered big numbers per view and item, to flash the ones that changed
@@ -160,6 +175,7 @@ function listMarkup(v, list, pf) {
     count: q ? `${rows.length} ${rows.length === 1 ? 'flip' : 'flips'}, ${rest.length} other ${rest.length === 1 ? 'item' : 'items'}`
       : `${Math.min(rows.length, MAX_ROWS)} of ${rows.length} flips`,
     list: cards,
+    rest: rest.length,
   };
 }
 
@@ -204,12 +220,33 @@ function renderDetail() {
   const flip = products?.[id] ? computeFlip(id, products[id], settings.tax / 100, settings.maxCapital, settings.share / 100, stat.median) : null;
   // the item's forge recipe, shown whatever the Forge tab's filters say
   const forged = products && forge?.[id] ? forgeFlip(id, forge[id], products, ah, baseOpts()) : null;
+  detailSuspicious = !!flip?.suspicious;
   for (const i of forged?.ingredients ?? []) i.name = nameOf(i.id);
   $('detail').innerHTML = detailView({ ...decorate({ id, sell: flip?.sell }), flip, forge: forged, ...stat, back: lastList, isFav: favs.has(id), range, points, tax: settings.tax / 100 });
   flashChanges();
 }
 
+// The context hints that fit what is on screen, most specific first. tour.js shows the first one
+// that has not been seen yet.
+function hintsNow() {
+  if (route.view === 'item') return [detailSuspicious && 'suspicious', 'detail'];
+  const v = view();
+  return [
+    ...($('settings').hidden ? [] : ['alerts', 'settings']),
+    $('search').value.trim() && otherHits > 0 && 'search',
+    document.querySelector('#radar .radar[open]') && 'radar',
+    favs.size > 0 && 'fav',
+    v === 'flips' ? 'card' : v,
+    v === 'opps' && plan?.flips.length > 0 && 'portfolio',
+  ];
+}
+
 function render() {
+  renderPage();
+  refreshHints();
+}
+
+function renderPage() {
   const item = route.view === 'item';
   // cards fade in on a normal render, but not when a swipe has just slid them into place
   document.querySelector('main').classList.toggle('sliding', switching);
@@ -230,6 +267,7 @@ function render() {
   $('portfolio').innerHTML = markup.portfolio;
   $('count').textContent = markup.count;
   $('list').innerHTML = markup.list;
+  otherHits = markup.rest;
   $('list').classList.toggle('opps', view() === 'opps');
   flashChanges();
 }
@@ -278,8 +316,16 @@ async function refreshStats() {
   render();
 }
 
+function applyMode() {
+  document.body.dataset.mode = settings.mode;
+  for (const b of document.querySelectorAll('[data-set-mode]')) b.setAttribute('aria-pressed', b.dataset.setMode === settings.mode);
+  // an option cannot be hidden by the stylesheet in every browser
+  for (const o of document.querySelectorAll('#sort .pro')) o.hidden = o.disabled = simple();
+}
+
 function applySettings() {
   save('bt.settings', settings);
+  applyMode();
   $('fav-only').setAttribute('aria-pressed', settings.favOnly);
   syncAlerts(settings, favs, names);
   recompute();
@@ -292,13 +338,30 @@ for (const key of ['tax', 'interval', 'share', 'sort', 'minVolume', 'maxCapital'
     settings[key] = key === 'sort' ? e.target.value : Math.max(0, Number(e.target.value) || 0);
     sanitize();
     e.target.value = settings[key];
+    // Simple mode has no field for the cap per flip: it follows the total capital
+    if (key === 'portfolioCapital' && simple()) $('maxCapital').value = settings.maxCapital = Math.round(settings.portfolioCapital / settings.portfolioSlots);
     applySettings();
     if (key === 'interval') schedule();
   });
 }
 $('settings').addEventListener('submit', (e) => e.preventDefault());
+$('settings').addEventListener('click', (e) => {
+  const mode = e.target.closest('[data-set-mode]')?.dataset.setMode;
+  if (!mode || mode === settings.mode) return;
+  settings.mode = mode;
+  // Simple mode offers two ways to sort; nothing else is reset
+  if (simple() && !['profitHour', 'margin'].includes(settings.sort)) $('sort').value = settings.sort = 'profitHour';
+  route = readRoute();
+  if (route.view !== 'item') lastList = route.view;
+  applySettings();
+  if (!simple()) offerAdvanced();
+});
 // toggle does not bubble, so listen in the capture phase; only the radar itself is remembered
-$('radar').addEventListener('toggle', (e) => { if (e.target.dataset.key === 'radar') save('bt.radar', e.target.open); }, true);
+$('radar').addEventListener('toggle', (e) => {
+  if (e.target.dataset.key !== 'radar') return;
+  save('bt.radar', e.target.open);
+  refreshHints();
+}, true);
 $('search').addEventListener('input', render);
 $('refresh').addEventListener('click', refresh);
 $('fav-only').addEventListener('click', () => {
@@ -309,6 +372,7 @@ $('toggle-settings').addEventListener('click', (e) => {
   const open = $('settings').hidden;
   $('settings').hidden = !open;
   e.currentTarget.setAttribute('aria-expanded', open);
+  refreshHints();
 });
 // Image errors do not bubble, so listen in the capture phase.
 document.addEventListener('error', (e) => {
@@ -354,7 +418,7 @@ document.querySelector('main').addEventListener('click', (e) => {
 });
 
 addEventListener('hashchange', () => {
-  route = parseRoute(location.hash);
+  route = readRoute();
   if (route.view !== 'item') lastList = route.view;
   recompute();
   render();
@@ -428,7 +492,7 @@ function movePage(x, animate) {
 
 // Renders the tab on one side (1 = right, -1 = left) next to the page, level with the visible part of the list.
 function showPeek(side) {
-  const tab = TABS[TABS.indexOf(view()) + side];
+  const tab = tabs()[tabs().indexOf(view()) + side];
   peek.hidden = !tab;
   if (!tab) return;
   const { list, plan: pf } = compute(tab);
@@ -466,14 +530,14 @@ page.addEventListener('touchmove', (e) => {
   if (side !== drag.side) showPeek(side);
   drag.side = side;
   drag.dx = dx;
-  movePage(dragOffset(view(), dx), false);
+  movePage(dragOffset(view(), dx, tabs()), false);
 }, { passive: true });
 function endDrag() {
   if (!drag) return;
   const { dx, side } = drag;
   drag = null;
   if (!side) return;
-  const tab = swipeTab(view(), dx, 0);
+  const tab = swipeTab(view(), dx, 0, tabs());
   if (!tab) {
     movePage(0, true);
     setTimeout(() => { if (!drag && !switching) peek.hidden = true; }, SLIDE_MS);
@@ -520,6 +584,7 @@ function sendNames() {
 }
 
 $('fav-only').setAttribute('aria-pressed', settings.favOnly);
+applyMode();
 refresh();
 refreshStats();
 loadItems().then((items) => {
@@ -539,6 +604,8 @@ initOnboarding({
   ready,
   slots: () => settings.portfolioSlots,
   forge: () => ({ hotm: settings.hotm, ah: settings.forgeAh }),
+  pro: () => !simple(),
+  hints: hintsNow,
   // the setup assistant hands over setting values; they go through the same checks as typed ones
   apply(values) {
     Object.assign(settings, values);

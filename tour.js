@@ -1,10 +1,12 @@
 // Wires the onboarding to the page: one <dialog> for windows, one overlay for the spotlight.
 import {
   currentVersion, startupAction, setupResult, tourSteps, advancedSteps,
-  welcomeHtml, newsHtml, helpHtml, advancedOfferHtml, setupFormHtml, setupSummaryHtml, bubbleHtml,
+  welcomeHtml, newsHtml, helpHtml, advancedOfferHtml, setupOfferHtml, setupFormHtml, setupSummaryHtml, bubbleHtml,
+  HINTS, HINT_IDS, PRO_OFFER, initialHints, pickHint, hintHtml,
 } from './onboarding.js';
 
 const STATE_KEY = 'bt.onboarding';
+const HINTS_KEY = 'bt.hints';
 const WAIT_MS = 1500;
 const $ = (id) => document.getElementById(id);
 
@@ -13,8 +15,12 @@ const hadData = (() => {
   try { return ['bt.settings', 'bt.favs', 'bt.items'].some((k) => localStorage.getItem(k) !== null); } catch { return false; }
 })();
 const readState = () => { try { return JSON.parse(localStorage.getItem(STATE_KEY)); } catch { return null; } };
+// Someone who opened the app before: keeps Pro mode and is not shown hints about things they know.
+export const returning = hadData || readState() !== null;
 
-let ctx;          // what app.js hands over: { native, ready, slots, forge, apply }
+let ctx;          // what app.js hands over: { native, ready, slots, forge, apply, pro, hints }
+let seen = [];    // context hints that were dismissed or covered by a tour
+let started = false; // the start window (welcome, news) has had its turn; before that no hint shows
 let log;          // changelog.json
 let run = null;   // the tour in progress: { steps, index, then, settingsWereHidden }
 let answers = {}; // the setup assistant's answers while its window is open
@@ -32,6 +38,7 @@ function sheet(html, name) {
   if (!dialog.open) dialog.showModal();
   dialog.querySelector('.primary')?.focus();
   dialog.scrollTop = 0; // focusing the button at the bottom must not hide the heading
+  refreshHints();
 }
 const closeSheet = () => $('sheet').open && $('sheet').close();
 
@@ -40,23 +47,26 @@ const showNews = (versions, options) => sheet(newsHtml(versions, options), 'news
 
 function showSetup() {
   answers = { capital: undefined, activity: 'rarely', style: 'safe', ...ctx.forge(), ...answers };
-  sheet(setupFormHtml(answers), 'setup');
+  sheet(setupFormHtml({ ...answers, pro: ctx.pro() }), 'setup');
 }
+const setupRows = () => setupResult(answers, ctx.slots(), ctx.pro());
 
 function readSetupForm() {
   const data = new FormData($('setup-form'));
   const capital = data.get('capital') === 'custom' ? Number(data.get('custom')) : Number(data.get('capital'));
-  answers = { capital, activity: data.get('activity'), style: data.get('style'), hotm: Number(data.get('hotm')), ah: data.get('ah') !== 'no' };
+  // Simple mode does not ask the forge questions; those answers stay as they were
+  answers = { capital, activity: data.get('activity'), style: data.get('style'),
+    hotm: data.has('hotm') ? Number(data.get('hotm')) : answers.hotm, ah: data.has('ah') ? data.get('ah') !== 'no' : answers.ah };
 }
 
 // ---- spotlight tour
 
 const visible = (el) => el && el.getClientRects().length > 0;
+const find = (selector) => [...document.querySelectorAll(selector)].find(visible);
 // Waits for the step's target. With several selectors the first is preferred; a later one is
 // taken only after a moment, so content that is still loading gets a chance to appear.
 function waitFor(target) {
   const selectors = [].concat(target);
-  const find = (selector) => [...document.querySelectorAll(selector)].find(visible);
   return new Promise((resolve) => {
     const start = Date.now();
     (function look() {
@@ -95,6 +105,7 @@ async function showStep() {
   const step = run.steps[run.index];
   if (step.route && location.hash !== step.route) location.hash = step.route;
   if (step.open) $('settings').hidden = false;
+  if (step.hint) markHint(step.hint);
   const stepIndex = run.index;
   const bubble = $('tour-bubble');
   // The text changes together with the spotlight, once the target is there; only the very first
@@ -117,15 +128,17 @@ async function showStep() {
   $('tour-bubble').querySelector('.primary').focus();
 }
 
-function startTour(steps, then) {
+// then runs after the last station, skipped when the tour is left early.
+function startTour(steps, then, skipped) {
   closeSheet();
-  run = { steps, index: 0, then, settingsWereHidden: $('settings').hidden, target: null };
+  run = { steps, index: 0, then, skipped, settingsWereHidden: $('settings').hidden, target: null };
   $('tour').hidden = false;
+  refreshHints();
   showStep();
 }
 
 function endTour(finished) {
-  const { then, settingsWereHidden } = run;
+  const { then, skipped, settingsWereHidden } = run;
   run = null;
   $('tour').hidden = true;
   $('tour-bubble').innerHTML = '';
@@ -134,6 +147,8 @@ function endTour(finished) {
   scrollTo(0, 0);
   markSeen();
   if (finished) then?.();
+  else skipped?.();
+  refreshHints();
 }
 
 function moveTour(by) {
@@ -144,29 +159,52 @@ function moveTour(by) {
   showStep();
 }
 
-// The basic tour ends with the offer of the advanced one. `then` runs after whichever comes last:
-// the setup assistant on a first visit, nothing when the tour was started from the help screen.
-let afterTours = null;
 const listReady = () => Promise.race([ctx.ready, new Promise((r) => setTimeout(r, 8000))]);
 
+// then: what follows the tour. On a first visit that is the setup assistant; whoever skips the tour is
+// still offered it once. From the help screen nothing follows.
 async function startBasicTour(then) {
-  afterTours = then;
   closeSheet();
   await listReady();
-  startTour(tourSteps(), () => sheet(advancedOfferHtml(), 'offer'));
+  startTour(tourSteps(), then, then && (() => sheet(setupOfferHtml(), 'offer')));
 }
 
-async function startAdvancedTour(then) {
+async function startAdvancedTour() {
   closeSheet();
   await listReady();
-  startTour(advancedSteps({ native: ctx.native }), then);
+  startTour(advancedSteps({ native: ctx.native }));
+}
+
+// The first switch to Pro mode offers the advanced tour, once.
+export function offerAdvanced() {
+  if (!ctx || seen.includes(PRO_OFFER)) return;
+  markHint(PRO_OFFER);
+  sheet(advancedOfferHtml(advancedSteps({ native: ctx.native }).length), 'offer');
+}
+
+// ---- context hints
+
+const saveSeen = () => { try { localStorage.setItem(HINTS_KEY, JSON.stringify(seen)); } catch {} };
+function markHint(id) {
+  if (seen.includes(id)) return;
+  seen.push(id);
+  saveSeen();
+}
+
+// Puts the one hint that fits the screen at its place. Never next to a window or a tour.
+// app.js calls this after every render and says which hints fit (ctx.hints).
+export function refreshHints() {
+  document.querySelectorAll('.tip').forEach((el) => el.remove());
+  if (!started || run || $('sheet').open) return;
+  const id = pickHint(ctx.hints(), seen, find);
+  if (id) find(HINTS[id].at).insertAdjacentHTML(HINTS[id].where, hintHtml(id, { native: ctx.native, pro: ctx.pro() }));
 }
 
 // "Show me" in the news window: one spotlight per entry that points at something
 function startNewsTour(versions) {
   const steps = versions.flatMap((v) => v.entries).filter((e) => e.target)
     .map((e) => ({ title: e.title, text: e.text, target: e.target, route: e.route ?? '#/flips' }));
-  startTour(steps, null);
+  startTour(steps);
 }
 
 // ---- settings: a "?" next to every option that shows its explanation
@@ -202,11 +240,22 @@ let shownNews = [];
 export async function initOnboarding(context) {
   ctx = context;
   enhanceHelp();
+  // written on the first start, so a new user is not taken for a returning one the second time
+  try { seen = JSON.parse(localStorage.getItem(HINTS_KEY)); } catch { seen = null; }
+  if (!Array.isArray(seen)) { seen = initialHints(returning); saveSeen(); }
+  document.addEventListener('click', (e) => {
+    const id = e.target.closest?.('[data-hint]')?.dataset.hint;
+    if (id) { markHint(id); refreshHints(); }
+    else if (e.target.closest?.('#settings [data-act="setup"]')) showSetup();
+  });
+  $('sheet').addEventListener('close', refreshHints);
   try {
     const res = await fetch('changelog.json');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     log = await res.json();
   } catch {
+    started = true;
+    refreshHints();
     return; // without the changelog there is no version: start the app as it is
   }
   $('version').textContent = `v${currentVersion(log)}`;
@@ -215,16 +264,17 @@ export async function initOnboarding(context) {
     const act = e.target.closest('[data-act]')?.dataset.act;
     const from = $('sheet').dataset.name;
     if (act === 'tour') startBasicTour(from === 'help' ? null : showSetup);
-    else if (act === 'tour-advanced') startAdvancedTour(from === 'offer' ? afterTours : null);
-    else if (act === 'offer-skip') { closeSheet(); afterTours?.(); }
-    else if (act === 'skip' || act === 'close') closeSheet();
+    else if (act === 'tour-advanced') startAdvancedTour();
+    else if (act === 'skip') sheet(setupOfferHtml(), 'offer');
+    else if (act === 'close') closeSheet();
+    else if (act === 'hints-reset') { seen = seen.filter((id) => !HINT_IDS.includes(id)); saveSeen(); closeSheet(); }
     else if (act === 'news-show') startNewsTour(shownNews);
     else if (act === 'setup') showSetup();
     else if (act === 'news') showNews(log.versions, { history: true });
-    else if (act === 'setup-next') { readSetupForm(); sheet(setupSummaryHtml(setupResult(answers, ctx.slots())), 'setup'); }
+    else if (act === 'setup-next') { readSetupForm(); sheet(setupSummaryHtml(setupRows()), 'setup'); }
     else if (act === 'setup-back') showSetup();
     else if (act === 'setup-apply') {
-      ctx.apply(Object.fromEntries(setupResult(answers, ctx.slots()).map((r) => [r.key, r.value])));
+      ctx.apply(Object.fromEntries(setupRows().map((r) => [r.key, r.value])));
       closeSheet();
     }
   });
@@ -247,11 +297,13 @@ export async function initOnboarding(context) {
   addEventListener('resize', again);
   addEventListener('scroll', again, { passive: true });
 
-  $('open-help').addEventListener('click', () => sheet(helpHtml(), 'help'));
+  $('open-help').addEventListener('click', () => sheet(helpHtml({ pro: ctx.pro() }), 'help'));
 
   const action = startupAction(readState(), log, hadData);
   shownNews = action.news ?? [];
   if (action.type === 'welcome') showWelcome();
   else if (action.type === 'tourOffer') showNews(action.news, { offerTour: true });
-  else if (action.type === 'whatsNew') showNews(action.news, { offerAdvanced: action.advanced });
+  else if (action.type === 'whatsNew') showNews(action.news, { offerAdvanced: action.advanced && ctx.pro() });
+  started = true;
+  refreshHints();
 }

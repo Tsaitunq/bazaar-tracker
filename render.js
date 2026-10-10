@@ -50,7 +50,7 @@ export function scoreBadge(score, provisional = false) {
   if (provisional) return '<span class="badge badge-prov">provisional</span>';
   if (score == null) return '';
   const [cls, label] = score >= 70 ? ['good', 'stable'] : score >= 40 ? ['mid', 'medium'] : ['bad', 'unstable'];
-  return `<span class="badge badge-${cls}">${label} ${Math.round(score)}</span>`;
+  return `<span class="badge badge-${cls}">${label}<span class="pro"> ${Math.round(score)}</span></span>`;
 }
 
 const gain = (v) => (v > 0 ? 'gain' : 'loss');
@@ -62,14 +62,14 @@ const LEVELS = { below: 'below normal', above: 'above normal' };
 export function trendBadge(trend, level) {
   const dir = direction(trend);
   const text = [dir, LEVELS[level]].filter(Boolean).join(' · ');
-  return text && `<span class="badge badge-trend">${dir ? ICONS[dir] : ''}${text}</span>`;
+  return text && `<span class="badge badge-trend pro">${dir ? ICONS[dir] : ''}${text}</span>`;
 }
 // f.ah: sold on the auction house; f.event: name of an event or mayor perk the item belongs to
 const badges = (f, warn) => {
   const html = (warn ? `<span class="badge badge-warn">${ICONS.warn}suspicious</span>` : '')
     + (f.ah ? '<span class="badge badge-warn">AH sale – estimate</span>' : '')
     + scoreBadge(f.score, f.provisional) + trendBadge(f.trend, f.level)
-    + (f.event ? `<span class="badge badge-event">${ICONS.event}${esc(f.event)}</span>` : '');
+    + (f.event ? `<span class="badge badge-event pro">${ICONS.event}${esc(f.event)}</span>` : '');
   return html && `<div class="badges">${html}</div>`;
 };
 // the two numbers a flip is judged by
@@ -77,9 +77,10 @@ const keyStats = (f, label = 'Profit/h') => `<div class="key">
       <div><span class="big ${gain(f.profit)}">${num(f.profitHour)}</span><span class="lbl">${label}</span></div>
       <div><span class="big">${percent.format(f.margin)}</span><span class="lbl">Margin</span></div>
     </div>`;
-const fact = (label, value, cls = '') => `<div><dt>${label}</dt><dd${cls ? ` class="${cls}"` : ''}>${value}</dd></div>`;
+// pro: a fact that Simple mode leaves out (the stylesheet hides .pro there)
+const fact = (label, value, cls = '', pro = false) => `<div${pro ? ' class="pro"' : ''}><dt>${label}</dt><dd${cls ? ` class="${cls}"` : ''}>${value}</dd></div>`;
 // sell price with its 7 day median next to it, so an unusual price stands out
-const sellFact = (f) => fact('Sell offer', num(f.sell) + (f.median > 0 ? ` <span class="normal">normal: ${num(f.median)}</span>` : ''));
+const sellFact = (f) => fact('Sell offer', num(f.sell) + (f.median > 0 ? ` <span class="normal pro">normal: ${num(f.median)}</span>` : ''));
 
 const card = (f, isFav, warn, facts, extra = '', label) => `<li class="card" data-rarity="${rarity(f.tier)}">
   ${star(f.id, f.name, isFav)}
@@ -95,8 +96,8 @@ const card = (f, isFav, warn, facts, extra = '', label) => `<li class="card" dat
 export const flipCard = (f, isFav) => card(f, isFav, f.suspicious, [
   fact('Buy order', num(f.buy)),
   sellFact(f),
-  fact('Profit/item', num(f.profit), gain(f.profit)),
-  fact('Vol./week', num(f.weekVol)),
+  fact('Profit/item', num(f.profit), gain(f.profit), true),
+  fact('Vol./week', num(f.weekVol), '', true),
 ]);
 
 // a search hit the current list does not hold; without prices only the name and the reason are left
@@ -188,8 +189,9 @@ export function radarView({ election, perks, events, vote, now, name, open = new
   <ul class="timing">${rows.map(([id, text]) => `<li><a href="${esc(itemHref(id))}">${esc(name(id))}</a> <small>${esc(text)}</small></li>`).join('')}</ul>` : '');
   const eventRows = (e) => e.items.map((id) => {
     const p = itemPattern(timing[`event:${e.key}`], id).into;
-    const hint = p.dir > 0 ? 'Buy before / Sell during' : 'Sell before / Buy during';
-    return [id, patternText(p, 'during event') + (p.confirmed ? ` · ${hint}: the 24h before the start, then the ${duration((e.end - e.start) / 1000)} it runs` : '')];
+    const runs = duration((e.end - e.start) / 1000);
+    const hint = p.dir > 0 ? `Buy in the 24h before it starts, sell during the ${runs} it runs` : `Sell in the 24h before it starts, buy during the ${runs} it runs`;
+    return [id, patternText(p, 'during event') + (p.confirmed ? ` · ${hint}` : '')];
   });
   // items of the active perks: cheaper is expected until three terms say otherwise
   const termRows = perks.flatMap((perk) => (PERK_EXPECT[perk.name]?.items ?? []).map((id) => {
@@ -249,12 +251,14 @@ export function parseRoute(hash) {
 // It has to be long enough and clearly more sideways than up or down, so scrolling the list never switches tabs.
 export const TABS = ['flips', 'opps', 'npc', 'craft', 'forge'];
 const SWIPE_MIN_PX = 60;
-export function swipeTab(view, dx, dy) {
+// tabs: the tabs on screen; Simple mode shows fewer (see tabsFor).
+export function swipeTab(view, dx, dy, tabs = TABS) {
   if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < 2 * Math.abs(dy)) return null;
-  return TABS[TABS.indexOf(view) + (dx < 0 ? 1 : -1)] ?? null;
+  return tabs[tabs.indexOf(view) + (dx < 0 ? 1 : -1)] ?? null;
 }
+export const tabsFor = (mode) => (mode === 'simple' ? TABS.slice(0, 2) : TABS);
 // How far the page follows the finger: fully towards a tab that exists, only a little at either end.
-export const dragOffset = (view, dx) => (TABS[TABS.indexOf(view) + (dx < 0 ? 1 : -1)] ? dx : dx * 0.25);
+export const dragOffset = (view, dx, tabs = TABS) => (tabs[tabs.indexOf(view) + (dx < 0 ? 1 : -1)] ? dx : dx * 0.25);
 
 const RANGES = [['24h', '24 h'], ['7d', '7 days']];
 
@@ -262,14 +266,14 @@ const RANGES = [['24h', '24 h'], ['7d', '7 days']];
 // forge is the item's forge recipe as a flip (forgeFlip, with names on the ingredients), or null.
 export function detailView({ id, name, tier, flip, forge = null, score, median, provisional, trend, level, event, back = 'flips', isFav, range, points, tax }) {
   const stat = { score, provisional, median, trend, level, event, ah: forge?.ah };
-  const forged = forge ? `<section class="forged"><h3>Forge</h3>${forge.ah ? `<p class="why">${esc(forgeNotes(forge).join(' · '))}</p>` : ''}
+  const forged = forge ? `<section class="forged pro"><h3>Forge</h3>${forge.ah ? `<p class="why">${esc(forgeNotes(forge).join(' · '))}</p>` : ''}
 <div class="summary">${keyStats(forge, 'Profit/forge hour')}<dl class="facts">${forgeFacts(forge).join('')}</dl></div>
 ${ingredientList(forge)}</section>` : '';
   const current = flip ? `<div class="summary">${keyStats(flip)}<dl class="facts">${[
     fact('Buy order', num(flip.buy)),
     sellFact({ ...flip, median }),
-    fact('Profit/item', num(flip.profit), gain(flip.profit)),
-    fact('Vol./week', num(flip.weekVol)),
+    fact('Profit/item', num(flip.profit), gain(flip.profit), true),
+    fact('Vol./week', num(flip.weekVol), '', true),
   ].join('')}</dl></div>` : '';
   const buttons = RANGES.map(([r, label]) => `<button type="button" data-range="${r}" aria-pressed="${r === range}">${label}</button>`).join('');
   const charts = points === null ? '<p class="muted">Loading history…</p>'
@@ -277,7 +281,7 @@ ${ingredientList(forge)}</section>` : '';
     : `<div class="charts"><section><h3>Prices</h3><p class="legend"><span class="buy">Buy order</span> <span class="sell">Sell offer</span></p>${lineChart([
       { label: 'Buy order', cls: 'line-a', points: points.map(([t, b]) => [t, b]) },
       { label: 'Sell offer', cls: 'line-b', points: points.map(([t, , s]) => [t, s]) },
-    ], { format: num, kind: 'coins' })}</section><section><h3>Margin</h3><p class="legend"><span class="buy">Margin after tax</span></p>${lineChart(
+    ], { format: num, kind: 'coins' })}</section><section class="pro"><h3>Margin</h3><p class="legend"><span class="buy">Margin after tax</span></p>${lineChart(
       [{ label: 'Margin', cls: 'line-a', points: marginSeries(points, tax) }], { format: (v) => percent.format(v), kind: 'percent' })}</section></div>`;
   return `<a class="back" href="#/${back}">${ICONS.back}Back</a>
 <div class="detail-head" data-rarity="${rarity(tier)}">${star(id, name, isFav)}
