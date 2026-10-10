@@ -1,4 +1,4 @@
-import { buildFlips, computeFlip, opportunities, portfolio, statOf, searchFlip, flipIssues, oppIssues, bySort } from './flips.js';
+import { buildFlips, computeFlip, opportunities, portfolio, MAX_SLOTS, statOf, searchFlip, flipIssues, oppIssues, bySort } from './flips.js';
 import { npcFlips } from './npc.js';
 import { craftFlips } from './craft.js';
 import { forgeFlips, forgeFlip } from './forge.js';
@@ -19,21 +19,21 @@ const STATS_TTL = 20 * 60000;
 const CARDS = { flips: flipCard, opps: flipCard, npc: npcCard, craft: craftCard, forge: forgeCard };
 const DEFAULTS = { tax: 1.25, minVolume: 100000, maxCapital: 5000000, interval: 2, share: 5, sort: 'profitHour', favOnly: false, alerts: false, alertMargin: 5,
   marketAlerts: false, marketMargin: 10, marketMinVolume: 100000, marketMinProfit: 100000, marketCooldown: 6, eventAlerts: false, mayorAlerts: false,
-  portfolioCapital: 50000000, portfolioSlots: 10, portfolioMargin: 3, hotm: 10, forgeAh: true };
+  portfolioCapital: 50000000, portfolioSlots: MAX_SLOTS, portfolioMargin: 3, portfolioTurnover: 1000000000, hotm: 10, forgeAh: true };
 
 const $ = (id) => document.getElementById(id);
 const load = (key, fallback) => { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } };
 const save = (key, value) => { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} };
 
 // the fields of the panel; they take effect together, on Apply
-const FIELDS = ['tax', 'interval', 'share', 'minVolume', 'maxCapital', 'alertMargin', 'marketMargin', 'marketMinVolume', 'marketMinProfit', 'marketCooldown', 'portfolioCapital', 'portfolioSlots', 'portfolioMargin', 'hotm'];
+const FIELDS = ['tax', 'interval', 'share', 'minVolume', 'maxCapital', 'alertMargin', 'marketMargin', 'marketMinVolume', 'marketMinProfit', 'marketCooldown', 'portfolioCapital', 'portfolioSlots', 'portfolioMargin', 'portfolioTurnover', 'hotm'];
 const settings = { ...DEFAULTS, ...load('bt.settings', {}) };
 // A stored interval of 0 would refresh in a tight loop, so bad values fall back to defaults.
 function sanitize() {
   for (const key of ['tax', 'interval', 'sort']) {
     if (![...$(key).options].some((o) => o.value === String(settings[key]))) settings[key] = DEFAULTS[key];
   }
-  for (const key of ['minVolume', 'maxCapital', 'marketMinVolume', 'marketMinProfit', 'portfolioCapital']) {
+  for (const key of ['minVolume', 'maxCapital', 'marketMinVolume', 'marketMinProfit', 'portfolioCapital', 'portfolioTurnover']) {
     if (!(settings[key] >= 0)) settings[key] = DEFAULTS[key];
   }
   if (!(settings.share > 0 && settings.share <= 100)) settings.share = DEFAULTS.share;
@@ -45,8 +45,9 @@ function sanitize() {
   settings.marketAlerts = settings.marketAlerts === true;
   settings.eventAlerts = settings.eventAlerts === true;
   settings.mayorAlerts = settings.mayorAlerts === true;
-  settings.portfolioSlots = Math.floor(settings.portfolioSlots);
-  if (!(settings.portfolioSlots >= 1 && settings.portfolioSlots <= 50)) settings.portfolioSlots = DEFAULTS.portfolioSlots;
+  // more than the bazaar's 21 orders (older versions took up to 50) becomes 21
+  settings.portfolioSlots = Math.min(MAX_SLOTS, Math.floor(settings.portfolioSlots));
+  if (!(settings.portfolioSlots >= 1)) settings.portfolioSlots = DEFAULTS.portfolioSlots;
   settings.hotm = Math.floor(settings.hotm);
   if (!(settings.hotm >= 0 && settings.hotm <= 10)) settings.hotm = DEFAULTS.hotm;
   settings.forgeAh = settings.forgeAh !== false;
@@ -121,8 +122,9 @@ function compute(v) {
   else if (v === 'opps') {
     const conditions = oppOpts();
     list = opportunities(products, conditions);
-    // the plan has its own, lower margin floor: items that trade a lot rarely have a high margin
-    pf = portfolio(products, { ...conditions, minMargin: settings.portfolioMargin / 100, capital: settings.portfolioCapital, slots: settings.portfolioSlots });
+    // The plan has its own floors: a lower margin, because items that trade a lot rarely have a high one,
+    // and the week's turnover in coins instead of units, so expensive items can take part.
+    pf = portfolio(products, { ...conditions, minMargin: settings.portfolioMargin / 100, minTurnover: settings.portfolioTurnover, capital: settings.portfolioCapital, slots: settings.portfolioSlots });
   }
   else if (v === 'npc') list = npcFlips(products, npc, opts);
   else if (v === 'forge') list = forge ? forgeFlips(products, forge, ah, opts) : [];

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { searchFlip, flipIssues, oppIssues, portfolio, opportunities, computeFlip, buildFlips, bookPrices, statOf, MEDIAN_SPIKE, PROVISIONAL_HOURS, STABLE } from '../flips.js';
+import { searchFlip, flipIssues, oppIssues, portfolio, MAX_SLOTS, PLAN_MIN_HOUR_SALES, opportunities, computeFlip, buildFlips, bookPrices, statOf, MEDIAN_SPIKE, PROVISIONAL_HOURS, STABLE } from '../flips.js';
 
 const product = (buy, sell, qs = {}) => ({
   sell_summary: buy == null ? [] : [{ pricePerUnit: buy }],
@@ -237,16 +237,49 @@ test('portfolio says what keeps capital unused', () => {
   assert.deepEqual(stakes(portfolio(PLAN, { ...planOpts, slots: 1 })), [['DEEP', 200e6]]);
 });
 
-test('portfolio: the hint for more parallel flips stops at 50', () => {
-  // 60 items that each take 1M: 10 slots use 10M, and 50 is the most the settings accept
+test('portfolio never counts on more than the 21 orders the bazaar allows', () => {
+  assert.equal(MAX_SLOTS, 21);
+  // 60 items that each take 1M: 10 flips use 10M, and the hint stops at 21
   const products = Object.fromEntries(Array.from({ length: 60 }, (_, i) => [`I${i}`, product(100, 120)]));
   const plan = portfolio(products, { ...planOpts, stats: planStats(products) });
   assert.deepEqual([plan.flips.length, plan.used, plan.limit], [10, 10e6, 'slots']);
-  assert.deepEqual([plan.more.slots, plan.more.used], [50, 50e6]);
-  near(plan.more.profitHour, 50 * 10000 * 18.5);
-  // already at 50: still the limit, but there is nothing to suggest
-  const full = portfolio(products, { ...planOpts, stats: planStats(products), slots: 50 });
-  assert.deepEqual([full.limit, full.more], ['slots', null]);
+  assert.deepEqual([plan.more.slots, plan.more.used], [21, 21e6]);
+  near(plan.more.profitHour, 21 * 10000 * 18.5);
+  // already at 21: still the limit, but there is nothing to raise
+  const full = portfolio(products, { ...planOpts, stats: planStats(products), slots: 21 });
+  assert.deepEqual([full.flips.length, full.limit, full.more], [21, 'slots', null]);
+});
+
+test('portfolio picks the flips that earn the most together when capital is short', () => {
+  const niche = { buyMovingWeek: 168000, sellMovingWeek: 168000 }; // 1,000 an hour: takes 100k
+  const products = {
+    BIGA: product(1000, 1100), // 8.6% return, could take all of the 1M alone: 86,250/h
+    BIGB: product(1000, 1090), // 7.6% return, the same size: 76,375/h
+    N1: product(100, 150, niche), // 48% return, but only 48,125/h
+    N2: product(100, 149, niche),
+  };
+  const opts = { ...planOpts, stats: planStats(products), minMargin: 0.03, slots: 2 };
+  const plan = portfolio(products, { ...opts, capital: 1e6 });
+  // by profit per hour alone the two flips would be BIGA and BIGB: BIGA takes everything, 86,250/h.
+  // BIGA with the best niche earns more: 100k at 48% and the other 900k at 8.6%
+  assert.deepEqual(stakes(plan), [['BIGA', 900000], ['N1', 100000]]);
+  near(plan.profitHour, 900 * 86.25 + 1000 * 48.125);
+  // with capital to spare, big volume comes before big margin
+  assert.deepEqual(stakes(portfolio(products, { ...opts, capital: 100e6 })), [['BIGA', 10e6], ['BIGB', 10e6]]);
+});
+
+test('portfolio measures volume in coins per week, so expensive items can take part', () => {
+  const week = (perHour) => ({ buyMovingWeek: perHour * 168, sellMovingWeek: perHour * 168 });
+  const products = {
+    PRICEY: product(2e6, 2.3e6, week(30)),                     // 5,040 a week, worth 10B
+    CHEAP: product(10, 12, week(1000)),                        // 168,000 a week, worth 1.7M
+    RARE: product(2e6, 2.3e6, week(PLAN_MIN_HOUR_SALES - 1)),  // worth 3B, but not sold often enough
+  };
+  // the unit filter of the Opportunities list does not count for the plan
+  const opts = { ...planOpts, stats: planStats(products), minVolume: 100000 };
+  assert.deepEqual(stakes(portfolio(products, { ...opts, minTurnover: 1e9 })), [['PRICEY', 60e6]]);
+  assert.deepEqual(stakes(portfolio(products, { ...opts, minTurnover: 0 })), [['PRICEY', 60e6], ['CHEAP', 10000]]);
+  assert.deepEqual(opportunities(products, { ...opts, sort: 'profitHour' }).map((f) => f.id), ['CHEAP']);
 });
 
 test('a lower margin floor lets items with more volume into the portfolio', () => {

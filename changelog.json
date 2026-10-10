@@ -1,6 +1,16 @@
 {
   "versions": [
     {
+      "version": "6.5.0",
+      "date": "2026-10-10",
+      "entries": [
+        { "title": "Max. flips, up to 21", "text": "Parallel flips is now Max. flips and stops at 21, because the bazaar allows 21 open orders. A higher value you had set became 21.", "target": "#portfolio .portfolio", "route": "#/opps" },
+        { "title": "Better choice of flips", "text": "The portfolio now picks the flips that earn the most together, so a small budget is no longer spent on a few big items when more flips would earn more.", "target": "#portfolio .portfolio", "route": "#/opps" },
+        { "title": "Flips in use", "text": "The portfolio shows how many of your flips it uses, and at 21 flips it says how much the market can take right now.", "target": "#portfolio .portfolio", "route": "#/opps" },
+        { "title": "Expensive items in the portfolio", "text": "The portfolio now asks for a minimum turnover in coins per week instead of a number of items, so pricey items that sell steadily can get a stake.", "target": "#portfolio .portfolio", "route": "#/opps" }
+      ]
+    },
+    {
       "version": "6.4.0",
       "date": "2026-10-10",
       "entries": [

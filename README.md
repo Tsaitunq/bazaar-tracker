@@ -64,7 +64,7 @@ score      = round(100 × profitable × max(0, 1 − 2 × volatility))
 
 An opportunity has to pass every check: minimum margin, a stable score, not suspicious, not provisional, minimum weekly volume, minimum profit per hour, and a buy price within your capital limit.
 
-The portfolio gives its slots (parallel flips) to the flips that can earn the most per hour and fills the best return per coin first. A flip gets as much as the item trades at your market share, never more than your max. capital per flip. It has its own minimum margin (3% by default); stable, not suspicious and not provisional stay required. If capital is left over, a note names the limit.
+The bazaar allows 21 open orders, so the portfolio holds at most 21 flips (Max. flips). It picks the set that earns the most per hour together and fills the best return per coin first. A flip gets as much as the item trades at your market share, never more than your max. capital per flip. It has its own minimum margin (3% by default) and measures volume as turnover in coins per week (1B by default) instead of units, with at least about 10 sales an hour; stable, not suspicious and not provisional stay required. If capital is left over, a note names the limit.
 
 ### NPC and craft flips
 
