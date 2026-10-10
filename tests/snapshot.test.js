@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { runSnapshot, runExtras, retry } from '../scripts/snapshot.mjs';
+import { restoreTiming, backupTiming } from '../scripts/timing-backup.mjs';
 import { itemIds, lowestBins, fetchLowestBins } from '../scripts/auctions.mjs';
 import { compactElection } from '../scripts/election.mjs';
 import { shardOf, dayKey } from '../history.js';
@@ -70,6 +71,39 @@ test('timing.json: medians around an event are added, earlier runs are kept', ()
   fs.writeFileSync(path.join(dir, 'timing.json'), '{"r":');
   assert.throws(() => runSnapshot(dir, candy(90), start + 80 * 60000));
   assert.equal(fs.readFileSync(path.join(dir, 'timing.json'), 'utf8'), '{"r":');
+}));
+
+test('timing backup: one dated copy per week, restore takes the newest readable one', () => withDir((dir) => {
+  const data = path.join(dir, 'data');
+  const backup = path.join(dir, 'backup');
+  const day = 86400000;
+  const timing = (t) => JSON.stringify({ t, r: { 'event:spooky': [] } });
+  // nothing to restore from and nothing to copy yet
+  assert.equal(restoreTiming(data, backup), null);
+  assert.equal(backupTiming(data, backup, T0), null);
+
+  fs.mkdirSync(data);
+  fs.writeFileSync(path.join(data, 'timing.json'), timing(1));
+  assert.equal(backupTiming(data, backup, T0), 'timing-2026-10-09.json');
+  fs.writeFileSync(path.join(data, 'timing.json'), timing(2));
+  assert.equal(backupTiming(data, backup, T0 + 6 * day), null);
+  assert.equal(backupTiming(data, backup, T0 + 7 * day), 'timing-2026-10-16.json');
+  assert.deepEqual(fs.readdirSync(backup).sort(), ['timing-2026-10-09.json', 'timing-2026-10-16.json']);
+  // a good file is left alone
+  assert.equal(restoreTiming(data, backup), null);
+  assert.equal(readJson(data, 'timing.json').t, 2);
+
+  // broken: not copied, and replaced by the newest backup
+  fs.writeFileSync(path.join(data, 'timing.json'), '{"r":');
+  assert.equal(backupTiming(data, backup, T0 + 30 * day), null);
+  assert.equal(restoreTiming(data, backup), 'timing-2026-10-16.json');
+  assert.equal(readJson(data, 'timing.json').t, 2);
+
+  // missing, and the newest backup is broken itself: the one before it is used
+  fs.rmSync(path.join(data, 'timing.json'));
+  fs.writeFileSync(path.join(backup, 'timing-2026-10-16.json'), '');
+  assert.equal(restoreTiming(data, backup), 'timing-2026-10-09.json');
+  assert.equal(readJson(data, 'timing.json').t, 1);
 }));
 
 // an item as the auctions endpoint sends it: gzipped NBT with the SkyBlock id in a string tag named "id"
