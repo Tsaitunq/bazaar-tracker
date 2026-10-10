@@ -1,6 +1,15 @@
 {
   "versions": [
     {
+      "version": "5.1.0",
+      "date": "2026-10-10",
+      "entries": [
+        { "title": "Event timing", "text": "The event radar now learns what prices did around past events: once an item moved the same way three times, it says how much it usually changes and when to buy and sell. Based on past events, not a guarantee.", "target": "#radar .radar" },
+        { "title": "Mayor terms", "text": "Below the mayor you see which items are expected to be cheaper while their perks are active and why, and after three terms what really happened.", "target": "#radar .radar" },
+        { "title": "Event alerts in the app", "text": "The Android app can notify you about three hours before an event with a confirmed pattern and when a new mayor takes office. Both switches are in the settings and off by default.", "target": "#toggle-settings" }
+      ]
+    },
+    {
       "version": "5.0.1",
       "date": "2026-10-10",
       "entries": [

@@ -5,6 +5,7 @@ import { recipesStale, refreshRecipes } from './recipes.mjs';
 import { fetchLowestBins } from './auctions.mjs';
 import { compactElection } from './election.mjs';
 import { trendSlope } from '../trends.js';
+import { updateTiming } from '../timing.js';
 import { SHARDS, KEEP_DAYS, shardOf, dayKey, dayKeys, compactPrices, appendSnapshot, seriesFor, itemStats } from '../history.js';
 
 const readChunk = (file) => (fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : null);
@@ -38,6 +39,10 @@ export function runSnapshot(dataDir, products, nowMs) {
   fs.writeFileSync(path.join(dataDir, 'stats.json'), JSON.stringify({ t: tMin, i: stats }));
   // app versions before 3 read only this file
   fs.writeFileSync(path.join(dataDir, 'scores.json'), JSON.stringify({ t: tMin, s: scores }));
+  // kept for good, unlike the snapshots; a broken file stops the run here instead of being overwritten
+  const timingFile = path.join(dataDir, 'timing.json');
+  const election = readChunk(path.join(dataDir, 'election.json'));
+  fs.writeFileSync(timingFile, JSON.stringify(updateTiming(readChunk(timingFile), election, (id) => seriesFor(chunks, id), nowMs)));
   return { day, count: Object.keys(prices).length };
 }
 

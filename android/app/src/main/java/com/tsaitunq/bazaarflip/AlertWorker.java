@@ -15,6 +15,7 @@ import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
 import com.tsaitunq.bazaarflip.AlertLogic.Flip;
+import com.tsaitunq.bazaarflip.AlertLogic.Notice;
 import com.tsaitunq.bazaarflip.AlertLogic.Product;
 import com.tsaitunq.bazaarflip.AlertLogic.Stat;
 
@@ -38,17 +39,21 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Periodic check with two independent parts: favourites that newly reach their minimum margin,
- * and market-wide opportunities that newly meet every market alert condition.
+ * Periodic check with three independent parts: favourites that newly reach their minimum margin,
+ * market-wide opportunities that newly meet every market alert condition, and notices about
+ * events and mayors that the snapshot run prepared.
  */
 public class AlertWorker extends Worker {
     private static final String API = "https://api.hypixel.net/v2/skyblock/bazaar";
+    private static final String TIMING = "https://raw.githubusercontent.com/Tsaitunq/bazaar-tracker/data/timing.json";
     private static final String STATS = "https://raw.githubusercontent.com/Tsaitunq/bazaar-tracker/data/stats.json";
     private static final int TIMEOUT_MS = 30_000;
     private static final long HOUR_MS = 3_600_000L;
     // channel id, channel name, notification id
     private static final Object[] FAVORITES = { "flips", R.string.alert_channel, 1 };
     private static final Object[] MARKET = { "market", R.string.market_channel, 2 };
+    private static final Object[] EVENT = { "timing", R.string.timing_channel, 3 };
+    private static final Object[] MAYOR = { "timing", R.string.timing_channel, 4 };
 
     private interface Parser<T> {
         T parse(Reader reader) throws IOException;
@@ -68,6 +73,16 @@ public class AlertWorker extends Worker {
             JSONObject market = config.optJSONObject("market");
             boolean favoritesOn = config.optBoolean("enabled") && favs != null && favs.length() > 0;
             boolean marketOn = market != null && market.optBoolean("enabled");
+            JSONObject timing = config.optJSONObject("timing");
+            boolean eventsOn = timing != null && timing.optBoolean("events");
+            boolean mayorOn = timing != null && timing.optBoolean("mayor");
+            if (eventsOn || mayorOn) {
+                try {
+                    checkTiming(prefs, eventsOn, mayorOn);
+                } catch (IOException e) {
+                    // A notice is due for hours; the next round shows it.
+                }
+            }
             if (!favoritesOn && !marketOn) return Result.success();
 
             double tax = config.optDouble("tax", 0.0125);
@@ -134,6 +149,21 @@ public class AlertWorker extends Worker {
         String route = dueFlips.size() == 1 ? "#/item/" + Uri.encode(dueFlips.get(0).id) : "#/opps";
         show(MARKET, AlertLogic.marketTitle(dueFlips.size()),
             AlertLogic.marketLines(dueFlips, AlertsPlugin.names(getApplicationContext())), route);
+    }
+
+    private void checkTiming(SharedPreferences prefs, boolean events, boolean mayor) throws IOException {
+        List<Notice> all = fetch(TIMING, AlertLogic::readNotices);
+        Set<String> shown = prefs.getStringSet(AlertsPlugin.KEY_TIMING_SHOWN, Collections.emptySet());
+        List<Notice> due = AlertLogic.dueNotices(all, events, mayor, shown, System.currentTimeMillis());
+        // only notices that are still in the file are remembered, so the set stays small
+        Set<String> keep = new HashSet<>();
+        for (Notice n : all) if (shown.contains(n.key)) keep.add(n.key);
+        for (Notice n : due) keep.add(n.key);
+        prefs.edit().putStringSet(AlertsPlugin.KEY_TIMING_SHOWN, keep).apply();
+        Map<String, String> names = AlertsPlugin.names(getApplicationContext());
+        for (Notice n : due) {
+            show(n.kind.equals("mayor") ? MAYOR : EVENT, n.title, AlertLogic.noticeLines(n, names), "#/flips");
+        }
     }
 
     static Map<String, String> strings(JSONObject object) {

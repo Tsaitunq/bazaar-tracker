@@ -50,6 +50,7 @@ public class AlertsPlugin extends Plugin {
     static final String KEY_ABOVE = "above";
     static final String KEY_MARKET_QUALIFIED = "marketQualified";
     static final String KEY_MARKET_NOTIFIED = "marketNotified";
+    static final String KEY_TIMING_SHOWN = "timingShown";
     static final String EXTRA_ROUTE = "route";
     private static final String NAMES_FILE = "names.json";
     private static final String WORK = "bazaar-alerts";
@@ -77,6 +78,8 @@ public class AlertsPlugin extends Plugin {
         boolean enabled = Boolean.TRUE.equals(call.getBoolean("enabled", false));
         JSObject market = call.getObject("market", new JSObject());
         boolean marketEnabled = market.optBoolean("enabled");
+        JSObject timing = call.getObject("timing", new JSObject());
+        boolean timingEnabled = timing.optBoolean("events") || timing.optBoolean("mayor");
         JSONObject favs = new JSONObject();
         JSArray list = call.getArray("favs", new JSArray());
         try {
@@ -89,11 +92,13 @@ public class AlertsPlugin extends Plugin {
                 .put("minMargin", call.getDouble("minMargin", 0.05))
                 .put("tax", call.getDouble("tax", 0.0125))
                 .put("favs", favs)
-                .put("market", market);
+                .put("market", market)
+                .put("timing", timing);
             SharedPreferences.Editor edit = prefs(getContext()).edit().putString(KEY_CONFIG, config.toString());
             // Forget the last result when switched off, so switching on again reports current hits.
             if (!enabled) edit.remove(KEY_ABOVE);
             if (!marketEnabled) edit.remove(KEY_MARKET_QUALIFIED).remove(KEY_MARKET_NOTIFIED);
+            if (!timingEnabled) edit.remove(KEY_TIMING_SHOWN);
             edit.apply();
         } catch (JSONException e) {
             call.reject("invalid alert configuration", e);
@@ -101,7 +106,7 @@ public class AlertsPlugin extends Plugin {
         }
 
         WorkManager work = WorkManager.getInstance(getContext());
-        boolean scheduled = (enabled && favs.length() > 0) || marketEnabled;
+        boolean scheduled = (enabled && favs.length() > 0) || marketEnabled || timingEnabled;
         if (scheduled) {
             // 15 minutes is the shortest period Android allows; KEEP leaves a running schedule untouched.
             PeriodicWorkRequest request = new PeriodicWorkRequest.Builder(AlertWorker.class, 15, TimeUnit.MINUTES)

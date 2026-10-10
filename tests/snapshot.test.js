@@ -8,6 +8,7 @@ import { runSnapshot, runExtras, retry } from '../scripts/snapshot.mjs';
 import { itemIds, lowestBins, fetchLowestBins } from '../scripts/auctions.mjs';
 import { compactElection } from '../scripts/election.mjs';
 import { shardOf, dayKey } from '../history.js';
+import { skyTime } from '../events.js';
 
 const prod = () => ({ sell_summary: [{ pricePerUnit: 100 }], buy_summary: [{ pricePerUnit: 200 }] });
 const T0 = Date.UTC(2026, 9, 9, 12);
@@ -56,6 +57,21 @@ test('stats.json has score, median and hours; scores.json is still written', () 
   assert.equal(readJson(dir, 'scores.json').s.X, 100);
 }));
 
+test('timing.json: medians around an event are added, earlier runs are kept', () => withDir((dir) => {
+  const start = skyTime(519, 7, 29); // Spooky Festival
+  const candy = (price) => ({ GREEN_CANDY: { sell_summary: [{ pricePerUnit: 1 }], buy_summary: [{ pricePerUnit: price }] } });
+  fs.writeFileSync(path.join(dir, 'timing.json'), JSON.stringify({ t: 1, r: { 'event:spooky': [{ s: 5, e: 6, b: 4, a: 7, p: { GREEN_CANDY: [1, 2, 3] } }] } }));
+  runSnapshot(dir, candy(100), start - 20 * 60000);
+  runSnapshot(dir, candy(140), start + 20 * 60000);
+  runSnapshot(dir, candy(90), start + 60 * 60000);
+  const runs = readJson(dir, 'timing.json').r['event:spooky'];
+  assert.deepEqual(runs.map((r) => r.p.GREEN_CANDY), [[1, 2, 3], [100, 140, null]]);
+  // a file that cannot be read is not replaced by an empty one
+  fs.writeFileSync(path.join(dir, 'timing.json'), '{"r":');
+  assert.throws(() => runSnapshot(dir, candy(90), start + 80 * 60000));
+  assert.equal(fs.readFileSync(path.join(dir, 'timing.json'), 'utf8'), '{"r":');
+}));
+
 // an item as the auctions endpoint sends it: gzipped NBT with the SkyBlock id in a string tag named "id"
 const nbt = (id, extra = '') => zlib.gzipSync(Buffer.concat([
   Buffer.from([10, 0, 0, 2, 0, 2, 0x69, 0x64, 1, 21]), // the numeric minecraft id comes first and is not a string
@@ -97,6 +113,7 @@ test('compactElection keeps mayor, perks and minister without colour codes', () 
   const e = compactElection(election, 5);
   assert.equal(e.t, 5);
   assert.equal(e.mayor.name, 'Paul');
+  assert.equal(e.mayor.year, 518);
   assert.deepEqual(e.mayor.perks[0], { name: 'Marauder', text: 'Dungeon reward chests are 20% cheaper.' });
   assert.equal(e.mayor.minister.name, 'Cole');
   assert.equal(e.mayor.minister.perk.name, 'Mining Fiesta');

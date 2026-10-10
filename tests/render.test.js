@@ -269,6 +269,22 @@ test('radar: unfolded parts stay open, a running election lists its candidates',
   assert.ok(voting.indexOf('Diana') < voting.indexOf('Cole') && voting.includes('75%') && voting.includes('Pet XP Buff'));
 });
 
+test('radar: price patterns per item, expectations for the mayor, and never a promise', () => {
+  const runs = (id, during) => [1, 2, 3].map(() => ({ p: { [id]: [100, during, 100] } }));
+  const plain = radar();
+  assert.ok(plain.includes('Based on past events, not a guarantee.'));
+  assert.ok(plain.includes('<small>not enough data yet (0/3)</small>'));
+  assert.ok(plain.includes('Cheaper during Paul:') && !plain.includes('More expensive during Paul:'));
+  assert.ok(plain.includes('href="#/item/RECOMBOBULATOR_3000"') && plain.includes('Expected: dungeon reward chests cost 20% less · not enough data yet (0/3)'));
+  const learned = radar({ timing: { 'event:spooky': runs('GREEN_CANDY', 112), 'perk:Marauder': runs('RECOMBOBULATOR_3000', 90), 'perk:Mining Fiesta': runs('REFINED_MINERAL', 130) } });
+  assert.ok(learned.includes('Usually +12% during event (seen 3 times) · Buy before / Sell during: the 24h before the start, then the 1h it runs'));
+  assert.ok(learned.includes('Usually −10% during term (seen 3 times) · Buy during term, sell after'));
+  assert.ok(learned.includes('More expensive during Paul:') && learned.includes('Usually +30% during term (seen 3 times) · Buy before term'));
+  assert.ok(learned.indexOf('More expensive during Paul:') < learned.indexOf('Usually +30%'));
+  const falling = radar({ timing: { 'event:spooky': runs('GREEN_CANDY', 80) } });
+  assert.ok(falling.includes('Usually −20% during event (seen 3 times) · Sell before / Buy during'));
+});
+
 test('radar without mayor data still shows the events', () => {
   const html = radar({ election: null, perks: [] });
   assert.ok(html.includes('Mayor data is not available') && html.includes('Spooky Festival'));

@@ -1,7 +1,8 @@
 import { lineChart } from './chart.js';
 import { marginSeries } from './history.js';
 import { direction } from './trends.js';
-import { skyDate, MONTHS, PERK_ITEMS, DAY_MS } from './events.js';
+import { skyDate, MONTHS, PERK_ITEMS, PERK_EXPECT, DAY_MS } from './events.js';
+import { itemPattern, patternText } from './timing.js';
 
 export const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
@@ -175,13 +176,28 @@ export function portfolioView(plan, { capital, slots, sharePercent }) {
 // The mayor and event radar above every list. Folded it is one line; unfolded it lists the mayor's
 // perks, the election and the events, each of which unfolds to its details.
 // perks: activePerks(); events: upcoming(); vote: electionWindow(); name(id): an item's name;
-// open: keys of the parts that are unfolded.
-export function radarView({ election, perks, events, vote, now, name, open = new Set() }) {
+// open: keys of the parts that are unfolded; timing: past runs per event and perk (timing.js).
+export function radarView({ election, perks, events, vote, now, name, open = new Set(), timing = {} }) {
   const until = (t) => duration(Math.ceil(Math.max(0, t - now) / 60000) * 60);
   const affected = (ids) => (ids?.length
     ? `<p class="affected"><span class="muted">Typically affected:</span> ${ids.map((id) => `<a href="${esc(itemHref(id))}">${esc(name(id))}</a>`).join(', ')}</p>` : '');
   const row = (key, title, side, body) => `<li><details data-key="${esc(key)}"${open.has(key) ? ' open' : ''}>
     <summary><span>${esc(title)}</span> <span class="side">${esc(side)}</span></summary>${body}</details></li>`;
+  // one item per line with what its price did in past runs
+  const priced = (label, rows) => (rows.length ? `<p class="muted">${esc(label)}</p>
+  <ul class="timing">${rows.map(([id, text]) => `<li><a href="${esc(itemHref(id))}">${esc(name(id))}</a> <small>${esc(text)}</small></li>`).join('')}</ul>` : '');
+  const eventRows = (e) => e.items.map((id) => {
+    const p = itemPattern(timing[`event:${e.key}`], id).into;
+    const hint = p.dir > 0 ? 'Buy before / Sell during' : 'Sell before / Buy during';
+    return [id, patternText(p, 'during event') + (p.confirmed ? ` · ${hint}: the 24h before the start, then the ${duration((e.end - e.start) / 1000)} it runs` : '')];
+  });
+  // items of the active perks: cheaper is expected until three terms say otherwise
+  const termRows = perks.flatMap((perk) => (PERK_EXPECT[perk.name]?.items ?? []).map((id) => {
+    const p = itemPattern(timing[`perk:${perk.name}`], id).into;
+    const text = p.confirmed ? `${patternText(p, 'during term')} · ${p.dir > 0 ? 'Buy before term' : 'Buy during term, sell after'}`
+      : `${p.dir > 0 ? '' : `Expected: ${PERK_EXPECT[perk.name].why} · `}${patternText(p, 'during term')}`;
+    return { up: p.dir > 0, row: [id, text] };
+  }));
   const day = (t) => { const d = skyDate(t); return `${MONTHS[d.month]} ${d.day}`; };
 
   const running = events.filter((e) => e.active);
@@ -194,7 +210,9 @@ export function radarView({ election, perks, events, vote, now, name, open = new
 
   const mayor = election ? `<p><strong>${esc(election.mayor.name)}</strong>${
     election.mayor.minister ? ` · minister ${esc(election.mayor.minister.name)}` : ''}</p>
-  <ul>${perks.map((p) => row(`perk:${p.name}`, p.name, p.by, `<p>${esc(p.text)}</p>${affected(PERK_ITEMS[p.name])}`)).join('')}</ul>`
+  <ul>${perks.map((p) => row(`perk:${p.name}`, p.name, p.by, `<p>${esc(p.text)}</p>${affected(PERK_ITEMS[p.name])}`)).join('')}</ul>
+  ${priced(`Cheaper during ${election.mayor.name}:`, termRows.filter((t) => !t.up).map((t) => t.row))}
+  ${priced(`More expensive during ${election.mayor.name}:`, termRows.filter((t) => t.up).map((t) => t.row))}`
     : '<p class="muted">Mayor data is not available right now.</p>';
 
   const total = election?.vote?.candidates.reduce((sum, c) => sum + c.votes, 0);
@@ -205,7 +223,7 @@ export function radarView({ election, perks, events, vote, now, name, open = new
 
   const list = events.map((e) => row(`event:${e.key}`, e.name, e.active ? `now · ${until(e.end)} left` : `in ${until(e.start)}`,
     `<p class="muted">${e.active ? 'Started' : 'Starts'} on ${day(e.start)} · lasts ${duration((e.end - e.start) / 1000)} (${Math.round((e.end - e.start) / DAY_MS)} SkyBlock days)${
-      e.perk ? ` · only with the ${esc(e.perk)} perk` : ''}</p>${affected(e.items)}`)).join('');
+      e.perk ? ` · only with the ${esc(e.perk)} perk` : ''}</p>${priced('Typically affected:', eventRows(e))}`)).join('');
 
   return `<details class="radar" data-key="radar"${open.has('radar') ? ' open' : ''}>
   <summary><span class="radar-title">${ICONS.event}Event radar</span> <span class="radar-line">${esc(line)}</span></summary>
@@ -215,6 +233,7 @@ export function radarView({ election, perks, events, vote, now, name, open = new
   ${votes}
   <h3>Events</h3>
   <ul>${list}</ul>
+  <p class="muted">Based on past events, not a guarantee.</p>
 </details>`;
 }
 

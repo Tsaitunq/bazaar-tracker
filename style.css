@@ -168,7 +168,9 @@ footer a { color: inherit; }
 .radar ul, .radar ol { list-style: none; margin: 0 0 8px; padding: 0; }
 .radar li { border-top: 1px solid var(--line); }
 .radar .side { float: right; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
-.radar .affected a { color: var(--event); }
+.radar .affected a, .radar .timing a { color: var(--event); }
+.radar .timing li { padding: 6px 0; }
+.radar .timing small { display: block; color: var(--muted); }
 .votes li { padding: 8px 0; }
 .votes small { display: block; color: var(--muted); font-size: 12px; }
 
