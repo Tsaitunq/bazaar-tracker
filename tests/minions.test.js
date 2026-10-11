@@ -167,3 +167,190 @@ test('Slayer requirements: Tarantula and Revenant lock below V, tier XII below I
   const hidden = rows({ spider: 0, zombie: 0, hide: true }).map((r) => r.key);
   assert.ok(!hidden.includes('tarantula') && !hidden.includes('revenant') && hidden.includes('diamond'));
 });
+
+// ---- 0.7.4: cost to craft, payback ----
+import { COSTS, costUpTo } from '../minioncosts.js';
+import { priceItems, minionRow, minionDetail } from '../minions.js';
+
+test('every minion has one recipe step per tier, and the sums match the wiki cumulative cost', () => {
+  for (const m of MINIONS) assert.equal(COSTS[m.key]?.length, m.delays.length, m.key);
+  // Clay XI: wiki "Total Cumulative Cost" 1,072 Clay Ball and 1,016 Enchanted Clay Ball (plus the shovel)
+  assert.deepEqual(costUpTo('clay', 11), { CLAY_BALL: 1072, WOODEN_SHOVEL: 1, ENCHANTED_CLAY_BALL: 1016 });
+  // Tarantula XI: the Spider Minions of the steps are written out as String and Enchanted String
+  const t = costUpTo('tarantula', 11);
+  assert.equal(t.TARANTULA_WEB, 948); assert.equal(t.TARANTULA_SILK, 889); assert.equal(t.STRING, 8384); assert.equal(t.ENCHANTED_STRING, 960);
+  assert.equal(costUpTo('tarantula', 12).GENERATOR_UPGRADE_STONE_TARANTULA_12, 1);
+  assert.equal(costUpTo('melon', 12).MELON_BLOCK, 896);
+  assert.equal(costUpTo('snow', 1) && Object.keys(costUpTo('snow', 1)).length, 0);
+});
+
+test('priceItems buys at the lowest sell offer and names what has no price', () => {
+  const products = { A: product(1, 10), B: product(5, null) };
+  // product(buy, sell): buy_summary holds the sell offers
+  const r = priceItems({ A: 3, B: 2, C: 1, COINS: 100 }, products);
+  assert.equal(r.coins, 3 * 10 + 100);
+  assert.deepEqual(r.missing, ['B', 'C']);
+});
+
+test('a minion row carries its cost and payback; upgrades and permanent fuel count', () => {
+  const products = {
+    COBBLESTONE: product(1, 2), ENCHANTED_COBBLESTONE: product(100, 200), WOODEN_PICKAXE: undefined,
+    ENCHANTED_LAVA_BUCKET: product(1, 1000), SUPER_COMPACTOR_3000: product(1, 5000),
+  };
+  const setup = { tier: 5, count: 2, fuel: 'lava', upgrades: ['compactor', 'none'] };
+  const row = minionRow(minion('cobblestone'), products, {}, setup, { tax: 0 });
+  // tier V: 1,072 Cobblestone and 8 Enchanted Cobblestone, per minion; plus the compactor and the lava bucket
+  assert.equal(row.cost.minion, 2 * (1072 * 2 + 8 * 200));
+  assert.equal(row.cost.extras, 2 * (5000 + 1000));
+  assert.equal(row.cost.total, row.cost.minion + row.cost.extras);
+  assert.deepEqual(row.cost.missing, ['WOODEN_PICKAXE']);
+  near(row.payback, row.cost.total / row.net);
+  // a minion that earns nothing never pays back
+  assert.equal(minionRow(minion('cobblestone'), {}, {}, setup, { tax: 0 }).payback, null);
+});
+
+test('the tier table has the step cost and what it pays back in', () => {
+  const products = { SNOW_BLOCK: product(1, 10), SNOW_BALL: product(100, 100), ENCHANTED_SNOW_BLOCK: product(1, 10) };
+  const d = minionDetail('snow', products, {}, { tier: 3, count: 1, fuel: 'none', upgrades: ['none', 'none'] }, { tax: 0 });
+  assert.equal(d.tiers[0].upgrade, null);
+  // tier II is as fast as tier I (13 s): it adds nothing, so it never pays back; tier III = 64 Snow Block at 10
+  assert.equal(d.tiers[1].upgrade.cost, 320);
+  assert.equal(d.tiers[1].upgrade.payback, null);
+  assert.equal(d.tiers[2].upgrade.cost, 640);
+  near(d.tiers[2].upgrade.payback, 640 / (d.tiers[2].net - d.tiers[1].net));
+});
+
+test('sorting by payback puts the shortest first and the ones that never pay back last', () => {
+  const products = {
+    SNOW_BALL: product(1, 1), COBBLESTONE: product(10, 10), COAL: product(10, 10), CLAY_BALL: product(10, 10),
+    ENCHANTED_COBBLESTONE: product(10, 10), ENCHANTED_COAL: product(10, 10), COAL_BLOCK: product(10, 10),
+  };
+  const rows = minionRows(products, {}, { tier: 2, count: 1, fuel: 'none', upgrades: ['none', 'none'], sort: 'payback' }, { tax: 0 });
+  const paid = rows.filter((r) => r.payback !== null).map((r) => r.payback);
+  assert.deepEqual(paid, [...paid].sort((a, b) => a - b));
+  assert.equal(rows.at(-1).payback, null);
+});
+
+// ---- 0.7.4: Inferno Minion ----
+import { INFERNO_FUELS, INFERNO_SPECIALTIES, INFERNO_RARE, minionLocked, gabagoolPrice } from '../minions.js';
+
+test('Inferno Minion: the wiki check, tier I makes 42.65 Crude Gabagool a day', () => {
+  const m = minion('inferno');
+  assert.equal(m.delays.length, 11);
+  // the wiki's figure is without Rising Celsius, which gives a single minion +18%
+  near(minionYield(m, { tier: 1 }).items.CRUDE_GABAGOOL / 1.18, 86400 / (2 * 1013));
+  assert.equal((86400 / (2 * 1013)).toFixed(2), '42.65');
+
+  assert.equal(minionYield(m, { tier: 11 }).storage, 960);
+  // tier 12 does not exist: the highest tier is used
+  assert.equal(minionYield(m, { tier: 12 }).tier, 11);
+  // the cost to tier XI is the wiki's cumulative table: 1,776 Molten Powder, 112 Inferno Vertex, 1 Apex
+  const c = costUpTo('inferno', 11);
+  assert.deepEqual(c, { DERELICT_ASHE: 800, BLAZE_ROD: 160, MOLTEN_POWDER: 1776, INFERNO_VERTEX: 112, INFERNO_APEX: 1 });
+});
+
+test('Inferno fuel multiplies after Rising Celsius and the upgrades; the specialty replaces 80% of the harvests', () => {
+  const m = minion('inferno');
+  const base = minionYield(m, { tier: 11, count: 1 }).items.CRUDE_GABAGOOL;
+  // legendary: 21x (the wiki's bug note), one minion adds 18% of Rising Celsius
+  const leg = minionYield(m, { tier: 11, count: 1, infFuel: 'legendary', infSpec: 'blaze' });
+  near(leg.speed, 1.18 * 21 - 1);
+  near(leg.items.CRUDE_GABAGOOL, base * 21 * 0.2);
+  near(leg.items.BLAZE_ROD, base * 21 * 0.8);
+  // ten minions reach the cap of 180%
+  near(minionYield(m, { tier: 11, count: 10, infFuel: 'rare' }).speed, 2.8 * 11 - 1);
+  near(minionYield(m, { tier: 11, count: 50, infFuel: 'rare' }).speed, 2.8 * 11 - 1);
+  // a Distillate of Crude Gabagool changes nothing about the item; a range is marked
+  const crude = minionYield(m, { tier: 1, infFuel: 'epic', infSpec: 'crude' });
+  assert.deepEqual(Object.keys(crude.items), ['CRUDE_GABAGOOL']);
+  assert.ok(minionYield(m, { tier: 1, infFuel: 'epic', infSpec: 'wart' }).unsure.some((t) => t.includes('range')));
+  // only LEGENDARY fuel has the rare drops, one roll per harvest
+  assert.ok(!('CHILI_PEPPER' in minionYield(m, { tier: 1, infFuel: 'epic' }).items));
+  const harvests = 86400 / (2 * 1013 / (1.18 * 21));
+  near(minionYield(m, { tier: 1, count: 1, infFuel: 'legendary' }).items.CHILI_PEPPER, harvests / 136);
+});
+
+test('Inferno row: fuel cost per day, rare drops, thin rare drops marked, nothing pushed down the list', () => {
+  const products = {
+    CRUDE_GABAGOOL: product(100, 100), HYPERGOLIC_GABAGOOL: product(1, 1000), INFERNO_FUEL_BLOCK: product(1, 10),
+    BLAZE_ROD_DISTILLATE: product(1, 5), HYPERGOLIC_IONIZED_CERAMICS: product(100, 100),
+    CHILI_PEPPER: { ...product(1000, 1000), quick_status: { buyMovingWeek: 5000, sellMovingWeek: 5000 } },
+    INFERNO_APEX: { ...product(1e6, 1e6), quick_status: { buyMovingWeek: 40, sellMovingWeek: 40 } },
+  };
+  const setup = { tier: 11, count: 1, fuel: 'none', upgrades: ['none', 'none'], infFuel: 'legendary', infSpec: 'crude' };
+  const row = minionRow(minion('inferno'), products, {}, setup, { tax: 0 });
+  // 1 Gabagool (nothing to craft it from here: bought) + 2 Fuel Blocks + 6 Distillates (the crude one has no
+  // price here), minus the ceramics sold at 100
+  assert.equal(row.fuelCost, 1000 + 2 * 10 - 100);
+  assert.ok(row.unsure.some((t) => t.includes('CRUDE_GABAGOOL_DISTILLATE')));
+  assert.ok(row.rare > 0);
+  const apex = row.parts.find((p) => p.id === 'INFERNO_APEX');
+  // traded 40 times a week: an AH item, shown but not priced, and it does not push the minion down the list
+  assert.equal(apex.unpriced, true);
+  assert.equal(apex.coins, 0);
+  assert.ok(row.unsure.some((t) => t.startsWith('AH item – not priced: INFERNO_APEX')));
+  assert.ok(!row.lowVolume.includes('INFERNO_APEX'));
+  assert.equal(row.parts.find((p) => p.id === 'CHILI_PEPPER').low, false);
+  // an item the wiki lists but the Bazaar does not sell is named, not guessed
+  assert.ok(row.unsure.some((t) => t.includes('GABAGOOL_THE_FISH')));
+  // without fuel there is no fuel cost and no rare drop
+  const none = minionRow(minion('inferno'), products, {}, { ...setup, infFuel: 'none' }, { tax: 0 });
+  assert.equal(none.fuelCost, 0);
+  assert.equal(none.rare, 0);
+  // the global fuel of the setup does not apply to it
+  assert.equal(minionRow(minion('inferno'), { ENCHANTED_LAVA_BUCKET: product(1, 99) }, {}, { ...setup, infFuel: 'none', fuel: 'lava' }, { tax: 0 }).cost.extras, 0);
+});
+
+test('Inferno: Blaze Slayer III, the five specialties and five rare drops are the wiki lists', () => {
+  const m = minion('inferno');
+  assert.equal(minionLocked(m, { blaze: 2, tier: 11 }), true);
+  assert.equal(minionLocked(m, { blaze: 3, tier: 11 }), false);
+  assert.deepEqual(INFERNO_FUELS.map((f) => f.speed ?? 0), [0, 10, 15, 20]);
+  assert.deepEqual(INFERNO_SPECIALTIES.map((x) => x.id), ['CRUDE_GABAGOOL', 'BLAZE_ROD', 'MAGMA_CREAM', 'NETHER_STALK', 'GLOWSTONE_DUST']);
+  assert.deepEqual(INFERNO_RARE.map((r) => r.odds), [136, 5950, 1309091, 458182, 3927273]);
+  const doc = fs.readFileSync(new URL('../docs/minions-sources.md', import.meta.url), 'utf8');
+  for (const f of INFERNO_FUELS.slice(1)) assert.ok(doc.includes(f.name), f.name);
+});
+
+test('the Inferno sheet has the fuel choice, the rare drops and the best choice', () => {
+  const products = {
+    CRUDE_GABAGOOL: product(100, 100), FUEL_GABAGOOL: product(1, 50), INFERNO_FUEL_BLOCK: product(1, 10), CRUDE_GABAGOOL_DISTILLATE: product(1, 5),
+  };
+  const d = minionDetail('inferno', products, {}, { tier: 11, count: 1, fuel: 'none', upgrades: ['none', 'none'], infFuel: 'rare', infSpec: 'crude' }, { tax: 0 });
+  assert.ok(d.inferno.best.net >= d.row.net);
+  assert.equal(d.tiers.length, 11);
+});
+
+test('Gabagool: the cheaper of buying and crafting, down the chain', () => {
+  // Fuel Gabagool: 24 Crude + 1 coal, or 1 Very Crude + 8 coal for 8 pieces
+  const p = { CRUDE_GABAGOOL: product(1, 10), SULPHURIC_COAL: product(1, 100), VERY_CRUDE_GABAGOOL: product(1, 1000), FUEL_GABAGOOL: product(1, 500) };
+  const fuel = gabagoolPrice('FUEL_GABAGOOL', p);
+  // 24 x 10 + 100 = 340; (1000 + 800) / 8 = 225; buying 500
+  assert.deepEqual([fuel.price, fuel.via, fuel.buy], [225, 'craft', 500]);
+  // Heavy: 24 Fuel + 1 coal = 24 x 225 + 100; a Bazaar price above that loses
+  const heavy = gabagoolPrice('HEAVY_GABAGOOL', { ...p, HEAVY_GABAGOOL: product(1, 99999) });
+  assert.deepEqual([heavy.price, heavy.via], [24 * 225 + 100, 'craft']);
+  // Hypergolic: 12 Heavy + 1 coal; a cheaper offer wins
+  assert.equal(gabagoolPrice('HYPERGOLIC_GABAGOOL', { ...p, HEAVY_GABAGOOL: product(1, 99999), HYPERGOLIC_GABAGOOL: product(1, 1234) }).via, 'buy');
+  // nothing priced: null, not 0
+  assert.equal(gabagoolPrice('HEAVY_GABAGOOL', {}).price, null);
+});
+
+test('Inferno boosters: Rising Celsius counts every Inferno Minion placed, the fuel is only for the working ones', () => {
+  const m = minion('inferno');
+  const one = minionYield(m, { tier: 11, count: 1, infFuel: 'rare', infCount: 1 });
+  const ten = minionYield(m, { tier: 11, count: 1, infFuel: 'rare', infCount: 10 });
+  near(one.speed, 1.18 * 11 - 1);
+  near(ten.speed, 2.8 * 11 - 1);
+  // eleven placed is the same as ten (cap), and never fewer than the working ones
+  near(minionYield(m, { tier: 11, count: 1, infFuel: 'rare', infCount: 11 }).speed, ten.speed);
+  near(minionYield(m, { tier: 11, count: 3, infFuel: 'rare', infCount: 1 }).speed, 1.54 * 11 - 1);
+  const products = { COBBLESTONE: product(1, 1), DERELICT_ASHE: product(1, 100), BLAZE_ROD: product(1, 10), CRUDE_GABAGOOL: product(1, 1) };
+  const alone = minionRow(m, products, {}, { tier: 1, count: 1, infCount: 1, upgrades: [] }, { tax: 0 });
+  const boosted = minionRow(m, products, {}, { tier: 1, count: 1, infCount: 10, upgrades: [] }, { tax: 0 });
+  // nine more minions of tier I: 80 Derelict Ashe and 80 Blaze Rod each
+  assert.equal(boosted.cost.boosters, 9 * (80 * 100 + 80 * 10));
+  assert.equal(boosted.cost.total, alone.cost.total + boosted.cost.boosters);
+  near(boosted.itemsDay / alone.itemsDay, 2.8 / 1.18);
+  assert.equal(boosted.fuelCost, 0);
+});

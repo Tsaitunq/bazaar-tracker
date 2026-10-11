@@ -307,14 +307,14 @@ $('market').addEventListener('input', (e) => {
 });
 
 // The minion setup: its own small form, stored apart from the settings because it changes nothing else.
-const MINION_FIELDS = { tier: 'm-tier', count: 'm-count', fuel: 'm-fuel', up1: 'm-up1', up2: 'm-up2', spider: 'm-spider', zombie: 'm-zombie', hide: 'm-hide' };
-const MINION_NUMBERS = ['tier', 'count', 'spider', 'zombie', 'hide'];
-const minionSetup = { tier: 11, count: 1, fuel: 'lava', up1: 'compactor', up2: 'spreading', spider: 9, zombie: 9, hide: 0, ...load('bt.minions', {}) };
+const MINION_FIELDS = { tier: 'm-tier', count: 'm-count', fuel: 'm-fuel', up1: 'm-up1', up2: 'm-up2', spider: 'm-spider', zombie: 'm-zombie', blaze: 'm-blaze', hide: 'm-hide', sort: 'm-sort' };
+const MINION_NUMBERS = ['tier', 'count', 'spider', 'zombie', 'blaze', 'hide'];
+const minionSetup = { tier: 11, count: 1, fuel: 'lava', up1: 'compactor', up2: 'spreading', spider: 9, zombie: 9, blaze: 9, hide: 0, sort: 'net', infFuel: 'none', infSpec: 'crude', infCount: 10, ...load('bt.minions', {}) };
 const options = (list) => list.map((o) => `<option value="${o.key}">${o.name}</option>`).join('');
 $('m-tier').innerHTML = Array.from({ length: MAX_TIER }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('');
 $('m-fuel').innerHTML = options(FUELS);
 $('m-up1').innerHTML = $('m-up2').innerHTML = options(UPGRADES);
-$('m-spider').innerHTML = $('m-zombie').innerHTML = Array.from({ length: 10 }, (_, i) => `<option value="${i}">${i}</option>`).join('');
+$('m-spider').innerHTML = $('m-zombie').innerHTML = $('m-blaze').innerHTML = Array.from({ length: 10 }, (_, i) => `<option value="${i}">${i}</option>`).join('');
 for (const [key, id] of Object.entries(MINION_FIELDS)) {
   $(id).value = minionSetup[key];
   // a stored value the lists no longer have falls back to the first option
@@ -336,9 +336,20 @@ function openMinion(key) {
   if (!key || !products) return;
   const detail = minionDetail(key, products, npc, minionSetupFull(), { tax: settings.tax / 100, stats });
   if (!detail) return;
-  $('minion-sheet').innerHTML = minionSheet(detail, { name: nameOf, count: Math.max(1, minionSetup.count) });
+  $('minion-sheet').innerHTML = minionSheet(detail, { name: nameOf, count: Math.max(1, minionSetup.count), setup: minionSetup });
+  $('minion-sheet').dataset.minion = key;
   openSheet($('minion-sheet'));
 }
+// the Inferno Minion's fuel and Distillate are chosen inside its sheet
+$('minion-sheet').addEventListener('change', (e) => {
+  const kind = e.target.dataset?.inferno;
+  if (!kind) return;
+  if (kind === 'placed') minionSetup.infCount = Math.min(10, Math.max(1, Math.floor(Number(e.target.value)) || 1));
+  else minionSetup[kind === 'fuel' ? 'infFuel' : 'infSpec'] = e.target.value;
+  save('bt.minions', minionSetup);
+  openMinion($('minion-sheet').dataset.minion);
+  render();
+});
 $('minion-list').addEventListener('click', (e) => openMinion(e.target.closest?.('[data-minion]')?.dataset.minion));
 // the card is a button: Enter and Space open it too
 $('minion-list').addEventListener('keydown', (e) => {
@@ -382,8 +393,8 @@ function renderArea() {
   $('tax-note').innerHTML = taxNote();
   if (area() === 'minions' && products) {
     const rows = minionRows(products, npc, { ...minionSetup, upgrades: [minionSetup.up1, minionSetup.up2], hide: minionSetup.hide === 1 }, { tax: settings.tax / 100, stats });
-    $('minion-note').textContent = `${rows.length} minions, best first · coins per day for ${minionSetup.count === 1 ? '1 minion' : `${minionSetup.count} minions`} · Bazaar = sold at once to buy orders, after tax`;
-    $('minion-list').innerHTML = rows.map(minionCard).join('');
+    $('minion-note').textContent = `${rows.length} minions, ${minionSetup.sort === 'payback' ? 'shortest payback first' : 'best first'} · coins per day for ${minionSetup.count === 1 ? '1 minion' : `${minionSetup.count} minions`} · Bazaar = sold at once to buy orders, after tax`;
+    $('minion-list').innerHTML = rows.map((r) => minionCard(r, { name: nameOf })).join('');
   }
   if (area() === 'today') {
     const now = Date.now();

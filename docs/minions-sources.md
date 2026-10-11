@@ -147,3 +147,165 @@ snapshot on 2026-10-11 (all ids used exist there).
   honestly sell for more.
 - The 20× and 30% limits are choices of this calculator (30% is the app's
   existing median limit); the wiki states none.
+
+## Crafting cost (0.7.4)
+
+`minioncosts.js`. Source: the "Crafting" and "Total Cumulative Cost" tables of
+each `<Name>_Minion` page on W (read 2026-10-11, read through a page summariser,
+so each list was checked against the page's own cumulative table, see below).
+
+- A step is what the wiki lists as the direct recipe of a tier. The minion of
+  the tier before is part of it and is not an item here; the cost up to a tier
+  is the sum of the steps, and for every minion that sum equals the wiki's
+  cumulative table (tests in `tests/minions.test.js`, Clay XI and Tarantula XI
+  as examples).
+- **Tarantula and Revenant.** The wiki recipe names "Spider Minion N" (Zombie
+  Minion N for Revenant) as an ingredient, not the previous Tarantula tier. The
+  cumulative table lists the items those minions are made of (String,
+  Enchanted String; Rotten Flesh, Enchanted Rotten Flesh), so the step is
+  written out as the direct recipe plus the difference of the cumulative
+  tables: 80, 240, 560, 1,072 String, then 1,072 String with 8, 24, 56, 120,
+  248, 504 Enchanted String.
+- **Tier XII** adds 2,000,000 Coins (Snow, Cobblestone, Coal, Diamond, Lapis,
+  Redstone, Emerald, Obsidian, Glowstone; Snow also 500 North Stars), 75 Pelts
+  (Sugar Cane, Wheat, Carrot, Potato, Melon, Pumpkin, Cactus) or an Upgrade
+  Stone (Clay, Tarantula, Revenant, Fishing). The Bazaar sells the stones as
+  GENERATOR_UPGRADE_STONE_<NAME>_12.
+- **Not on the Bazaar**, counted as 0 and shown as such: Pelt, North Star,
+  Crystallized Heart (Revenant I) and the wooden tools and Fishing Rod of
+  tier I. The card says "at least" in front of the payback when one is missing.
+- **Snow Minion I** comes from gifts; the wiki gives "upgrade cost 0 Coins".
+- **Slime** has no tier XII on its page (tiers I to XI).
+- Slime steps: the wiki writes "8x Slimeball (10 each)" for tier I; read as 8
+  stacks, 80 Slimeballs, which its cumulative table confirms.
+- **Prices.** Insta-buy = the lowest sell offer (`buy_summary[0]`). The
+  cost counts the steps up to the tier, the two upgrades (Diamond Spreading,
+  Super Compactor 3000, Flycatcher, Minion Expander; a speed upgrade chosen
+  twice counts twice) and a fuel that never runs out (the lava, magma and
+  plasma bucket), once per minion. Fuel that is used up stays in the daily net.
+- Upgrade ids for the Bazaar: DIAMOND_SPREADING, SUPER_COMPACTOR_3000,
+  FLYCATCHER_UPGRADE, MINION_EXPANDER.
+- **Payback** = total cost ÷ net coins per day. Upgrade payback = cost of the
+  step ÷ (net of the tier − net of the tier before). A tier with the same
+  speed as the one before only holds more: "no gain".
+
+## Inferno Minion (0.7.4)
+
+Pages read 2026-10-11: `Inferno_Minion` and `Inferno_Minion_Fuel` (W), and
+`Blaze_Minion`, `Magma_Cube_Minion`, `Nether_Wart_Minion` for what the
+Super Compactor 3000 makes of the Distillate items.
+
+| Minion | Time between actions (s), tier I to XI | Drops per harvest | Super Compactor 3000 | Source |
+|---|---|---|---|---|
+| Inferno Minion | 1013, 982, 950, 919, 886, 855, 823, 792, 760, 728, 697 | 1 Crude Gabagool (100%) | 192 Crude Gabagool → Very Crude Gabagool | W:Inferno Minion; storage 64, 192, 192, 384, 384, 576, 576, 768, 768, 960, 960 |
+
+The wiki gives no tier XII. Its own check: 43, 44, 45 ... 62 Crude Gabagool a
+day for tiers I to XI; 86,400 ÷ (2 × 1,013) is 42.65, the value the page
+names as the coins per day at the NPC (1 coin each), so two actions per
+harvest holds here as well. Nothing here is estimated; what the source leaves
+open is listed below and marked in the app.
+
+### Crafting (cumulative cost table checked)
+
+Tier I 80 Derelict Ashe and a Blaze Minion I (80 Blaze Rod, written out as the
+wiki's cumulative table does); II 320 Derelict Ashe; III to VIII 8, 16, 32,
+64, 128, 256 Molten Powder; IX 256 Molten Powder and 16 Inferno Vertex; X 256
+Molten Powder and 48 Inferno Vertex; XI 256 Molten Powder, 48 Inferno Vertex,
+1 Inferno Apex and an Inferno Minion VIII. The cumulative table to tier XI:
+1,776 Molten Powder, 800 Derelict Ashe, 160 Blaze Rod, 112 Inferno Vertex, 1
+Inferno Apex. That sum only works if tier XI uses the tier X **and** an Inferno
+Minion VIII (the page's bullet list says VIII, its diagram X); the cumulative
+sum is what is used, and it is marked "not confirmed" here.
+
+### Requirement
+
+Blaze Slayer III (3): "unlocks recipes", needed to craft and upgrade; the
+minion can be traded and used without it. Upgrade slots are not stated on
+the page; the rule of W:Minion (two) is used.
+
+### Fuel
+
+| Fuel | Gabagool in it | Speed (page) | Speed (page's Bugs section) |
+|---|---|---|---|
+| Rare fuel (10x) | Fuel Gabagool | 10x | 11x |
+| Epic fuel (15x) | Heavy Gabagool | 15x | 16x |
+| Legendary fuel (20x) | Hypergolic Gabagool | 20x | 21x |
+
+(The wiki's names are "RARE", "EPIC" and "LEGENDARY Inferno Minion Fuel".)
+
+- One piece lasts 24 hours; the recipe is 1 Gabagool, 2 Inferno Fuel Blocks
+  and 6 Distillates of one kind, and the Distillate sets the specialty
+  (page: "will be collected by the Minion 80% of time it makes a harvest").
+  The calculator prices the pieces at the lowest sell offer of the Bazaar items
+  FUEL_GABAGOOL, HEAVY_GABAGOOL, HYPERGOLIC_GABAGOOL, INFERNO_FUEL_BLOCK and the
+  five *_DISTILLATE items; the fuel itself is not sold on the Bazaar.
+- Specialties: Magma Cream 1 to 3, Blaze Rod 1, Nether Wart 3 to 7,
+  Glowstone Dust 2 to 3, Crude Gabagool 1. **Not confirmed:** the middle of a
+  range is used (2, 5, 2.5).
+- Compacting the specialty: Crude Gabagool 192 → Very Crude Gabagool (W:Inferno
+  Minion); Blaze Rod 160 → Enchanted Blaze Powder, and 160 of that →
+  Enchanted Blaze Rod (W:Blaze Minion); Magma Cream 160 → Enchanted Magma Cream
+  (W:Magma Cube Minion); Nether Wart 160 → Enchanted Nether Wart
+  (W:Nether Wart Minion); Glowstone Dust 160 → Enchanted Glowstone Dust.
+- Speed: the page says the fuel multiplier "is applied after the other
+  buffs", so speed = (1 + Rising Celsius + upgrades) × (1 + fuel multiplier),
+  with the effective 11x, 16x, 21x. **Not confirmed:** whether the bug note
+  still holds in the game.
+- **Rising Celsius**: "Each Inferno Minion increases the speed of ALL
+  Inferno Minions by 18%, up to 180%." History (0.13, 5 Aug 2022): "from 6% per
+  minion to 18% per minion up to 10 minions". Every Inferno Minion placed
+  counts, working or not; the app has "Inferno Minions placed" (1 to 10, default
+  10). The wiki's budget tip: nine tier I to II Inferno Minions boost the
+  highest tier one. Such boosters are counted at tier I and need no fuel.
+- **Fuel recipes** (W:Fuel Gabagool, Heavy Gabagool, Hypergolic Gabagool;
+  Sulphuric Coal): Fuel Gabagool = 24 Crude Gabagool + 1 Sulphuric Coal, or 1
+  Very Crude Gabagool + 8 Sulphuric Coal for 8; Heavy Gabagool = 24 Fuel
+  Gabagool + 1 Sulphuric Coal; Hypergolic Gabagool = 12 Heavy Gabagool + 1
+  Sulphuric Coal. The app takes the cheaper of buying and crafting at every
+  step (snapshot 2026-10-11: crafting Hypergolic costs 3.87M, buying it
+  4.40M). **Not confirmed:** the Heavy page lists 24 Fuel Gabagool but its
+  history note names a change to 12 on 4 Oct 2023; the Hypergolic page has the
+  same note for 24 to 12 Heavy. 24 is used for Heavy because the Bazaar price
+  (374k) is 24 x about 13k, not 12 x. How many pieces one craft of fuel yields
+  is not on the page; one is used. Inferno Fuel Block (Bits shop and Bazaar)
+  and the Distillates are bought.
+- Formula from the Bugs section: base action time x (1 + speed buffs) x
+  (1 + fuel multiplier); Rising Celsius and the upgrades are the speed buffs.
+- **Hypergolic Ionized Ceramics**: a piece of Legendary fuel leaves one when it
+  runs out; counted as a sale at the highest buy order, after tax, against the
+  fuel cost. (The wiki notes that before 9 April 2025 only one appeared however
+  many pieces were inserted.)
+- **Capsaicin Eyedrops** (+30% rare drops for 24 hours): not counted.
+
+### Rare drops (Legendary fuel only)
+
+"Each harvesting action rolls each drop" and "the rare drops ... rolled once
+per harvest". Chances from the Inferno Minion Fuel page:
+
+| Drop | Chance per harvest | Bazaar item |
+|---|---|---|
+| Chili Pepper | 1 in 136 (0.7353%) | CHILI_PEPPER |
+| Inferno Vertex | 1 in 5,950 | INFERNO_VERTEX |
+| Inferno Apex | 1 in 1,309,091 | INFERNO_APEX |
+| Reaper Pepper | 1 in 458,182 | REAPER_PEPPER |
+| Gabagool the Fish | 1 in 3,927,273 | not on the Bazaar |
+
+**The shifted table.** The Inferno Minion page's drop table has the same five
+numbers in the same order, but its first row ("Any LEGENDARY Inferno Minion
+Fuel", 1 in 136) has no item name in the text read, so every name below it sits
+one row off (Chili Pepper 1 in 5,950, and no row for Gabagool the Fish). The
+Fuel page names each chance directly. Check with the Bazaar volumes of
+2026-10-11 (weekly units, which follow the drop chances if Inferno Minions are
+the main source): Chili Pepper 273,245 : Inferno Vertex 6,746 is 40.5, the
+chances of the Fuel page give 5,950 / 136 = 43.8, the Minion page's labels
+would give 220; Inferno Vertex : Reaper Pepper is 71, the Fuel page gives 77.
+The assignment of the Fuel page is used; the wiki itself leaves it open
+(not confirmed), the volumes support it.
+
+**Thin rare drops are not priced.** An item the Bazaar sells fewer than 100
+times a week (the app's rule, not the wiki's) or does not sell at all is shown
+as "AH item – not priced" and left out of the coins; with the snapshot of
+2026-10-11 that is Inferno Apex (43), Reaper Pepper (95) and Gabagool the Fish.
+Capsaicin Eyedrops (+30% for Vertex, Apex, Reaper Pepper, Fish; not Chili
+Pepper) cost 2.45M for 24 hours and add about 33k a day: not worth it, not
+counted.

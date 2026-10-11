@@ -7,8 +7,8 @@ by the service worker. Source and licence: see below.
 
 ## Minion heads (stored in `icons/minions/`)
 
-21 files, `<minion key>.png`, 64 × 64 px, 4 to 8 kB each (about 125 kB in
-all). Downloaded once on 2026-10-11 from the same source as the item pictures,
+22 files, `<minion key>.png`, 64 × 64 px, 3 to 8 kB each (about 130 kB in
+all; `inferno.png` added on 2026-10-11 as `INFERNO_GENERATOR_1`). Downloaded once on 2026-10-11 from the same source as the item pictures,
 `https://sky.coflnet.com/static/icon/<NAME>_GENERATOR_1` (the tier I minion
 item of the Hypixel items API, e.g. `TARANTULA_GENERATOR_1`), unchanged. They
 are part of the app shell (`SHELL` in `sw.js`) and so of the APK.

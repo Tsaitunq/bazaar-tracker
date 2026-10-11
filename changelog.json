@@ -1,6 +1,16 @@
 {
   "versions": [
     {
+      "version": "0.7.4",
+      "date": "2026-10-11",
+      "entries": [
+        { "title": "What a minion costs", "text": "Every minion card now shows what its tier costs to craft at today's Bazaar prices, with the upgrades, and in how many days it earns that back.", "target": "#minion-list .card", "route": "#/minions" },
+        { "title": "Cost of each upgrade", "text": "The tier table in a minion's sheet shows what each step up costs and how many days the extra coins take to pay it back.", "target": "#minion-list .card", "route": "#/minions" },
+        { "title": "Sort by payback", "text": "The minion list can be sorted by the days until it pays for itself instead of by coins per day.", "target": "#m-sort", "route": "#/minions" },
+        { "title": "Inferno Minion", "text": "The Inferno Minion is new, with its own fuel and Distillate to choose in its sheet, the minions that boost it, the cheaper way to get the fuel, the rare drops of Legendary fuel and a note on which choice earns most right now.", "target": "#minion-list .card", "route": "#/minions" }
+      ]
+    },
+    {
       "version": "0.7.3",
       "date": "2026-10-11",
       "entries": [
