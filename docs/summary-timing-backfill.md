@@ -81,3 +81,62 @@ Tooth Meal, Shark Bait) fall as much or more than the raw drops.
 - Fishing Festival items: `GREAT_WHITE_TOOTH_MEAL` and `SHARK_BAIT` added
   (crafted from festival drops, on the Bazaar).
 - Changelog 0.7.3, README, APK.
+
+## Buy and sell windows (second backfill, 2026-10-11)
+
+Run again with wider windows: two days before the start to three days after
+the end, fetched in chunks of 7 days (two requests per item for a term). 1,544
+requests at one a second by a single process, no 429; the previous process was
+checked to be gone first. Result `timing-backfill.json` (182 kB, 100 runs, every
+run with a curve, 12 each; Grand Feast 3). The three medians per run are now
+the full 24 h windows, so the confirmed patterns above may differ by a point or
+two from the first run.
+
+Each run has the median price per phase (before: pre2, pre1; term: day 1 to 5;
+event: during; after: day 1 to 3). A window is the pair of a phase and a later
+one with the best typical gain after the 1.25% tax; shown above 3% and when it
+paid in two thirds of the runs that have both phases. 25 windows pass.
+
+Top 10, tax 1.25%, by typical gain after tax:
+
+| # | Item | Perk / event | Buy around | Sell around | Gain after tax | Hit rate |
+|---|---|---|---|---|---|---|
+| 1 | Necromancer's Brooch | Paul · Marauder | day 5 of the term | 3 days after the term | +160% | 10/12 |
+| 2 | Dark Orb | Paul · Marauder | day 5 of the term | 3 days after the term | +52% | 11/12 |
+| 3 | Fateful Stinger | Diana · Mythological Ritual | day 3 of the term | 2 days after the term | +35% | 8/8 |
+| 4 | Ancient Claw | Diana · Mythological Ritual | day 3 of the term | 3 days after the term | +34% | 8/11 |
+| 5 | Melon Juice | Grand Feast (Finnegan) | day 4 | 2 days after | +27% | 3/3 (3 runs only) |
+| 6 | Green Gift | Jerry's Workshop | 1 day after the event | 3 days after | +27% | 9/12 |
+| 7 | Pumpkin Guts | Spooky Festival | during the event | 2 days after | +26% | 9/11 |
+| 8 | Designer Coffee Beans | Grand Feast | 1 day after | 3 days after | +25% | 2/3 (3 runs only) |
+| 9 | White Gift | Jerry's Workshop | 1 day after the event | 3 days after | +22% | 8/12 |
+| 10 | Soul Fragment | Spooky Festival | during the event | 3 days after | +19% | 10/11 |
+
+By key: Marauder 5 windows (median +10%), Mythological Ritual 2 (+35%), Spooky
+3 (+19%), Jerry's Workshop 5 (+14%), Harvest Feast 2 (+12%), Grand Feast 7
+(+19%, 3 runs), Stock Exchange 1 (+3%).
+
+Curves worth knowing (median price relative to the day before the term):
+
+- **Marauder, Necromancer's Brooch:** 0.84, 0.67, 0.71, 0.60, 0.42 on days 1
+  to 5, then 0.59, 0.70, 0.99 on the three days after. The price keeps falling
+  to the end of the term and is back after three days. Dark Orb: low from day
+  2 (0.5 to 0.6), 0.8 three days after.
+- **Marina, Great White Shark Tooth:** 0.99, 0.84, 0.83, 0.84, 0.84 on days 1
+  to 5 and 0.87, 0.87, 0.83 after: it falls on day 2 and **stays down** for
+  the three days after. Shark Bait keeps falling (day 5: 0.40, three days
+  after: 0.17), Enchanted Shark Fin 0.77 at the end and 0.83 after, Great White
+  Tooth Meal 0.80 and 0.85. There is no buy/sell pair that pays: no window is
+  shown for Marina. What the data says is the reverse: do not hold these items
+  into her term; they are cheaper from day 2 and not back within three days.
+  A longer look (more than three days after) is not in the data.
+- **Jerry's Workshop, Ice Bait:** 1.50 during, but 0.46 on the first day after
+  and 1.36 on the second: too unsteady for a window (a +20% pattern, see above).
+
+Caveats: the "after" days are days of the next mayor's term, whose perks
+can also move an item; the gain is the median price relation, not a profit
+you can make at once (volume, order time and the spread of the book are not
+in it); 12 runs are a few weeks.
+
+Items for the Today notice come from `buyNow`; none was due when the data
+was read (no window of a running perk was in its buy phase).
