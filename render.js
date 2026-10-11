@@ -94,12 +94,16 @@ const card = (f, isFav, warn, facts, extra = '', label) => `<li class="card" dat
   </a>
 </li>`;
 
+// f.craft: { id, name, extra, orders } from craftHints. A tap on it opens the Craft tab on the end product
+// (app.js reads data-craft), so it is not a link: the card body already is one.
+export const craftHint = (c) => `<small class="craft pro" role="button" tabindex="0" data-craft="${esc(c.id)}" data-name="${esc(c.name)}">Craft into ${esc(c.name)}: +${num(c.extra)}/h · uses ${c.orders} orders · recipe must be unlocked</small>`;
+
 export const flipCard = (f, isFav) => card(f, isFav, f.suspicious, [
   fact('Buy order', num(f.buy)),
   sellFact(f),
   fact('Profit/item', num(f.profit), gain(f.profit), true),
   fact('Vol./week', num(f.weekVol), '', true),
-]);
+], f.craft ? craftHint(f.craft) : '');
 
 // a search hit the current list does not hold; without prices only the name and the reason are left
 export const searchCard = (f, isFav) => (f.buy ? flipCard(f, isFav) : card(f, isFav, false, []));

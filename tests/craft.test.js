@@ -81,3 +81,16 @@ test('craftHints: a result with suspicious prices gives no hint, and the best cr
     { OUT: { n: 1, i: { ING: 160 } }, BETTER: { n: 1, i: { ING: 160 } } }, { tax: 0.0125, share: 1 });
   assert.equal(best.ING.id, 'BETTER');
 });
+
+test('an opportunity card carries the same hint and opens the end product in the Craft tab', async () => {
+  const { flipCard } = await import('../render.js');
+  // an opportunity as the list holds it: stake = units × buy
+  const opp = { id: 'ING', profitHour: 185, units: 3200, buy: 10 };
+  const crafts = craftHints([{ id: opp.id, profitHour: opp.profitHour, stake: opp.units * opp.buy }], market, { OUT: { n: 1, i: { ING: 160 } } }, { tax: 0.0125, share: 1 });
+  assert.deepEqual(crafts.ING, { id: 'OUT', extra: 20 * 375 - 185, orders: 2 });
+  const html = flipCard({ ...opp, name: 'Ingredient', sell: 12, profit: 1, margin: 0.1, weekVol: 5, craft: { ...crafts.ING, name: 'Output' } }, false);
+  assert.match(html, /Craft into Output: \+7,315\/h · uses 2 orders · recipe must be unlocked/);
+  assert.match(html, /data-craft="OUT" data-name="Output"/);
+  // no hint, no extra line
+  assert.ok(!flipCard({ ...opp, name: 'Ingredient', sell: 12, profit: 1, margin: 0.1, weekVol: 5 }, false).includes('data-craft'));
+});

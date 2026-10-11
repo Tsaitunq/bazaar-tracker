@@ -753,3 +753,9 @@ Selbstständig getroffen (Auftrag: unbeaufsichtigt, ohne Rückfragen). Spec:
   „Expected lower“ ist unsere Folgerung und so beschriftet.
 - **Wither/Undead Essence nicht aufgenommen:** Chests sind eine Quelle von
   mehreren, ohne Mengen.
+
+## 0.7.2
+
+- **Teil F:** der Hinweis auf Opportunity-Karten ist kein Link (die Karte ist
+  schon einer), sondern ein Button mit `data-craft`; Tippen setzt die Suche
+  auf das Endprodukt und öffnet den Craft-Tab. Einsatz = units × buy.

@@ -170,6 +170,11 @@ function compute(v) {
     decorate(f);
     for (const i of f.ingredients ?? []) i.name = nameOf(i.id);
   }
+  if (v === 'opps' && recipes) {
+    // the same hint and conditions as in the portfolio; the craft gets the coins this flip would use
+    const crafts = craftHints(list.map((f) => ({ id: f.id, profitHour: f.profitHour, stake: f.units * f.buy })), products, recipes, opts);
+    for (const f of list) if (crafts[f.id]) f.craft = { ...crafts[f.id], name: nameOf(crafts[f.id].id) };
+  }
   if (settings.sort === 'trend') list.sort(bySort('trend'));
   return list;
 }
@@ -323,6 +328,17 @@ $('minion-list').addEventListener('click', (e) => {
   if (!detail) return;
   $('minion-sheet').innerHTML = minionSheet(detail, { name: nameOf, count: Math.max(1, minionSetup.count) });
   openSheet($('minion-sheet'));
+});
+
+// A craft hint on an opportunity opens the Craft tab on its end product.
+function openCraft(el) {
+  $('search').value = el.dataset.name;
+  location.hash = '#/craft';
+  render();
+}
+document.addEventListener('click', (e) => {
+  const hint = e.target.closest?.('[data-craft]');
+  if (hint) { e.preventDefault(); openCraft(hint); }
 });
 
 // The areas that are one page each. Trade is drawn by renderPage itself.
