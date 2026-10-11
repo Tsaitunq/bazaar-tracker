@@ -20,8 +20,8 @@ three own runs. Check of the data source: `docs/timing-backfill-check.md`.
 
 Same as timing.js: the median of the instant-buy price (SkyCofl `buy`, our
 `sell`) 24 h before, during and 24 h after. Two hours is the best resolution
-and only for a range up to 7 days; the "after" window of a mayor term is cut
-to 7 days from the start of the "before" window (22 of 24 hours remain).
+and only for a range up to 7 days, so a run is fetched in chunks of 7 days
+(see "Price curves" below); the three medians use the full 24 h windows.
 
 | Key | Runs | Windows |
 |---|---|---|
