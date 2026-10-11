@@ -765,3 +765,9 @@ Selbstständig getroffen (Auftrag: unbeaufsichtigt, ohne Rückfragen). Spec:
   (Sofortkauf verbraucht Angebote = buyMovingWeek). Der Craft-Tab nutzt jetzt
   den Volumenfilter der anderen Tabs und blendet suspicious Crafts aus; die
   Portfolio-Hinweise sind unverändert.
+- **Teil H:** Craft-Stufen nur für Rezepte mit einer Zutat (reine
+  Verdichtung). Verglichen wird dasselbe gekaufte Material, roh oder
+  gecraftet an den NPC; zuerst Insta-buy-Preis mit Tiefe, ist der nicht
+  verfügbar oder nicht profitabel, der Kauf-Order-Preis (auf der Karte
+  beschriftet). „Profit/min“ ist Profit/h aus dem Marktanteil ÷ 60; eine
+  Verkaufsgeschwindigkeit des Spielers wird nicht angenommen.

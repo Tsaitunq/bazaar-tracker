@@ -108,13 +108,22 @@ export const flipCard = (f, isFav) => card(f, isFav, f.suspicious, [
 // a search hit the current list does not hold; without prices only the name and the reason are left
 export const searchCard = (f, isFav) => (f.buy ? flipCard(f, isFav) : card(f, isFav, false, []));
 
+// f.step from npcStep: crafting the item into a higher step before the NPC takes it pays more. The lines
+// compare the same bought items sold as they are and as the crafted result; instant buy, through the book.
+const stepLines = (f, name) => {
+  const s = f.step;
+  const row = (label, v) => `<li><span>${label}</span> <span class="side">${num(v.profit)} · ${percent.format(v.profitCoin)} per coin · ${num(v.profitSale)} per item${
+    v.profitHour ? ` · ${num(v.profitHour / 60)}/min` : ''}</span></li>`;
+  return `<div class="step"><p class="why">Craft ${num(s.qty)}× into ${esc(name)}, then sell to the NPC (${s.basis === 'insta' ? 'instant buy' : 'buy order'}, ${s.runs} crafts)</p>
+    <ul class="coming">${row('As it is', s.direct)}${row('Crafted', s)}</ul></div>`;
+};
 export const npcCard = (f, isFav) => card(f, isFav, false, [
   fact('Buy order', num(f.buy)),
   fact('NPC price', num(f.npc)),
   fact('Profit/item', num(f.profit), gain(f.profit)),
   fact('Profit (instant buy)', num(f.profitInstant), gain(f.profitInstant)),
   fact('Vol./week', num(f.weekVol)),
-]);
+], f.step ? stepLines(f, f.step.name ?? f.step.id) : '');
 
 const ingredientList = (f) => `<ul class="ingredients">${f.ingredients.map((i) => `<li>${num(i.qty)}× ${esc(i.name)} @ ${num(i.price)}</li>`).join('')}${
   f.coins ? `<li>${num(f.coins)} coins</li>` : ''}</ul>`;

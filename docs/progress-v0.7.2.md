@@ -4,7 +4,7 @@ Branch `feat/v0.7.2`, one commit per part. Not pushed, not merged.
 
 - [x] F. Craft hint on opportunity cards
 - [x] G. Craft modes
-- [ ] H. NPC tab with craft steps
+- [x] H. NPC tab with craft steps
 - [ ] I. Calendar check, "Year of the" countdown
 - [ ] J. Small notes (minion requirements, Derpy tax)
 - [ ] Changelog 0.7.2, README, APK, docs/summary-v0.7.2.md
@@ -31,3 +31,22 @@ cheapest first (instant-buy cost); `sell_summary` = buy orders, highest first
 16), filters in the Craft filter sheet. The Craft tab now also hides crafts
 with a suspicious result or ingredient and with a weekly volume below the
 "Vol./week" filter for the result or any ingredient.
+
+## H
+
+`npc.js`: `npcStep` and craft steps in `npcFlips` (single-ingredient recipes
+only; recipes from recipes.json = NEU repo, NPC prices from the items API).
+Spot check against the wiki: Obsidian Minion page "160 Obsidian → Enchanted
+Obsidian, NPC 1,440 coins" (single item 7), Tarantula Minion page "160
+String → Enchanted String, NPC 576" (single item 3). On the snapshot of
+2026-10-11, 172 of 195 single-ingredient steps pay exactly the sum of the
+items (NPC price scales ×160), 21 pay less, **2 pay more**: Obsidian (+28.6%)
+and String (+20%). With 16 crafts: Obsidian 13,312 against 8,192 coins,
+1.37 profit per coin.
+
+**H.4 answer:** yes, a limit on selling to NPCs: "limited to only selling up
+to 500,000,000 Coins per day, which resets at 00:00 UTC+0"
+(hypixelskyblock.minecraft.wiki/w/Merchant). Counted in coins, not items; the
+wiki names nothing per item. It caps Profit/h of NPC flips and is shown as a
+note on the NPC tab. The 640-items-a-day limit on the page "NPC" is a buy
+limit of the shops and does not touch Bazaar-to-NPC flips.

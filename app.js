@@ -166,12 +166,13 @@ function compute(v) {
   let list;
   if (v === 'flips') list = buildFlips(products, { ...opts, favs });
   else if (v === 'opps') list = opportunities(products, oppOpts());
-  else if (v === 'npc') list = npcFlips(products, npc, opts);
+  else if (v === 'npc') list = npcFlips(products, npc, { ...opts, recipes, runs: settings.craftRuns });
   else if (v === 'forge') list = forge ? forgeFlips(products, forge, ah, opts) : [];
   else list = recipes ? craftFlips(products, recipes, { ...opts, mode: settings.craftMode, runs: settings.craftRuns, noSuspicious: true }) : [];
   for (const f of list) {
     decorate(f);
     for (const i of f.ingredients ?? []) i.name = nameOf(i.id);
+    if (f.step) f.step.name = nameOf(f.step.id);
   }
   if (v === 'opps' && recipes) {
     // the same hint and conditions as in the portfolio; the craft gets the coins this flip would use
@@ -256,7 +257,8 @@ function listMarkup(v, list, pf) {
   return {
     portfolio: v === 'opps' && pf
       ? warningsView(alerts, { dismiss: marketWarned() }) + portfolioView(pf, { capital: settings.portfolioCapital, slots: settings.portfolioSlots, sharePercent: settings.share, simple: simple() })
-      : v === 'forge' ? forgeFilter(settings.forgeAh) : '',
+      : v === 'forge' ? forgeFilter(settings.forgeAh)
+      : v === 'npc' ? '<p class="muted npc-note">An NPC pays out at most 500M coins a day (resets 00:00 UTC). It is counted in Profit/h.</p>' : '',
     count: q ? `${rows.length} ${rows.length === 1 ? 'flip' : 'flips'}, ${rest.length + outside.length} ${v === 'opps' ? 'outside your filters' : `other ${rest.length === 1 ? 'item' : 'items'}`}`
       : `${Math.min(rows.length, MAX_ROWS)} of ${rows.length} flips`,
     list: cards,
