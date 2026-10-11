@@ -81,6 +81,10 @@ export function searchFlip(id, product, opts, issues) {
   return f ? { ...f, why: issues(f, opts) } : { id, why: ['No buy orders or sell offers right now'] };
 }
 
+// What a search in Opportunities may show below the list, outside the player's filters: never a suspicious
+// item, because Opportunities does not show those at all, searched for or not.
+export const outsideOpportunities = (rows) => rows.filter((f) => !f.suspicious);
+
 // favs are kept even when they fail the filters
 export function buildFlips(products, { tax, minVolume, maxCapital, sort, share = 1, favs = new Set(), stats = null }) {
   return Object.entries(products)

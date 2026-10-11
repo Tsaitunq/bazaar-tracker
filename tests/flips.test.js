@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { searchFlip, flipIssues, oppIssues, portfolio, MAX_SLOTS, PLAN_MIN_HOUR_SALES, opportunities, computeFlip, buildFlips, bookPrices, statOf, MEDIAN_SPIKE, PROVISIONAL_HOURS, STABLE } from '../flips.js';
+import { searchFlip, outsideOpportunities, flipIssues, oppIssues, portfolio, MAX_SLOTS, PLAN_MIN_HOUR_SALES, opportunities, computeFlip, buildFlips, bookPrices, statOf, MEDIAN_SPIKE, PROVISIONAL_HOURS, STABLE } from '../flips.js';
 
 const product = (buy, sell, qs = {}) => ({
   sell_summary: buy == null ? [] : [{ pricePerUnit: buy }],
@@ -362,4 +362,25 @@ test('trackPlan: the stored plan follows the current one, keeps first prices and
   assert.deepEqual(trackPlan(stored, [], false), []);
   // "Got it": start again from the current plan
   assert.deepEqual(trackPlan(null, flips), [{ id: 'A', buy: 110 }, { id: 'C', buy: 50 }]);
+});
+
+test('search in Opportunities: the Griffin Upgrade Stones stay out, however they are searched for', () => {
+  // the case from the phone: two stones that trade 23 and 44 times a week, with few orders, so suspicious
+  const stone = (week) => product(1000, 5000, { buyMovingWeek: week, sellMovingWeek: week, buyOrders: 1, sellOrders: 1 });
+  const products = {
+    LEGENDARY_GRIFFIN_UPGRADE_STONE: stone(23), EPIC_GRIFFIN_UPGRADE_STONE: stone(44),
+    // a calm item that only misses the volume filter, and one that passes everything
+    GRIFFIN_FEATHER_BAG: product(100, 130, { buyMovingWeek: 1000, sellMovingWeek: 1000 }),
+  };
+  const opts = { tax: 0.0125, maxCapital: 0, minMargin: 0.01, minVolume: 500000, minProfitHour: 0, stats: null };
+  // the list itself never has them, with or without the volume filter
+  assert.deepEqual(opportunities(products, opts), []);
+  assert.deepEqual(opportunities(products, { ...opts, minVolume: 0 }).map((f) => f.id), []);
+  // what the search finds outside the filters: the stones are suspicious and are dropped, the calm item stays
+  const found = Object.keys(products).map((id) => searchFlip(id, products[id], opts, oppIssues));
+  const stones = found.filter((f) => f.id.endsWith('UPGRADE_STONE'));
+  assert.ok(stones.every((f) => f.suspicious && f.why.includes('Suspicious prices') && f.why.includes('Volume too low')));
+  assert.deepEqual(outsideOpportunities(found).map((f) => f.id), ['GRIFFIN_FEATHER_BAG']);
+  // an item without orders has no flip at all and is not suspicious: it may be listed with its reason
+  assert.equal(outsideOpportunities([searchFlip('X', { sell_summary: [], buy_summary: [] }, opts, oppIssues)]).length, 1);
 });

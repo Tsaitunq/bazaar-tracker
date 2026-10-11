@@ -477,3 +477,35 @@ test('minionCard: coins per day, where to sell, and a mark on numbers that are n
   assert.ok(open.includes('Tier XII (highest)') && open.includes('<span class="big">NPC</span>') && open.includes('not confirmed'));
   assert.ok(open.includes('2 to 5 &#60;per&#62; harvest'));
 });
+
+test('the minion sheet lists every tier and leads to the item', async () => {
+  const { minionDetail } = await import('../minions.js');
+  const { minionSheet } = await import('../render.js');
+  const product = (buy, sell) => ({ sell_summary: [{ pricePerUnit: buy }], buy_summary: [{ pricePerUnit: sell }] });
+  const detail = minionDetail('diamond', { DIAMOND: product(8, 9) }, {}, { tier: 5, count: 2, fuel: 'none', upgrades: ['none', 'none'] }, { tax: 0.0125 });
+  const html = minionSheet(detail, { name: (id) => id, count: 2 });
+  assert.equal(detail.tiers.length, 12);
+  assert.equal((html.match(/<tr/g) ?? []).length, 13); // head and twelve tiers
+  assert.match(html, /<tr class="on"><td>V<\/td>/);
+  assert.match(html, /href="#\/item\/DIAMOND"/);
+  assert.match(html, /hypixelskyblock\.minecraft\.wiki\/w\/Diamond_Minion/);
+});
+
+test('Mayor & event effects: running and active first, searchable, years without a date', async () => {
+  const { effectsView } = await import('../render.js');
+  const { upcoming, activePerks, skyTime } = await import('../events.js');
+  const election = { mayor: { name: 'Finnegan', perks: [{ name: 'Grand Feast', text: '' }], minister: null } };
+  const now = skyTime(519, 7, 5);
+  const args = { perks: activePerks(election), events: upcoming(now, election), now, name: (id) => id };
+  const html = effectsView(args);
+  // the Harvest Feast runs and the Grand Feast is on: both before any idle perk
+  assert.ok(html.indexOf('Harvest Feast') < html.indexOf('SLASHED Pricing'));
+  assert.ok(html.indexOf('Grand Feast') < html.indexOf('Mining Fiesta'));
+  assert.match(html, /Year of the Seal[\s\S]*does not say in which years/);
+  // every row carries its own search text, and a query hides the others
+  assert.match(html, /data-q="[^"]*cornucopia/);
+  const hidden = (query) => (effectsView({ ...args, query }).match(/<li data-q="[^"]*" hidden>/g) ?? []).length;
+  assert.equal(hidden(''), 0);
+  assert.ok(hidden('marauder') > 20);
+  assert.equal(hidden('zzzz-nothing'), (html.match(/<li data-q=/g) ?? []).length);
+});

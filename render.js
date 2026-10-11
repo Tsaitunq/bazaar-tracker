@@ -1,7 +1,7 @@
 import { lineChart } from './chart.js';
 import { marginSeries } from './history.js';
 import { direction } from './trends.js';
-import { skyDate, MONTHS, PERK_ITEMS, PERK_EXPECT, DAY_MS } from './events.js';
+import { skyDate, MONTHS, PERK_ITEMS, PERK_EXPECT, PERKS, YEAR_EVENTS, DAY_MS } from './events.js';
 import { itemPattern, patternText } from './timing.js';
 
 export const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -247,7 +247,7 @@ export function portfolioView(plan, { capital, slots, sharePercent, simple = fal
 // election and the events, each of which unfolds to its details.
 // perks: activePerks(); events: upcoming(); vote: electionWindow(); name(id): an item's name;
 // open: keys of the parts that are unfolded; timing: past runs per event and perk (timing.js).
-export function radarView({ election, perks, events, vote, now, name, open = new Set(), timing = {} }) {
+export function radarView({ election, perks, events, vote, now, name, open = new Set(), timing = {}, query = '' }) {
   const until = (t) => duration(Math.ceil(Math.max(0, t - now) / 60000) * 60);
   const affected = (ids) => (ids?.length
     ? `<p class="affected"><span class="muted">Typically affected:</span> ${ids.map((id) => `<a href="${esc(itemHref(id))}">${esc(name(id))}</a>`).join(', ')}</p>` : '');
@@ -305,7 +305,34 @@ export function radarView({ election, perks, events, vote, now, name, open = new
   <h3>Events</h3>
   <ul>${list}</ul>
   <p class="muted">Based on past events, not a guarantee.</p>
+  ${effectsView({ perks, events, now, name, query })}
 </section>`;
+}
+
+// "Mayor & event effects": every perk of every mayor and every event with what it does, the items it is
+// tied to and what the price is expected to do. Running and coming first, then the rest. The search box
+// filters the rows by their text (app.js hides the rest; query is the text it kept from last time).
+export function effectsView({ perks, events, now, name, query = '' }) {
+  const until = (t) => duration(Math.ceil(Math.max(0, t - now) / 60000) * 60);
+  const items = (ids) => (ids?.length ? `<p class="affected"><span class="muted">Items:</span> ${ids.map((id) => `<a href="${esc(itemHref(id))}">${esc(name(id))}</a>`).join(', ')}</p>` : '');
+  const expect = (perk) => (PERK_EXPECT[perk]
+    ? `<p class="why">Expected: lower (${esc(PERK_EXPECT[perk].why)}). Not confirmed by the wiki.</p>`
+    : '<p class="muted">No price direction stated.</p>');
+  const active = new Set(perks.map((p) => p.name));
+  const rows = [
+    ...events.map((e) => ({ rank: e.active ? 0 : 2, at: e.start, title: e.name, side: e.active ? `now · ${until(e.end)} left` : `in ${until(e.start)}`,
+      text: `Event${e.perk ? ` (needs the ${e.perk} perk)` : ''}`, ids: e.items, note: '<p class="muted">What its prices did in past runs is shown above.</p>' })),
+    ...PERKS.map((p) => ({ rank: active.has(p.name) ? 1 : 3, at: 0, title: p.name, side: active.has(p.name) ? `${p.who} · active` : p.who,
+      text: p.text, ids: PERK_ITEMS[p.name] ?? PERK_EXPECT[p.name]?.items, note: expect(p.name) })),
+    ...YEAR_EVENTS.map((y) => ({ rank: 4, at: 0, title: y.name, side: 'every 12 years', text: y.text, ids: y.items,
+      note: '<p class="muted">The wiki does not say in which years, so there is no date. No price direction stated.</p>' })),
+  ].sort((a, b) => a.rank - b.rank || a.at - b.at);
+  const q = query.trim().toLowerCase();
+  const hay = (r) => [r.title, r.side, r.text, ...(r.ids ?? []).map((id) => name(id))].join(' ').toLowerCase();
+  return `<h3>Mayor &amp; event effects</h3>
+  <input type="search" id="effects-q" value="${esc(query)}" placeholder="Search mayor, perk, event or item" aria-label="Search mayor and event effects" autocomplete="off">
+  <ul class="effects">${rows.map((r) => `<li data-q="${esc(hay(r))}"${q && !hay(r).includes(q) ? ' hidden' : ''}><strong>${esc(r.title)}</strong> <span class="side">${esc(r.side)}</span>
+    <p>${esc(r.text)}</p>${items(r.ids)}${r.note}</li>`).join('')}</ul>`;
 }
 
 export function parseRoute(hash) {
@@ -380,6 +407,7 @@ export const minionCard = (row) => `<li class="card minion">
   <a class="body" href="${esc(itemHref(row.id))}">
     <div class="name">${tile(row.id, 32)}<span>${esc(row.name)}</span></div>
     <div class="badges"><span class="badge badge-trend">Tier ${ROMAN[row.tier - 1]}${row.tier === row.maxTier ? ' (highest)' : ''}</span>${
+      row.lowVolume?.length ? `<span class="badge badge-warn">${ICONS.warn}low volume</span>` : ''}${
       row.unsure.length ? `<span class="badge badge-warn">${ICONS.warn}not confirmed</span>` : ''}</div>
     <div class="key">
       <div><span class="big ${gain(row.net)}">${num(row.net)}</span><span class="lbl">Coins/day</span></div>
@@ -395,6 +423,32 @@ export const minionCard = (row) => `<li class="card minion">
     <p class="why">${esc(row.unsure.join(' '))}</p>` : ''}
   </a>
 </li>`;
+
+// The sheet of one minion. detail comes from minionDetail; name turns an item id into its name.
+const FORMS = { item: '', block: ' (block)' };
+export function minionSheet({ minion, row, tiers }, { name, count }) {
+  const list = (x) => esc(x.toLocaleString('en-US', { maximumFractionDigits: 1 }));
+  const wiki = 'https://hypixelskyblock.minecraft.wiki/w/' + minion.name.replace(/ /g, '_');
+  const parts = row.parts.map((p) => `<li><span>${esc(name(p.id))}${FORMS[p.form]}${p.low ? ' · <strong>low volume – price unreliable</strong>' : ''}</span>
+      <span class="side">${num(p.amount)}/day · ${num(p.coins)}</span></li>`).join('');
+  const bonus = row.speed > 0 ? `speed +${Math.round(row.speed * 100)}%` : 'no speed bonus';
+  return `<div class="panel-head"><h2>${esc(minion.name)}</h2><button type="button" data-act="close" aria-label="Close">${ICONS.close ?? '×'}</button></div>
+<div class="sheet-body">
+  <p class="muted">Tier ${ROMAN[row.tier - 1]} · ${count === 1 ? '1 minion' : `${count} minions`} · ${bonus} · an action every ${plain.format(row.delay)} s</p>
+  <h3>Tiers (same fuel and upgrades)</h3>
+  <table class="tiers"><thead><tr><th>Tier</th><th>Action</th><th>Storage</th><th>Items/day</th><th>Coins/day</th></tr></thead><tbody>${
+    tiers.map((t) => `<tr${t.tier === row.tier ? ' class="on"' : ''}><td>${ROMAN[t.tier - 1]}</td><td>${plain.format(t.delay)} s</td><td>${t.storage}</td><td>${num(t.itemsDay)}</td><td>${num(t.net)}</td></tr>`).join('')}</tbody></table>
+  <h3>What it earns per day</h3>
+  <ul class="coming">${parts || '<li class="muted">No price for any item right now.</li>'}
+    <li><span>Fuel</span><span class="side">${row.fuelCost > 0 ? '−' + num(row.fuelCost) : '–'}</span></li>
+    <li><span>Sold at ${row.best === 'npc' ? 'the NPC' : 'the Bazaar, after tax'}</span><span class="side"><strong class="${gain(row.net)}">${num(row.net)}</strong></span></li>
+  </ul>
+  <p>Storage ${list(row.storage)} items, full after about ${duration(row.fillHours * 3600)}.</p>${row.unsure.length ? `
+  <p class="why">${esc(row.unsure.join(' '))}</p>` : ''}
+  <p class="muted">Source: <a href="${esc(wiki)}" target="_blank" rel="noopener">${esc(minion.name)} on the SkyBlock wiki</a>, details in docs/minions-sources.md.</p>
+  <p><a class="more" href="${esc(itemHref(row.id))}" data-act="close">View item</a></p>
+</div>`;
+}
 
 // The four areas of the bar at the bottom. Trade holds the tabs and the item page; the others are one page each.
 export const AREAS = ['today', 'minions', 'market'];

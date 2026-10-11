@@ -718,3 +718,38 @@ Selbstständig getroffen (Auftrag: unbeaufsichtigt, ohne Rückfragen). Spec:
 - **Das Setup liegt in `bt.minions`**, getrennt von den Einstellungen, und
   gilt sofort (kein Apply).
 - **Kein Compactor, Auto Smelter, Hopper, Storage, Beacon, Mayor-Perk.**
+
+## 0.7.1
+
+- **Teil A, Quelle:** hypixelskyblock.minecraft.wiki ist die Primärquelle.
+  Archiv-Kopien und Fandom entfallen; die Regeln stehen in `CLAUDE.md`.
+- **Aktionen pro Ernte bleibt 2**, Fishing 1. Die gelesenen Wiki-Seiten
+  nennen keine Regel dafür; „not confirmed“ in `docs/minions-sources.md`.
+  Melon/Pumpkin laufen offline mit Neupflanzen (Wiki), daher 2 mit Hinweis.
+- **Bazaar-Steuer bleibt abgezogen**, auch beim Sofortverkauf: „all Bazaar
+  sales“ (Wiki). Ob Instant Sell eigens genannt ist, steht dort nicht.
+- **Iron/Gold nicht aufgenommen**: Ertrag ist Erz, Compactor braucht den
+  Auto Smelter im zweiten Slot; das Modell kennt ihn nicht.
+- **Enchanted Melon:** Wiki-Name „Enchanted Melon Slice“ wird auf die
+  Bazaar-ID ENCHANTED_MELON gelegt (160×-Preisverhältnis), markiert.
+- **Teil B, Verkaufsform:** mit Compactor wird je Item die bessere von
+  Enchanted und Block-Stufe gerechnet (nur Stufen, die das Wiki listet).
+- **„Dünner Markt“ = Wochenvolumen unter 20× Wochenertrag**; so ein Item
+  wird nur genommen, wenn keine andere Form da ist, die Zeile wird
+  markiert und hinter die anderen sortiert. Die 20 ist meine Wahl.
+- **Rohpreis darf nicht über den Enchanted-Preis je Stück + 30 % steigen**
+  (Craften ist immer möglich); ebenso nicht über den 7-Tage-Median + 30 %.
+- **Teil C:** eigenes `<dialog id="minion-sheet">`, getrennt vom News-Sheet.
+  Die Tier-Tabelle nutzt dieselbe Zeilenrechnung wie die Liste
+  (`minionRow` je Tier), damit Tabelle und Karte nie auseinanderlaufen.
+- **Teil D, Feast:** das Wiki kennt kein „Feast mit fallenden Preisen“. Es
+  nennt das Harvest Feast (Early Autumn 1 bis Late Autumn 31, jedes Jahr) und
+  Finnegans Perk „Grand Feast“ (ganzes Jahr). Preisrichtung nicht belegt; die
+  App lernt sie aus den eigenen Snapshots (`timing.json`, über `EVENTS`).
+- **Year of the Seal/Witch/Pig ohne Datum:** das Wiki sagt „alle 12 Jahre“,
+  aber nicht in welchen. Kein Countdown, nur Hinweis im Market-Bereich; der
+  Hinweis „aktuelles Jahr betroffen“ bleibt offen.
+- **Keine Preisrichtung nur aus dem Wiki:** es nennt für keinen Perk eine.
+  „Expected lower“ ist unsere Folgerung und so beschriftet.
+- **Wither/Undead Essence nicht aufgenommen:** Chests sind eine Quelle von
+  mehreren, ohne Mengen.

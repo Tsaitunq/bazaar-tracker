@@ -16,7 +16,7 @@ test('the data has the shape the calculator expects', () => {
     assert.equal(m.storage.length, m.delays.length, m.key);
     // a higher tier is never slower and never holds less
     for (let i = 1; i < m.delays.length; i++) assert.ok(m.delays[i] <= m.delays[i - 1] && m.storage[i] >= m.storage[i - 1], `${m.key} tier ${i + 1}`);
-    for (const d of m.drops) assert.ok(d.id && d.qty > 0 && d.compact[0] && d.compact[1] >= 160, `${m.key} ${d.id}`);
+    for (const d of m.drops) assert.ok(d.id && d.qty > 0 && d.compact[0] && d.compact[1] >= 40, `${m.key} ${d.id}`);
   }
   assert.deepEqual([FUELS[0].key, UPGRADES[0].key], ['none', 'none']);
   for (const f of FUELS.slice(1)) assert.ok(f.id && (f.speed > 0 || f.mult > 1), f.key);
@@ -69,9 +69,16 @@ test('Diamond Spreading adds a Diamond per ten items, the Super Compactor makes 
 
 test('what the wiki leaves open is marked, and a tier the minion lacks becomes its highest', () => {
   const tarantula = minionYield(minion('tarantula'), { tier: 12 });
-  near(tarantula.items.STRING, 86400 / 16 * 3.5);
+  near(tarantula.items.STRING, 86400 / 16 * 3.16);
   near(tarantula.items.IRON_INGOT, 86400 / 16 * 0.2);
-  assert.match(tarantula.unsure[0], /2 to 5 per harvest.*middle \(3\.5\)/);
+  assert.deepEqual(tarantula.unsure, []);
+  // the wiki gives a string compactor of 160, not 192
+  near(minionYield(minion('tarantula'), { tier: 12, upgrades: ['compactor'] }).items.ENCHANTED_STRING, 86400 / 16 * 3.16 / 160);
+  assert.match(minionYield(minion('melon'), { tier: 12 }).unsure.join(' '), /replant/);
+  // a fishing minion only harvests: one action per catch, and it holds 640 to 960
+  near(minionYield(minion('fishing'), { tier: 12 }).items.RAW_FISH, 86400 / 30 * 0.54);
+  assert.equal(minion('fishing').storage[0], 640);
+  assert.equal(minion('wheat').storage[0], 128);
   assert.equal(minionYield(minion('slime'), { tier: 12 }).tier, 11);
   assert.equal(minionYield(minion('slime'), { tier: 0 }).tier, 1);
   // a Slime drops one ball always and two more at 50% each
@@ -105,4 +112,38 @@ test('minionRows: Bazaar against NPC, fuel taken off, the best minion first', ()
   assert.equal(minionRows(products, npc, { tier: 11, count: 1, fuel: 'lava' }, { tax: 0 })[0].fuelCost, 0);
   const noFuelPrice = minionRows(products, npc, { tier: 11, count: 1, fuel: 'hyper' }, { tax: 0 })[0];
   assert.ok(noFuelPrice.unsure.some((u) => u.includes('No sell offer for Hyper Catalyst')));
+});
+
+test('a lone order far above the enchanted form is not a price: raw Raw Fish counts at what it makes', () => {
+  // the case of the live Bazaar: Raw Fish topped at 310 while Enchanted Raw Fish (160) was worth 5 per fish
+  const products = { RAW_FISH: product(310, 400), ENCHANTED_RAW_FISH: product(800, 1000) };
+  const row = minionRows(products, {}, { tier: 12, count: 1, fuel: 'none', upgrades: ['none', 'none'] }, { tax: 0 }).find((r) => r.key === 'fishing');
+  near(row.bazaar, 86400 / 30 * 0.54 * (800 / 160));
+  assert.ok(row.unsure.some((u) => u.includes('RAW_FISH is far above')));
+  // the real item ids of the other three catches exist on the Bazaar
+  assert.deepEqual(minion('fishing').drops.map((d) => d.id).slice(0, 4), ['RAW_FISH', 'RAW_FISH:1', 'RAW_FISH:3', 'RAW_FISH:2']);
+});
+
+test('the better of item and block is sold, a thin market is marked and sorted last', () => {
+  const vol = (week) => ({ quick_status: { buyMovingWeek: week, sellMovingWeek: week } });
+  const clay = (block) => ({
+    ENCHANTED_CLAY_BALL: { ...product(400, 500), ...vol(1e7) },
+    ENCHANTED_CLAY_BLOCK: { ...product(block, block * 1.2), ...vol(1e6) },
+  });
+  const setup = { tier: 12, count: 1, fuel: 'none', upgrades: ['compactor', 'none'] };
+  const perDay = 86400 / 28 * 4 / 160;
+  // a block worth 160 × 450 beats the item at 400
+  near(minionRows(clay(72000), {}, setup, { tax: 0 }).find((r) => r.key === 'clay').bazaar, perDay * 450);
+  // a block worth less is not used
+  near(minionRows(clay(40000), {}, setup, { tax: 0 }).find((r) => r.key === 'clay').bazaar, perDay * 400);
+  // too thin: the block pays more, but trades under 20 weeks of output, so the item is sold
+  const thin = clay(72000); thin.ENCHANTED_CLAY_BLOCK.quick_status = { buyMovingWeek: 5, sellMovingWeek: 5 };
+  near(minionRows(thin, {}, setup, { tax: 0 }).find((r) => r.key === 'clay').bazaar, perDay * 400);
+  // only a thin form left: flagged and listed after the minions that are not
+  const only = { ENCHANTED_CLAY_BALL: { ...product(400, 500), ...vol(10) }, ENCHANTED_COBBLESTONE: { ...product(300, 400), ...vol(1e7) } };
+  const rows = minionRows(only, {}, setup, { tax: 0 });
+  const flagged = rows.find((r) => r.key === 'clay');
+  assert.deepEqual(flagged.lowVolume, ['ENCHANTED_CLAY_BALL']);
+  assert.ok(flagged.unsure.some((u) => u.startsWith('Low volume – price unreliable')));
+  assert.ok(rows.findIndex((r) => r.key === 'clay') > rows.findIndex((r) => r.key === 'cobblestone'));
 });

@@ -23,4 +23,5 @@ The Android build reads `versionName` and `versionCode` from the same file, so n
 - No personal names, old account names or absolute user paths in files, commits or the APK. Git identity is `Tsaitunq`.
 - Every file the app loads must be listed in `SHELL` in `sw.js`; that list also decides what goes into the APK.
 - Colours live as tokens in `:root` of `style.css`. `tests/contrast.test.js` enforces WCAG AA and fails on a colour written directly into a rule.
+- Primary source for SkyBlock game data (minions, items, perks, recipes, events) is hypixelskyblock.minecraft.wiki. Other sources only where it says nothing, and then marked as "not confirmed".
 - Tests use fixtures only. Do not call the Hypixel API from tests.

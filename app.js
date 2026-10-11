@@ -1,12 +1,12 @@
-import { buildFlips, computeFlip, opportunities, portfolio, MAX_SLOTS, statOf, searchFlip, flipIssues, oppIssues, bySort, planWarnings, trackPlan } from './flips.js';
+import { buildFlips, computeFlip, opportunities, portfolio, MAX_SLOTS, statOf, searchFlip, outsideOpportunities, flipIssues, oppIssues, bySort, planWarnings, trackPlan } from './flips.js';
 import { npcFlips } from './npc.js';
 import { craftFlips, craftHints } from './craft.js';
 import { forgeFlips, forgeFlip } from './forge.js';
-import { minionRows, FUELS, UPGRADES, MAX_TIER } from './minions.js';
+import { minionRows, minionDetail, FUELS, UPGRADES, MAX_TIER } from './minions.js';
 import { loadItems, fallbackName } from './names.js';
 import { loadStats, loadRecipes, loadForge, loadAh, loadElection, loadTiming, loadHistory } from './data.js';
 import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission } from './native.js';
-import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, trendsView, todayView, minionCard, parseRoute, detailView, portfolioView, warningsView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, viewsFor, areaOf, coins, percent, PLACEHOLDER_ICON } from './render.js';
+import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, trendsView, todayView, minionCard, minionSheet, parseRoute, detailView, portfolioView, warningsView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, viewsFor, areaOf, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
 import { level } from './trends.js';
 import { activePerks, upcoming, electionWindow, eventItems, flipRisks, planElection } from './events.js';
@@ -226,9 +226,17 @@ function listMarkup(v, list, pf) {
   }
   // a search ignores the favorites switch too: it has to find every item
   const rows = list.filter((f) => (q || !settings.favOnly || favs.has(f.id)) && f.name.toLowerCase().includes(q));
-  const rest = q ? searchRest(v, q, new Set(rows.map((f) => f.id))) : [];
+  const found = q ? searchRest(v, q, new Set(rows.map((f) => f.id))) : [];
+  // Opportunities keeps all of its own filters when searched: what fails them is not mixed into the list but
+  // folded away below it, with its reason, and a suspicious item is not shown at all.
+  const outside = v === 'opps' ? outsideOpportunities(found) : [];
+  const rest = v === 'opps' ? [] : found;
   let cards = [...rows.map((f) => [CARDS[v], f]), ...rest.map((f) => [searchCard, f])]
     .slice(0, MAX_ROWS).map(([card, f]) => card(f, favs.has(f.id))).join('');
+  if (outside.length) {
+    cards += `<li class="outside"><details><summary>${outside.length} more outside your filters</summary><ul class="list">${
+      outside.slice(0, MAX_ROWS).map((f) => searchCard(f, favs.has(f.id))).join('')}</ul></details></li>`;
+  }
   if (v === 'opps' && !list.length && !q) {
     cards = `<li class="muted">${stats
       ? 'No item meets all conditions right now. Items need 24 hours of price history before they can show up here.'
@@ -241,10 +249,10 @@ function listMarkup(v, list, pf) {
     portfolio: v === 'opps' && pf
       ? warningsView(alerts, { dismiss: marketWarned() }) + portfolioView(pf, { capital: settings.portfolioCapital, slots: settings.portfolioSlots, sharePercent: settings.share, simple: simple() })
       : v === 'forge' ? forgeFilter(settings.forgeAh) : '',
-    count: q ? `${rows.length} ${rows.length === 1 ? 'flip' : 'flips'}, ${rest.length} other ${rest.length === 1 ? 'item' : 'items'}`
+    count: q ? `${rows.length} ${rows.length === 1 ? 'flip' : 'flips'}, ${rest.length + outside.length} ${v === 'opps' ? 'outside your filters' : `other ${rest.length === 1 ? 'item' : 'items'}`}`
       : `${Math.min(rows.length, MAX_ROWS)} of ${rows.length} flips`,
     list: cards,
-    rest: rest.length,
+    rest: rest.length + outside.length,
   };
 }
 
@@ -265,7 +273,7 @@ function flashChanges() {
 let radarShown = '';
 function renderRadar() {
   const now = Date.now();
-  const data = { election, perks: activePerks(election), events: upcoming(now, election), vote: electionWindow(now), now, name: nameOf, timing };
+  const data = { election, perks: activePerks(election), events: upcoming(now, election), vote: electionWindow(now), now, name: nameOf, timing, query: effectsQuery };
   const plain = radarView(data);
   if (plain === radarShown) return;
   const box = $('radar');
@@ -273,6 +281,15 @@ function renderRadar() {
   radarShown = plain;
   box.innerHTML = radarView({ ...data, open });
 }
+
+// The search box of "Mayor & event effects" hides rows in place; the text is kept for the next render.
+let effectsQuery = '';
+$('market').addEventListener('input', (e) => {
+  if (e.target.id !== 'effects-q') return;
+  effectsQuery = e.target.value;
+  const q = effectsQuery.trim().toLowerCase();
+  for (const li of $('market').querySelectorAll('.effects li')) li.hidden = !!q && !li.dataset.q.includes(q);
+});
 
 // The minion setup: its own small form, stored apart from the settings because it changes nothing else.
 const MINION_FIELDS = { tier: 'm-tier', count: 'm-count', fuel: 'm-fuel', up1: 'm-up1', up2: 'm-up2' };
@@ -295,10 +312,23 @@ $('minion-setup').addEventListener('change', () => {
 });
 $('minion-setup').addEventListener('submit', (e) => e.preventDefault());
 
+// A tap on a minion opens its sheet instead of the raw item; "View item" inside it goes there.
+const minionSetupFull = () => ({ ...minionSetup, upgrades: [minionSetup.up1, minionSetup.up2] });
+bindSheet($('minion-sheet'));
+$('minion-list').addEventListener('click', (e) => {
+  const key = e.target.closest?.('[data-minion]')?.dataset.minion;
+  if (!key || !products) return;
+  e.preventDefault();
+  const detail = minionDetail(key, products, npc, minionSetupFull(), { tax: settings.tax / 100, stats });
+  if (!detail) return;
+  $('minion-sheet').innerHTML = minionSheet(detail, { name: nameOf, count: Math.max(1, minionSetup.count) });
+  openSheet($('minion-sheet'));
+});
+
 // The areas that are one page each. Trade is drawn by renderPage itself.
 function renderArea() {
   if (area() === 'minions' && products) {
-    const rows = minionRows(products, npc, { ...minionSetup, upgrades: [minionSetup.up1, minionSetup.up2] }, { tax: settings.tax / 100 });
+    const rows = minionRows(products, npc, { ...minionSetup, upgrades: [minionSetup.up1, minionSetup.up2] }, { tax: settings.tax / 100, stats });
     $('minion-note').textContent = `${rows.length} minions, best first · coins per day for ${minionSetup.count === 1 ? '1 minion' : `${minionSetup.count} minions`} · Bazaar = sold at once to buy orders, after tax`;
     $('minion-list').innerHTML = rows.map(minionCard).join('');
   }

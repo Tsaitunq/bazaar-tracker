@@ -1,6 +1,16 @@
 {
   "versions": [
     {
+      "version": "0.7.1",
+      "date": "2026-10-11",
+      "entries": [
+        { "title": "Minion numbers checked", "text": "Every minion was compared with the SkyBlock wiki, Lapis and String were wrong, and Wheat, Carrot, Potato, Melon, Pumpkin, Cactus, Glowstone and Fishing are new.", "target": "#minion-list", "route": "#/minions" },
+        { "title": "Minion details", "text": "Tap a minion to see every tier, what it earns per item, how long until it is full and where the numbers come from.", "target": "#minion-list .card", "route": "#/minions" },
+        { "title": "Mayor and event effects", "text": "The Market area lists every mayor perk and event, the Harvest Feast and the Grand Feast included, with the items they touch; you can search it.", "target": "#effects-q", "route": "#/market" },
+        { "title": "Opportunities keeps its filters", "text": "Searching in Opportunities no longer brings in items that fail your filters or look suspicious; the rest is folded away below the list.", "target": "#search", "route": "#/opps" }
+      ]
+    },
+    {
       "version": "0.7.0",
       "date": "2026-10-10",
       "entries": [
