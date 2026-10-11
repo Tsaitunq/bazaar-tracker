@@ -80,3 +80,41 @@ countdown and no "this year is affected" note: open, not guessed.
    a note on Today and Trade offers them; check the note is absent today and
    appears if you pick 5% by hand ("Derpy is not mayor …", button back).
 6. What's new shows 0.7.2 with four entries; version reads 0.7.2.
+
+## Part K: fixes from the phone test of 0.7.1
+
+1. **Tap opens the item, not the sheet.** Cause: in 0.7.1 the replacement
+   that gave the card `data-minion` did not apply (CRLF against LF) and
+   nothing noticed; the card still linked to the raw item. The sheet test
+   only built the sheet. Now the whole card is a button (no `href`), Enter and
+   Space work, and a test asserts the card has no link. Not run on a phone or
+   an emulator by me.
+2. **Minion heads.** 21 files in `icons/minions/` (64 × 64, 4 to 8 kB each,
+   from sky.coflnet.com `<NAME>_GENERATOR_1`, the same source as the item
+   pictures), in the app shell and the APK. **Licence not confirmed**: the
+   source states none; the artwork belongs to Hypixel and Mojang. Details and
+   the wiki alternative (CC BY-NC-SA 3.0, extra terms unread) in
+   `docs/image-sources.md`. The footer already names sky.coflnet.com; nothing
+   found requires more.
+3. **Tarantula T11, Super Compactor, Enchanted Lava Bucket** (snapshot
+   2026-10-11, 1 minion, tax 1.25%): an action every 8 s (10 s ÷ 1.25), a
+   harvest every 16 s, 5,400 harvests a day.
+
+   | Drop | Form | Amount/day | Price | Coins/day |
+   |---|---|---|---|---|
+   | Enchanted String | enchanted | 106.7 | 631.8 | 66,539 |
+   | Enchanted Spider Eye | enchanted | 33.8 | 792.1 | 26,399 |
+   | Enchanted Iron | enchanted | 6.8 | 525.7 | 3,504 |
+   | Fuel | permanent | | | 0 |
+   | **Net** | | | | **96,443** |
+
+   With a compactor only the enchanted forms are priced; raw String never.
+   Raw String is indeed the odd one: best order 2.5, best offer 28.6 (22 buy
+   orders, 81 sell offers). Without a compactor the calculator now marks it
+   "price unreliable" (offer over three times the order) and lists the minion
+   last; the number there (48,846) is then shaky.
+4. **Fuel/day** for a permanent fuel reads "permanent (one-time cost)", card
+   and sheet.
+
+Also: the changelog entry of the craft hint was merged into the craft modes
+entry to make room for a fifth (at most four per version).

@@ -4,10 +4,10 @@
       "version": "0.7.2",
       "date": "2026-10-11",
       "entries": [
-        { "title": "Craft hint on opportunities", "text": "An opportunity now shows when crafting its item into something higher would earn more; a tap opens the Craft tab on the result.", "target": "#list", "route": "#/opps" },
-        { "title": "Craft modes", "text": "The Craft tab can buy and sell with orders, buy at once and sell with an order, or do both at once, and counts what a big pass really costs.", "target": "#open-filters", "route": "#/craft" },
+        { "title": "Craft hints and modes", "text": "Opportunities show when crafting would earn more, and the Craft tab can buy and sell with orders or at once and counts what a big pass really costs.", "target": "#open-filters", "route": "#/craft" },
         { "title": "NPC craft steps and the daily limit", "text": "The NPC tab shows when crafting an item into its next step before the NPC takes it pays more, and counts the 500M coins a day an NPC pays out.", "target": "#list", "route": "#/npc" },
-        { "title": "Slayer levels and Derpy", "text": "Minions that need a Slayer level say so and can be hidden; while Derpy is mayor the app points out the quadrupled Bazaar tax and sets it for you.", "target": "#minion-setup", "route": "#/minions" }
+        { "title": "Slayer levels and Derpy", "text": "Minions that need a Slayer level say so and can be hidden; while Derpy is mayor the app points out the quadrupled Bazaar tax and sets it for you.", "target": "#minion-setup", "route": "#/minions" },
+        { "title": "Minion cards fixed", "text": "Tapping a minion card opens its sheet again, with the minion head and a line per drop that shows raw or enchanted and the price used; a permanent fuel says so.", "target": "#minion-list .card", "route": "#/minions" }
       ]
     },
     {

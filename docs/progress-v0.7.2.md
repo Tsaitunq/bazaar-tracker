@@ -78,3 +78,19 @@ Nothing was computed, no countdown. Left open.
   So the Bazaar tax is four times the player's own: 5%, 4.5% or 4%. Note on
   Today and Trade with a "Use X%" button; the tax setting got the three
   quadrupled values. After Derpy the note offers the way back.
+
+## K (fixes from the phone test of 0.7.1)
+
+- [x] 1 Cause found: the 0.7.1 patch that gave the card `data-minion` silently
+  did not apply (the file has CRLF line endings, the search text had LF), so
+  the card kept the item link and its test only covered the sheet. Fixed: the
+  card is `<li data-minion>` with a `role="button"` body, no `href`; a click
+  or Enter/Space anywhere on it opens the sheet; the test asserts "no href".
+  Also: the service worker now fetches with `cache: 'no-cache'`.
+- [x] 2 Minion heads from the same source as the item pictures, stored in
+  `icons/minions/`, licence in `docs/image-sources.md` (not confirmed).
+- [x] 3 Breakdown per drop in the sheet (item, kind, price, amount/day,
+  coins/day). A book whose best offer is over three times the best order is
+  marked unreliable like a thin market.
+- [x] 4 "permanent (one-time cost)" for Lava, Magma, Plasma, Hamster... (every
+  fuel without a duration) on the card and in the sheet.

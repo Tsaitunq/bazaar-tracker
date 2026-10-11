@@ -96,7 +96,7 @@ A minion needs two actions per harvest (the Fishing Minion one). With a Super Co
 - Price history and scores: collected by this project every 20 minutes
 - Minion, mayor and event data: the Hypixel SkyBlock wiki at hypixelskyblock.minecraft.wiki, see `docs/minions-sources.md` and `docs/events-sources.md`
 - Recipes: [NotEnoughUpdates-REPO](https://github.com/NotEnoughUpdates/NotEnoughUpdates-REPO)
-- Item icons: [sky.coflnet.com](https://sky.coflnet.com/data)
+- Item icons and minion heads: [sky.coflnet.com](https://sky.coflnet.com/data); the minion heads are stored in `icons/minions/`, see `docs/image-sources.md` for the licence situation
 
 ## Disclaimer
 

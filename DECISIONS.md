@@ -779,3 +779,8 @@ Selbstständig getroffen (Auftrag: unbeaufsichtigt, ohne Rückfragen). Spec:
   bis der Spieler seine Level einträgt. Derpy: Steuer = 4 × eigene Steuer
   (das Wiki nennt keinen Prozentsatz, nur „quadrupled“); wer Bazaar Flipper
   hat, bekommt entsprechend 4,5 % oder 4 %.
+- **Teil K:** die Minion-Karte ist ein Button, kein Link; das Roh-Item ist
+  nur noch über „View item“ im Sheet erreichbar. Minion-Köpfe kommen aus der
+  bisherigen Icon-Quelle (Coflnet), die Lizenz dort ist nicht belegt und steht
+  so in `docs/image-sources.md`. Eine Preisspanne von mehr als dem Dreifachen
+  (Angebot gegen beste Order) gilt wie ein dünner Markt als unzuverlässig.

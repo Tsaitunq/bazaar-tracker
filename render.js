@@ -421,9 +421,12 @@ export function todayView({ plan, capital, slots, alerts = [], dismiss = false, 
 
 // One minion of the Minions area. row comes from minionRows; all coins are per day and for every minion placed.
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
-export const minionCard = (row) => `<li class="card minion">
-  <a class="body" href="${esc(itemHref(row.id))}">
-    <div class="name">${tile(row.id, 32)}<span>${esc(row.name)}</span></div>
+// The whole card is the button that opens the sheet (app.js reads data-minion). The raw item is only
+// reached from "View item" inside the sheet. Not a link, so a tap can never navigate by itself.
+export const minionTile = (key, size) => `<span class="tile"><img class="icon" src="icons/minions/${esc(key)}.png" width="${size}" height="${size}" alt="" decoding="async"></span>`;
+export const minionCard = (row) => `<li class="card minion" data-minion="${esc(row.key)}">
+  <div class="body" role="button" tabindex="0" aria-haspopup="dialog">
+    <div class="name">${minionTile(row.key, 32)}<span>${esc(row.name)}</span></div>
     <div class="badges"><span class="badge badge-trend">Tier ${ROMAN[row.tier - 1]}${row.tier === row.maxTier ? ' (highest)' : ''}</span>${
       row.lowVolume?.length ? `<span class="badge badge-warn">${ICONS.warn}low volume</span>` : ''}${
       row.unsure.length ? `<span class="badge badge-warn">${ICONS.warn}not confirmed</span>` : ''}${
@@ -435,23 +438,23 @@ export const minionCard = (row) => `<li class="card minion">
     <dl class="facts">${[
       fact('Bazaar/day', num(row.bazaar)),
       fact('NPC/day', num(row.npcCoins)),
-      fact('Fuel/day', row.fuelCost > 0 ? `−${num(row.fuelCost)}` : '–'),
+      fact('Fuel/day', row.fuelCost > 0 ? `−${num(row.fuelCost)}` : row.fuelPermanent ? 'permanent (one-time cost)' : '–'),
       fact('Items/day', num(row.itemsDay)),
       fact('Full after', `about ${duration(row.fillHours * 3600)}`),
     ].join('')}</dl>${row.unsure.length ? `
     <p class="why">${esc(row.unsure.join(' '))}</p>` : ''}
-  </a>
+  </div>
 </li>`;
 
 // The sheet of one minion. detail comes from minionDetail; name turns an item id into its name.
-const FORMS = { item: '', block: ' (block)' };
+const KINDS = { raw: 'raw', enchanted: 'enchanted', block: 'block (second step)' };
 export function minionSheet({ minion, row, tiers }, { name, count }) {
   const list = (x) => esc(x.toLocaleString('en-US', { maximumFractionDigits: 1 }));
   const wiki = 'https://hypixelskyblock.minecraft.wiki/w/' + minion.name.replace(/ /g, '_');
-  const parts = row.parts.map((p) => `<li><span>${esc(name(p.id))}${FORMS[p.form]}${p.low ? ' · <strong>low volume – price unreliable</strong>' : ''}</span>
+  const parts = row.parts.map((p) => `<li><span>${esc(name(p.id))} <small>${KINDS[p.kind]} · ${num(p.price)} each${p.low ? ' · <strong>price unreliable</strong>' : ''}</small></span>
       <span class="side">${num(p.amount)}/day · ${num(p.coins)}</span></li>`).join('');
   const bonus = row.speed > 0 ? `speed +${Math.round(row.speed * 100)}%` : 'no speed bonus';
-  return `<div class="panel-head"><h2>${esc(minion.name)}</h2><button type="button" data-act="close" aria-label="Close">${ICONS.close ?? '×'}</button></div>
+  return `<div class="panel-head"><h2>${minionTile(minion.key, 28)} ${esc(minion.name)}</h2><button type="button" data-act="close" aria-label="Close">${ICONS.close ?? '×'}</button></div>
 <div class="sheet-body">
   <p class="muted">Tier ${ROMAN[row.tier - 1]} · ${count === 1 ? '1 minion' : `${count} minions`} · ${bonus} · an action every ${plain.format(row.delay)} s</p>
   ${row.requires ? `<p class="${row.locked ? 'why' : 'muted'}">Requires ${esc(row.requires)} (wiki).${row.locked ? ' Not yet reached at your levels.' : ''}</p>` : ''}
@@ -460,7 +463,7 @@ export function minionSheet({ minion, row, tiers }, { name, count }) {
     tiers.map((t) => `<tr${t.tier === row.tier ? ' class="on"' : ''}><td>${ROMAN[t.tier - 1]}</td><td>${plain.format(t.delay)} s</td><td>${t.storage}</td><td>${num(t.itemsDay)}</td><td>${num(t.net)}</td></tr>`).join('')}</tbody></table>
   <h3>What it earns per day</h3>
   <ul class="coming">${parts || '<li class="muted">No price for any item right now.</li>'}
-    <li><span>Fuel</span><span class="side">${row.fuelCost > 0 ? '−' + num(row.fuelCost) : '–'}</span></li>
+    <li><span>Fuel</span><span class="side">${row.fuelCost > 0 ? '−' + num(row.fuelCost) : row.fuelPermanent ? 'permanent (one-time cost)' : '–'}</span></li>
     <li><span>Sold at ${row.best === 'npc' ? 'the NPC' : 'the Bazaar, after tax'}</span><span class="side"><strong class="${gain(row.net)}">${num(row.net)}</strong></span></li>
   </ul>
   <p>Storage ${list(row.storage)} items, full after about ${duration(row.fillHours * 3600)}.</p>${row.unsure.length ? `

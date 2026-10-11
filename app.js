@@ -327,14 +327,19 @@ $('minion-setup').addEventListener('submit', (e) => e.preventDefault());
 // A tap on a minion opens its sheet instead of the raw item; "View item" inside it goes there.
 const minionSetupFull = () => ({ ...minionSetup, upgrades: [minionSetup.up1, minionSetup.up2], hide: false });
 bindSheet($('minion-sheet'));
-$('minion-list').addEventListener('click', (e) => {
-  const key = e.target.closest?.('[data-minion]')?.dataset.minion;
+function openMinion(key) {
   if (!key || !products) return;
-  e.preventDefault();
   const detail = minionDetail(key, products, npc, minionSetupFull(), { tax: settings.tax / 100, stats });
   if (!detail) return;
   $('minion-sheet').innerHTML = minionSheet(detail, { name: nameOf, count: Math.max(1, minionSetup.count) });
   openSheet($('minion-sheet'));
+}
+$('minion-list').addEventListener('click', (e) => openMinion(e.target.closest?.('[data-minion]')?.dataset.minion));
+// the card is a button: Enter and Space open it too
+$('minion-list').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  e.preventDefault();
+  openMinion(e.target.closest?.('[data-minion]')?.dataset.minion);
 });
 
 // A craft hint on an opportunity opens the Craft tab on its end product.
