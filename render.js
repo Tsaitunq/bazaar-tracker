@@ -380,6 +380,7 @@ export const minionCard = (row) => `<li class="card minion">
   <a class="body" href="${esc(itemHref(row.id))}">
     <div class="name">${tile(row.id, 32)}<span>${esc(row.name)}</span></div>
     <div class="badges"><span class="badge badge-trend">Tier ${ROMAN[row.tier - 1]}${row.tier === row.maxTier ? ' (highest)' : ''}</span>${
+      row.lowVolume?.length ? `<span class="badge badge-warn">${ICONS.warn}low volume</span>` : ''}${
       row.unsure.length ? `<span class="badge badge-warn">${ICONS.warn}not confirmed</span>` : ''}</div>
     <div class="key">
       <div><span class="big ${gain(row.net)}">${num(row.net)}</span><span class="lbl">Coins/day</span></div>

@@ -1,7 +1,7 @@
 // Minion calculator: what a minion setup earns per day. All game data here is static and comes from
 // the wiki; every number has its source in docs/minions-sources.md. Nothing is estimated: where the
 // sources leave something open, the entry carries `unsure` and the app shows it.
-import { bookPrices } from './flips.js';
+import { bookPrices, statOf, MEDIAN_SPIKE } from './flips.js';
 
 const DAY_S = 86400;
 // A minion works in turns: one action places a block or spawns a mob, the next one harvests it.
@@ -77,9 +77,9 @@ export const MINIONS = [
   { key: 'fishing', name: 'Fishing Minion', delays: [75, 75, 67, 67, 59, 59, 51, 51, 43, 43, 35, 30], storageList: STORAGE_FISH, actions: 1,
     drops: [
       { id: 'RAW_FISH', qty: 0.54, compact: ['ENCHANTED_RAW_FISH', SC] },
-      { id: 'RAW_SALMON', qty: 0.225, compact: ['ENCHANTED_RAW_SALMON', SC] },
-      { id: 'PUFFERFISH', qty: 0.117, compact: ['ENCHANTED_PUFFERFISH', SC] },
-      { id: 'CLOWNFISH', qty: 0.036, compact: ['ENCHANTED_CLOWNFISH', SC] },
+      { id: 'RAW_FISH:1', qty: 0.225, compact: ['ENCHANTED_RAW_SALMON', SC] },
+      { id: 'RAW_FISH:3', qty: 0.117, compact: ['ENCHANTED_PUFFERFISH', SC] },
+      { id: 'RAW_FISH:2', qty: 0.036, compact: ['ENCHANTED_CLOWNFISH', SC] },
       { id: 'PRISMARINE_CRYSTALS', qty: 0.02734, compact: ['ENCHANTED_PRISMARINE_CRYSTALS', SC] },
       { id: 'PRISMARINE_SHARD', qty: 0.02734, compact: ['ENCHANTED_PRISMARINE_SHARD', SC] },
       { id: 'SPONGE', qty: 0.02734, compact: ['ENCHANTED_SPONGE', 40] },
@@ -145,24 +145,73 @@ export function minionYield(minion, { tier = 1, fuel = 'none', upgrades = [] } =
   return { tier: t, items, storage: minion.storage[t - 1], unsure };
 }
 
-// Every minion with the same setup, the one that earns most first.
+// The second step of the Super Compactor 3000: [item, how many of the first make one]. Only the ones the
+// wiki lists on the minion pages; where it lists none (Cobblestone, Obsidian, Snow) there is no entry.
+const BLOCKS = {
+  ENCHANTED_CLAY_BALL: ['ENCHANTED_CLAY_BLOCK', 160], ENCHANTED_DIAMOND: ['ENCHANTED_DIAMOND_BLOCK', 160],
+  ENCHANTED_LAPIS_LAZULI: ['ENCHANTED_LAPIS_LAZULI_BLOCK', 160], ENCHANTED_EMERALD: ['ENCHANTED_EMERALD_BLOCK', 160],
+  ENCHANTED_REDSTONE: ['ENCHANTED_REDSTONE_BLOCK', 160], ENCHANTED_SUGAR: ['ENCHANTED_SUGAR_CANE', 160],
+  ENCHANTED_IRON: ['ENCHANTED_IRON_BLOCK', 160], ENCHANTED_PUMPKIN: ['POLISHED_PUMPKIN', 160],
+  ENCHANTED_WHEAT: ['ENCHANTED_HAY_BALE', 160], ENCHANTED_SEEDS: ['BOX_OF_SEEDS', 160],
+  ENCHANTED_CARROT: ['ENCHANTED_GOLDEN_CARROT', 160], ENCHANTED_POTATO: ['ENCHANTED_BAKED_POTATO', 160],
+  ENCHANTED_CACTUS_GREEN: ['ENCHANTED_CACTUS', 160], ENCHANTED_GLOWSTONE_DUST: ['ENCHANTED_GLOWSTONE', 160],
+  ENCHANTED_SPONGE: ['ENCHANTED_WET_SPONGE', 40],
+};
+// A form counts as thin when its weekly volume is less than this many times what the minions make in a week.
+export const LOW_VOLUME_FACTOR = 20;
+// raw item -> [enchanted item, how many make one], to tell a raw price that no one could really get
+const COMPACT_OF = Object.fromEntries(MINIONS.flatMap((m) => m.drops.map((d) => [d.id, d.compact])));
+const weekVolume = (p) => { const q = p?.quick_status; return q ? Math.min(q.buyMovingWeek, q.sellMovingWeek) : null; };
+
+// Sells perDay of one item at the Bazaar: the item itself or, with a Super Compactor 3000, the block of it,
+// whichever pays more among the forms that trade enough. A buy order far above the 7 day median counts at the
+// median, and a raw item never above what its enchanted form is worth per piece (plus the same margin): a lone
+// order far above that is not a price one can sell at. { form, id, coins (after tax), low: true when no form trades enough, notes }.
+function bestForm(id, perDay, products, { tax, stats, count }) {
+  const forms = [[id, perDay, 'item']];
+  if (BLOCKS[id]) forms.push([BLOCKS[id][0], perDay / BLOCKS[id][1], 'block']);
+  const options = [];
+  for (const [fid, amount, form] of forms) {
+    const price = products[fid] && bookPrices(products[fid])?.buy;
+    if (!price) continue;
+    const median = statOf(stats, fid).median;
+    let cap = median > 0 ? median : Infinity;
+    const [ench, per] = COMPACT_OF[fid] ?? [];
+    const enchBuy = ench && products[ench] && bookPrices(products[ench])?.buy;
+    if (enchBuy) cap = Math.min(cap, enchBuy / per);
+    const spike = price > cap * (1 + MEDIAN_SPIKE);
+    const vol = weekVolume(products[fid]);
+    options.push({ form, id: fid, amount, coins: amount * (spike ? cap : price) * (1 - tax), spike,
+      low: vol !== null && vol < LOW_VOLUME_FACTOR * amount * count * 7 });
+  }
+  const sorted = options.sort((x, y) => y.coins - x.coins);
+  return sorted.find((o) => !o.low) ?? sorted[0] ?? null;
+}
+
+// Every minion with the same setup, the one that earns most first, minions that rely on a thin market last.
 // setup: as for minionYield, plus count (minions placed). npc: NPC sell price per item id. tax: fraction.
-// Per row, for all `count` minions and per day: bazaar (sold to the highest buy orders, tax taken off),
-// npcCoins, fuelCost (fuel that is used up, bought at the lowest sell offer), best ('bazaar' or 'npc') and
-// net = the better of the two minus the fuel. fillHours: until one minion's storage is full.
+// stats: the app's stats (7 day medians) or null. Per row, for all `count` minions and per day: bazaar (sold to
+// the highest buy orders, tax taken off, in the better of item and block), npcCoins, fuelCost (fuel that is used
+// up, bought at the lowest sell offer), best ('bazaar' or 'npc') and net = the better of the two minus the fuel.
+// fillHours: until one minion's storage is full. lowVolume: ids whose market is too thin for the amount.
 // A price that is missing counts as 0 and adds a note to `unsure`.
-export function minionRows(products, npc, setup, { tax }) {
+export function minionRows(products, npc, setup, { tax, stats = null }) {
   const count = Math.max(1, Math.floor(setup.count) || 1);
   const fuel = byKey(FUELS, setup.fuel);
   const fuelPrice = fuel.hours ? (products[fuel.id] && bookPrices(products[fuel.id])?.sell) ?? null : 0;
-  return MINIONS.map((minion) => {
+  const rows = MINIONS.map((minion) => {
     const made = minionYield(minion, setup);
     const unsure = [...made.unsure];
+    const lowVolume = [];
     let bazaar = 0, npcCoins = 0, perDay = 0;
     for (const [id, amount] of Object.entries(made.items)) {
-      const price = products[id] && bookPrices(products[id])?.buy;
-      if (!price) unsure.push(`No buy order for ${id} right now; it counts as 0 at the Bazaar.`);
-      bazaar += amount * (price ?? 0) * (1 - tax);
+      const sold = bestForm(id, amount, products, { tax, stats, count });
+      if (!sold) unsure.push(`No buy order for ${id} right now; it counts as 0 at the Bazaar.`);
+      else {
+        bazaar += sold.coins;
+        if (sold.low) { lowVolume.push(sold.id); unsure.push(`Low volume – price unreliable: ${sold.id} trades too little for this amount.`); }
+        if (sold.spike) unsure.push(`${sold.id} is far above its 7 day median or above its enchanted form; counted at that value.`);
+      }
       npcCoins += amount * (npc[id] ?? 0);
       perDay += amount;
     }
@@ -173,7 +222,8 @@ export function minionRows(products, npc, setup, { tax }) {
       key: minion.key, name: minion.name, id: minion.drops[0].id, tier: made.tier, maxTier: minion.delays.length,
       bazaar: bazaar * count, npcCoins: npcCoins * count, fuelCost: fuelCost * count, best,
       net: (Math.max(bazaar, npcCoins) - fuelCost) * count,
-      itemsDay: perDay * count, fillHours: made.storage / (perDay / 24), unsure,
+      itemsDay: perDay * count, fillHours: made.storage / (perDay / 24), unsure, lowVolume,
     };
-  }).sort((a, b) => b.net - a.net);
+  });
+  return rows.sort((a, b) => (a.lowVolume.length > 0) - (b.lowVolume.length > 0) || b.net - a.net);
 }

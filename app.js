@@ -298,7 +298,7 @@ $('minion-setup').addEventListener('submit', (e) => e.preventDefault());
 // The areas that are one page each. Trade is drawn by renderPage itself.
 function renderArea() {
   if (area() === 'minions' && products) {
-    const rows = minionRows(products, npc, { ...minionSetup, upgrades: [minionSetup.up1, minionSetup.up2] }, { tax: settings.tax / 100 });
+    const rows = minionRows(products, npc, { ...minionSetup, upgrades: [minionSetup.up1, minionSetup.up2] }, { tax: settings.tax / 100, stats });
     $('minion-note').textContent = `${rows.length} minions, best first · coins per day for ${minionSetup.count === 1 ? '1 minion' : `${minionSetup.count} minions`} · Bazaar = sold at once to buy orders, after tax`;
     $('minion-list').innerHTML = rows.map(minionCard).join('');
   }

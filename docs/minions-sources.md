@@ -128,3 +128,22 @@ minion. A permanent fuel costs nothing per day; its purchase is not counted.
 
 Item ids (for prices) were compared with the product list of one Bazaar API
 snapshot on 2026-10-11 (all ids used exist there).
+
+## How the Bazaar value of a minion is formed (0.7.1)
+
+- With a Super Compactor 3000 the minion holds the enchanted item and, once
+  160 of it have gathered, the item of the second step (W:Minion: "also
+  compacts second-tier enchanted items"). The calculator prices both and
+  takes the better one per item. The second steps used are the ones the
+  minion pages list (Clay, Diamond, Lapis, Emerald, Redstone, Sugar Cane,
+  Iron, Pumpkin, Wheat, Seeds, Carrot, Potato, Cactus, Glowstone, Sponge).
+- A form counts as thin when its weekly volume (the smaller of the units
+  bought and sold) is below 20 times what the minions make in a week. A thin
+  form is used only when no other form is available; the minion is then
+  marked "low volume – price unreliable" and listed after the others.
+- A price above the item's 7 day median (stats) by more than 30%, or above
+  what its enchanted form is worth per piece by more than 30%, counts at that
+  value. Crafting the enchanted form is always possible, so a raw item cannot
+  honestly sell for more.
+- The 20× and 30% limits are choices of this calculator (30% is the app's
+  existing median limit); the wiki states none.

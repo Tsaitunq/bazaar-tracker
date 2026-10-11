@@ -732,3 +732,10 @@ Selbstständig getroffen (Auftrag: unbeaufsichtigt, ohne Rückfragen). Spec:
   Auto Smelter im zweiten Slot; das Modell kennt ihn nicht.
 - **Enchanted Melon:** Wiki-Name „Enchanted Melon Slice“ wird auf die
   Bazaar-ID ENCHANTED_MELON gelegt (160×-Preisverhältnis), markiert.
+- **Teil B, Verkaufsform:** mit Compactor wird je Item die bessere von
+  Enchanted und Block-Stufe gerechnet (nur Stufen, die das Wiki listet).
+- **„Dünner Markt“ = Wochenvolumen unter 20× Wochenertrag**; so ein Item
+  wird nur genommen, wenn keine andere Form da ist, die Zeile wird
+  markiert und hinter die anderen sortiert. Die 20 ist meine Wahl.
+- **Rohpreis darf nicht über den Enchanted-Preis je Stück + 30 % steigen**
+  (Craften ist immer möglich); ebenso nicht über den 7-Tage-Median + 30 %.
