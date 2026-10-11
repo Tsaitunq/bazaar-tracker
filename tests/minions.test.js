@@ -16,7 +16,7 @@ test('the data has the shape the calculator expects', () => {
     assert.equal(m.storage.length, m.delays.length, m.key);
     // a higher tier is never slower and never holds less
     for (let i = 1; i < m.delays.length; i++) assert.ok(m.delays[i] <= m.delays[i - 1] && m.storage[i] >= m.storage[i - 1], `${m.key} tier ${i + 1}`);
-    for (const d of m.drops) assert.ok(d.id && d.qty > 0 && d.compact[0] && d.compact[1] >= 160, `${m.key} ${d.id}`);
+    for (const d of m.drops) assert.ok(d.id && d.qty > 0 && d.compact[0] && d.compact[1] >= 40, `${m.key} ${d.id}`);
   }
   assert.deepEqual([FUELS[0].key, UPGRADES[0].key], ['none', 'none']);
   for (const f of FUELS.slice(1)) assert.ok(f.id && (f.speed > 0 || f.mult > 1), f.key);
@@ -69,9 +69,16 @@ test('Diamond Spreading adds a Diamond per ten items, the Super Compactor makes 
 
 test('what the wiki leaves open is marked, and a tier the minion lacks becomes its highest', () => {
   const tarantula = minionYield(minion('tarantula'), { tier: 12 });
-  near(tarantula.items.STRING, 86400 / 16 * 3.5);
+  near(tarantula.items.STRING, 86400 / 16 * 3.16);
   near(tarantula.items.IRON_INGOT, 86400 / 16 * 0.2);
-  assert.match(tarantula.unsure[0], /2 to 5 per harvest.*middle \(3\.5\)/);
+  assert.deepEqual(tarantula.unsure, []);
+  // the wiki gives a string compactor of 160, not 192
+  near(minionYield(minion('tarantula'), { tier: 12, upgrades: ['compactor'] }).items.ENCHANTED_STRING, 86400 / 16 * 3.16 / 160);
+  assert.match(minionYield(minion('melon'), { tier: 12 }).unsure.join(' '), /replant/);
+  // a fishing minion only harvests: one action per catch, and it holds 640 to 960
+  near(minionYield(minion('fishing'), { tier: 12 }).items.RAW_FISH, 86400 / 30 * 0.54);
+  assert.equal(minion('fishing').storage[0], 640);
+  assert.equal(minion('wheat').storage[0], 128);
   assert.equal(minionYield(minion('slime'), { tier: 12 }).tier, 11);
   assert.equal(minionYield(minion('slime'), { tier: 0 }).tier, 1);
   // a Slime drops one ball always and two more at 50% each

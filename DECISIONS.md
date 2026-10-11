@@ -718,3 +718,17 @@ Selbstständig getroffen (Auftrag: unbeaufsichtigt, ohne Rückfragen). Spec:
 - **Das Setup liegt in `bt.minions`**, getrennt von den Einstellungen, und
   gilt sofort (kein Apply).
 - **Kein Compactor, Auto Smelter, Hopper, Storage, Beacon, Mayor-Perk.**
+
+## 0.7.1
+
+- **Teil A, Quelle:** hypixelskyblock.minecraft.wiki ist die Primärquelle.
+  Archiv-Kopien und Fandom entfallen; die Regeln stehen in `CLAUDE.md`.
+- **Aktionen pro Ernte bleibt 2**, Fishing 1. Die gelesenen Wiki-Seiten
+  nennen keine Regel dafür; „not confirmed“ in `docs/minions-sources.md`.
+  Melon/Pumpkin laufen offline mit Neupflanzen (Wiki), daher 2 mit Hinweis.
+- **Bazaar-Steuer bleibt abgezogen**, auch beim Sofortverkauf: „all Bazaar
+  sales“ (Wiki). Ob Instant Sell eigens genannt ist, steht dort nicht.
+- **Iron/Gold nicht aufgenommen**: Ertrag ist Erz, Compactor braucht den
+  Auto Smelter im zweiten Slot; das Modell kennt ihn nicht.
+- **Enchanted Melon:** Wiki-Name „Enchanted Melon Slice“ wird auf die
+  Bazaar-ID ENCHANTED_MELON gelegt (160×-Preisverhältnis), markiert.

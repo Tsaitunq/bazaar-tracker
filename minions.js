@@ -8,49 +8,83 @@ const DAY_S = 86400;
 export const ACTIONS_PER_HARVEST = 2;
 export const SPREADING_CHANCE = 0.1; // Diamond Spreading: one Diamond per 10 items collected
 
-const RANGE = (from, to) => `The wiki gives ${from} to ${to} per harvest and no average; the middle (${(from + to) / 2}) is used.`;
 // tiers I to V share storage and speed in pairs, so every list has one entry per tier
 const STORAGE = [64, 192, 192, 384, 384, 576, 576, 768, 768, 960, 960, 960];
+const STORAGE_WHEAT = [128, 256, 256, 384, 384, 576, 576, 768, 768, 960, 960, 960];
+const STORAGE_FISH = [640, 640, 640, 704, 704, 768, 768, 832, 832, 896, 960, 960];
+const SC = 160; // items of a drop that one Super Compactor 3000 turns into one enchanted item
+const SEEDS_NOTE = 'Online, once the seeds are planted, the minion needs no planting action and would harvest twice as fast; the wiki says offline it is counted with a replant after every harvest, so two actions are used.';
 
-// delays: seconds between two actions per tier, tier I first. storage: items a minion holds per tier.
-// drops: items per harvest. qty is the expected amount (amount × chance); compact: [enchanted item, how
-// many of the drop make one] for the Super Compactor 3000.
+// delays: seconds between two actions per tier, tier I first. storageList: items a minion holds per tier
+// (default STORAGE). drops: items per harvest. qty is the expected amount (amount × chance); compact:
+// [enchanted item, how many of the drop make one] for the Super Compactor 3000. actions: actions per
+// harvest (default ACTIONS_PER_HARVEST). note: shown with the minion as a "not confirmed" remark.
 export const MINIONS = [
   { key: 'snow', name: 'Snow Minion', delays: [13, 13, 12, 12, 11, 11, 9.5, 9.5, 8, 8, 6.5, 5.8],
     drops: [{ id: 'SNOW_BALL', qty: 4, compact: ['ENCHANTED_SNOW_BLOCK', 640] }] },
   { key: 'clay', name: 'Clay Minion', delays: [32, 32, 30, 30, 27.5, 27.5, 24, 24, 20, 20, 16, 14],
-    drops: [{ id: 'CLAY_BALL', qty: 4, compact: ['ENCHANTED_CLAY_BALL', 160] }] },
+    drops: [{ id: 'CLAY_BALL', qty: 4, compact: ['ENCHANTED_CLAY_BALL', SC] }] },
   { key: 'cobblestone', name: 'Cobblestone Minion', delays: [14, 14, 12, 12, 10, 10, 9, 9, 8, 8, 7, 6],
-    drops: [{ id: 'COBBLESTONE', qty: 1, compact: ['ENCHANTED_COBBLESTONE', 160] }] },
+    drops: [{ id: 'COBBLESTONE', qty: 1, compact: ['ENCHANTED_COBBLESTONE', SC] }] },
   { key: 'coal', name: 'Coal Minion', delays: [15, 15, 13, 13, 12, 12, 10, 10, 9, 9, 7, 6],
-    drops: [{ id: 'COAL', qty: 1, compact: ['ENCHANTED_COAL', 160] }] },
+    drops: [{ id: 'COAL', qty: 1, compact: ['ENCHANTED_COAL', SC] }] },
   { key: 'diamond', name: 'Diamond Minion', delays: [29, 29, 27, 27, 25, 25, 22, 22, 19, 19, 15, 12],
-    drops: [{ id: 'DIAMOND', qty: 1, compact: ['ENCHANTED_DIAMOND', 160] }] },
+    drops: [{ id: 'DIAMOND', qty: 1, compact: ['ENCHANTED_DIAMOND', SC] }] },
   { key: 'lapis', name: 'Lapis Minion', delays: [29, 29, 27, 27, 25, 25, 23, 23, 21, 21, 18, 16],
-    drops: [{ id: 'INK_SACK:4', qty: 4.5, unsure: RANGE(3, 6), compact: ['ENCHANTED_LAPIS_LAZULI', 160] }] },
+    drops: [{ id: 'INK_SACK:4', qty: 6, compact: ['ENCHANTED_LAPIS_LAZULI', SC] }] },
   { key: 'redstone', name: 'Redstone Minion', delays: [29, 29, 27, 27, 25, 25, 23, 23, 21, 21, 18, 16],
-    drops: [{ id: 'REDSTONE', qty: 4.5, unsure: RANGE(3, 6), compact: ['ENCHANTED_REDSTONE', 160] }] },
+    drops: [{ id: 'REDSTONE', qty: 4.5, compact: ['ENCHANTED_REDSTONE', SC] }] },
   { key: 'emerald', name: 'Emerald Minion', delays: [28, 28, 26, 26, 24, 24, 21, 21, 18, 18, 14, 12],
-    drops: [{ id: 'EMERALD', qty: 1, compact: ['ENCHANTED_EMERALD', 160] }] },
+    drops: [{ id: 'EMERALD', qty: 1, compact: ['ENCHANTED_EMERALD', SC] }] },
   { key: 'obsidian', name: 'Obsidian Minion', delays: [45, 45, 42, 42, 39, 39, 35, 35, 30, 30, 24, 21],
-    drops: [{ id: 'OBSIDIAN', qty: 1, compact: ['ENCHANTED_OBSIDIAN', 160] }] },
+    drops: [{ id: 'OBSIDIAN', qty: 1, compact: ['ENCHANTED_OBSIDIAN', SC] }] },
   { key: 'sugarcane', name: 'Sugar Cane Minion', delays: [22, 22, 20, 20, 18, 18, 16, 16, 14.5, 14.5, 12, 9],
-    drops: [{ id: 'SUGAR_CANE', qty: 3, compact: ['ENCHANTED_SUGAR', 160] }] },
+    drops: [{ id: 'SUGAR_CANE', qty: 3, compact: ['ENCHANTED_SUGAR', SC] }] },
   // a slime drops one Slimeball always and two more at 50% each; the wiki lists tiers I to XI only
   { key: 'slime', name: 'Slime Minion', delays: [26, 26, 24, 24, 22, 22, 19, 19, 16, 16, 12],
-    drops: [{ id: 'SLIME_BALL', qty: 2, compact: ['ENCHANTED_SLIME_BALL', 160] }] },
+    drops: [{ id: 'SLIME_BALL', qty: 2, compact: ['ENCHANTED_SLIME_BALL', SC] }] },
   { key: 'tarantula', name: 'Tarantula Minion', delays: [29, 29, 26, 26, 23, 23, 19, 19, 14.5, 14.5, 10, 8],
     drops: [
-      { id: 'STRING', qty: 3.5, unsure: RANGE(2, 5), compact: ['ENCHANTED_STRING', 192] },
-      { id: 'SPIDER_EYE', qty: 1, compact: ['ENCHANTED_SPIDER_EYE', 160] },
-      { id: 'IRON_INGOT', qty: 0.2, compact: ['ENCHANTED_IRON', 160] },
+      { id: 'STRING', qty: 3.16, compact: ['ENCHANTED_STRING', SC] },
+      { id: 'SPIDER_EYE', qty: 1, compact: ['ENCHANTED_SPIDER_EYE', SC] },
+      { id: 'IRON_INGOT', qty: 0.2, compact: ['ENCHANTED_IRON', SC] },
     ] },
   { key: 'revenant', name: 'Revenant Minion', delays: [29, 29, 26, 26, 23, 23, 19, 19, 14.5, 14.5, 10, 8],
     drops: [
-      { id: 'ROTTEN_FLESH', qty: 3.5, unsure: RANGE(2, 5), compact: ['ENCHANTED_ROTTEN_FLESH', 160] },
-      { id: 'DIAMOND', qty: 0.2, compact: ['ENCHANTED_DIAMOND', 160] },
+      { id: 'ROTTEN_FLESH', qty: 3.16, compact: ['ENCHANTED_ROTTEN_FLESH', SC] },
+      { id: 'DIAMOND', qty: 0.2, compact: ['ENCHANTED_DIAMOND', SC] },
     ] },
-].map((m) => ({ ...m, storage: STORAGE.slice(0, m.delays.length) }));
+  { key: 'wheat', name: 'Wheat Minion', delays: [15, 15, 13, 13, 11, 11, 10, 10, 9, 9, 8, 7], storageList: STORAGE_WHEAT,
+    drops: [
+      { id: 'WHEAT', qty: 1, compact: ['ENCHANTED_WHEAT', SC] },
+      { id: 'SEEDS', qty: 1.5, compact: ['ENCHANTED_SEEDS', SC] },
+    ] },
+  { key: 'carrot', name: 'Carrot Minion', delays: [20, 20, 18, 18, 16, 16, 14, 14, 12, 12, 10, 8],
+    drops: [{ id: 'CARROT_ITEM', qty: 3, compact: ['ENCHANTED_CARROT', SC] }] },
+  { key: 'potato', name: 'Potato Minion', delays: [20, 20, 18, 18, 16, 16, 14, 14, 12, 12, 10, 8],
+    drops: [{ id: 'POTATO_ITEM', qty: 3, compact: ['ENCHANTED_POTATO', SC] }] },
+  { key: 'melon', name: 'Melon Minion', delays: [24, 24, 22.5, 22.5, 21, 21, 18.5, 18.5, 16, 16, 13, 10], note: SEEDS_NOTE,
+    drops: [{ id: 'MELON', qty: 5, compact: ['ENCHANTED_MELON', SC],
+      unsure: 'The wiki names the 160-slice item "Enchanted Melon Slice"; it is matched to the Bazaar item ENCHANTED_MELON by its price ratio, not by a name.' }] },
+  { key: 'pumpkin', name: 'Pumpkin Minion', delays: [32, 32, 30, 30, 27, 27, 24, 24, 20, 20, 16, 12], note: SEEDS_NOTE,
+    drops: [{ id: 'PUMPKIN', qty: 1, compact: ['ENCHANTED_PUMPKIN', SC] }] },
+  { key: 'cactus', name: 'Cactus Minion', delays: [27, 27, 25, 25, 23, 23, 21, 21, 18, 18, 15, 12],
+    drops: [{ id: 'CACTUS', qty: 3, compact: ['ENCHANTED_CACTUS_GREEN', SC],
+      unsure: 'Cactus is compacted as Cactus Green: that needs an Auto Smelter as well (or a Dwarven Super Compactor), which takes the second slot.' }] },
+  { key: 'glowstone', name: 'Glowstone Minion', delays: [25, 25, 23, 23, 21, 21, 19, 19, 16, 16, 13, 11],
+    drops: [{ id: 'GLOWSTONE_DUST', qty: 3, compact: ['ENCHANTED_GLOWSTONE_DUST', SC] }] },
+  // a fishing minion only harvests: one action is one catch
+  { key: 'fishing', name: 'Fishing Minion', delays: [75, 75, 67, 67, 59, 59, 51, 51, 43, 43, 35, 30], storageList: STORAGE_FISH, actions: 1,
+    drops: [
+      { id: 'RAW_FISH', qty: 0.54, compact: ['ENCHANTED_RAW_FISH', SC] },
+      { id: 'RAW_SALMON', qty: 0.225, compact: ['ENCHANTED_RAW_SALMON', SC] },
+      { id: 'PUFFERFISH', qty: 0.117, compact: ['ENCHANTED_PUFFERFISH', SC] },
+      { id: 'CLOWNFISH', qty: 0.036, compact: ['ENCHANTED_CLOWNFISH', SC] },
+      { id: 'PRISMARINE_CRYSTALS', qty: 0.02734, compact: ['ENCHANTED_PRISMARINE_CRYSTALS', SC] },
+      { id: 'PRISMARINE_SHARD', qty: 0.02734, compact: ['ENCHANTED_PRISMARINE_SHARD', SC] },
+      { id: 'SPONGE', qty: 0.02734, compact: ['ENCHANTED_SPONGE', 40] },
+    ] },
+].map((m) => ({ ...m, storage: (m.storageList ?? STORAGE).slice(0, m.delays.length) }));
 export const MAX_TIER = 12;
 
 // speed: added to the minion's speed (0.25 = 25%). mult: every item is generated this many times instead.
@@ -90,9 +124,9 @@ export function minionYield(minion, { tier = 1, fuel = 'none', upgrades = [] } =
   const has = (key) => used.some((u) => u.key === key);
   const speed = (fuelUsed.speed ?? 0) + used.reduce((sum, u) => sum + (u.speed ?? 0), 0);
   const mult = fuelUsed.mult ?? 1;
-  const harvests = DAY_S / (ACTIONS_PER_HARVEST * minion.delays[t - 1] / (1 + speed));
+  const harvests = DAY_S / ((minion.actions ?? ACTIONS_PER_HARVEST) * minion.delays[t - 1] / (1 + speed));
 
-  const unsure = minion.drops.map((d) => d.unsure).filter(Boolean);
+  const unsure = [...minion.drops.map((d) => d.unsure), minion.note].filter(Boolean);
   const raw = {};
   for (const d of minion.drops) raw[d.id] = (raw[d.id] ?? 0) + d.qty * harvests * mult;
   const compact = Object.fromEntries(minion.drops.map((d) => [d.id, d.compact]));
