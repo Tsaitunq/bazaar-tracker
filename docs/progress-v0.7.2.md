@@ -7,7 +7,7 @@ Branch `feat/v0.7.2`, one commit per part. Not pushed, not merged.
 - [x] H. NPC tab with craft steps
 - [x] I. Calendar check (matches), "Year of the" countdown (no year on the wiki, left open)
 - [x] J. Small notes (minion requirements, Derpy tax)
-- [ ] Changelog 0.7.2, README, APK, docs/summary-v0.7.2.md
+- [x] Changelog 0.7.2, README, APK, docs/summary-v0.7.2.md
 
 ## F.1 answer (one Bazaar snapshot 2026-10-11, stats and recipes from the data branch, default settings)
 
