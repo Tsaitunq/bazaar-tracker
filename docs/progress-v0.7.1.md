@@ -6,8 +6,8 @@ Branch `feat/v0.7.1`, one commit per part. Not pushed, not merged.
 - [x] B. Ranking (see below)
 - [x] C. Minion detail sheet (visual check on the phone still open)
 - [x] D. Mayors and events
-- [ ] E. Opportunities filter bug
-- [ ] Changelog 0.7.1, version, README, APK, docs/summary-v0.7.1.md
+- [x] E. Opportunities filter bug
+- [x] Changelog 0.7.1, version, README, APK, docs/summary-v0.7.1.md
 
 Part A findings: Lapis average is 6 (4 to 8), not 4.5; Tarantula String
 compacts 160, not 192; String and Rotten Flesh average 3.16; Wheat storage
