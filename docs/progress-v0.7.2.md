@@ -5,7 +5,7 @@ Branch `feat/v0.7.2`, one commit per part. Not pushed, not merged.
 - [x] F. Craft hint on opportunity cards
 - [x] G. Craft modes
 - [x] H. NPC tab with craft steps
-- [ ] I. Calendar check, "Year of the" countdown
+- [x] I. Calendar check (matches), "Year of the" countdown (no year on the wiki, left open)
 - [ ] J. Small notes (minion requirements, Derpy tax)
 - [ ] Changelog 0.7.2, README, APK, docs/summary-v0.7.2.md
 
@@ -50,3 +50,16 @@ to 500,000,000 Coins per day, which resets at 00:00 UTC+0"
 wiki names nothing per item. It caps Profit/h of NPC flips and is shown as a
 note on the NPC tab. The 640-items-a-day limit on the page "NPC" is a buy
 limit of the shops and does not touch Bazaar-to-NPC flips.
+
+## I
+
+**Calendar:** the app computes Late Summer 11, year 519 for 2026-10-11
+08:55 to 09:15 UTC (10:55 to 11:15 CEST), which fits "Late Summer 11, year
+519, Vormittag". No correction needed; the test uses that moment as anchor. The
+time of day the game showed was only "Vormittag", so the match is to within
+the 20-minute day plus that vagueness.
+
+**Year of the …:** searched Events, Calendar, SkyBlock_Year and the three event
+pages: "every 12 SkyBlock Years" and real-world dates of the update (Seal:
+Feb 6, 2025), but **no SkyBlock year number** and no order of the cycle.
+Nothing was computed, no countdown. Left open.

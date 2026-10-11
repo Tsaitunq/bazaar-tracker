@@ -174,3 +174,11 @@ test('planElection: what the Android worker needs to repeat the election warning
   assert.equal(planElection([], { mayor: { ...election.mayor, year: 500 } }, now).term, null);
   assert.deepEqual(planElection(['SHARK_FIN'], null, now), { perks: { SHARK_FIN: ['Fishing Festival'] }, term: null });
 });
+
+test('calendar anchor: the game said Late Summer 11, year 519 on the morning of 2026-10-11', () => {
+  // the in-game day is 20 minutes: Late Summer 11 runs from 08:55 to 09:15 UTC (10:55 to 11:15 CEST)
+  assert.deepEqual(skyDate(Date.parse('2026-10-11T09:00:00Z')), { year: 519, month: 5, day: 11 });
+  assert.equal(MONTHS[5], 'Late Summer');
+  assert.equal(skyTime(519, 5, 11), Date.parse('2026-10-11T08:55:00Z'));
+  assert.deepEqual(skyDate(Date.parse('2026-10-11T08:54:59Z')), { year: 519, month: 5, day: 10 });
+});

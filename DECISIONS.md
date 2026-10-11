@@ -771,3 +771,7 @@ Selbstständig getroffen (Auftrag: unbeaufsichtigt, ohne Rückfragen). Spec:
   verfügbar oder nicht profitabel, der Kauf-Order-Preis (auf der Karte
   beschriftet). „Profit/min“ ist Profit/h aus dem Marktanteil ÷ 60; eine
   Verkaufsgeschwindigkeit des Spielers wird nicht angenommen.
+- **Teil I:** Kalender stimmt, kein Eingriff. Year of the Seal/Witch/Pig:
+  kein Jahr im Wiki, also kein Countdown; die Ansicht bleibt bei „no date“.
+  Das Update-Datum (6.2.2025) sagt nicht, in welchem SkyBlock-Jahr das Event
+  lief, und wird nicht als Jahr gelesen.
