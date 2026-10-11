@@ -138,5 +138,6 @@ can also move an item; the gain is the median price relation, not a profit
 you can make at once (volume, order time and the spread of the book are not
 in it); 12 runs are a few weeks.
 
-Items for the Today notice come from `buyNow`; none was due when the data
-was read (no window of a running perk was in its buy phase).
+Today notice (`buyNow`) on the data branch's election (Paul, at the time of
+writing): Precursor Gear and Fuming Potato Book are in their buy phase now,
+Wither Blood and Carrot Zest (Harvest Feast) within a day.
