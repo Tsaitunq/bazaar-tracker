@@ -103,7 +103,7 @@ export function started(nowMs, election, { curve = false } = {}) {
     }
   }
   // the curve of a run is filled in up to three days after its end
-  return out.filter((o) => nowMs < Math.max(o.a, curve && o.curve ? o.e + 72 * 3600000 : 0));
+  return out.filter((o) => nowMs < Math.max(o.a, curve && o.curve ? Math.max(o.e, o.s + MIN_DURING_MS) + 72 * 3600000 : 0));
 }
 
 // The next timing.json. series(id): the item's kept snapshots as [minute, buy, sell].
@@ -221,14 +221,16 @@ export function tradeWindow(runs, id, tax) {
   for (let i = 0; i < names.length; i++) {
     for (let j = i + 1; j < names.length; j++) {
       const spread = (rel[names[j]] / rel[names[i]]) * (1 - tax) - 1;
-      if (!best || spread > best.spread) best = { buy: names[i], sell: names[j], spread };
+      // on a tie the later buy phase wins (a day before beats two days before), the earlier sell phase too
+      if (!best || spread > best.spread + 1e-9 || (Math.abs(spread - best.spread) <= 1e-9 && i > best.i)) best = { buy: names[i], sell: names[j], spread, i };
     }
   }
   if (!best || best.spread <= TRADE_MIN_SPREAD) return null;
   const both = have.filter((run) => run.c[id][best.buy] > 0 && run.c[id][best.sell] > 0);
   const hits = both.filter((run) => (run.c[id][best.sell] / run.c[id][best.buy]) * (1 - tax) > 1).length;
   if (both.length < CONFIRM || hits / both.length < TRADE_MIN_HIT) return null;
-  return { ...best, hits, n: both.length, src: both.map((run) => run.src ?? 'own') };
+  const { i, ...window } = best;
+  return { ...window, hits, n: both.length, src: both.map((run) => run.src ?? 'own') };
 }
 
 // "day 3 of Marina's term", "2 days after the term", "during the event"

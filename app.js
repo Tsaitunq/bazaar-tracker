@@ -10,6 +10,7 @@ import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radar
 import { chartHit, when } from './chart.js';
 import { level } from './trends.js';
 import { activePerks, upcoming, electionWindow, eventItems, flipRisks, planElection, taxAdvice } from './events.js';
+import { buyNow, itemWindows } from './timing.js';
 import { bindSheet, openSheet } from './sheet.js';
 import { initOnboarding, refreshHints, offerAdvanced, returning } from './tour.js';
 
@@ -283,7 +284,7 @@ function flashChanges() {
 let radarShown = '';
 function renderRadar() {
   const now = Date.now();
-  const data = { election, perks: activePerks(election), events: upcoming(now, election), vote: electionWindow(now), now, name: nameOf, timing, query: effectsQuery };
+  const data = { election, perks: activePerks(election), events: upcoming(now, election), vote: electionWindow(now), now, name: nameOf, timing, query: effectsQuery, tax: settings.tax / 100 };
   const plain = radarView(data);
   if (plain === radarShown) return;
   const box = $('radar');
@@ -385,6 +386,7 @@ function renderArea() {
       events: upcoming(now, election), vote: electionWindow(now), election,
       voteItems: Object.keys(risks).filter((id) => risks[id].kind === 'election'),
       fresh: (lastVisit ? opps.filter((f) => !lastVisit.has(f.id)) : opps).slice(0, 3), firstVisit: !lastVisit, now, name: nameOf,
+      buying: buyNow(now, election, timing, settings.tax / 100),
     }) : '<p class="count muted">Loading…</p>';
   }
   if (area() === 'market') {
@@ -409,7 +411,7 @@ function renderDetail() {
   const forged = products && forge?.[id] ? forgeFlip(id, forge[id], products, ah, baseOpts()) : null;
   detailSuspicious = !!flip?.suspicious;
   for (const i of forged?.ingredients ?? []) i.name = nameOf(i.id);
-  $('detail').innerHTML = detailView({ ...decorate({ id, sell: flip?.sell }), flip, forge: forged, ...stat, back: lastList, isFav: favs.has(id), range, points, tax: settings.tax / 100 });
+  $('detail').innerHTML = detailView({ ...decorate({ id, sell: flip?.sell }), flip, forge: forged, ...stat, back: lastList, isFav: favs.has(id), range, points, tax: settings.tax / 100, windows: itemWindows(timing, id, settings.tax / 100) });
   flashChanges();
 }
 

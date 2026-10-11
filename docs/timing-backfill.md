@@ -43,6 +43,36 @@ Blooming Business: added 2024-07-02; Stock Exchange: Diaz "reworked"
 An item's first data point is found by asking: when a window has no rows,
 that item is not asked for older runs.
 
+## Price curves and buy/sell windows
+
+Every run also keeps a curve per item, `run.c[item][phase]`: the median price in
+phases, two days before the start to three days after the end:
+
+| Phase | Meaning |
+|---|---|
+| `pre2`, `pre1` | 48 to 24 h and 24 to 0 h before the start |
+| `d1` to `d5` | a term (124 h): days 1 to 4 of 24 h, day 5 the last 28 h |
+| `during` | an event as one phase (at least 6 h, see above) |
+| `a1` to `a3` | 0 to 24, 24 to 48, 48 to 72 h after the end |
+
+SkyCofl gives two-hour points only up to 7 days, so a run is fetched in chunks
+of 7 days: two requests per item for a term (244 h), one for an event.
+
+`tradeWindow(runs, item, tax)` in `timing.js`: prices relative to `pre1`,
+median over the runs per phase (a phase needs 3 runs); the pair of a phase and
+a later one with the best typical gain after the tax on the sale. That covers
+"buy in the term, sell after it" and "buy before, sell during" (Ice Bait).
+`hits/n`: in how many of the runs that have both phases buying in the first
+and selling in the second paid after tax. Shown only above 3% and with at least
+two thirds of the runs. Own runs (`src` absent) and backfilled runs are both
+counted, and the text says how many are from which. Own runs collect a curve
+too (`updateTiming`, up to three days after the end; not for the Fishing
+Festival event, whose windows overlap).
+
+The Market radar lists the best twelve; the item page has an "Event timing"
+section; Today shows a "Buying window" when a buy phase runs or starts within
+a day (`buyNow`) and the sell phase is not over.
+
 ## Data model
 
 `run.src` is `"backfill"` or absent (own). `pattern()` returns `n`, `nOwn`,
