@@ -132,9 +132,16 @@ export const INFERNO_LEFTOVER = 'HYPERGOLIC_IONIZED_CERAMICS';
 const INFERNO_RARE_IDS = new Set(INFERNO_RARE.map((r) => r.id));
 const INFERNO_NOTES = [
   'Inferno fuel: the wiki says the 10x, 15x and 20x of the fuel are really 11x, 16x and 21x (a bug on its page); the effective values are used.',
-  'Rising Celsius (+18% per Inferno Minion placed, up to 180%) is counted for the number of minions you place and added to the upgrades before the fuel multiplies; the wiki does not say whether a lone minion counts itself.',
+  'Rising Celsius: each Inferno Minion placed adds 18% to all of them, up to 180% with ten (wiki, 0.13); the minions that only boost are counted at tier I and need no fuel.',
   'Capsaicin Eyedrops (+30% rare drops for 24 hours) are not counted.',
 ];
+
+// How many Inferno Minions stand on the island: the ones that work (count) and, up to infCount, boosters that
+// only add their 18% of Rising Celsius (wiki tip: nine tier I to II minions boost the highest tier one).
+export const infernoPlaced = (setup) => {
+  const working = Math.max(1, Math.floor(setup.count) || 1);
+  return Math.max(working, Math.floor(setup.infCount) || 0);
+};
 
 // The drops of a minion for a setup. Only the Inferno Minion changes with its fuel: 20% of the harvests stay
 // Crude Gabagool and 80% become the Distillate's item; LEGENDARY fuel adds the rare drops.
@@ -201,7 +208,7 @@ export function minionYield(minion, setup = {}) {
   const upgradeSpeed = used.reduce((sum, u) => sum + (u.speed ?? 0), 0);
   // the Inferno Minion has its own fuel, which multiplies after Rising Celsius and the upgrades
   const inferno = minion.inferno ? byKey(INFERNO_FUELS, setup.infFuel) : null;
-  const rising = inferno ? Math.min(RISING_CELSIUS_CAP, RISING_CELSIUS * Math.max(1, Math.floor(setup.count) || 1)) : 0;
+  const rising = inferno ? Math.min(RISING_CELSIUS_CAP, RISING_CELSIUS * infernoPlaced(setup)) : 0;
   const speed = inferno ? (1 + rising + upgradeSpeed) * (1 + (inferno.speed ?? 0)) - 1 : (fuelUsed.speed ?? 0) + upgradeSpeed;
   const mult = inferno ? 1 : fuelUsed.mult ?? 1;
   const drops = dropsOf(minion, setup);
@@ -304,6 +311,31 @@ function setupItems(setup, fuel) {
   return items;
 }
 
+// The Gabagools are bought or crafted, whichever is cheaper at the lowest sell offers (wiki: Fuel Gabagool, Heavy
+// Gabagool, Hypergolic Gabagool). Each list is [ingredients, pieces made]. Heavy Gabagool: the page lists 24
+// Fuel Gabagool; its history note names 12, which is the Hypergolic recipe (12 Heavy), and the Bazaar prices
+// agree with 24 (374k against 24 x ~13k), so 24 is used.
+export const GABAGOOL_RECIPES = {
+  FUEL_GABAGOOL: [[{ CRUDE_GABAGOOL: 24, SULPHURIC_COAL: 1 }, 1], [{ VERY_CRUDE_GABAGOOL: 1, SULPHURIC_COAL: 8 }, 8]],
+  HEAVY_GABAGOOL: [[{ FUEL_GABAGOOL: 24, SULPHURIC_COAL: 1 }, 1]],
+  HYPERGOLIC_GABAGOOL: [[{ HEAVY_GABAGOOL: 12, SULPHURIC_COAL: 1 }, 1]],
+};
+// { price, via: 'buy' | 'craft', buy } of one piece; price is null when neither way has prices.
+export function gabagoolPrice(id, products) {
+  const buy = instaBuy(products[id]);
+  let best = buy === null ? null : { price: buy, via: 'buy' };
+  for (const [ingredients, made] of GABAGOOL_RECIPES[id] ?? []) {
+    let sum = 0;
+    for (const [ing, n] of Object.entries(ingredients)) {
+      const p = GABAGOOL_RECIPES[ing] ? gabagoolPrice(ing, products).price : instaBuy(products[ing]);
+      if (p === null) { sum = null; break; }
+      sum += p * n;
+    }
+    if (sum !== null && (best === null || sum / made < best.price)) best = { price: sum / made, via: 'craft' };
+  }
+  return { price: best?.price ?? null, via: best?.via ?? 'buy', buy };
+}
+
 // What one piece of Inferno fuel costs (it lasts a day), at the lowest sell offers: the Gabagool, 2 Fuel Blocks
 // and 6 Distillates, minus the Ionized Ceramics a LEGENDARY piece leaves (sold to the highest buy order, after
 // tax). { perDay, parts: [{ id, amount, price }], unsure } per minion; perDay is 0 without fuel.
@@ -311,10 +343,13 @@ function infernoFuelCost(setup, products, tax) {
   const fuel = byKey(INFERNO_FUELS, setup.infFuel);
   if (!fuel.gabagool) return { perDay: 0, parts: [], unsure: [] };
   const spec = byKey(INFERNO_SPECIALTIES, setup.infSpec);
-  const need = { [fuel.gabagool]: 1, INFERNO_FUEL_BLOCK: INFERNO_FUEL_BLOCKS, [spec.distillate]: INFERNO_DISTILLATES };
+  const need = { INFERNO_FUEL_BLOCK: INFERNO_FUEL_BLOCKS, [spec.distillate]: INFERNO_DISTILLATES };
   const priced = priceItems(need, products);
+  const g = gabagoolPrice(fuel.gabagool, products);
   const unsure = priced.missing.map((id) => `No sell offer for ${id} right now; the fuel cost is missing it.`);
-  let perDay = priced.coins;
+  if (g.price === null) unsure.push(`No price for ${fuel.gabagool} to buy or craft right now; the fuel cost is missing it.`);
+  priced.lines.unshift({ id: fuel.gabagool, amount: 1, price: g.price, coins: g.price ?? 0, via: g.via, buy: g.buy });
+  let perDay = priced.coins + (g.price ?? 0);
   if (fuel.rare) {
     const back = products[INFERNO_LEFTOVER]?.sell_summary?.[0]?.pricePerUnit;
     if (back > 0) perDay -= back * (1 - tax);
@@ -350,13 +385,15 @@ export function minionRow(minion, products, npc, setup, { tax, stats = null }) {
   let bazaar = 0, npcCoins = 0, perDay = 0;
   for (const [id, amount] of Object.entries(made.items)) {
     const sold = bestForm(id, amount, products, { tax, stats, count });
-    if (!sold) unsure.push(`No buy order for ${id} right now; it counts as 0 at the Bazaar.`);
+    // a rare drop that the Bazaar hardly trades (or does not sell) is an Auction House item: shown, not priced
+    if (INFERNO_RARE_IDS.has(id) && (!sold || sold.low)) {
+      parts.push({ id, amount: amount * count, form: 'item', kind: 'raw', price: null, coins: 0, low: true, unpriced: true });
+      unsure.push(`AH item – not priced: ${id} ${sold ? `changes hands less than ${RARE_MIN_WEEK} times a week on the Bazaar` : 'is not sold on the Bazaar'}; it is left out of the coins.`);
+    } else if (!sold) unsure.push(`No buy order for ${id} right now; it counts as 0 at the Bazaar.`);
     else {
       bazaar += sold.coins;
       parts.push({ id: sold.id, amount: sold.amount * count, form: sold.form, kind: sold.kind, price: sold.price, coins: sold.coins * count, low: sold.low });
-      // a thin rare drop is marked but does not push the whole minion down the list
-      if (sold.low && INFERNO_RARE_IDS.has(sold.id)) unsure.push(`Price unreliable: ${sold.id} changes hands less than ${RARE_MIN_WEEK} times a week.`);
-      else if (sold.low) { lowVolume.push(sold.id); unsure.push(`Low volume – price unreliable: ${sold.id} trades too little for this amount, or its book is far apart.`); }
+      if (sold.low) { lowVolume.push(sold.id); unsure.push(`Low volume – price unreliable: ${sold.id} trades too little for this amount, or its book is far apart.`); }
       if (sold.spike) unsure.push(`${sold.id} is far above its 7 day median or above its enchanted form; counted at that value.`);
     }
     npcCoins += amount * (npc[id] ?? 0);
@@ -376,10 +413,19 @@ export function minionRow(minion, products, npc, setup, { tax, stats = null }) {
   const own = priceItems(costUpTo(minion.key, made.tier), products);
   const extra = priceItems(setupItems(setup, fuel), products);
   const step = priceItems(Object.fromEntries(COSTS[minion.key][made.tier - 1] ?? []), products);
+  // boosters of the Inferno Minion: the other Inferno Minions placed, at tier I (the cheapest step)
+  const boosters = minion.inferno ? infernoPlaced(setup) - count : 0;
+  const boost = priceItems(boosters > 0 ? costUpTo(minion.key, 1) : {}, products);
+  const lines = new Map();
+  for (const [l, n] of [...own.lines.map((x) => [x, count]), ...extra.lines.map((x) => [x, count]), ...boost.lines.map((x) => [x, boosters])]) {
+    const old = lines.get(l.id) ?? { ...l, amount: 0, coins: 0 };
+    lines.set(l.id, { ...old, amount: old.amount + l.amount * n, coins: old.coins + l.coins * n });
+  }
   const cost = {
-    total: (own.coins + extra.coins) * count, minion: own.coins * count, extras: extra.coins * count,
-    lines: [...own.lines, ...extra.lines].map((l) => ({ ...l, amount: l.amount * count, coins: l.coins * count })),
-    missing: [...new Set([...own.missing, ...extra.missing])],
+    total: (own.coins + extra.coins) * count + boost.coins * boosters, minion: own.coins * count, extras: extra.coins * count,
+    boosters: boost.coins * Math.max(0, boosters), boosterCount: Math.max(0, boosters),
+    lines: [...lines.values()],
+    missing: [...new Set([...own.missing, ...extra.missing, ...boost.missing])],
   };
   return {
     key: minion.key, name: minion.name, id: minion.drops[0].id, tier: made.tier, maxTier: minion.delays.length,
@@ -388,6 +434,7 @@ export function minionRow(minion, products, npc, setup, { tax, stats = null }) {
     // days until the coins are earned back; null when the minion earns nothing after fuel
     payback: net > 0 ? cost.total / net : null,
     itemsDay: perDay * count, fillHours: made.storage / (perDay / 24), storage: made.storage, delay: made.delay, speed: made.speed,
+    main: (bazaar - parts.filter((p) => INFERNO_RARE_IDS.has(p.id)).reduce((sum, p) => sum + p.coins / count, 0)) * count,
     infernoFuel, rare: parts.filter((p) => INFERNO_RARE_IDS.has(p.id)).reduce((sum, p) => sum + p.coins, 0),
     unsure, lowVolume, parts, fuelPermanent: !!fuel.id && !fuel.hours, requires: minion.requires?.text ?? null, locked: minionLocked(minion, setup),
   };

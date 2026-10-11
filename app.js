@@ -309,7 +309,7 @@ $('market').addEventListener('input', (e) => {
 // The minion setup: its own small form, stored apart from the settings because it changes nothing else.
 const MINION_FIELDS = { tier: 'm-tier', count: 'm-count', fuel: 'm-fuel', up1: 'm-up1', up2: 'm-up2', spider: 'm-spider', zombie: 'm-zombie', blaze: 'm-blaze', hide: 'm-hide', sort: 'm-sort' };
 const MINION_NUMBERS = ['tier', 'count', 'spider', 'zombie', 'blaze', 'hide'];
-const minionSetup = { tier: 11, count: 1, fuel: 'lava', up1: 'compactor', up2: 'spreading', spider: 9, zombie: 9, blaze: 9, hide: 0, sort: 'net', infFuel: 'none', infSpec: 'crude', ...load('bt.minions', {}) };
+const minionSetup = { tier: 11, count: 1, fuel: 'lava', up1: 'compactor', up2: 'spreading', spider: 9, zombie: 9, blaze: 9, hide: 0, sort: 'net', infFuel: 'none', infSpec: 'crude', infCount: 10, ...load('bt.minions', {}) };
 const options = (list) => list.map((o) => `<option value="${o.key}">${o.name}</option>`).join('');
 $('m-tier').innerHTML = Array.from({ length: MAX_TIER }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('');
 $('m-fuel').innerHTML = options(FUELS);
@@ -344,7 +344,8 @@ function openMinion(key) {
 $('minion-sheet').addEventListener('change', (e) => {
   const kind = e.target.dataset?.inferno;
   if (!kind) return;
-  minionSetup[kind === 'fuel' ? 'infFuel' : 'infSpec'] = e.target.value;
+  if (kind === 'placed') minionSetup.infCount = Math.min(10, Math.max(1, Math.floor(Number(e.target.value)) || 1));
+  else minionSetup[kind === 'fuel' ? 'infFuel' : 'infSpec'] = e.target.value;
   save('bt.minions', minionSetup);
   openMinion($('minion-sheet').dataset.minion);
   render();

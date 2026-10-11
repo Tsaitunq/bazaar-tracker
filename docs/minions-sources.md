@@ -252,8 +252,25 @@ the page; the rule of W:Minion (two) is used.
   with the effective 11x, 16x, 21x. **Not confirmed:** whether the bug note
   still holds in the game.
 - **Rising Celsius**: "Each Inferno Minion increases the speed of ALL
-  Inferno Minions by 18%, up to 180%." Counted for the number of minions in the
-  setup (ten reach the cap). Not confirmed: whether a lone minion counts itself.
+  Inferno Minions by 18%, up to 180%." History (0.13, 5 Aug 2022): "from 6% per
+  minion to 18% per minion up to 10 minions". Every Inferno Minion placed
+  counts, working or not; the app has "Inferno Minions placed" (1 to 10, default
+  10). The wiki's budget tip: nine tier I to II Inferno Minions boost the
+  highest tier one. Such boosters are counted at tier I and need no fuel.
+- **Fuel recipes** (W:Fuel Gabagool, Heavy Gabagool, Hypergolic Gabagool;
+  Sulphuric Coal): Fuel Gabagool = 24 Crude Gabagool + 1 Sulphuric Coal, or 1
+  Very Crude Gabagool + 8 Sulphuric Coal for 8; Heavy Gabagool = 24 Fuel
+  Gabagool + 1 Sulphuric Coal; Hypergolic Gabagool = 12 Heavy Gabagool + 1
+  Sulphuric Coal. The app takes the cheaper of buying and crafting at every
+  step (snapshot 2026-10-11: crafting Hypergolic costs 3.87M, buying it
+  4.40M). **Not confirmed:** the Heavy page lists 24 Fuel Gabagool but its
+  history note names a change to 12 on 4 Oct 2023; the Hypergolic page has the
+  same note for 24 to 12 Heavy. 24 is used for Heavy because the Bazaar price
+  (374k) is 24 x about 13k, not 12 x. How many pieces one craft of fuel yields
+  is not on the page; one is used. Inferno Fuel Block (Bits shop and Bazaar)
+  and the Distillates are bought.
+- Formula from the Bugs section: base action time x (1 + speed buffs) x
+  (1 + fuel multiplier); Rising Celsius and the upgrades are the speed buffs.
 - **Hypergolic Ionized Ceramics**: a piece of Legendary fuel leaves one when it
   runs out; counted as a sale at the highest buy order, after tax, against the
   fuel cost. (The wiki notes that before 9 April 2025 only one appeared however
@@ -273,12 +290,22 @@ per harvest". Chances from the Inferno Minion Fuel page:
 | Reaper Pepper | 1 in 458,182 | REAPER_PEPPER |
 | Gabagool the Fish | 1 in 3,927,273 | not on the Bazaar |
 
-**Not confirmed:** the Inferno Minion page's drop table has the same five
-numbers in the same order but the label of its first row is missing in the
-text read, so its names sit one row off (it reads Chili Pepper 1 in 5,950).
-The assignment of the fuel page is used. Reaper Pepper being more common than
-Inferno Apex follows from those numbers as they stand.
+**The shifted table.** The Inferno Minion page's drop table has the same five
+numbers in the same order, but its first row ("Any LEGENDARY Inferno Minion
+Fuel", 1 in 136) has no item name in the text read, so every name below it sits
+one row off (Chili Pepper 1 in 5,950, and no row for Gabagool the Fish). The
+Fuel page names each chance directly. Check with the Bazaar volumes of
+2026-10-11 (weekly units, which follow the drop chances if Inferno Minions are
+the main source): Chili Pepper 273,245 : Inferno Vertex 6,746 is 40.5, the
+chances of the Fuel page give 5,950 / 136 = 43.8, the Minion page's labels
+would give 220; Inferno Vertex : Reaper Pepper is 71, the Fuel page gives 77.
+The assignment of the Fuel page is used; the wiki itself leaves it open
+(not confirmed), the volumes support it.
 
-An item that changes hands fewer than 100 times a week (the app's rule, not
-the wiki's) is shown as "price unreliable"; with the snapshot of 2026-10-11
-that is Inferno Apex (43) and Reaper Pepper (95).
+**Thin rare drops are not priced.** An item the Bazaar sells fewer than 100
+times a week (the app's rule, not the wiki's) or does not sell at all is shown
+as "AH item – not priced" and left out of the coins; with the snapshot of
+2026-10-11 that is Inferno Apex (43), Reaper Pepper (95) and Gabagool the Fish.
+Capsaicin Eyedrops (+30% for Vertex, Apex, Reaper Pepper, Fish; not Chili
+Pepper) cost 2.45M for 24 hours and add about 33k a day: not worth it, not
+counted.

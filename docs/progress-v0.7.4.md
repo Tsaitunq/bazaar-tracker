@@ -39,8 +39,9 @@ Things found while reading the wiki:
 - Tier XI needs the tier X and an Inferno Minion VIII; only the cumulative
   table makes that clear.
 
-Result (snapshot 2026-10-11, tier XI, one minion, Super Compactor 3000 and
-Diamond Spreading): every fuel loses coins, see `docs/summary-v0.7.4.md`.
+The first result (every fuel loses coins) was wrong; the fixes (booster
+minions, craft cost of the fuel, thin rare drops) and the numbers are in
+`docs/inferno-review-v0.7.4.md`.
 
 UI check: headless Edge, touch emulation 412 x 915, Inferno sheet with
 Legendary fuel; selects, rare drops and the seven-column table fit.

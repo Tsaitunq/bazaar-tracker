@@ -520,11 +520,13 @@ function infernoBlock({ row, inferno, setup, name, count }) {
   <div class="setup">
     <label>Fuel ${pick('fuel', inferno.fuels, setup.infFuel ?? 'none')}</label>
     <label>Distillate ${pick('spec', inferno.specialties, setup.infSpec ?? 'crude')}</label>
+    <label>Inferno Minions placed <select data-inferno="placed">${Array.from({ length: 10 }, (_, i) => `<option value="${i + 1}"${i + 1 === (setup.infCount ?? 10) ? ' selected' : ''}>${i + 1}</option>`).join('')}</select></label>
   </div>
-  <ul class="coming">${fuel?.parts.length ? fuel.parts.map((l) => `<li><span>${esc(name(l.id))} <small>${l.price === null ? '<strong>not on Bazaar</strong>' : `${num(l.price)} each`}</small></span><span class="side">${num(l.amount)} · ${l.price === null ? '–' : num(l.coins)}</span></li>`).join('') : '<li class="muted">No fuel: nothing is used up.</li>'}
+  <p class="muted">Each one placed adds 18% speed to all, up to ten (180%). Those beyond the ones you let work only boost; they are counted at tier I${row.cost.boosterCount ? `: ${row.cost.boosterCount} × for ${num(row.cost.boosters)}` : ''}.</p>
+  <ul class="coming">${fuel?.parts.length ? fuel.parts.map((l) => `<li><span>${esc(name(l.id))} <small>${l.price === null ? '<strong>not on Bazaar</strong>' : `${l.via === 'craft' ? 'crafted from the Bazaar items · ' : ''}${num(l.price)} each${l.via === 'craft' && l.buy ? ` (buying it: ${num(l.buy)})` : ''}`}</small></span><span class="side">${num(l.amount)} · ${l.price === null ? '–' : num(l.coins)}</span></li>`).join('') : '<li class="muted">No fuel: nothing is used up.</li>'}
     <li><span>Fuel per day and minion${fuel?.parts.length && fuel.fuel.startsWith('Legendary') ? ' (after the Ionized Ceramics it leaves)' : ''}</span><span class="side"><strong class="loss">${row.fuelCost > 0 ? '−' + num(row.fuelCost / count) : '–'}</strong></span></li>
   </ul>
-  ${rare.length ? `<p class="muted">Rare drops of Legendary fuel, one roll per harvest:</p><ul class="coming">${rare.map((p) => `<li><span>${esc(name(p.id))} <small>1 in ${num(odds[p.id])}${p.low ? ' · <strong>price unreliable</strong>' : ''}</small></span><span class="side">${p.amount < 0.1 ? p.amount.toPrecision(2) : plain.format(p.amount)}/day · ${num(p.coins)}</span></li>`).join('')}</ul>` : ''}
+  ${rare.length ? `<p class="muted">Rare drops of Legendary fuel, one roll per harvest:</p><ul class="coming">${rare.map((p) => `<li><span>${esc(name(p.id))} <small>1 in ${num(odds[p.id])}${p.unpriced ? ' · <strong>AH item – not priced</strong>' : p.low ? ' · <strong>price unreliable</strong>' : ''}</small></span><span class="side">${p.amount < 0.1 ? p.amount.toPrecision(2) : plain.format(p.amount)}/day · ${p.unpriced ? '–' : num(p.coins)}</span></li>`).join('')}</ul>` : ''}
   <p class="muted">Best right now at this tier: ${b ? `${esc(label(b))}, ${num(b.net)} coins/day${b.net > 0 && b.payback !== null ? ', pays back in ' + paybackText(b.payback, row.cost.missing.length > 0) : ''}.` : '–'}</p>`;
 }
 

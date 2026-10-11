@@ -34,6 +34,10 @@ The package was ordered as 0.7.3; that number was taken, so it is 0.7.4.
 
 ## Inferno against Tarantula T11
 
+**Superseded:** this table is the first version of the calculation. It was
+wrong in three places; the corrected numbers are in
+`docs/inferno-review-v0.7.4.md`.
+
 Snapshot of the Bazaar from 2026-10-11, one minion, Super Compactor 3000 and
 Diamond Spreading, tax 1.25%, tier XI unless stated.
 
