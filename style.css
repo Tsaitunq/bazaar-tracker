@@ -462,3 +462,6 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 .effects li[hidden] { display: none; }
 .effects p { margin: 4px 0 0; }
 #effects-q { width: 100%; box-sizing: border-box; min-height: 44px; margin: 4px 0 8px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--text); font: inherit; }
+.outside details { padding: 8px 0; }
+.outside summary { min-height: 44px; display: flex; align-items: center; color: var(--muted); cursor: pointer; }
+.outside .card { opacity: .75; }

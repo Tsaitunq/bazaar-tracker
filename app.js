@@ -1,4 +1,4 @@
-import { buildFlips, computeFlip, opportunities, portfolio, MAX_SLOTS, statOf, searchFlip, flipIssues, oppIssues, bySort, planWarnings, trackPlan } from './flips.js';
+import { buildFlips, computeFlip, opportunities, portfolio, MAX_SLOTS, statOf, searchFlip, outsideOpportunities, flipIssues, oppIssues, bySort, planWarnings, trackPlan } from './flips.js';
 import { npcFlips } from './npc.js';
 import { craftFlips, craftHints } from './craft.js';
 import { forgeFlips, forgeFlip } from './forge.js';
@@ -226,9 +226,17 @@ function listMarkup(v, list, pf) {
   }
   // a search ignores the favorites switch too: it has to find every item
   const rows = list.filter((f) => (q || !settings.favOnly || favs.has(f.id)) && f.name.toLowerCase().includes(q));
-  const rest = q ? searchRest(v, q, new Set(rows.map((f) => f.id))) : [];
+  const found = q ? searchRest(v, q, new Set(rows.map((f) => f.id))) : [];
+  // Opportunities keeps all of its own filters when searched: what fails them is not mixed into the list but
+  // folded away below it, with its reason, and a suspicious item is not shown at all.
+  const outside = v === 'opps' ? outsideOpportunities(found) : [];
+  const rest = v === 'opps' ? [] : found;
   let cards = [...rows.map((f) => [CARDS[v], f]), ...rest.map((f) => [searchCard, f])]
     .slice(0, MAX_ROWS).map(([card, f]) => card(f, favs.has(f.id))).join('');
+  if (outside.length) {
+    cards += `<li class="outside"><details><summary>${outside.length} more outside your filters</summary><ul class="list">${
+      outside.slice(0, MAX_ROWS).map((f) => searchCard(f, favs.has(f.id))).join('')}</ul></details></li>`;
+  }
   if (v === 'opps' && !list.length && !q) {
     cards = `<li class="muted">${stats
       ? 'No item meets all conditions right now. Items need 24 hours of price history before they can show up here.'
@@ -241,10 +249,10 @@ function listMarkup(v, list, pf) {
     portfolio: v === 'opps' && pf
       ? warningsView(alerts, { dismiss: marketWarned() }) + portfolioView(pf, { capital: settings.portfolioCapital, slots: settings.portfolioSlots, sharePercent: settings.share, simple: simple() })
       : v === 'forge' ? forgeFilter(settings.forgeAh) : '',
-    count: q ? `${rows.length} ${rows.length === 1 ? 'flip' : 'flips'}, ${rest.length} other ${rest.length === 1 ? 'item' : 'items'}`
+    count: q ? `${rows.length} ${rows.length === 1 ? 'flip' : 'flips'}, ${rest.length + outside.length} ${v === 'opps' ? 'outside your filters' : `other ${rest.length === 1 ? 'item' : 'items'}`}`
       : `${Math.min(rows.length, MAX_ROWS)} of ${rows.length} flips`,
     list: cards,
-    rest: rest.length,
+    rest: rest.length + outside.length,
   };
 }
 
