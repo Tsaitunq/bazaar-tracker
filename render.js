@@ -1,7 +1,7 @@
 import { lineChart } from './chart.js';
 import { marginSeries } from './history.js';
 import { direction } from './trends.js';
-import { skyDate, MONTHS, PERK_ITEMS, PERK_EXPECT, DAY_MS } from './events.js';
+import { skyDate, MONTHS, PERK_ITEMS, PERK_EXPECT, PERKS, YEAR_EVENTS, DAY_MS } from './events.js';
 import { itemPattern, patternText } from './timing.js';
 
 export const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -247,7 +247,7 @@ export function portfolioView(plan, { capital, slots, sharePercent, simple = fal
 // election and the events, each of which unfolds to its details.
 // perks: activePerks(); events: upcoming(); vote: electionWindow(); name(id): an item's name;
 // open: keys of the parts that are unfolded; timing: past runs per event and perk (timing.js).
-export function radarView({ election, perks, events, vote, now, name, open = new Set(), timing = {} }) {
+export function radarView({ election, perks, events, vote, now, name, open = new Set(), timing = {}, query = '' }) {
   const until = (t) => duration(Math.ceil(Math.max(0, t - now) / 60000) * 60);
   const affected = (ids) => (ids?.length
     ? `<p class="affected"><span class="muted">Typically affected:</span> ${ids.map((id) => `<a href="${esc(itemHref(id))}">${esc(name(id))}</a>`).join(', ')}</p>` : '');
@@ -305,7 +305,34 @@ export function radarView({ election, perks, events, vote, now, name, open = new
   <h3>Events</h3>
   <ul>${list}</ul>
   <p class="muted">Based on past events, not a guarantee.</p>
+  ${effectsView({ perks, events, now, name, query })}
 </section>`;
+}
+
+// "Mayor & event effects": every perk of every mayor and every event with what it does, the items it is
+// tied to and what the price is expected to do. Running and coming first, then the rest. The search box
+// filters the rows by their text (app.js hides the rest; query is the text it kept from last time).
+export function effectsView({ perks, events, now, name, query = '' }) {
+  const until = (t) => duration(Math.ceil(Math.max(0, t - now) / 60000) * 60);
+  const items = (ids) => (ids?.length ? `<p class="affected"><span class="muted">Items:</span> ${ids.map((id) => `<a href="${esc(itemHref(id))}">${esc(name(id))}</a>`).join(', ')}</p>` : '');
+  const expect = (perk) => (PERK_EXPECT[perk]
+    ? `<p class="why">Expected: lower (${esc(PERK_EXPECT[perk].why)}). Not confirmed by the wiki.</p>`
+    : '<p class="muted">No price direction stated.</p>');
+  const active = new Set(perks.map((p) => p.name));
+  const rows = [
+    ...events.map((e) => ({ rank: e.active ? 0 : 2, at: e.start, title: e.name, side: e.active ? `now · ${until(e.end)} left` : `in ${until(e.start)}`,
+      text: `Event${e.perk ? ` (needs the ${e.perk} perk)` : ''}`, ids: e.items, note: '<p class="muted">What its prices did in past runs is shown above.</p>' })),
+    ...PERKS.map((p) => ({ rank: active.has(p.name) ? 1 : 3, at: 0, title: p.name, side: active.has(p.name) ? `${p.who} · active` : p.who,
+      text: p.text, ids: PERK_ITEMS[p.name] ?? PERK_EXPECT[p.name]?.items, note: expect(p.name) })),
+    ...YEAR_EVENTS.map((y) => ({ rank: 4, at: 0, title: y.name, side: 'every 12 years', text: y.text, ids: y.items,
+      note: '<p class="muted">The wiki does not say in which years, so there is no date. No price direction stated.</p>' })),
+  ].sort((a, b) => a.rank - b.rank || a.at - b.at);
+  const q = query.trim().toLowerCase();
+  const hay = (r) => [r.title, r.side, r.text, ...(r.ids ?? []).map((id) => name(id))].join(' ').toLowerCase();
+  return `<h3>Mayor &amp; event effects</h3>
+  <input type="search" id="effects-q" value="${esc(query)}" placeholder="Search mayor, perk, event or item" aria-label="Search mayor and event effects" autocomplete="off">
+  <ul class="effects">${rows.map((r) => `<li data-q="${esc(hay(r))}"${q && !hay(r).includes(q) ? ' hidden' : ''}><strong>${esc(r.title)}</strong> <span class="side">${esc(r.side)}</span>
+    <p>${esc(r.text)}</p>${items(r.ids)}${r.note}</li>`).join('')}</ul>`;
 }
 
 export function parseRoute(hash) {

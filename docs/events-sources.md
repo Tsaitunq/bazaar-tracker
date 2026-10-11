@@ -1,8 +1,10 @@
 # Sources for events, mayor perks and Auction House fees
 
-Checked on 2026-10-10. The official wiki (`wiki.hypixel.net`) was closed in
-July 2026 and redirects to a forum post, so the community wiki at
-`hypixelskyblock.minecraft.wiki` is the main source. Item ids were checked
+Checked on 2026-10-10 and again on 2026-10-11 (0.7.1). The official wiki
+(`wiki.hypixel.net`) was closed in July 2026, so the SkyBlock wiki at
+`hypixelskyblock.minecraft.wiki` is the primary source for all game data (the
+repo rule in `CLAUDE.md`). Anything from another source is marked "not
+confirmed". Item ids were checked
 against one saved Bazaar API response; every id below is traded on the Bazaar.
 
 The app marks these items as "typically affected". That is all the sources
@@ -34,7 +36,38 @@ Source for all dates: https://hypixelskyblock.minecraft.wiki/w/Events
 | New Year Celebration | Late Winter 29–31 | none | – |
 | Traveling Zoo | Early Summer 1–3 and Early Winter 1–3 | none (it sells pets, which are not on the Bazaar) | – |
 | Hoppity's Hunt | Early Spring 1 to Late Spring 31 | none | – |
+| Harvest Feast | Early Autumn 1 to Late Autumn 31, every year ("3 months spanning Early Autumn, Autumn, and Late Autumn") | the 13 Rare Crops: `CORNUCOPIA`, `CARROT_ZEST`, `DEEPFRIES`, `AGGOURDIAN`, `CANE_KNOT`, `MELON_JUICE`, `CACTUS_FLOWER`, `DESIGNER_COFFEE_BEANS`, `FEASTFUNGUS`, `BOTROOT`, `SALTED_SUNFLOWER_SEEDS`, `CRYSTALIZED_MOONLIGHT`, `FLORAL_GELATIN`, and `FEAST_FLASK` | https://hypixelskyblock.minecraft.wiki/w/Harvest_Feast and the Events page. The wiki table names the Rare Crops but gives no item ids; the ids are the Bazaar items of the same name (all exist in the 2026-10-11 snapshot). Seasoning "has no physical item" |
 | Mayor election | booth opens Late Summer 27, closes Late Spring 27 | none | – |
+
+### Grand Feast (Finnegan)
+
+Event **Grand Feast**, only with Finnegan's perk "Grand Feast": "Finnegan
+upgrades the Harvest Feast into the Grand Feast, making it last a full
+SkyBlock year" (wiki pages Finnegan and Harvest_Feast). Same items as the
+Harvest Feast (`CORNUCOPIA` and the others above). The app shows it as an event
+with a countdown while the perk is active. The wiki adds Kernels and the
+Grand Bakery (Feast Baker Scott); neither is a Bazaar item.
+
+What the wiki does **not** say about the Feast: any price effect. The page has
+a "Bazaar Cost" column for the Rare Crops, empty. A fall in the prices of the
+Garden drops is therefore **not confirmed**; the app learns the direction from
+its own snapshots (`timing.json`) like for every other event.
+
+### "Year of the" events
+
+"Event that happens every 12 SkyBlock Years" (wiki pages Year_of_the_Seal,
+_Witch, _Pig). The wiki does not say in which years, so the app cannot
+compute a start or a countdown and shows them as a note without date. A forum
+post (0.21.3, not the wiki) says Seal and Pig alternate every six years until
+more are added: **not confirmed**.
+
+| Event | What happens (wiki) | Bazaar items named on the wiki's navigation | Direction |
+|---|---|---|---|
+| Year of the Seal | Lukas the Aquarist, Bouncy Beach Balls replace Treasure from fishing, Fishy Treats | `BOUNCY_BEACH_BALL`, `GIANT_BOUNCY_BEACH_BALL`, `SMALL_SEAL_PLUSHIE`, `MEDIUM_SEAL_PLUSHIE`, `LARGE_SEAL_PLUSHIE`, `GIANT_SEAL_PLUSHIE` | not stated, not confirmed |
+| Year of the Witch | mobs drop ingredients (mostly 5%), Agnes and Alcina, Witches Stew | `SMALL_WITCH_CAULDRON`, `MEDIUM_WITCH_CAULDRON`, `LARGE_WITCH_CAULDRON`, `GIANT_WITCH_CAULDRON` (cauldrons: stock of 1 each per year at Agnes) | not stated, not confirmed |
+| Year of the Pig | Shiny Pigs, Shiny Orbs, Piggy's shop for Shiny Tokens | `SMALL_PIG_EAR`, `MEDIUM_PIG_EAR`, `LARGE_PIG_EAR`, `GIANT_PIG_EAR` | not stated, not confirmed |
+
+The wiki lists no further "Year of the" events ("Other: not found").
 
 ## Events and items tied to a mayor perk
 
@@ -108,17 +141,25 @@ term ends when the next election closes (Late Spring 27).
 
 Both are the same expectation as above, not a measurement.
 
-Not added – unclear source (2026-10-10):
+Resolved on 2026-10-11 (0.7.1):
 
-- Suspicious Vial, Red Nose, Red Scarf: named on the Dungeon Reward Chest
-  page, but the chest tables of floors I to III were not read.
-- Wither Essence and Undead Essence: in every chest table, but mostly made by
-  salvaging dungeon gear.
+- Suspicious Vial (Floor III), Red Nose (Floor I, also a Bonzo drop), Red
+  Scarf (Floor II, Scarf): the wiki pages Suspicious_Vial, Red_Nose and
+  Red_Scarf list "Dungeon Reward Chests" with drop chances per chest on those
+  floors. Added to Marauder: `SUSPICIOUS_VIAL`, `RED_NOSE`, `RED_SCARF`.
+- Packrat Shard: the Packrat_Shard page: "purchased from Brynmor for 250,000
+  Coins with stock of 64 per Year while Cole is in office with Mining Fiesta
+  perk"; Bazaar id `SHARD_PACKRAT_SKULL` given on the page. Added to Mining
+  Fiesta. Brynmor's second item, Fiesta Flask, is not on the Bazaar.
+- Still **not added, not confirmed:** Wither Essence and Undead Essence. Both
+  pages list Dungeon Reward Chests as a source next to salvaging (and
+  Dungeon Secrets, the Dungeon Hub Race; Undead Essence also mob drops), with
+  no amounts, so a share from the chests cannot be given.
 - Chest loot that is not on the Bazaar: Warped Stone, Spirit Stone, Necron's
   Handle, armor and weapons.
-- Mining Fiesta: "Fiesta Flask and Packrat Shard can be bought from Brynmor
-  while the perk is active" (Mayor Election page). Left out; the Bazaar id
-  `SHARD_PACKRAT_SKULL` was not confirmed to be that item.
+- Marauder's direction ("cheaper") is our conclusion from "Dungeon reward
+  chests are 20% cheaper"; the wiki names no item prices (page Mayor_Election;
+  there is no separate Marauder page).
 
 Left out on purpose:
 
@@ -135,6 +176,50 @@ The term of a mayor starts when the election closes (Late Spring 27). The
 election API names the election a mayor won (`mayor.election.year`); the
 fixture shows the mayor of election 518 in office in year 519, so a term is
 only recorded for a mayor whose election year is the year before its start.
+
+## All mayors and perks (wiki: Mayor_Election, read 2026-10-11)
+
+Which perks touch Bazaar items, and in which direction. "Direction" is only
+given where the wiki ties an item to the perk; **the wiki states no price
+direction for any perk**, so every direction is an expectation ("more supply
+or cheaper input, so lower") or "not stated".
+
+| Mayor | Perk | Effect (wiki) | Bazaar items | Direction |
+|---|---|---|---|---|
+| Aatrox | SLASHED Pricing | Starting Slayer quests is half price | none named | not stated |
+| Aatrox | Slayer XP Buff | +25% Slayer XP | none | – |
+| Aatrox | Pathfinder | "Gain rare drops 20% more often" | none named (the wiki does not say which drops are rare) | not stated |
+| Cole | Prospection | Mining minions work 25% faster | none named | not stated (expected: lower for what mining minions make) |
+| Cole | Mining XP Buff | +60 Mining Wisdom | none | – |
+| Cole | Mining Fiesta | Refined Mineral and Glossy Gemstone drop from mining; Packrat Shard at Brynmor | `REFINED_MINERAL`, `GLOSSY_GEMSTONE`, `SHARD_PACKRAT_SKULL` | expected lower |
+| Cole | Molten Forge | forging takes 25% less time | none named | not stated |
+| Diana | Huntress' Intuition, Pet XP Buff, Sharing is Caring | stat and XP perks | none | – |
+| Diana | Mythological Ritual | burrows and creatures with unique drops | as listed above | expected lower |
+| Diaz | Long Term Investment | the minister appears in the next election with all perks | none | – |
+| Diaz | Volume Trading | double item quantity from Shen's Auction | none named | not stated |
+| Diaz | Stock Exchange | Stonks Auction, chance to win Stock of Stonks | `STOCK_OF_STONKS` | expected lower |
+| Diaz | Shopping Spree | daily NPC buy limits x10 | none named | not stated |
+| Finnegan | Pest Eradicator | longer Farming Fortune bonus, Pests spawn 20% less often | none named | not stated |
+| Finnegan | GOATed | Jacob's brackets up to 10% bigger | none | – |
+| Finnegan | Blooming Business | Visitors give Fine Flour, appear more often, +10% Copper | `FINE_FLOUR` | expected lower |
+| Finnegan | Grand Feast | see above | the Feast items | not confirmed |
+| Foxy | Sweet Benevolence | +30% Candy, Gifts, Chocolate from duplicate Rabbits | none named | not stated |
+| Foxy | Extra Event / A Time for Giving / Chivalrous Carnival | extra event, Party Chests, Carnival | none named | not stated |
+| Marina | Fishing XP Buff, Luck of the Sea 2.0, Double Trouble | fishing stats | none named | – |
+| Marina | Fishing Festival | Sharks and unique Shark loot | as listed above | expected lower |
+| Paul | Marauder | "Dungeon reward chests are 20% cheaper" | as listed above, plus the three above | expected lower (conclusion, see above) |
+| Paul | EZPZ, Benediction | score and blessings | none | – |
+| Scorpius (special) | Bribe | 50,000 to 1,000,000 coins | none | – |
+| Scorpius (special) | Darker Auctions | 7 rounds, special items | none named | not stated |
+| Jerry (special) | Perkpocalypse | activates all perks of another mayor every 6 hours | those of the copied mayor | – |
+| Jerry (special) | Statspocalypse, Jerrypocalypse | stats; hidden Jerries | none named | – |
+| Derpy (special) | QUAD TAXES!!! | "Pay 4x the normal amount of taxes" | Auction House collection tax (see below); Bazaar tax: not stated | not confirmed |
+| Derpy (special) | TURBO MINIONS!!! | "Minions have double the output" | none named; touches all minion goods | expected lower |
+| Derpy (special) | DOUBLE MOBS HP!!!, MOAR SKILLZ!!! | combat, skill XP | none | – |
+
+Ministers: the wiki says a minister's perk is active alongside the mayor's
+(the same table applies; the wiki does not say which perk of a regular
+candidate becomes its minister perk, the election API does).
 
 ## Auction House fees
 

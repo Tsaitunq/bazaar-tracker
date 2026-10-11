@@ -742,3 +742,14 @@ Selbstständig getroffen (Auftrag: unbeaufsichtigt, ohne Rückfragen). Spec:
 - **Teil C:** eigenes `<dialog id="minion-sheet">`, getrennt vom News-Sheet.
   Die Tier-Tabelle nutzt dieselbe Zeilenrechnung wie die Liste
   (`minionRow` je Tier), damit Tabelle und Karte nie auseinanderlaufen.
+- **Teil D, Feast:** das Wiki kennt kein „Feast mit fallenden Preisen“. Es
+  nennt das Harvest Feast (Early Autumn 1 bis Late Autumn 31, jedes Jahr) und
+  Finnegans Perk „Grand Feast“ (ganzes Jahr). Preisrichtung nicht belegt; die
+  App lernt sie aus den eigenen Snapshots (`timing.json`, über `EVENTS`).
+- **Year of the Seal/Witch/Pig ohne Datum:** das Wiki sagt „alle 12 Jahre“,
+  aber nicht in welchen. Kein Countdown, nur Hinweis im Market-Bereich; der
+  Hinweis „aktuelles Jahr betroffen“ bleibt offen.
+- **Keine Preisrichtung nur aus dem Wiki:** es nennt für keinen Perk eine.
+  „Expected lower“ ist unsere Folgerung und so beschriftet.
+- **Wither/Undead Essence nicht aufgenommen:** Chests sind eine Quelle von
+  mehreren, ohne Mengen.

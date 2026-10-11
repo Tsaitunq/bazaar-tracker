@@ -22,6 +22,11 @@ export const skyTime = (year, month, day) => SB_EPOCH + ((year - 1) * YEAR_DAYS 
 
 const JERRY = ['WHITE_GIFT', 'GREEN_GIFT', 'RED_GIFT', 'ICE_HUNK', 'BLUE_ICE_HUNK', 'ENCHANTED_ICE', 'ENCHANTED_PACKED_ICE', 'WALNUT', 'GLACIAL_FRAGMENT', 'ICE_BAIT'];
 
+// Harvest Feast: the 13 Rare Crops (named in the wiki's table; the ids are the Bazaar items of the same name)
+// and the Feast Flask. Seasoning has no item.
+const FEAST = ['CORNUCOPIA', 'CARROT_ZEST', 'DEEPFRIES', 'AGGOURDIAN', 'CANE_KNOT', 'MELON_JUICE', 'CACTUS_FLOWER',
+  'DESIGNER_COFFEE_BEANS', 'FEASTFUNGUS', 'BOTROOT', 'SALTED_SUNFLOWER_SEEDS', 'CRYSTALIZED_MOONLIGHT', 'FLORAL_GELATIN', 'FEAST_FLASK'];
+
 // starts: [month, day] of every start within a year. perk: only while that mayor perk is active.
 export const EVENTS = [
   { key: 'spooky', name: 'Spooky Festival', starts: [[7, 29]], days: 3,
@@ -31,13 +36,19 @@ export const EVENTS = [
   { key: 'newyear', name: 'New Year Celebration', starts: [[11, 29]], days: 3, items: [] },
   { key: 'zoo', name: 'Traveling Zoo', starts: [[3, 1], [9, 1]], days: 3, items: [] },
   { key: 'hoppity', name: "Hoppity's Hunt", starts: [[0, 1]], days: 3 * MONTH_DAYS, items: [] },
+  // Harvest Feast: every year, Early Autumn 1 to Late Autumn 31 (wiki: "3 months spanning Early Autumn, Autumn and
+  // Late Autumn"). Finnegan's Grand Feast perk makes it last the whole year.
+  { key: 'feast', name: 'Harvest Feast', starts: [[6, 1]], days: 3 * MONTH_DAYS, items: FEAST },
+  { key: 'grandfeast', name: 'Grand Feast', perk: 'Grand Feast', starts: [[0, 1]], days: 12 * MONTH_DAYS, items: FEAST },
   { key: 'fishing', name: 'Fishing Festival', perk: 'Fishing Festival', starts: MONTHS.map((_, month) => [month, 1]), days: 3,
     items: ['SHARK_FIN', 'ENCHANTED_SHARK_FIN', 'NURSE_SHARK_TOOTH', 'BLUE_SHARK_TOOTH', 'TIGER_SHARK_TOOTH', 'GREAT_WHITE_SHARK_TOOTH'] },
 ];
 
 // Perks that run for the whole term and bring their own items.
 export const PERK_ITEMS = {
-  'Mining Fiesta': ['REFINED_MINERAL', 'GLOSSY_GEMSTONE'],
+  'Mining Fiesta': ['REFINED_MINERAL', 'GLOSSY_GEMSTONE', 'SHARD_PACKRAT_SKULL'],
+  'Blooming Business': ['FINE_FLOUR'],
+  'Stock Exchange': ['STOCK_OF_STONKS'],
   'Mythological Ritual': ['GRIFFIN_FEATHER', 'BRAIDED_GRIFFIN_FEATHER', 'ANCIENT_CLAW', 'ENCHANTED_ANCIENT_CLAW', 'DAEDALUS_STICK', 'MYTHOS_FRAGMENT',
     'ENCHANTMENT_ULTIMATE_CHIMERA_1', 'FATEFUL_STINGER', 'BRAIN_FOOD',
     'SHARD_MINOS_HUNTER', 'SHARD_CRETAN_BULL', 'SHARD_HARPY', 'SHARD_MINOTAUR', 'SHARD_SPHINX', 'SHARD_KING_MINOS'],
@@ -93,9 +104,12 @@ export const PERK_EXPECT = {
     items: ['RECOMBOBULATOR_3000', 'FUMING_POTATO_BOOK', 'WITHER_CATALYST', 'PRECURSOR_GEAR',
       'FIRST_MASTER_STAR', 'SECOND_MASTER_STAR', 'THIRD_MASTER_STAR', 'FOURTH_MASTER_STAR', 'FIFTH_MASTER_STAR',
       'WITHER_BLOOD', 'IMPLOSION_SCROLL', 'SHADOW_WARP_SCROLL', 'WITHER_SHIELD_SCROLL', 'GIANT_TOOTH', 'SADAN_BROOCH',
-      'DARK_ORB', 'NECROMANCER_BROOCH', 'SPIRIT_BONE', 'SPIRIT_WING'] },
+      'DARK_ORB', 'NECROMANCER_BROOCH', 'SPIRIT_BONE', 'SPIRIT_WING',
+      'SUSPICIOUS_VIAL', 'RED_NOSE', 'RED_SCARF'] },
   'Mining Fiesta': { why: 'drops from mining while the perk is active', items: PERK_ITEMS['Mining Fiesta'] },
   'Mythological Ritual': { why: 'found while the perk is active', items: PERK_ITEMS['Mythological Ritual'] },
+  'Blooming Business': { why: 'Garden Visitors give out Fine Flour and appear more often', items: PERK_ITEMS['Blooming Business'] },
+  'Stock Exchange': { why: 'Stock of Stonks can be won in the Stonks Auction', items: PERK_ITEMS['Stock Exchange'] },
   'Fishing Festival': { why: 'shark loot from the festivals', items: EVENTS.find((e) => e.key === 'fishing').items },
 };
 
@@ -159,3 +173,58 @@ export function termStart(nowMs) {
   const start = skyTime(year, 2, 27);
   return start <= nowMs ? start : skyTime(year - 1, 2, 27);
 }
+
+// Every perk of the regular and special mayors, as the Mayor Election page lists them (read 2026-10-11).
+// The wiki gives no price direction for any of them; PERK_EXPECT above is the only place with an expectation.
+export const PERKS = [
+  ['Aatrox', 'SLASHED Pricing', 'Starting Slayer quests is half price.'],
+  ['Aatrox', 'Slayer XP Buff', 'Earn 25% more Slayer XP.'],
+  ['Aatrox', 'Pathfinder', 'Gain rare drops 20% more often.'],
+  ['Cole', 'Prospection', 'Mining minions work 25% faster.'],
+  ['Cole', 'Mining XP Buff', 'Get +60 Mining Wisdom on public islands.'],
+  ['Cole', 'Mining Fiesta', 'Refined Mineral and Glossy Gemstone drop from mining; Packrat Shard is sold by Brynmor.'],
+  ['Cole', 'Molten Forge', 'Decrease the time it takes to forge items by 25%.'],
+  ['Diana', "Huntress' Intuition", 'Gain +10 Tracking.'],
+  ['Diana', 'Mythological Ritual', 'Griffin burrows and Mythological creatures with unique drops.'],
+  ['Diana', 'Pet XP Buff', 'Gain +35% more pet XP.'],
+  ['Diana', 'Sharing is Caring', 'Up to 3 EXP Shared Pets active at once.'],
+  ['Diaz', 'Long Term Investment', 'The elected Minister will appear in the next Election with all of their available perks.'],
+  ['Diaz', 'Volume Trading', "Double the item quantity from Shen's Auction, Shen's Special and Rift Shen's."],
+  ['Diaz', 'Stock Exchange', 'Participate in the Stonks Auction for a chance to win Stock of Stonks.'],
+  ['Diaz', 'Shopping Spree', 'Increase daily NPC buy limits by 10x.'],
+  ['Finnegan', 'Pest Eradicator', "Pesthunter Phillip's Farming Fortune bonus lasts 60m; Pests spawn 20% less often."],
+  ['Finnegan', 'GOATed', "Jacob's Farming Contest brackets include up to 10% more players each."],
+  ['Finnegan', 'Blooming Business', 'Garden Visitors give out Fine Flour, appear more often and give 10% more Copper.'],
+  ['Finnegan', 'Grand Feast', 'Upgrades the Harvest Feast into the Grand Feast, which lasts a full SkyBlock year.'],
+  ['Foxy', 'Sweet Benevolence', 'Earn +30% more Candy, Gifts and Chocolate from duplicate Rabbits.'],
+  ['Foxy', 'Extra Event', 'Schedules an extra event during the year.'],
+  ['Foxy', 'A Time for Giving', 'Party Chests and Party Gifts can be obtained while this event is active.'],
+  ['Foxy', 'Chivalrous Carnival', 'Schedules a Carnival in the Hub that is active throughout the entire year.'],
+  ['Marina', 'Fishing XP Buff', 'Gain 50 Fishing Wisdom on public islands.'],
+  ['Marina', 'Luck of the Sea 2.0', 'Gain 15 Sea Creature Chance.'],
+  ['Marina', 'Fishing Festival', 'Fight dangerous Sharks and earn unique Shark loot during the festivals.'],
+  ['Marina', 'Double Trouble', 'For every 1 Sea Creature Chance, gain +0.1 Double Hook Chance.'],
+  ['Paul', 'Marauder', 'Dungeon reward chests are 20% cheaper.'],
+  ['Paul', 'EZPZ', 'Gain 10 extra bonus score in Dungeons.'],
+  ['Paul', 'Benediction', 'Blessings are 25% stronger.'],
+  ['Scorpius', 'Bribe', 'Offers 50,000 to 1,000,000 coins for a Bribe.'],
+  ['Scorpius', 'Darker Auctions', 'The Dark Auction has 7 rounds and offers special items.'],
+  ['Jerry', 'Perkpocalypse', 'Activates all perks of another mayor every 18 SkyBlock days (6 hours).'],
+  ['Jerry', 'Statspocalypse', 'Increases all Combat and Miscellaneous stats by 10%.'],
+  ['Jerry', 'Jerrypocalypse', 'Reveals hidden Jerries from logging, farming, mining and killing mobs.'],
+  ['Derpy', 'QUAD TAXES!!!', 'Pay 4x the normal amount of taxes.'],
+  ['Derpy', 'TURBO MINIONS!!!', 'Minions have double the output.'],
+  ['Derpy', 'DOUBLE MOBS HP!!!', 'All monsters have double health.'],
+  ['Derpy', 'MOAR SKILLZ!!!', 'Gain +50% more skill experience.'],
+].map(([who, name, text]) => ({ who, name, text }));
+
+// The "Year of the" events: one SkyBlock year each, "every 12 SkyBlock Years" (wiki). The wiki does not
+// say in which years, so no start can be computed and no countdown shown. items: Bazaar items of the event.
+export const YEAR_EVENTS = [
+  { key: 'seal', name: 'Year of the Seal', text: 'Fish up Bouncy Beach Balls and spend Fishy Treats at Lukas the Aquarist.',
+    items: ['BOUNCY_BEACH_BALL', 'GIANT_BOUNCY_BEACH_BALL', 'SMALL_SEAL_PLUSHIE', 'MEDIUM_SEAL_PLUSHIE', 'LARGE_SEAL_PLUSHIE', 'GIANT_SEAL_PLUSHIE'] },
+  { key: 'witch', name: 'Year of the Witch', text: 'Mobs drop ingredients; Agnes and Alcina trade them for Witches Stew and shop items.',
+    items: ['SMALL_WITCH_CAULDRON', 'MEDIUM_WITCH_CAULDRON', 'LARGE_WITCH_CAULDRON', 'GIANT_WITCH_CAULDRON'] },
+  { key: 'pig', name: 'Year of the Pig', text: 'Shiny Pigs spawn; Shiny Orbs on them give rewards, Piggy sells items for Shiny Tokens.',
+    items: ['SMALL_PIG_EAR', 'MEDIUM_PIG_EAR', 'LARGE_PIG_EAR', 'GIANT_PIG_EAR'] },
+];

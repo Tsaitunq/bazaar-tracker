@@ -27,13 +27,15 @@ test('the clock agrees with the election data: the mayor of year 518 is in offic
 test('upcoming: running events first, then the next ones in order', () => {
   const now = at(3, 2); // Early Summer 2: Traveling Zoo is on
   const list = upcoming(now, election);
-  assert.deepEqual(list.map((e) => e.key), ['zoo', 'spooky', 'workshop', 'jerry', 'newyear', 'hoppity']);
+  assert.deepEqual(list.map((e) => e.key), ['zoo', 'feast', 'spooky', 'workshop', 'jerry', 'newyear', 'hoppity']);
   assert.equal(list[0].active, true);
   assert.equal(list[0].end, at(3, 4));
-  assert.equal(list[1].start, at(7, 29));
-  assert.equal(list[1].end - list[1].start, 3 * DAY_MS);
+  assert.equal(list[1].start, at(6, 1));
+  assert.equal(list[1].end - list[1].start, 93 * DAY_MS);
+  assert.equal(list[2].start, at(7, 29));
+  assert.equal(list[2].end - list[2].start, 3 * DAY_MS);
   // next year's Hoppity's Hunt
-  assert.equal(list[5].start, at(0, 1, 520));
+  assert.equal(list[6].start, at(0, 1, 520));
 });
 
 test('upcoming: an event that is over moves to its next start, also across the year end', () => {
@@ -73,7 +75,13 @@ test('eventItems marks items of running or near events and of active perks', () 
   // one hour less than the limit before the start: marked; a little earlier: not yet
   assert.equal(eventItems(at(7, 29) - SOON_MS + 3600000, null).GREEN_CANDY, 'Spooky Festival');
   assert.equal(eventItems(at(7, 29) - SOON_MS - 1, null).GREEN_CANDY, undefined);
-  assert.deepEqual(eventItems(at(4, 10), null), {});
+  assert.deepEqual(eventItems(at(3, 10), null), {});
+  // the Harvest Feast runs for three months; the Grand Feast needs Finnegan's perk
+  assert.equal(eventItems(at(7, 1), null).CORNUCOPIA, 'Harvest Feast');
+  assert.ok(!upcoming(at(7, 1), null).some((e) => e.key === 'grandfeast'));
+  const finnegan = { mayor: { name: 'Finnegan', perks: [{ name: 'Grand Feast', text: '' }], minister: null } };
+  const grand = upcoming(at(1, 1), finnegan).find((e) => e.key === 'grandfeast');
+  assert.equal(grand.end - grand.start, YEAR_MS);
   assert.equal(eventItems(at(3, 2), marina).SHARK_FIN, 'Fishing Festival');
   // an item of two events keeps the one that comes first
   assert.equal(eventItems(at(11, 25), null).WHITE_GIFT, 'Season of Jerry');

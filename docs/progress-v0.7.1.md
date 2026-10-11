@@ -5,7 +5,7 @@ Branch `feat/v0.7.1`, one commit per part. Not pushed, not merged.
 - [x] A. Source and minion values (wiki-checked, 8 new minions, docs, CLAUDE.md rule)
 - [x] B. Ranking (see below)
 - [x] C. Minion detail sheet (visual check on the phone still open)
-- [ ] D. Mayors and events
+- [x] D. Mayors and events
 - [ ] E. Opportunities filter bug
 - [ ] Changelog 0.7.1, version, README, APK, docs/summary-v0.7.1.md
 

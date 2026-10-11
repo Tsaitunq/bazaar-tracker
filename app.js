@@ -265,7 +265,7 @@ function flashChanges() {
 let radarShown = '';
 function renderRadar() {
   const now = Date.now();
-  const data = { election, perks: activePerks(election), events: upcoming(now, election), vote: electionWindow(now), now, name: nameOf, timing };
+  const data = { election, perks: activePerks(election), events: upcoming(now, election), vote: electionWindow(now), now, name: nameOf, timing, query: effectsQuery };
   const plain = radarView(data);
   if (plain === radarShown) return;
   const box = $('radar');
@@ -273,6 +273,15 @@ function renderRadar() {
   radarShown = plain;
   box.innerHTML = radarView({ ...data, open });
 }
+
+// The search box of "Mayor & event effects" hides rows in place; the text is kept for the next render.
+let effectsQuery = '';
+$('market').addEventListener('input', (e) => {
+  if (e.target.id !== 'effects-q') return;
+  effectsQuery = e.target.value;
+  const q = effectsQuery.trim().toLowerCase();
+  for (const li of $('market').querySelectorAll('.effects li')) li.hidden = !!q && !li.dataset.q.includes(q);
+});
 
 // The minion setup: its own small form, stored apart from the settings because it changes nothing else.
 const MINION_FIELDS = { tier: 'm-tier', count: 'm-count', fuel: 'm-fuel', up1: 'm-up1', up2: 'm-up2' };

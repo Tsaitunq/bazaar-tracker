@@ -457,3 +457,8 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 .sheet table.tiers th { color: var(--muted); font-weight: 600; }
 .sheet table.tiers tr.on td { color: var(--accent); font-weight: 600; }
 .sheet .sheet-body { padding: 12px 16px 16px; }
+.effects { list-style: none; margin: 0; padding: 0; }
+.effects li { padding: 8px 0; border-bottom: 1px solid var(--line); }
+.effects li[hidden] { display: none; }
+.effects p { margin: 4px 0 0; }
+#effects-q { width: 100%; box-sizing: border-box; min-height: 44px; margin: 4px 0 8px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--text); font: inherit; }
