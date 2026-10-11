@@ -11,5 +11,5 @@ Branch `feat/timing-backfill`, not pushed, not merged.
       Market radar and the footer
 - [x] Fishing Festival over Marina's whole term, with GREAT_WHITE_TOOTH_MEAL
       and SHARK_BAIT
-- [ ] Run once, commit `timing-backfill.json`, report
-- [ ] Version 0.7.3, APK
+- [x] Run once, commit `timing-backfill.json`, report (docs/summary-timing-backfill.md)
+- [x] Version 0.7.3, APK

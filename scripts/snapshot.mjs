@@ -10,7 +10,8 @@ import { SHARDS, KEEP_DAYS, shardOf, dayKey, dayKeys, compactPrices, appendSnaps
 
 const readChunk = (file) => (fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : null);
 
-export function runSnapshot(dataDir, products, nowMs) {
+// opts.backfillFile: a timing-backfill.json whose runs are put into timing.json (the CLI passes the one in the repo)
+export function runSnapshot(dataDir, products, nowMs, { backfillFile = null } = {}) {
   const prices = compactPrices(products);
   const tMin = Math.round(nowMs / 60000);
   const day = dayKey(nowMs);
@@ -54,9 +55,8 @@ export function runSnapshot(dataDir, products, nowMs) {
   // Runs from SkyCofl's history (scripts/timing-backfill.mjs) are put in while timing-backfill.json is in the repo.
   // They never replace a run recorded here. Deleting the file stops it; scripts/timing-remove-backfill.mjs takes
   // the runs out of timing.json.
-  const backfillFile = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'timing-backfill.json');
   const known = readChunk(timingFile);
-  const timing = fs.existsSync(backfillFile) ? mergeBackfill(known, readChunk(backfillFile)) : known;
+  const timing = backfillFile && fs.existsSync(backfillFile) ? mergeBackfill(known, readChunk(backfillFile)) : known;
   fs.writeFileSync(timingFile, JSON.stringify(updateTiming(timing, election, (id) => seriesFor(chunks, id), nowMs)));
   return { day, count: Object.keys(prices).length };
 }
@@ -111,7 +111,8 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     const json = await getJson(`${API}skyblock/bazaar`);
     const dataDir = process.argv[2] ?? 'data';
     const now = Date.now();
-    const { day, count } = runSnapshot(dataDir, json.products, now);
+    const backfillFile = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'timing-backfill.json');
+    const { day, count } = runSnapshot(dataDir, json.products, now, { backfillFile });
     console.log(`snapshot ${day}: ${count} products`);
     // forge.json came later than recipes.json: fetch both as soon as it is missing
     if (recipesStale(path.join(dataDir, 'recipes.json'), now) || !fs.existsSync(path.join(dataDir, 'forge.json'))) {
