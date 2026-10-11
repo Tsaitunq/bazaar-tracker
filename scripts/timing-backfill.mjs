@@ -1,11 +1,12 @@
 // One-off: fills timing.json's runs from SkyCofl's bazaar history, for the mayor perks and fixed events the
 // app knows items for. node scripts/timing-backfill.mjs [--out timing-backfill.json] [--count 12] [--dry-run]
 // One request a second, Retry-After respected. Progress is kept in <out>.partial.json, so a stopped run resumes.
+// --fill: keep the runs of an earlier <out> and ask only for the items they lack (a new item in events.js).
 // Data: https://sky.coflnet.com/data (SkyCofl), please attribute.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { plan, itemsOf, buildRun, chunks, RUNS_PER_KEY } from './backfill-lib.mjs';
+import { plan, itemsOf, buildRun, chunks, missingItems, mergeRun, RUNS_PER_KEY } from './backfill-lib.mjs';
 
 const API = 'https://sky.coflnet.com/api/bazaar/';
 const GAP_MS = 1000;
@@ -45,6 +46,7 @@ async function main() {
   const out = opt('--out', 'timing-backfill.json');
   const count = Number(opt('--count', RUNS_PER_KEY));
   const dry = args.includes('--dry-run');
+  const fill = args.includes('--fill');
   const here = path.dirname(fileURLToPath(import.meta.url));
   const elections = JSON.parse(fs.readFileSync(path.join(here, 'mayors-history.json'), 'utf8')).elections;
   const nowMs = Date.now();
@@ -58,11 +60,13 @@ async function main() {
   const done = fs.existsSync(partialFile) ? JSON.parse(fs.readFileSync(partialFile, 'utf8')) : {}; // `${key}|${s}|${item}` -> rows
   const firstGone = {}; // item -> true once a window had no data: older ones have none either
   let requests = 0;
-  const result = { t: nowMs, src: 'skycofl', r: {} };
+  const prior = fill && fs.existsSync(out) ? JSON.parse(fs.readFileSync(out, 'utf8')) : null;
+  const result = prior ? { ...prior, t: nowMs, none: { ...(prior.none ?? {}) } } : { t: nowMs, src: 'skycofl', r: {} };
   for (const [key, ws] of Object.entries(runs)) {
+    const found = new Set();
     for (const w of ws) {
       const fetched = {};
-      for (const item of itemsOf(key)) {
+      for (const item of fill ? missingItems(prior, key, w.s, itemsOf(key)) : itemsOf(key)) {
         if (firstGone[item]) continue;
         const rows = [];
         for (const [n, chunk] of chunks(w).entries()) {
@@ -77,10 +81,19 @@ async function main() {
         }
         if (rows.length === 0) firstGone[item] = true; else fetched[item] = rows;
       }
+      for (const item of Object.keys(fetched)) found.add(item);
       const run = buildRun(w, fetched);
-      if (Object.keys(run.p).length) (result.r[key] ??= []).push(run);
+      const list = (result.r[key] ??= []);
+      const at = list.findIndex((r) => r.s === w.s);
+      if (at >= 0) list[at] = mergeRun(list[at], run);
+      else if (Object.keys(run.p).length) list.push(run);
     }
     if (result.r[key]) result.r[key].sort((x, y) => x.s - y.s);
+    // an item that had no rows in any run is remembered, so --fill does not ask again
+    if (fill) {
+      const empty = itemsOf(key).filter((id) => !found.has(id) && missingItems(prior, key, ws[0]?.s, [id]).length && !result.r[key]?.some((r) => id in (r.p ?? {})));
+      if (empty.length) result.none[key] = [...new Set([...(result.none[key] ?? []), ...empty])];
+    }
   }
   fs.writeFileSync(out, JSON.stringify(result));
   fs.rmSync(partialFile, { force: true });

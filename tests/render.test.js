@@ -504,10 +504,10 @@ test('Mayor & event effects: running and active first, searchable, years without
   assert.match(html, /Year of the Seal[\s\S]*does not say in which years/);
   // every row carries its own search text, and a query hides the others
   assert.match(html, /data-q="[^"]*cornucopia/);
-  const hidden = (query) => (effectsView({ ...args, query }).match(/<li data-q="[^"]*" hidden>/g) ?? []).length;
+  const hidden = (query) => (effectsView({ ...args, query }).match(/<li data-g="[^"]*" data-q="[^"]*" hidden>/g) ?? []).length;
   assert.equal(hidden(''), 0);
   assert.ok(hidden('marauder') > 20);
-  assert.equal(hidden('zzzz-nothing'), (html.match(/<li data-q=/g) ?? []).length);
+  assert.equal(hidden('zzzz-nothing'), (html.match(/<li data-g="[^"]*" data-q=/g) ?? []).length);
 });
 
 test('the minion card is one button for the sheet: no item link, the minion head, permanent fuel named', async () => {

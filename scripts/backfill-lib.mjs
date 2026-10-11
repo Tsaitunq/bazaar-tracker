@@ -112,3 +112,14 @@ export function buildRun(w, fetched) {
   }
   return { s: w.s, e: w.e, b: w.b, a: w.a, p, c, src: BACKFILL };
 }
+
+// --fill: what an earlier result still lacks. The items of a key that the run starting at s has no medians or
+// curve for and that were not found empty before (prior.none[key]).
+export function missingItems(prior, key, s, items) {
+  const run = prior?.r?.[key]?.find((r) => r.s === s);
+  const none = new Set(prior?.none?.[key] ?? []);
+  return items.filter((id) => !none.has(id) && !(run && (id in (run.p ?? {}) || id in (run.c ?? {}))));
+}
+
+// A freshly built run joined with the one a prior result has for the same start: the prior items stay.
+export const mergeRun = (prior, run) => (prior ? { ...prior, p: { ...prior.p, ...run.p }, c: { ...(prior.c ?? {}), ...run.c } } : run);

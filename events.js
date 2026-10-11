@@ -20,7 +20,9 @@ export function skyDate(ms) {
 }
 export const skyTime = (year, month, day) => SB_EPOCH + ((year - 1) * YEAR_DAYS + month * MONTH_DAYS + day - 1) * DAY_MS;
 
-const JERRY = ['WHITE_GIFT', 'GREEN_GIFT', 'RED_GIFT', 'ICE_HUNK', 'BLUE_ICE_HUNK', 'ENCHANTED_ICE', 'ENCHANTED_PACKED_ICE', 'WALNUT', 'GLACIAL_FRAGMENT', 'ICE_BAIT'];
+const JERRY = ['WHITE_GIFT', 'GREEN_GIFT', 'RED_GIFT', 'ICE_HUNK', 'BLUE_ICE_HUNK', 'ENCHANTED_ICE', 'ENCHANTED_PACKED_ICE', 'WALNUT', 'GLACIAL_FRAGMENT', 'ICE_BAIT',
+  // Einary's Emporium in Jerry's Workshop (wiki page Einary): the Bazaar items of its shop list
+  'ENCHANTMENT_LOOTING_4', 'ENCHANTMENT_SCAVENGER_4', 'ENCHANTMENT_LUCK_6', 'MAGIC_TOP_HAT', 'WINTER_FRAGMENT'];
 
 // Harvest Feast: the 13 Rare Crops (named in the wiki's table; the ids are the Bazaar items of the same name)
 // and the Feast Flask. Seasoning has no item.
@@ -187,6 +189,28 @@ export function termStart(nowMs) {
   const start = skyTime(year, 2, 27);
   return start <= nowMs ? start : skyTime(year - 1, 2, 27);
 }
+
+// What drives a timing key, for the lists: the mayor and what the term does to the market, or the event itself. A
+// perk is named as the driver only where it starts the event (Mythological Ritual, Fishing Festival, Mining Fiesta,
+// Stock Exchange, Grand Feast); Paul's Marauder makes dungeon reward chests cheaper, so what moves the market is more
+// dungeon players (our reading, the wiki states the perk only), and Finnegan's Blooming Business brings more visitors.
+export const DRIVERS = {
+  'perk:Marauder': { group: 'Paul', title: 'Paul – more dungeon players' },
+  'perk:Mining Fiesta': { group: 'Mining Fiesta', title: 'Mining Fiesta (Cole)' },
+  'perk:Mythological Ritual': { group: 'Mythological Ritual', title: 'Mythological Ritual (Diana)' },
+  'perk:Fishing Festival': { group: 'Fishing Festival', title: 'Fishing Festival (Marina)' },
+  'perk:Blooming Business': { group: 'Finnegan', title: 'Finnegan – more Garden visitors' },
+  'perk:Stock Exchange': { group: 'Stock Exchange', title: 'Stock Exchange (Diaz)' },
+};
+
+// The role an item is expected to play: "supply" (more of it while the driver runs: cheaper during, dearer after),
+// "shop" (only obtainable while it runs: the Einary shop and the Gifts, wiki pages Einary and Jerry's Workshop; the
+// same curve as supply) or "demand" (used up while it runs: dearer during, cheaper after). Everything else is
+// supply. The measured curve decides (timing.js itemRole); this is only the starting point.
+export const SHOP_ITEMS = new Set(['WHITE_GIFT', 'GREEN_GIFT', 'RED_GIFT', 'ENCHANTMENT_LOOTING_4', 'ENCHANTMENT_SCAVENGER_4',
+  'ENCHANTMENT_LUCK_6', 'MAGIC_TOP_HAT', 'WINTER_FRAGMENT']);
+export const DEMAND_ITEMS = new Set(['ICE_BAIT', 'SHARK_BAIT']);
+export const expectedRole = (id) => (SHOP_ITEMS.has(id) ? 'shop' : DEMAND_ITEMS.has(id) ? 'demand' : 'supply');
 
 // Every perk of the regular and special mayors, as the Mayor Election page lists them (read 2026-10-11).
 // The wiki gives no price direction for any of them; PERK_EXPECT above is the only place with an expectation.

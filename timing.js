@@ -5,7 +5,7 @@
 // curve: the median of each phase (phaseSpans) from two days before to three days after, by phase name.
 // src is "backfill" for a run filled in afterwards from SkyCofl's price history (scripts/timing-backfill.mjs);
 // a run the snapshot run recorded itself has no src and counts as "own".
-import { PERK_EXPECT, PERKS, DAY_MS, YEAR_DAYS, EVENTS, skyDate, skyTime, activePerks, upcoming, termStart } from './events.js';
+import { PERK_EXPECT, PERKS, DRIVERS, expectedRole, DAY_MS, YEAR_DAYS, EVENTS, skyDate, skyTime, activePerks, upcoming, termStart } from './events.js';
 import { median } from './history.js';
 
 export const CONFIRM = 3;                // runs in the same direction before a pattern counts
@@ -293,3 +293,29 @@ export function buyNow(nowMs, election, timing, tax, soon = 24 * 3600000) {
   }
   return out.sort((a, b) => b.w.spread - a.w.spread);
 }
+
+// ---- role of an item ---------------------------------------------------------------------------------------------
+// supply: cheaper while the driver runs, dearer after; demand: dearer while it runs, cheaper after; shop: supply
+// of an item that is only obtainable then. The measured change (before to during, the pattern of itemPattern) decides;
+// the expected role (events.js expectedRole) only settles shop against supply and stands in when nothing was measured.
+// { role, expected, measured: 'supply' | 'demand' | null, mismatch, recovers, confirmed, pct }
+export function itemRole(runs, id, expected = expectedRole(id)) {
+  const { into, out } = itemPattern(runs, id);
+  const measured = into.dir < 0 ? 'supply' : into.dir > 0 ? 'demand' : null;
+  const sameSide = (a, b) => (a === 'demand') === (b === 'demand');
+  const role = measured == null ? expected : sameSide(measured, expected) ? expected : measured;
+  return {
+    role, expected, measured, mismatch: measured != null && !sameSide(measured, expected),
+    recovers: into.dir !== 0 && out.dir === -into.dir, confirmed: into.confirmed, pct: into.pct,
+  };
+}
+
+// The title of a key for the lists: the driver (mayor or event), not the perk.
+export function driverTitle(key) {
+  if (DRIVERS[key]) return DRIVERS[key].title;
+  if (key.startsWith('perk:')) return key.slice(5);
+  return EVENTS.find((e) => `event:${e.key}` === key)?.name ?? key;
+}
+
+export const LOW_WEEK_VOLUME = 1000; // items a week; below this a window is hard to fill
+export const isLowVolume = (v) => v != null && v < LOW_WEEK_VOLUME;

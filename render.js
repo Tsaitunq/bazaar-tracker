@@ -1,8 +1,8 @@
 import { lineChart } from './chart.js';
 import { marginSeries } from './history.js';
 import { direction } from './trends.js';
-import { skyDate, MONTHS, PERK_ITEMS, PERK_EXPECT, PERKS, YEAR_EVENTS, EVENTS, DAY_MS } from './events.js';
-import { itemPattern, patternText, allWindows } from './timing.js';
+import { skyDate, MONTHS, PERK_ITEMS, PERK_EXPECT, PERKS, YEAR_EVENTS, EVENTS, DRIVERS, expectedRole, DAY_MS } from './events.js';
+import { itemPattern, patternText, allWindows, itemRole, driverTitle, isLowVolume } from './timing.js';
 
 export const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
@@ -267,7 +267,7 @@ const HISTORY_CREDIT = 'Historical prices provided by <a href="https://sky.cofln
 // election and the events, each of which unfolds to its details.
 // perks: activePerks(); events: upcoming(); vote: electionWindow(); name(id): an item's name;
 // open: keys of the parts that are unfolded; timing: past runs per event and perk (timing.js).
-export function radarView({ election, perks, events, vote, now, name, open = new Set(), timing = {}, query = '', tax = 0.0125 }) {
+export function radarView({ election, perks, events, vote, now, name, open = new Set(), timing = {}, query = '', tax = 0.0125, volume = () => null }) {
   const until = (t) => duration(Math.ceil(Math.max(0, t - now) / 60000) * 60);
   const affected = (ids) => (ids?.length
     ? `<p class="affected"><span class="muted">Typically affected:</span> ${ids.map((id) => `<a href="${esc(itemHref(id))}">${esc(name(id))}</a>`).join(', ')}</p>` : '');
@@ -325,52 +325,79 @@ export function radarView({ election, perks, events, vote, now, name, open = new
   <h3>Events</h3>
   <ul>${list}</ul>
   <p class="muted">Based on past events, not a guarantee. Patterns marked "historical data" use runs from SkyCofl's price history, back to 2020. ${HISTORY_CREDIT}</p>
-  ${windowsView(timing, tax, name)}
-  ${effectsView({ perks, events, now, name, query })}
+  ${windowsView(timing, tax, name, volume)}
+  ${effectsView({ perks, events, now, name, query, timing })}
 </section>`;
 }
 
-// The title of a timing key: "Marina · Fishing Festival" or "Spooky Festival".
-export function keyTitle(key) {
-  if (key.startsWith('perk:')) { const p = PERKS.find((x) => x.name === key.slice(5)); return p ? `${p.who} · ${p.name}` : key.slice(5); }
-  return EVENTS.find((e) => `event:${e.key}` === key)?.name ?? key;
+// The title of a timing key: the driver, "Paul – more dungeon players" or "Spooky Festival" (timing.js driverTitle).
+export const keyTitle = driverTitle;
+
+// The role of an item as a badge; the title says what it means and, where the measurement overruled the
+// expectation, that it did.
+const ROLE_TEXT = {
+  supply: ['Supply', 'More of it while it runs: cheaper during, dearer after'],
+  demand: ['Demand', 'Used up while it runs: dearer during, cheaper after'],
+  shop: ['Shop', 'Only obtainable while it runs: cheaper during, dearer after'],
+};
+export function roleBadge(r) {
+  const [label, text] = ROLE_TEXT[r.role];
+  const note = r.mismatch ? ` Measured, not as expected (${ROLE_TEXT[r.expected][0].toLowerCase()}).` : r.measured ? '' : ' Not measured yet.';
+  return `<span class="badge role role-${r.role}" title="${esc(text + note)}">${label}${r.mismatch ? ' (measured)' : ''}</span>`;
 }
+
+// " · Vol./week 9,713" and, below LOW_WEEK_VOLUME, "low volume – hard to fill"
+export const volumeNote = (v) => (v == null ? '' : ` · Vol./week ${num(v)}${isLowVolume(v) ? ' · <strong>low volume – hard to fill</strong>' : ''}`);
 
 // "Buy and sell windows" of the radar: the items with the best typical gain after tax, from the price curves of past
 // runs (timing.js tradeWindow). timing: timing.json's r.
 const WINDOW_ROWS = 12;
-export function windowsView(timing, tax, name) {
+export function windowsView(timing, tax, name, volume = () => null) {
   const all = allWindows(timing, tax);
   if (!all.length) return '';
   return `<h3>Buy and sell windows</h3>
   <p class="muted">When the price was lowest and highest around a term or event, after the ${percent.format(tax)} tax. Shown above 3% and when it paid in two thirds of the runs.</p>
-  <ul class="timing windows">${all.slice(0, WINDOW_ROWS).map((x) => `<li><a href="${esc(itemHref(x.id))}">${esc(name(x.id))}</a> <small>${esc(keyTitle(x.key))}: ${esc(x.text)}</small></li>`).join('')}</ul>`;
+  <ul class="timing windows">${all.slice(0, WINDOW_ROWS).map((x) => `<li><a href="${esc(itemHref(x.id))}">${esc(name(x.id))}</a> <small>${esc(keyTitle(x.key))}: ${esc(x.text)}${volumeNote(volume(x.id))}</small></li>`).join('')}</ul>`;
 }
 
 // "Mayor & event effects": every perk of every mayor and every event with what it does, the items it is
 // tied to and what the price is expected to do. Running and coming first, then the rest. The search box
 // filters the rows by their text (app.js hides the rest; query is the text it kept from last time).
-export function effectsView({ perks, events, now, name, query = '' }) {
+export function effectsView({ perks, events, now, name, query = '', timing = {} }) {
   const until = (t) => duration(Math.ceil(Math.max(0, t - now) / 60000) * 60);
-  const items = (ids) => (ids?.length ? `<p class="affected"><span class="muted">Items:</span> ${ids.map((id) => `<a href="${esc(itemHref(id))}">${esc(name(id))}</a>`).join(', ')}</p>` : '');
+  // each item with its role, measured where there are runs (timing.js itemRole)
+  const items = (ids, key) => (ids?.length ? `<p class="affected"><span class="muted">Items:</span> ${ids.map((id) =>
+    `<a href="${esc(itemHref(id))}">${esc(name(id))}</a> ${roleBadge(itemRole(timing[key], id, expectedRole(id)))}`).join(', ')}</p>` : '');
   const expect = (perk) => (PERK_EXPECT[perk]
     ? `<p class="why">Expected: lower (${esc(PERK_EXPECT[perk].why)}). Not confirmed by the wiki.</p>`
     : '<p class="muted">No price direction stated.</p>');
   const active = new Set(perks.map((p) => p.name));
   const rows = [
-    ...events.map((e) => ({ rank: e.active ? 0 : 2, at: e.start, title: e.name, side: e.active ? `now · ${until(e.end)} left` : `in ${until(e.start)}`,
-      text: `Event${e.perk ? ` (needs the ${e.perk} perk)` : ''}`, ids: e.items, note: '<p class="muted">What its prices did in past runs is shown above.</p>' })),
-    ...PERKS.map((p) => ({ rank: active.has(p.name) ? 1 : 3, at: 0, title: p.name, side: active.has(p.name) ? `${p.who} · active` : p.who,
-      text: p.text, ids: PERK_ITEMS[p.name] ?? PERK_EXPECT[p.name]?.items, note: expect(p.name) })),
-    ...YEAR_EVENTS.map((y) => ({ rank: 4, at: 0, title: y.name, side: 'every 12 years', text: y.text, ids: y.items,
+    ...events.map((e) => ({ group: e.name, rank: e.active ? 0 : 2, at: e.start, title: e.name, side: e.active ? `now · ${until(e.end)} left` : `in ${until(e.start)}`,
+      text: `Event${e.perk ? ` (needs the ${e.perk} perk)` : ''}`, ids: e.items, key: `event:${e.key}`, note: '<p class="muted">What its prices did in past runs is shown above.</p>' })),
+    ...PERKS.map((p) => ({ group: DRIVERS[`perk:${p.name}`]?.group ?? p.who, rank: active.has(p.name) ? 1 : 3, at: 0, title: p.name,
+      side: active.has(p.name) ? `${p.who} · active` : p.who, text: p.text, ids: PERK_ITEMS[p.name] ?? PERK_EXPECT[p.name]?.items,
+      key: `perk:${p.name}`, note: expect(p.name) })),
+    ...YEAR_EVENTS.map((y) => ({ group: y.name, rank: 4, at: 0, title: y.name, side: 'every 12 years', text: y.text, ids: y.items, key: `year:${y.key}`,
       note: '<p class="muted">The wiki does not say in which years, so there is no date. No price direction stated.</p>' })),
-  ].sort((a, b) => a.rank - b.rank || a.at - b.at);
+  ];
+  // grouped by what drives the market: a mayor or an event; the group that runs or comes first goes first
+  const best = new Map();
+  for (const x of rows) best.set(x.group, Math.min(best.get(x.group) ?? Infinity, x.rank * 1e13 + x.at));
+  rows.sort((x, y) => best.get(x.group) - best.get(y.group) || x.group.localeCompare(y.group) || x.rank - y.rank || x.at - y.at);
   const q = query.trim().toLowerCase();
-  const hay = (r) => [r.title, r.side, r.text, ...(r.ids ?? []).map((id) => name(id))].join(' ').toLowerCase();
+  const hay = (x) => [x.group, x.title, x.side, x.text, ...(x.ids ?? []).flatMap((id) => [name(id), ROLE_TEXT[itemRole(timing[x.key], id, expectedRole(id)).role][0]])].join(' ').toLowerCase();
+  const shown = new Set(rows.filter((x) => !q || hay(x).includes(q)).map((x) => x.group));
+  let last = null;
+  const out = rows.map((x) => {
+    const head = x.group !== last ? `<li class="group-head" data-g="${esc(x.group)}"${q && !shown.has(x.group) ? ' hidden' : ''}><h4>${esc(x.group)}</h4></li>` : '';
+    last = x.group;
+    return head + `<li data-g="${esc(x.group)}" data-q="${esc(hay(x))}"${q && !hay(x).includes(q) ? ' hidden' : ''}><strong>${esc(x.title)}</strong> <span class="side">${esc(x.side)}</span>
+    <p>${esc(x.text)}</p>${items(x.ids, x.key)}${x.note}</li>`;
+  }).join('');
   return `<h3>Mayor &amp; event effects</h3>
-  <input type="search" id="effects-q" value="${esc(query)}" placeholder="Search mayor, perk, event or item" aria-label="Search mayor and event effects" autocomplete="off">
-  <ul class="effects">${rows.map((r) => `<li data-q="${esc(hay(r))}"${q && !hay(r).includes(q) ? ' hidden' : ''}><strong>${esc(r.title)}</strong> <span class="side">${esc(r.side)}</span>
-    <p>${esc(r.text)}</p>${items(r.ids)}${r.note}</li>`).join('')}</ul>`;
+  <input type="search" id="effects-q" value="${esc(query)}" placeholder="Search mayor, perk, event, item or role" aria-label="Search mayor and event effects" autocomplete="off">
+  <ul class="effects">${out}</ul>`;
 }
 
 export function parseRoute(hash) {
@@ -408,7 +435,7 @@ export function trendsView(flips) {
 // fresh: up to three opportunities, best first, with a name; firstVisit: there is no last visit to compare with.
 const TODAY_EVENTS = 3;
 const TODAY_ITEMS = 3;
-export function todayView({ plan, capital, slots, alerts = [], dismiss = false, events = [], vote, election = null, voteItems = [], fresh = [], firstVisit = false, now, name, buying = [] }) {
+export function todayView({ plan, capital, slots, alerts = [], dismiss = false, events = [], vote, election = null, voteItems = [], fresh = [], firstVisit = false, now, name, buying = [], volume = () => null }) {
   const until = (t) => duration(Math.ceil(Math.max(0, t - now) / 60000) * 60);
   const items = (ids) => (ids.length ? `<small>Affected: ${ids.slice(0, TODAY_ITEMS).map((id) => esc(name(id))).join(', ')}${
     ids.length > TODAY_ITEMS ? ` +${ids.length - TODAY_ITEMS} more` : ''}</small>` : '');
@@ -439,7 +466,7 @@ export function todayView({ plan, capital, slots, alerts = [], dismiss = false, 
   // items whose buy phase is on or starts within a day (timing.js buyNow)
   const buy = buying.length ? `<section class="radar">
   <h2><span class="radar-title">${ICONS.event}Buying window</span></h2>
-  <ul class="coming">${buying.slice(0, TODAY_ITEMS).map((b) => `<li><a href="${esc(itemHref(b.id))}">${esc(name(b.id))}</a> <span class="side">${b.state === 'now' ? `now · ${until(b.to)} left` : `in ${until(b.from)}`}</span><small>${esc(keyTitle(b.key))}: ${esc(b.text)}</small></li>`).join('')}</ul>
+  <ul class="coming">${buying.slice(0, TODAY_ITEMS).map((b) => `<li><a href="${esc(itemHref(b.id))}">${esc(name(b.id))}</a> <span class="side">${b.state === 'now' ? `now · ${until(b.to)} left` : `in ${until(b.from)}`}</span><small>${esc(keyTitle(b.key))}: ${esc(b.text)}${volumeNote(volume(b.id))}</small></li>`).join('')}</ul>
   ${moreLink('#/market', 'Open the Market')}
 </section>` : '';
 
@@ -523,7 +550,7 @@ const RANGES = [['24h', '24 h'], ['7d', '7 days']];
 
 // flip is the item's bazaar flip or null while prices are unknown; points are already cut to the range.
 // forge is the item's forge recipe as a flip (forgeFlip, with names on the ingredients), or null.
-export function detailView({ id, name, tier, flip, forge = null, score, median, provisional, trend, level, event, back = 'flips', isFav, range, points, tax, windows = [] }) {
+export function detailView({ id, name, tier, flip, forge = null, score, median, provisional, trend, level, event, back = 'flips', isFav, range, points, tax, windows = [], volume = null }) {
   const stat = { score, provisional, median, trend, level, event, ah: forge?.ah };
   const forged = forge ? `<section class="forged pro"><h3>Forge</h3>${forge.ah ? `<p class="why">${esc(forgeNotes(forge).join(' · '))}</p>` : ''}
 <div class="summary">${keyStats(forge, 'Profit/forge hour')}<dl class="facts">${forgeFacts(forge).join('')}</dl></div>
@@ -546,5 +573,5 @@ ${ingredientList(forge)}</section>` : '';
 <div class="detail-head" data-rarity="${rarity(tier)}">${star(id, name, isFav)}
 ${tile(id, 48)}<h2 class="name">${esc(name)}</h2></div>
 ${badges(stat, flip?.suspicious)}
-${current}${forged}${windows.length ? `<section class="windows-item"><h3>Event timing</h3><ul class="timing">${windows.map((x) => `<li><small>${esc(keyTitle(x.key))}: ${esc(x.text)}</small></li>`).join('')}</ul></section>` : ''}${forge?.ah ? '' : `<div class="bar ranges">${buttons}</div>${charts}`}`;
+${current}${forged}${windows.length ? `<section class="windows-item"><h3>Event timing</h3><ul class="timing">${windows.map((x) => `<li><small>${esc(keyTitle(x.key))}: ${esc(x.text)}${volumeNote(volume)}</small></li>`).join('')}</ul></section>` : ''}${forge?.ah ? '' : `<div class="bar ranges">${buttons}</div>${charts}`}`;
 }
