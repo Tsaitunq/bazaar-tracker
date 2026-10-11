@@ -118,3 +118,30 @@ countdown and no "this year is affected" note: open, not guessed.
 
 Also: the changelog entry of the craft hint was merged into the craft modes
 entry to make room for a fifth (at most four per version).
+
+## Part L: sheet scrolling on the phone
+
+- **Cause:** the sheet window (`.panel`) is `overflow: hidden` and 80% high;
+  the minion sheet's body had no scroll area, so its lower part was cut off
+  and a swipe moved the page behind. The settings sheet worked because its
+  form already scrolled.
+- **Fix:** the body scrolls by itself (head with X fixed),
+  `overscroll-behavior: contain`, bottom padding
+  `16px + safe-area-inset-bottom`; while a modal sheet is open the page is
+  locked (`html.sheet-open`, overflow hidden) and its position is restored on
+  close; swipe-down-to-close only starts when nothing under the finger is
+  scrolled (also lists inside a sheet). Applies to every sheet that goes
+  through `sheet.js` (settings, filters, minion sheet); other modal dialogs
+  get the overflow lock from a `:has(dialog:modal)` rule.
+- **Touch check** (headless Edge, 412 × 915, touch events, tarantula sheet,
+  page first scrolled to 594): sheet 732 px high, content 993 px in a 641 px
+  area. Four swipes up: sheet content scrolled to 352 (the end), page still
+  594, last line ends 28 px above the bottom edge. A 150 px swipe down while
+  scrolled: content back to 185, sheet stays open, page 594. Further swipes
+  down at the top: sheet closes, page still 594 afterwards. The safe-area
+  inset is 0 in that emulation; on the phone it adds to the 16 px. Not run on
+  the real phone.
+- **grep:** `.panel .sheet-body`, `html.sheet-open` in `style.css`;
+  `sheet-open`, `scrollTo?.(0, pageY)` in `sheet.js`; the same strings in
+  `android/app/src/main/assets/public/` after the APK build; test in
+  `tests/sheet.test.js`.

@@ -101,3 +101,16 @@ test('the page: settings live in the panel, with Apply and Reset, and every filt
   assert.ok(page.includes('id="open-filters"') && page.includes('id="filter-count"') && page.includes('id="chips"'));
   for (const key of new Set(Object.values(FILTERS).flat())) assert.ok(panel.includes(`id="${key}"`), key);
 });
+
+test('a sheet scrolls on its own, holds the page still and clears the gesture bar', async () => {
+  const fs = await import('node:fs');
+  const css = fs.readFileSync(new URL('../style.css', import.meta.url), 'utf8');
+  const rule = css.match(/\.panel \.sheet-body \{[^}]*\}/)[0];
+  assert.match(rule, /overflow-y: auto/);
+  assert.match(rule, /overscroll-behavior: contain/);
+  assert.match(rule, /env\(safe-area-inset-bottom/);
+  assert.match(css, /html\.sheet-open[^{]*\{[^}]*overflow: hidden/);
+  const js = fs.readFileSync(new URL('../sheet.js', import.meta.url), 'utf8');
+  assert.match(js, /classList\.add\('sheet-open'\)/);
+  assert.match(js, /scrollTo\?\.\(0, pageY\)/);
+});

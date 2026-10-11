@@ -94,3 +94,14 @@ Nothing was computed, no countdown. Left open.
   marked unreliable like a thin market.
 - [x] 4 "permanent (one-time cost)" for Lava, Magma, Plasma, Hamster... (every
   fuel without a duration) on the card and in the sheet.
+
+## L (sheet scrolling, from the phone test)
+
+Cause: `.panel` is `overflow: hidden` with a fixed height of 80dvh, and the
+body of the minion sheet (`.sheet-body`) had no scroll of its own, so its
+lower part was cut off and a swipe scrolled the page behind. Fixed in
+`style.css` (`.panel .sheet-body` scrolls, `overscroll-behavior: contain`,
+bottom padding with the safe area) and `sheet.js` (page lock with
+`html.sheet-open`, scroll position restored on close, swipe-down only when
+nothing under the finger is scrolled). Checked with touch emulation in
+headless Edge at 412 x 915 (see summary).

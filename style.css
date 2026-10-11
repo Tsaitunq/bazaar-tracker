@@ -456,7 +456,12 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 .sheet table.tiers th:first-child, .sheet table.tiers td:first-child { text-align: left; }
 .sheet table.tiers th { color: var(--muted); font-weight: 600; }
 .sheet table.tiers tr.on td { color: var(--accent); font-weight: 600; }
-.sheet .sheet-body { padding: 12px 16px 16px; }
+/* The body of a sheet scrolls by itself; the head stays. The page behind does not move (sheet.js sets .sheet-open,
+   the :has() rule covers sheets that do not go through sheet.js). The last line clears the gesture bar. */
+.panel .sheet-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  padding: 12px 16px calc(16px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))); }
+html.sheet-open, html.sheet-open body, html:has(dialog:modal), html:has(dialog:modal) body { overflow: hidden; overscroll-behavior: none; }
+.sheet, .sheet .scroll { overscroll-behavior: contain; }
 .effects { list-style: none; margin: 0; padding: 0; }
 .effects li { padding: 8px 0; border-bottom: 1px solid var(--line); }
 .effects li[hidden] { display: none; }
