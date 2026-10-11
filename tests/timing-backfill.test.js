@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { skyTime, DAY_MS, YEAR_DAYS, PERK_EXPECT, EVENTS } from '../events.js';
 import { pattern, itemPattern, patternText, removeBackfill, mergeBackfill, BACKFILL, CONFIRM } from '../timing.js';
-import { plan, termOf, windows, rowsToPoints, buildRun, itemsOf, MIN_DURING_MS } from '../scripts/backfill-lib.mjs';
+import { plan, termOf, windows, chunks, rowsToPoints, buildRun, itemsOf, MIN_DURING_MS } from '../scripts/backfill-lib.mjs';
 import { fetchHistory } from '../scripts/timing-backfill.mjs';
 
 const HOUR = 3600000;
@@ -16,13 +16,18 @@ test('a term runs from Late Spring 27 of the year after the election for a year'
   assert.equal(YEAR_MS, 124 * HOUR);
 });
 
-test('windows: a day before, a day after, never more than seven days from the start of the first', () => {
+test('windows: a day before and after for the medians, two days before to three after for the curve, in chunks of 7 days', () => {
   const s = skyTime(500, 2, 27);
   const w = windows(s, s + YEAR_MS);
   assert.equal(w.s - w.b, 24 * 60);
-  assert.equal(w.a - w.b, 7 * 24 * 60); // 24 h + 124 h + 24 h is 172 h: cut at 168 h
-  const short = windows(s, s + HOUR);
-  assert.equal(short.a - short.e, 24 * 60);
+  assert.equal(w.a - w.e, 24 * 60);
+  assert.equal(w.x1 - w.x0, (48 + 124 + 72) * 60);
+  const c = chunks(w);
+  assert.equal(c.length, 2);                       // 244 h: 168 h and 76 h
+  assert.equal(c[0].to - c[0].from, 7 * 24 * 60);
+  assert.equal(c[1].from, c[0].to);
+  assert.equal(c[1].to, w.x1);
+  assert.equal(chunks(windows(s, s + HOUR)).length, 1);
 });
 
 test('plan: newest terms first, only ids from 179, only after a perk change, only finished runs', () => {
@@ -31,6 +36,7 @@ test('plan: newest terms first, only ids from 179, only after a perk change, onl
   const runs = plan(NOW, elections, { perks: [spec], events: [] });
   // 150 is below 179; 518 is the running term (its after window is not over)
   assert.deepEqual(runs['perk:Marauder'].map((r) => r.s), [400, 300, 179].map((n) => termOf(n).s / 60000));
+  assert.ok(runs['perk:Marauder'].every((r) => r.x1 * 60000 <= NOW));
   assert.equal(plan(NOW, elections, { perks: [spec], events: [], count: 2 })['perk:Marauder'].length, 2);
   // a perk changed on the wiki: only terms from that day on
   const cut = new Date(termOf(300).s).toISOString();
@@ -65,6 +71,8 @@ test('buildRun: the same three medians as a recorded run, items without data lef
   for (let h = 10; h < 34; h += 2) rows.push(row(s + h * HOUR, 90));
   const run = buildRun(w, { A: rows, B: null, C: [] });
   assert.deepEqual(run.p, { A: [100, 80, 90] });
+  assert.deepEqual(run.c.A, { pre1: 100, during: 80, a1: 90 });
+  assert.equal(rowsToPoints([...rows, rows[0]]).length, rows.length); // a point twice is one point
   assert.equal(run.src, BACKFILL);
   assert.equal(run.s, s / 60000);
 });
@@ -107,7 +115,7 @@ test('fetchHistory waits for Retry-After on a 429 and then returns the rows', as
   ];
   const urls = [];
   const t0 = Date.now();
-  const rows = await fetchHistory('X', { b: 0, a: 60 }, async (url) => { urls.push(url); return answers.shift(); });
+  const rows = await fetchHistory('X', { from: 0, to: 60 }, async (url) => { urls.push(url); return answers.shift(); });
   assert.equal(rows.length, 1);
   assert.equal(urls.length, 2);
   assert.ok(Date.now() - t0 >= 900);

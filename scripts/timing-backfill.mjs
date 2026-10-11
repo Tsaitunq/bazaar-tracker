@@ -5,7 +5,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { plan, itemsOf, buildRun, RUNS_PER_KEY } from './backfill-lib.mjs';
+import { plan, itemsOf, buildRun, chunks, RUNS_PER_KEY } from './backfill-lib.mjs';
 
 const API = 'https://sky.coflnet.com/api/bazaar/';
 const GAP_MS = 1000;
@@ -14,7 +14,7 @@ const iso = (min) => new Date(min * 60000).toISOString();
 
 // rows, [] for no data; throws when it cannot be had after the retries
 export async function fetchHistory(item, w, fetchImpl = fetch, log = () => {}) {
-  const url = `${API}${encodeURIComponent(item)}/history?start=${iso(w.b)}&end=${iso(w.a)}`;
+  const url = `${API}${encodeURIComponent(item)}/history?start=${iso(w.from)}&end=${iso(w.to)}`;
   for (let attempt = 1; attempt <= 6; attempt++) {
     let res;
     try { res = await fetchImpl(url, { headers: { Accept: 'application/json' } }); } catch (err) {
@@ -36,7 +36,7 @@ export async function fetchHistory(item, w, fetchImpl = fetch, log = () => {}) {
     const rows = await res.json();
     return Array.isArray(rows) ? rows : [];
   }
-  throw new Error(`no answer for ${item} ${iso(w.b)}`);
+  throw new Error(`no answer for ${item} ${iso(w.from)}`);
 }
 
 async function main() {
@@ -49,7 +49,7 @@ async function main() {
   const elections = JSON.parse(fs.readFileSync(path.join(here, 'mayors-history.json'), 'utf8')).elections;
   const nowMs = Date.now();
   const runs = plan(nowMs, elections, { count });
-  const total = Object.entries(runs).reduce((sum, [key, ws]) => sum + ws.length * itemsOf(key).length, 0);
+  const total = Object.entries(runs).reduce((sum, [key, ws]) => sum + ws.reduce((n, w) => n + chunks(w).length, 0) * itemsOf(key).length, 0);
   console.log(`${Object.values(runs).flat().length} runs, up to ${total} requests`);
   for (const [key, ws] of Object.entries(runs)) console.log(`  ${key}: ${ws.length} runs, ${itemsOf(key).length} items`);
   if (dry) return;
@@ -64,14 +64,18 @@ async function main() {
       const fetched = {};
       for (const item of itemsOf(key)) {
         if (firstGone[item]) continue;
-        const id = `${key}|${w.s}|${item}`;
-        if (!(id in done)) {
-          done[id] = await fetchHistory(item, w, fetch, console.log);
-          requests++;
-          if (requests % 50 === 0) { fs.writeFileSync(partialFile, JSON.stringify(done)); console.log(`  ${requests} requests`); }
-          await sleep(GAP_MS);
+        const rows = [];
+        for (const [n, chunk] of chunks(w).entries()) {
+          const id = `${key}|${w.s}|${item}|${n}`;
+          if (!(id in done)) {
+            done[id] = await fetchHistory(item, chunk, fetch, console.log);
+            requests++;
+            if (requests % 50 === 0) { fs.writeFileSync(partialFile, JSON.stringify(done)); console.log(`  ${requests} requests`); }
+            await sleep(GAP_MS);
+          }
+          rows.push(...done[id]);
         }
-        if (done[id].length === 0) firstGone[item] = true; else fetched[item] = done[id];
+        if (rows.length === 0) firstGone[item] = true; else fetched[item] = rows;
       }
       const run = buildRun(w, fetched);
       if (Object.keys(run.p).length) (result.r[key] ??= []).push(run);

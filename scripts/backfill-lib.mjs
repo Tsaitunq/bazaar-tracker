@@ -2,13 +2,15 @@
 // Pure functions, no network: scripts/timing-backfill.mjs does the asking. The windows and the three medians are
 // those of timing.js (runMedians), so a backfilled run is read exactly like one the snapshot run recorded.
 import { skyTime, DAY_MS, YEAR_DAYS, EVENTS, PERK_EXPECT } from '../events.js';
-import { runMedians, BACKFILL } from '../timing.js';
+import { runMedians, curveMedians, BACKFILL, MIN_DURING_MS } from '../timing.js';
 
 const HOUR = 3600000;
 const YEAR_MS = YEAR_DAYS * DAY_MS;
 const WINDOW_MS = 24 * HOUR;       // before and after, as in timing.js
 const FETCH_MS = 7 * 24 * HOUR;    // SkyCofl gives 2 hour points only for a range of up to 7 days
-export const MIN_DURING_MS = 6 * HOUR; // an event shorter than this is measured over this long (3 points at 2 hours)
+const CURVE_BEFORE_MS = 48 * HOUR; // the price curve reaches two days before the start
+const CURVE_AFTER_MS = 72 * HOUR;  // and three days after the end
+export { MIN_DURING_MS };
 export const MIN_ELECTION = 179;   // wiki ids before it are not used
 export const RUNS_PER_KEY = 12;
 export const DATA_START = Date.parse('2020-09-10'); // the first day SkyCofl has bazaar data for GRIFFIN_FEATHER
@@ -37,18 +39,24 @@ export function mayorAt(t, elections) {
   return null;
 }
 
-// A run for timing.json from the start and end of the measured part (ms): b is a day earlier, a a day later but
-// at most seven days after b so one request reaches it. Minutes, like timing.json.
+// A run for timing.json from the start and end of the measured part (ms): b is a day earlier, a a day later.
+// x0 and x1 are what the price curve needs: two days before to three days after. Minutes, like timing.json.
 export function windows(s, e) {
-  const b = s - WINDOW_MS;
-  const a = Math.min(e + WINDOW_MS, b + FETCH_MS);
-  return { s: s / 60000, e: e / 60000, b: b / 60000, a: a / 60000 };
+  return { s: s / 60000, e: e / 60000, b: (s - WINDOW_MS) / 60000, a: (e + WINDOW_MS) / 60000,
+    x0: (s - CURVE_BEFORE_MS) / 60000, x1: (e + CURVE_AFTER_MS) / 60000 };
+}
+
+// The requests for one run: ranges of at most seven days (two hour points), [from, to) in minutes.
+export function chunks(w) {
+  const out = [];
+  for (let from = w.x0; from < w.x1; from += FETCH_MS / 60000) out.push({ from, to: Math.min(from + FETCH_MS / 60000, w.x1) });
+  return out;
 }
 
 // What to fetch: { key: [{ s, e, b, a }] }, newest first, only runs whose windows are over by nowMs.
 export function plan(nowMs, elections, { count = RUNS_PER_KEY, perks = PERK_SPECS, events = EVENT_KEYS } = {}) {
   const out = {};
-  const finished = (w) => w.a * 60000 <= nowMs && w.b * 60000 >= DATA_START;
+  const finished = (w) => w.x1 * 60000 <= nowMs && w.x0 * 60000 >= DATA_START;
   for (const spec of perks) {
     const since = spec.since ? Date.parse(spec.since) : 0;
     out[spec.key] = Object.entries(elections)
@@ -85,17 +93,22 @@ export function itemsOf(key) {
 // SkyCofl rows { buy, sell, timestamp } to points [minute, buy, sell] as timing.js reads them. SkyCofl's "buy" is the
 // instant-buy price (lowest offer), which is what bookPrices().sell and so the third value is; its "sell" is ours.
 export function rowsToPoints(rows) {
-  return (rows ?? []).filter((r) => r && Date.parse(r.timestamp + (/[zZ]|[+-]\d\d:?\d\d$/.test(r.timestamp) ? '' : 'Z')) >= 0)
-    .map((r) => [Date.parse(r.timestamp + (/[zZ]|[+-]\d\d:?\d\d$/.test(r.timestamp) ? '' : 'Z')) / 60000, r.sell, r.buy])
-    .sort((x, y) => x[0] - y[0]);
+  const utc = (t) => Date.parse(t + (/[zZ]|[+-]dd:?dd$/.test(t) ? '' : 'Z')) / 60000;
+  // chunks of one run share their end points: one point per time
+  const byTime = new Map();
+  for (const r of rows ?? []) { const t = r && utc(r.timestamp); if (Number.isFinite(t)) byTime.set(t, [t, r.sell, r.buy]); }
+  return [...byTime.values()].sort((x, y) => x[0] - y[0]);
 }
 
-// One run with its item medians. fetched: { item: rows | null } (null = no data in the window)
+// One run with its item medians and curves. fetched: { item: rows | null } (null = no data in the window)
 export function buildRun(w, fetched) {
-  const p = {};
+  const p = {}, c = {};
   for (const [id, rows] of Object.entries(fetched)) {
-    const m = runMedians(rowsToPoints(rows), w);
+    const points = rowsToPoints(rows);
+    const m = runMedians(points, w);
     if (m.some((v) => v != null)) p[id] = m;
+    const curve = curveMedians(points, w);
+    if (Object.keys(curve).length) c[id] = curve;
   }
-  return { s: w.s, e: w.e, b: w.b, a: w.a, p, src: BACKFILL };
+  return { s: w.s, e: w.e, b: w.b, a: w.a, p, c, src: BACKFILL };
 }
