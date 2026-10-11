@@ -44,12 +44,14 @@ export const MINIONS = [
   { key: 'slime', name: 'Slime Minion', delays: [26, 26, 24, 24, 22, 22, 19, 19, 16, 16, 12],
     drops: [{ id: 'SLIME_BALL', qty: 2, compact: ['ENCHANTED_SLIME_BALL', SC] }] },
   { key: 'tarantula', name: 'Tarantula Minion', delays: [29, 29, 26, 26, 23, 23, 19, 19, 14.5, 14.5, 10, 8],
+    requires: { slayer: 'spider', name: 'Spider Slayer', text: 'Spider Slayer V (tiers I to XI), IX (tier XII)' },
     drops: [
       { id: 'STRING', qty: 3.16, compact: ['ENCHANTED_STRING', SC] },
       { id: 'SPIDER_EYE', qty: 1, compact: ['ENCHANTED_SPIDER_EYE', SC] },
       { id: 'IRON_INGOT', qty: 0.2, compact: ['ENCHANTED_IRON', SC] },
     ] },
   { key: 'revenant', name: 'Revenant Minion', delays: [29, 29, 26, 26, 23, 23, 19, 19, 14.5, 14.5, 10, 8],
+    requires: { slayer: 'zombie', name: 'Zombie Slayer', text: 'Zombie Slayer V (tiers I to XI), IX (tier XII); the recipe also needs armor' },
     drops: [
       { id: 'ROTTEN_FLESH', qty: 3.16, compact: ['ENCHANTED_ROTTEN_FLESH', SC] },
       { id: 'DIAMOND', qty: 0.2, compact: ['ENCHANTED_DIAMOND', SC] },
@@ -86,6 +88,18 @@ export const MINIONS = [
     ] },
 ].map((m) => ({ ...m, storage: (m.storageList ?? STORAGE).slice(0, m.delays.length) }));
 export const MAX_TIER = 12;
+
+// A minion that needs a Slayer level (wiki: Tarantula "Spider Slayer V (5)", tier XII "IX (9)"; Revenant the
+// same with Zombie Slayer). setup.spider and setup.zombie are the player's levels; a missing one counts as 9,
+// so nothing is locked until the player says otherwise.
+export const SLAYER_TIER_XII = 9;
+export const SLAYER_TIER_I = 5;
+export function minionLocked(minion, setup) {
+  const req = minion.requires;
+  if (!req?.slayer) return false;
+  const level = setup[req.slayer] ?? 9;
+  return level < ((Math.floor(setup.tier) || 1) >= 12 ? SLAYER_TIER_XII : SLAYER_TIER_I);
+}
 
 // speed: added to the minion's speed (0.25 = 25%). mult: every item is generated this many times instead.
 // hours: how long one piece lasts; without it the fuel is permanent and costs nothing per day.
@@ -161,6 +175,8 @@ const BLOCKS = {
 export const LOW_VOLUME_FACTOR = 20;
 // raw item -> [enchanted item, how many make one], to tell a raw price that no one could really get
 const COMPACT_OF = Object.fromEntries(MINIONS.flatMap((m) => m.drops.map((d) => [d.id, d.compact])));
+// ids a minion drops as they are; everything else the calculator prices is an enchanted item or a block
+const RAW_IDS = new Set(MINIONS.flatMap((m) => m.drops.map((d) => d.id)));
 const weekVolume = (p) => { const q = p?.quick_status; return q ? Math.min(q.buyMovingWeek, q.sellMovingWeek) : null; };
 
 // Sells perDay of one item at the Bazaar: the item itself or, with a Super Compactor 3000, the block of it,
@@ -168,6 +184,7 @@ const weekVolume = (p) => { const q = p?.quick_status; return q ? Math.min(q.buy
 // median, and a raw item never above what its enchanted form is worth per piece (plus the same margin): a lone
 // order far above that is not a price one can sell at. { form, id, coins (after tax), low: true when no form trades enough, notes }.
 function bestForm(id, perDay, products, { tax, stats, count }) {
+  const kinds = RAW_IDS;
   const forms = [[id, perDay, 'item']];
   if (BLOCKS[id]) forms.push([BLOCKS[id][0], perDay / BLOCKS[id][1], 'block']);
   const options = [];
@@ -181,8 +198,12 @@ function bestForm(id, perDay, products, { tax, stats, count }) {
     if (enchBuy) cap = Math.min(cap, enchBuy / per);
     const spike = price > cap * (1 + MEDIAN_SPIKE);
     const vol = weekVolume(products[fid]);
-    options.push({ form, id: fid, amount, coins: amount * (spike ? cap : price) * (1 - tax), spike,
-      low: vol !== null && vol < LOW_VOLUME_FACTOR * amount * count * 7 });
+    // the book's own spread: an offer more than three times the best order (the app's own "suspicious" margin)
+    const topOffer = bookPrices(products[fid]).sell;
+    const wide = topOffer * (1 - tax) / price - 1 > 2;
+    options.push({ form, id: fid, amount, price: spike ? cap : price, coins: amount * (spike ? cap : price) * (1 - tax), spike,
+      kind: kinds.has(fid) ? 'raw' : form === 'block' ? 'block' : 'enchanted',
+      low: wide || (vol !== null && vol < LOW_VOLUME_FACTOR * amount * count * 7) });
   }
   const sorted = options.sort((x, y) => y.coins - x.coins);
   return sorted.find((o) => !o.low) ?? sorted[0] ?? null;
@@ -196,7 +217,8 @@ function bestForm(id, perDay, products, { tax, stats, count }) {
 // fillHours: until one minion's storage is full. lowVolume: ids whose market is too thin for the amount.
 // A price that is missing counts as 0 and adds a note to `unsure`.
 export function minionRows(products, npc, setup, { tax, stats = null }) {
-  const rows = MINIONS.map((minion) => minionRow(minion, products, npc, setup, { tax, stats }));
+  const rows = MINIONS.map((minion) => minionRow(minion, products, npc, setup, { tax, stats }))
+    .filter((r) => !(setup.hide && r.locked));
   return rows.sort((a, b) => (a.lowVolume.length > 0) - (b.lowVolume.length > 0) || b.net - a.net);
 }
 
@@ -215,8 +237,8 @@ export function minionRow(minion, products, npc, setup, { tax, stats = null }) {
     if (!sold) unsure.push(`No buy order for ${id} right now; it counts as 0 at the Bazaar.`);
     else {
       bazaar += sold.coins;
-      parts.push({ id: sold.id, amount: sold.amount * count, form: sold.form, coins: sold.coins * count, low: sold.low });
-      if (sold.low) { lowVolume.push(sold.id); unsure.push(`Low volume – price unreliable: ${sold.id} trades too little for this amount.`); }
+      parts.push({ id: sold.id, amount: sold.amount * count, form: sold.form, kind: sold.kind, price: sold.price, coins: sold.coins * count, low: sold.low });
+      if (sold.low) { lowVolume.push(sold.id); unsure.push(`Low volume – price unreliable: ${sold.id} trades too little for this amount, or its book is far apart.`); }
       if (sold.spike) unsure.push(`${sold.id} is far above its 7 day median or above its enchanted form; counted at that value.`);
     }
     npcCoins += amount * (npc[id] ?? 0);
@@ -230,7 +252,7 @@ export function minionRow(minion, products, npc, setup, { tax, stats = null }) {
     bazaar: bazaar * count, npcCoins: npcCoins * count, fuelCost: fuelCost * count, best,
     net: (Math.max(bazaar, npcCoins) - fuelCost) * count,
     itemsDay: perDay * count, fillHours: made.storage / (perDay / 24), storage: made.storage, delay: made.delay, speed: made.speed,
-    unsure, lowVolume, parts,
+    unsure, lowVolume, parts, fuelPermanent: !!fuel.id && !fuel.hours, requires: minion.requires?.text ?? null, locked: minionLocked(minion, setup),
   };
 }
 

@@ -509,3 +509,25 @@ test('Mayor & event effects: running and active first, searchable, years without
   assert.ok(hidden('marauder') > 20);
   assert.equal(hidden('zzzz-nothing'), (html.match(/<li data-q=/g) ?? []).length);
 });
+
+test('the minion card is one button for the sheet: no item link, the minion head, permanent fuel named', async () => {
+  const { minionCard, minionSheet } = await import('../render.js');
+  const { minionDetail, minionRow, MINIONS } = await import('../minions.js');
+  const product = (buy, sell) => ({ sell_summary: [{ pricePerUnit: buy }], buy_summary: [{ pricePerUnit: sell }] });
+  const products = { ENCHANTED_STRING: product(600, 700), ENCHANTED_SPIDER_EYE: product(790, 900), ENCHANTED_IRON: product(500, 600) };
+  const setup = { tier: 11, count: 1, fuel: 'lava', upgrades: ['compactor', 'none'] };
+  const row = minionRow(MINIONS.find((m) => m.key === 'tarantula'), products, {}, setup, { tax: 0.0125 });
+  const html = minionCard(row);
+  assert.match(html, /^<li class="card minion" data-minion="tarantula">/);
+  assert.ok(!html.includes('href='), 'a tap must not follow a link');
+  assert.ok(html.includes('src="icons/minions/tarantula.png"'));
+  assert.ok(html.includes('permanent (one-time cost)'));
+  // with the compactor only the enchanted forms are priced, never the raw item
+  assert.deepEqual(row.parts.map((p) => [p.id, p.kind]), [['ENCHANTED_STRING', 'enchanted'], ['ENCHANTED_SPIDER_EYE', 'enchanted'], ['ENCHANTED_IRON', 'enchanted']]);
+  const sheet = minionSheet(minionDetail('tarantula', products, {}, setup, { tax: 0.0125 }), { name: (id) => id, count: 1 });
+  assert.match(sheet, /ENCHANTED_STRING <small>enchanted · 600 each/);
+  assert.ok(sheet.includes('permanent (one-time cost)'));
+  // a fuel that is used up shows its cost, not the note
+  const bread = minionCard(minionRow(MINIONS[0], { ENCHANTED_BREAD: product(90, 100) }, {}, { ...setup, fuel: 'bread' }, { tax: 0 }));
+  assert.ok(!bread.includes('permanent') && bread.includes('−200'));
+});

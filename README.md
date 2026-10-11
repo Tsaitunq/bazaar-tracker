@@ -87,8 +87,8 @@ A minion needs two actions per harvest (the Fishing Minion one). With a Super Co
 
 ### NPC and craft flips
 
-- **NPC:** `profit = NPC sell price − buy order price`. No bazaar tax. The game's daily NPC sell limit is not included.
-- **Craft:** `profit = output count × sell offer price × (1 − tax) − Σ quantity × buy order price of each ingredient`. Only recipes whose ingredients are all bazaar items.
+- **NPC:** `profit = NPC sell price − buy order price`. No bazaar tax. An NPC pays out at most 500M coins a day (resets 00:00 UTC, wiki: Merchant); that caps Profit/h. A flip whose item is the one ingredient of a higher step (160 Obsidian into Enchanted Obsidian) also shows what crafting first earns, per coin, per item and per minute, priced as an instant buy through the sell offers.
+- **Craft:** `profit = output count × sell price × (1 − tax) − Σ quantity × buy price of each ingredient`. Only recipes whose ingredients are all bazaar items. Three modes: Order → Order (buy orders, sell offer), Insta-buy → Order, Insta-buy → Insta-sell. An instant buy or sell walks the book level by level for the crafts per pass (default 16), so the price is the average of the whole pass. The tab hides crafts with a suspicious result or ingredient and with a weekly volume below the Vol./week filter. Per craft: profit per item, profit/h, orders (Order → Order: ingredients + 1, Insta → Order: 1, Insta → Insta: 0) and the capital a pass ties up.
 
 ## Data sources
 
@@ -96,7 +96,7 @@ A minion needs two actions per harvest (the Fishing Minion one). With a Super Co
 - Price history and scores: collected by this project every 20 minutes
 - Minion, mayor and event data: the Hypixel SkyBlock wiki at hypixelskyblock.minecraft.wiki, see `docs/minions-sources.md` and `docs/events-sources.md`
 - Recipes: [NotEnoughUpdates-REPO](https://github.com/NotEnoughUpdates/NotEnoughUpdates-REPO)
-- Item icons: [sky.coflnet.com](https://sky.coflnet.com/data)
+- Item icons and minion heads: [sky.coflnet.com](https://sky.coflnet.com/data); the minion heads are stored in `icons/minions/`, see `docs/image-sources.md` for the licence situation
 
 ## Disclaimer
 

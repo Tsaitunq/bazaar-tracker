@@ -1,6 +1,6 @@
 import { buildFlips, computeFlip, opportunities, portfolio, MAX_SLOTS, statOf, searchFlip, outsideOpportunities, flipIssues, oppIssues, bySort, planWarnings, trackPlan } from './flips.js';
 import { npcFlips } from './npc.js';
-import { craftFlips, craftHints } from './craft.js';
+import { craftFlips, craftHints, CRAFT_RUNS } from './craft.js';
 import { forgeFlips, forgeFlip } from './forge.js';
 import { minionRows, minionDetail, FUELS, UPGRADES, MAX_TIER } from './minions.js';
 import { loadItems, fallbackName } from './names.js';
@@ -9,7 +9,7 @@ import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission } from '
 import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, trendsView, todayView, minionCard, minionSheet, parseRoute, detailView, portfolioView, warningsView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, viewsFor, areaOf, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
 import { level } from './trends.js';
-import { activePerks, upcoming, electionWindow, eventItems, flipRisks, planElection } from './events.js';
+import { activePerks, upcoming, electionWindow, eventItems, flipRisks, planElection, taxAdvice } from './events.js';
 import { bindSheet, openSheet } from './sheet.js';
 import { initOnboarding, refreshHints, offerAdvanced, returning } from './tour.js';
 
@@ -20,7 +20,7 @@ const STATS_TTL = 20 * 60000;
 const CARDS = { flips: flipCard, opps: flipCard, npc: npcCard, craft: craftCard, forge: forgeCard };
 const DEFAULTS = { tax: 1.25, minVolume: 100000, maxCapital: 5000000, interval: 2, share: 5, sort: 'profitHour', favOnly: false, alerts: false, alertMargin: 5,
   marketAlerts: false, marketMargin: 10, marketMinVolume: 100000, marketMinProfit: 100000, marketCooldown: 6, eventAlerts: false, mayorAlerts: false,
-  portfolioCapital: 50000000, portfolioSlots: MAX_SLOTS, portfolioMargin: 3, portfolioTurnover: 1000000000, hotm: 10, forgeAh: true,
+  portfolioCapital: 50000000, portfolioSlots: MAX_SLOTS, portfolioMargin: 3, portfolioTurnover: 1000000000, hotm: 10, forgeAh: true, craftMode: 0, craftRuns: CRAFT_RUNS,
   portfolioDrop: 5, portfolioCooldown: 6, planPriceAlerts: false, planSuspiciousAlerts: false, planElectionAlerts: false, planLeavingAlerts: false };
 const PLAN_ALERTS = ['planPriceAlerts', 'planSuspiciousAlerts', 'planElectionAlerts', 'planLeavingAlerts'];
 
@@ -29,7 +29,7 @@ const load = (key, fallback) => { try { return JSON.parse(localStorage.getItem(k
 const save = (key, value) => { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} };
 
 // the fields of the panel; they take effect together, on Apply
-const FIELDS = ['tax', 'interval', 'share', 'minVolume', 'maxCapital', 'alertMargin', 'marketMargin', 'marketMinVolume', 'marketMinProfit', 'marketCooldown', 'portfolioCapital', 'portfolioSlots', 'portfolioMargin', 'portfolioTurnover', 'hotm', 'portfolioDrop', 'portfolioCooldown'];
+const FIELDS = ['tax', 'interval', 'share', 'minVolume', 'maxCapital', 'alertMargin', 'marketMargin', 'marketMinVolume', 'marketMinProfit', 'marketCooldown', 'portfolioCapital', 'portfolioSlots', 'portfolioMargin', 'portfolioTurnover', 'hotm', 'portfolioDrop', 'portfolioCooldown', 'craftMode', 'craftRuns'];
 const settings = { ...DEFAULTS, ...load('bt.settings', {}) };
 // A stored interval of 0 would refresh in a tight loop, so bad values fall back to defaults.
 function sanitize() {
@@ -54,6 +54,9 @@ function sanitize() {
   settings.hotm = Math.floor(settings.hotm);
   if (!(settings.hotm >= 0 && settings.hotm <= 10)) settings.hotm = DEFAULTS.hotm;
   settings.forgeAh = settings.forgeAh !== false;
+  if (![0, 1, 2].includes(settings.craftMode)) settings.craftMode = DEFAULTS.craftMode;
+  settings.craftRuns = Math.floor(settings.craftRuns);
+  if (!(settings.craftRuns >= 1 && settings.craftRuns <= 10000)) settings.craftRuns = DEFAULTS.craftRuns;
   if (!(settings.portfolioDrop > 0 && settings.portfolioDrop <= 90)) settings.portfolioDrop = DEFAULTS.portfolioDrop;
   if (!(settings.portfolioCooldown > 0 && settings.portfolioCooldown <= 168)) settings.portfolioCooldown = DEFAULTS.portfolioCooldown;
   for (const key of PLAN_ALERTS) settings[key] = settings[key] === true;
@@ -163,12 +166,18 @@ function compute(v) {
   let list;
   if (v === 'flips') list = buildFlips(products, { ...opts, favs });
   else if (v === 'opps') list = opportunities(products, oppOpts());
-  else if (v === 'npc') list = npcFlips(products, npc, opts);
+  else if (v === 'npc') list = npcFlips(products, npc, { ...opts, recipes, runs: settings.craftRuns });
   else if (v === 'forge') list = forge ? forgeFlips(products, forge, ah, opts) : [];
-  else list = recipes ? craftFlips(products, recipes, opts) : [];
+  else list = recipes ? craftFlips(products, recipes, { ...opts, mode: settings.craftMode, runs: settings.craftRuns, noSuspicious: true }) : [];
   for (const f of list) {
     decorate(f);
     for (const i of f.ingredients ?? []) i.name = nameOf(i.id);
+    if (f.step) f.step.name = nameOf(f.step.id);
+  }
+  if (v === 'opps' && recipes) {
+    // the same hint and conditions as in the portfolio; the craft gets the coins this flip would use
+    const crafts = craftHints(list.map((f) => ({ id: f.id, profitHour: f.profitHour, stake: f.units * f.buy })), products, recipes, opts);
+    for (const f of list) if (crafts[f.id]) f.craft = { ...crafts[f.id], name: nameOf(crafts[f.id].id) };
   }
   if (settings.sort === 'trend') list.sort(bySort('trend'));
   return list;
@@ -248,7 +257,8 @@ function listMarkup(v, list, pf) {
   return {
     portfolio: v === 'opps' && pf
       ? warningsView(alerts, { dismiss: marketWarned() }) + portfolioView(pf, { capital: settings.portfolioCapital, slots: settings.portfolioSlots, sharePercent: settings.share, simple: simple() })
-      : v === 'forge' ? forgeFilter(settings.forgeAh) : '',
+      : v === 'forge' ? forgeFilter(settings.forgeAh)
+      : v === 'npc' ? '<p class="muted npc-note">An NPC pays out at most 500M coins a day (resets 00:00 UTC). It is counted in Profit/h.</p>' : '',
     count: q ? `${rows.length} ${rows.length === 1 ? 'flip' : 'flips'}, ${rest.length + outside.length} ${v === 'opps' ? 'outside your filters' : `other ${rest.length === 1 ? 'item' : 'items'}`}`
       : `${Math.min(rows.length, MAX_ROWS)} of ${rows.length} flips`,
     list: cards,
@@ -292,19 +302,21 @@ $('market').addEventListener('input', (e) => {
 });
 
 // The minion setup: its own small form, stored apart from the settings because it changes nothing else.
-const MINION_FIELDS = { tier: 'm-tier', count: 'm-count', fuel: 'm-fuel', up1: 'm-up1', up2: 'm-up2' };
-const minionSetup = { tier: 11, count: 1, fuel: 'lava', up1: 'compactor', up2: 'spreading', ...load('bt.minions', {}) };
+const MINION_FIELDS = { tier: 'm-tier', count: 'm-count', fuel: 'm-fuel', up1: 'm-up1', up2: 'm-up2', spider: 'm-spider', zombie: 'm-zombie', hide: 'm-hide' };
+const MINION_NUMBERS = ['tier', 'count', 'spider', 'zombie', 'hide'];
+const minionSetup = { tier: 11, count: 1, fuel: 'lava', up1: 'compactor', up2: 'spreading', spider: 9, zombie: 9, hide: 0, ...load('bt.minions', {}) };
 const options = (list) => list.map((o) => `<option value="${o.key}">${o.name}</option>`).join('');
 $('m-tier').innerHTML = Array.from({ length: MAX_TIER }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('');
 $('m-fuel').innerHTML = options(FUELS);
 $('m-up1').innerHTML = $('m-up2').innerHTML = options(UPGRADES);
+$('m-spider').innerHTML = $('m-zombie').innerHTML = Array.from({ length: 10 }, (_, i) => `<option value="${i}">${i}</option>`).join('');
 for (const [key, id] of Object.entries(MINION_FIELDS)) {
   $(id).value = minionSetup[key];
   // a stored value the lists no longer have falls back to the first option
   if ($(id).tagName === 'SELECT' && $(id).selectedIndex < 0) $(id).selectedIndex = 0;
 }
 $('minion-setup').addEventListener('change', () => {
-  for (const [key, id] of Object.entries(MINION_FIELDS)) minionSetup[key] = key === 'tier' || key === 'count' ? Number($(id).value) : $(id).value;
+  for (const [key, id] of Object.entries(MINION_FIELDS)) minionSetup[key] = MINION_NUMBERS.includes(key) ? Number($(id).value) : $(id).value;
   minionSetup.count = Math.min(50, Math.max(1, Math.floor(minionSetup.count) || 1));
   $('m-count').value = minionSetup.count;
   save('bt.minions', minionSetup);
@@ -313,22 +325,55 @@ $('minion-setup').addEventListener('change', () => {
 $('minion-setup').addEventListener('submit', (e) => e.preventDefault());
 
 // A tap on a minion opens its sheet instead of the raw item; "View item" inside it goes there.
-const minionSetupFull = () => ({ ...minionSetup, upgrades: [minionSetup.up1, minionSetup.up2] });
+const minionSetupFull = () => ({ ...minionSetup, upgrades: [minionSetup.up1, minionSetup.up2], hide: false });
 bindSheet($('minion-sheet'));
-$('minion-list').addEventListener('click', (e) => {
-  const key = e.target.closest?.('[data-minion]')?.dataset.minion;
+function openMinion(key) {
   if (!key || !products) return;
-  e.preventDefault();
   const detail = minionDetail(key, products, npc, minionSetupFull(), { tax: settings.tax / 100, stats });
   if (!detail) return;
   $('minion-sheet').innerHTML = minionSheet(detail, { name: nameOf, count: Math.max(1, minionSetup.count) });
   openSheet($('minion-sheet'));
+}
+$('minion-list').addEventListener('click', (e) => openMinion(e.target.closest?.('[data-minion]')?.dataset.minion));
+// the card is a button: Enter and Space open it too
+$('minion-list').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  e.preventDefault();
+  openMinion(e.target.closest?.('[data-minion]')?.dataset.minion);
+});
+
+// A craft hint on an opportunity opens the Craft tab on its end product.
+function openCraft(el) {
+  $('search').value = el.dataset.name;
+  location.hash = '#/craft';
+  render();
+}
+document.addEventListener('click', (e) => {
+  const hint = e.target.closest?.('[data-craft]');
+  if (hint) { e.preventDefault(); openCraft(hint); }
+});
+
+// Derpy quadruples the Bazaar tax (wiki, Derpy: "Bazaar and Auction House tax are quadrupled"). The note
+// compares it with the setting and offers the matching one; it also offers the way back when Derpy is gone.
+function taxNote() {
+  if (!['today', 'trade'].includes(area())) return '';
+  const advice = taxAdvice(election?.mayor?.name === 'Derpy', settings.tax);
+  return advice ? `<p class="tax-note why">${advice.text} <button type="button" data-tax="${advice.want}">Use ${advice.want}%</button></p>` : '';
+}
+document.addEventListener('click', (e) => {
+  const to = e.target.closest?.('[data-tax]')?.dataset.tax;
+  if (!to) return;
+  settings.tax = Number(to);
+  save('bt.settings', settings);
+  fillForm();
+  applySettings();
 });
 
 // The areas that are one page each. Trade is drawn by renderPage itself.
 function renderArea() {
+  $('tax-note').innerHTML = taxNote();
   if (area() === 'minions' && products) {
-    const rows = minionRows(products, npc, { ...minionSetup, upgrades: [minionSetup.up1, minionSetup.up2] }, { tax: settings.tax / 100, stats });
+    const rows = minionRows(products, npc, { ...minionSetup, upgrades: [minionSetup.up1, minionSetup.up2], hide: minionSetup.hide === 1 }, { tax: settings.tax / 100, stats });
     $('minion-note').textContent = `${rows.length} minions, best first · coins per day for ${minionSetup.count === 1 ? '1 minion' : `${minionSetup.count} minions`} · Bazaar = sold at once to buy orders, after tax`;
     $('minion-list').innerHTML = rows.map(minionCard).join('');
   }

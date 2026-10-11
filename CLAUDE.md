@@ -25,3 +25,5 @@ The Android build reads `versionName` and `versionCode` from the same file, so n
 - Colours live as tokens in `:root` of `style.css`. `tests/contrast.test.js` enforces WCAG AA and fails on a colour written directly into a rule.
 - Primary source for SkyBlock game data (minions, items, perks, recipes, events) is hypixelskyblock.minecraft.wiki. Other sources only where it says nothing, and then marked as "not confirmed".
 - Tests use fixtures only. Do not call the Hypixel API from tests.
+- Bei Ersetzungen in Dateien prüfen, ob die Änderung wirklich angekommen ist (z. B. per grep). Ein Skript, dessen Suchtext nicht trifft, ersetzt stillschweigend nichts.
+- Zeilenenden regelt `.gitattributes`: Textdateien LF, `*.bat`/`*.cmd`/`*.ps1` CRLF, Bilder und APK binary.

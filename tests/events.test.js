@@ -174,3 +174,21 @@ test('planElection: what the Android worker needs to repeat the election warning
   assert.equal(planElection([], { mayor: { ...election.mayor, year: 500 } }, now).term, null);
   assert.deepEqual(planElection(['SHARK_FIN'], null, now), { perks: { SHARK_FIN: ['Fishing Festival'] }, term: null });
 });
+
+test('calendar anchor: the game said Late Summer 11, year 519 on the morning of 2026-10-11', () => {
+  // the in-game day is 20 minutes: Late Summer 11 runs from 08:55 to 09:15 UTC (10:55 to 11:15 CEST)
+  assert.deepEqual(skyDate(Date.parse('2026-10-11T09:00:00Z')), { year: 519, month: 5, day: 11 });
+  assert.equal(MONTHS[5], 'Late Summer');
+  assert.equal(skyTime(519, 5, 11), Date.parse('2026-10-11T08:55:00Z'));
+  assert.deepEqual(skyDate(Date.parse('2026-10-11T08:54:59Z')), { year: 519, month: 5, day: 10 });
+});
+
+test('taxAdvice: Derpy quadruples the Bazaar tax, and a left-over quadrupled setting is pointed out', async () => {
+  const { taxAdvice, DERPY_TAX } = await import('../events.js');
+  assert.deepEqual(DERPY_TAX, { 1.25: 5, 1.125: 4.5, 1: 4 });
+  assert.deepEqual(taxAdvice(true, 1.25), { want: 5, text: 'Derpy is mayor – Bazaar tax is 5%. Your setting: 1.25%.' });
+  assert.equal(taxAdvice(true, 1).want, 4);
+  assert.equal(taxAdvice(true, 5), null);   // already right
+  assert.equal(taxAdvice(false, 1.25), null); // no Derpy, normal setting
+  assert.deepEqual(taxAdvice(false, 5), { want: 1.25, text: 'Derpy is not mayor – Bazaar tax is 1.25%. Your setting: 5%.' });
+});

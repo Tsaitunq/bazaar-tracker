@@ -76,6 +76,9 @@
           <option value="1.25">1.25%</option>
           <option value="1.125">1.125%</option>
           <option value="1">1.0%</option>
+          <option value="5">5% (Derpy, 1.25% × 4)</option>
+          <option value="4.5">4.5% (Derpy, 1.125% × 4)</option>
+          <option value="4">4% (Derpy, 1% × 4)</option>
         </select>
         <small>Bazaar tax taken from every sell offer. It gets lower with the Bazaar Flipper upgrade.</small>
       </label>
@@ -86,6 +89,18 @@
       <label class="pro">Max. capital per flip
         <input id="maxCapital" type="number" min="0" step="1" inputmode="numeric">
         <small>Coins you are willing to put into one item. Limits the units per hour and hides items that cost more. The portfolio never gives one flip more than this either. 0 means no limit.</small>
+      </label>
+      <label class="pro">Craft mode
+        <select id="craftMode">
+          <option value="0">Order → Order</option>
+          <option value="1">Insta-buy → Order</option>
+          <option value="2">Insta-buy → Insta-sell</option>
+        </select>
+        <small>How the Craft tab buys the ingredients and sells the result. Buying or selling at once goes through the book level by level, so a big pass costs more per item.</small>
+      </label>
+      <label class="pro">Crafts per pass
+        <input id="craftRuns" type="number" min="1" max="10000" step="1" inputmode="numeric">
+        <small>How many crafts you do in one go. It decides how deep an instant buy or sell reaches into the book.</small>
       </label>
     </fieldset>
 
@@ -206,6 +221,7 @@
   </dialog>
 
   <main>
+    <div id="tax-note"></div>
     <div id="today"></div>
     <div id="minions">
       <form id="minion-setup" class="setup" novalidate>
@@ -214,6 +230,9 @@
         <label>Fuel <select id="m-fuel"></select></label>
         <label>Upgrade 1 <select id="m-up1"></select></label>
         <label>Upgrade 2 <select id="m-up2"></select></label>
+        <label>Spider Slayer <select id="m-spider"></select></label>
+        <label>Zombie Slayer <select id="m-zombie"></select></label>
+        <label>Craftable <select id="m-hide"><option value="0">Show all</option><option value="1">Hide those I cannot craft</option></select></label>
       </form>
       <p id="minion-note" class="count muted">Loading…</p>
       <ul id="minion-list" class="list"></ul>

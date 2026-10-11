@@ -753,3 +753,34 @@ Selbstständig getroffen (Auftrag: unbeaufsichtigt, ohne Rückfragen). Spec:
   „Expected lower“ ist unsere Folgerung und so beschriftet.
 - **Wither/Undead Essence nicht aufgenommen:** Chests sind eine Quelle von
   mehreren, ohne Mengen.
+
+## 0.7.2
+
+- **Teil F:** der Hinweis auf Opportunity-Karten ist kein Link (die Karte ist
+  schon einer), sondern ein Button mit `data-craft`; Tippen setzt die Suche
+  auf das Endprodukt und öffnet den Craft-Tab. Einsatz = units × buy.
+- **Teil G:** Standardmenge 16 Crafts pro Durchgang (bei 160 Zutaten 2.560
+  Stück: tief genug, um Tiefe zu zeigen, klein genug für eine Sitzung).
+  Die Volumenbegrenzung pro Stunde nimmt die Seite, die der Modus nutzt
+  (Sofortkauf verbraucht Angebote = buyMovingWeek). Der Craft-Tab nutzt jetzt
+  den Volumenfilter der anderen Tabs und blendet suspicious Crafts aus; die
+  Portfolio-Hinweise sind unverändert.
+- **Teil H:** Craft-Stufen nur für Rezepte mit einer Zutat (reine
+  Verdichtung). Verglichen wird dasselbe gekaufte Material, roh oder
+  gecraftet an den NPC; zuerst Insta-buy-Preis mit Tiefe, ist der nicht
+  verfügbar oder nicht profitabel, der Kauf-Order-Preis (auf der Karte
+  beschriftet). „Profit/min“ ist Profit/h aus dem Marktanteil ÷ 60; eine
+  Verkaufsgeschwindigkeit des Spielers wird nicht angenommen.
+- **Teil I:** Kalender stimmt, kein Eingriff. Year of the Seal/Witch/Pig:
+  kein Jahr im Wiki, also kein Countdown; die Ansicht bleibt bei „no date“.
+  Das Update-Datum (6.2.2025) sagt nicht, in welchem SkyBlock-Jahr das Event
+  lief, und wird nicht als Jahr gelesen.
+- **Teil J:** Slayer-Level standardmäßig 9, damit nichts gesperrt wirkt,
+  bis der Spieler seine Level einträgt. Derpy: Steuer = 4 × eigene Steuer
+  (das Wiki nennt keinen Prozentsatz, nur „quadrupled“); wer Bazaar Flipper
+  hat, bekommt entsprechend 4,5 % oder 4 %.
+- **Teil K:** die Minion-Karte ist ein Button, kein Link; das Roh-Item ist
+  nur noch über „View item“ im Sheet erreichbar. Minion-Köpfe kommen aus der
+  bisherigen Icon-Quelle (Coflnet), die Lizenz dort ist nicht belegt und steht
+  so in `docs/image-sources.md`. Eine Preisspanne von mehr als dem Dreifachen
+  (Angebot gegen beste Order) gilt wie ein dünner Markt als unzuverlässig.

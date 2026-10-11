@@ -5,17 +5,33 @@ const CLOSE_PX = 80;
 export const swipeCloses = (dy) => dy > CLOSE_PX;
 export const outside = (r, x, y) => x < r.left || x > r.right || y < r.top || y > r.bottom;
 
+// While a modal sheet is open the page behind must not scroll; where it was is restored on close.
+let locks = 0, pageY = 0;
+const holding = new WeakSet();
+const root = () => globalThis.document?.documentElement;
+const lock = () => { if (locks++ === 0) { pageY = globalThis.scrollY ?? 0; root()?.classList.add('sheet-open'); } };
+const unlock = () => {
+  if (locks === 0 || --locks > 0) return;
+  root()?.classList.remove('sheet-open');
+  globalThis.scrollTo?.(0, pageY);
+};
+
 // modal: false shows the sheet without the dimmed page and without a history entry (the tour does that).
 export function openSheet(dialog, modal = true) {
   if (dialog.open) return;
   if (!modal) return dialog.show();
   dialog.showModal();
+  lock();
+  holding.add(dialog);
   // one history entry per open sheet, so the back key (Android's too) closes it instead of leaving the page
   history.pushState({ sheet: dialog.id }, '');
 }
 
 export function bindSheet(dialog) {
-  dialog.addEventListener('close', () => { if (history.state?.sheet === dialog.id) history.back(); });
+  dialog.addEventListener('close', () => {
+    if (holding.delete(dialog)) unlock();
+    if (history.state?.sheet === dialog.id) history.back();
+  });
   addEventListener('popstate', () => { if (dialog.open) dialog.close(); });
 
   // The press has to begin on the dimmed page too: a text selection dragged out of the sheet must not close it.
@@ -30,8 +46,10 @@ export function bindSheet(dialog) {
   const pull = (dy) => { dialog.style.transform = dy > 0 ? `translateY(${dy}px)` : ''; };
   dialog.addEventListener('touchstart', (e) => {
     // content that is scrolled down scrolls back first; only a drag from its top pulls the sheet
-    const body = e.target.closest?.('.sheet-body');
-    startY = e.touches.length === 1 && !(body?.scrollTop > 0) ? e.touches[0].clientY : null;
+    // any scrolled area under the finger (the sheet body, a list inside it) must be at its top
+    let scrolled = false;
+    for (let el = e.target; el && el !== dialog; el = el.parentElement) if (el.scrollTop > 0) scrolled = true;
+    startY = e.touches.length === 1 && !scrolled ? e.touches[0].clientY : null;
   }, { passive: true });
   dialog.addEventListener('touchmove', (e) => {
     if (startY === null) return;

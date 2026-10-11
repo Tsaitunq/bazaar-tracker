@@ -94,23 +94,36 @@ const card = (f, isFav, warn, facts, extra = '', label) => `<li class="card" dat
   </a>
 </li>`;
 
+// f.craft: { id, name, extra, orders } from craftHints. A tap on it opens the Craft tab on the end product
+// (app.js reads data-craft), so it is not a link: the card body already is one.
+export const craftHint = (c) => `<small class="craft pro" role="button" tabindex="0" data-craft="${esc(c.id)}" data-name="${esc(c.name)}">Craft into ${esc(c.name)}: +${num(c.extra)}/h · uses ${c.orders} orders · recipe must be unlocked</small>`;
+
 export const flipCard = (f, isFav) => card(f, isFav, f.suspicious, [
   fact('Buy order', num(f.buy)),
   sellFact(f),
   fact('Profit/item', num(f.profit), gain(f.profit), true),
   fact('Vol./week', num(f.weekVol), '', true),
-]);
+], f.craft ? craftHint(f.craft) : '');
 
 // a search hit the current list does not hold; without prices only the name and the reason are left
 export const searchCard = (f, isFav) => (f.buy ? flipCard(f, isFav) : card(f, isFav, false, []));
 
+// f.step from npcStep: crafting the item into a higher step before the NPC takes it pays more. The lines
+// compare the same bought items sold as they are and as the crafted result; instant buy, through the book.
+const stepLines = (f, name) => {
+  const s = f.step;
+  const row = (label, v) => `<li><span>${label}</span> <span class="side">${num(v.profit)} · ${percent.format(v.profitCoin)} per coin · ${num(v.profitSale)} per item${
+    v.profitHour ? ` · ${num(v.profitHour / 60)}/min` : ''}</span></li>`;
+  return `<div class="step"><p class="why">Craft ${num(s.qty)}× into ${esc(name)}, then sell to the NPC (${s.basis === 'insta' ? 'instant buy' : 'buy order'}, ${s.runs} crafts)</p>
+    <ul class="coming">${row('As it is', s.direct)}${row('Crafted', s)}</ul></div>`;
+};
 export const npcCard = (f, isFav) => card(f, isFav, false, [
   fact('Buy order', num(f.buy)),
   fact('NPC price', num(f.npc)),
   fact('Profit/item', num(f.profit), gain(f.profit)),
   fact('Profit (instant buy)', num(f.profitInstant), gain(f.profitInstant)),
   fact('Vol./week', num(f.weekVol)),
-]);
+], f.step ? stepLines(f, f.step.name ?? f.step.id) : '');
 
 const ingredientList = (f) => `<ul class="ingredients">${f.ingredients.map((i) => `<li>${num(i.qty)}× ${esc(i.name)} @ ${num(i.price)}</li>`).join('')}${
   f.coins ? `<li>${num(f.coins)} coins</li>` : ''}</ul>`;
@@ -119,7 +132,10 @@ export const craftCard = (f, isFav) => card(f, isFav, false, [
   fact('Cost', num(f.cost)),
   fact('Revenue', num(f.revenue)),
   fact('Profit/craft', num(f.profit), gain(f.profit)),
+  fact('Profit/item', num(f.profitItem ?? f.profit / f.n), gain(f.profit)),
   fact('Crafts/h', num(f.craftsHour)),
+  fact('Orders', String(f.orders ?? f.ingredients.length + 1)),
+  fact('Capital', num(f.capital ?? f.cost)),
 ], ingredientList(f));
 
 // 21600 -> "6h", 5400 -> "1h 30m": the two largest units are enough for a forge time
@@ -160,7 +176,7 @@ export const FILTERS = {
   flips: ['minVolume', 'maxCapital'],
   opps: ['marketMargin', 'marketMinVolume', 'marketMinProfit', 'maxCapital'],
   npc: ['minVolume', 'maxCapital'],
-  craft: ['maxCapital'],
+  craft: ['craftMode', 'craftRuns', 'maxCapital'],
   forge: ['hotm', 'maxCapital'],
 };
 export const activeFilters = (tab, settings, defaults) => (FILTERS[tab] ?? []).filter((key) => settings[key] !== defaults[key]);
@@ -171,6 +187,8 @@ const FILTER_TEXT = {
   marketMinVolume: (v) => `Vol./week ≥ ${num(v)}`,
   marketMinProfit: (v) => `Profit/h ≥ ${num(v)}`,
   hotm: (v) => `HotM ≤ ${v}`,
+  craftMode: (v) => ['Order → Order', 'Insta-buy → Order', 'Insta-buy → Insta-sell'][v],
+  craftRuns: (v) => `${v} crafts per pass`,
 };
 // One chip per active filter (keys from activeFilters); its X puts the filter back to the default.
 export const filterChips = (keys, settings) => keys.map((key) => {
@@ -403,12 +421,16 @@ export function todayView({ plan, capital, slots, alerts = [], dismiss = false, 
 
 // One minion of the Minions area. row comes from minionRows; all coins are per day and for every minion placed.
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
-export const minionCard = (row) => `<li class="card minion">
-  <a class="body" href="${esc(itemHref(row.id))}">
-    <div class="name">${tile(row.id, 32)}<span>${esc(row.name)}</span></div>
+// The whole card is the button that opens the sheet (app.js reads data-minion). The raw item is only
+// reached from "View item" inside the sheet. Not a link, so a tap can never navigate by itself.
+export const minionTile = (key, size) => `<span class="tile"><img class="icon" src="icons/minions/${esc(key)}.png" width="${size}" height="${size}" alt="" decoding="async"></span>`;
+export const minionCard = (row) => `<li class="card minion" data-minion="${esc(row.key)}">
+  <div class="body" role="button" tabindex="0" aria-haspopup="dialog">
+    <div class="name">${minionTile(row.key, 32)}<span>${esc(row.name)}</span></div>
     <div class="badges"><span class="badge badge-trend">Tier ${ROMAN[row.tier - 1]}${row.tier === row.maxTier ? ' (highest)' : ''}</span>${
       row.lowVolume?.length ? `<span class="badge badge-warn">${ICONS.warn}low volume</span>` : ''}${
-      row.unsure.length ? `<span class="badge badge-warn">${ICONS.warn}not confirmed</span>` : ''}</div>
+      row.unsure.length ? `<span class="badge badge-warn">${ICONS.warn}not confirmed</span>` : ''}${
+      row.requires ? `<span class="badge ${row.locked ? 'badge-warn' : 'badge-trend'}">requires ${esc(row.requires.split(' (')[0].split(';')[0])}</span>` : ''}</div>
     <div class="key">
       <div><span class="big ${gain(row.net)}">${num(row.net)}</span><span class="lbl">Coins/day</span></div>
       <div><span class="big">${row.best === 'npc' ? 'NPC' : 'Bazaar'}</span><span class="lbl">Sell at</span></div>
@@ -416,31 +438,32 @@ export const minionCard = (row) => `<li class="card minion">
     <dl class="facts">${[
       fact('Bazaar/day', num(row.bazaar)),
       fact('NPC/day', num(row.npcCoins)),
-      fact('Fuel/day', row.fuelCost > 0 ? `−${num(row.fuelCost)}` : '–'),
+      fact('Fuel/day', row.fuelCost > 0 ? `−${num(row.fuelCost)}` : row.fuelPermanent ? 'permanent (one-time cost)' : '–'),
       fact('Items/day', num(row.itemsDay)),
       fact('Full after', `about ${duration(row.fillHours * 3600)}`),
     ].join('')}</dl>${row.unsure.length ? `
     <p class="why">${esc(row.unsure.join(' '))}</p>` : ''}
-  </a>
+  </div>
 </li>`;
 
 // The sheet of one minion. detail comes from minionDetail; name turns an item id into its name.
-const FORMS = { item: '', block: ' (block)' };
+const KINDS = { raw: 'raw', enchanted: 'enchanted', block: 'block (second step)' };
 export function minionSheet({ minion, row, tiers }, { name, count }) {
   const list = (x) => esc(x.toLocaleString('en-US', { maximumFractionDigits: 1 }));
   const wiki = 'https://hypixelskyblock.minecraft.wiki/w/' + minion.name.replace(/ /g, '_');
-  const parts = row.parts.map((p) => `<li><span>${esc(name(p.id))}${FORMS[p.form]}${p.low ? ' · <strong>low volume – price unreliable</strong>' : ''}</span>
+  const parts = row.parts.map((p) => `<li><span>${esc(name(p.id))} <small>${KINDS[p.kind]} · ${num(p.price)} each${p.low ? ' · <strong>price unreliable</strong>' : ''}</small></span>
       <span class="side">${num(p.amount)}/day · ${num(p.coins)}</span></li>`).join('');
   const bonus = row.speed > 0 ? `speed +${Math.round(row.speed * 100)}%` : 'no speed bonus';
-  return `<div class="panel-head"><h2>${esc(minion.name)}</h2><button type="button" data-act="close" aria-label="Close">${ICONS.close ?? '×'}</button></div>
+  return `<div class="panel-head"><h2>${minionTile(minion.key, 28)} ${esc(minion.name)}</h2><button type="button" data-act="close" aria-label="Close">${ICONS.close ?? '×'}</button></div>
 <div class="sheet-body">
   <p class="muted">Tier ${ROMAN[row.tier - 1]} · ${count === 1 ? '1 minion' : `${count} minions`} · ${bonus} · an action every ${plain.format(row.delay)} s</p>
+  ${row.requires ? `<p class="${row.locked ? 'why' : 'muted'}">Requires ${esc(row.requires)} (wiki).${row.locked ? ' Not yet reached at your levels.' : ''}</p>` : ''}
   <h3>Tiers (same fuel and upgrades)</h3>
   <table class="tiers"><thead><tr><th>Tier</th><th>Action</th><th>Storage</th><th>Items/day</th><th>Coins/day</th></tr></thead><tbody>${
     tiers.map((t) => `<tr${t.tier === row.tier ? ' class="on"' : ''}><td>${ROMAN[t.tier - 1]}</td><td>${plain.format(t.delay)} s</td><td>${t.storage}</td><td>${num(t.itemsDay)}</td><td>${num(t.net)}</td></tr>`).join('')}</tbody></table>
   <h3>What it earns per day</h3>
   <ul class="coming">${parts || '<li class="muted">No price for any item right now.</li>'}
-    <li><span>Fuel</span><span class="side">${row.fuelCost > 0 ? '−' + num(row.fuelCost) : '–'}</span></li>
+    <li><span>Fuel</span><span class="side">${row.fuelCost > 0 ? '−' + num(row.fuelCost) : row.fuelPermanent ? 'permanent (one-time cost)' : '–'}</span></li>
     <li><span>Sold at ${row.best === 'npc' ? 'the NPC' : 'the Bazaar, after tax'}</span><span class="side"><strong class="${gain(row.net)}">${num(row.net)}</strong></span></li>
   </ul>
   <p>Storage ${list(row.storage)} items, full after about ${duration(row.fillHours * 3600)}.</p>${row.unsure.length ? `
