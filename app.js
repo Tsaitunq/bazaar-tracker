@@ -9,7 +9,7 @@ import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission } from '
 import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, trendsView, todayView, minionCard, minionSheet, parseRoute, detailView, portfolioView, warningsView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, viewsFor, areaOf, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
 import { level } from './trends.js';
-import { activePerks, upcoming, electionWindow, eventItems, flipRisks, planElection } from './events.js';
+import { activePerks, upcoming, electionWindow, eventItems, flipRisks, planElection, taxAdvice } from './events.js';
 import { bindSheet, openSheet } from './sheet.js';
 import { initOnboarding, refreshHints, offerAdvanced, returning } from './tour.js';
 
@@ -302,19 +302,21 @@ $('market').addEventListener('input', (e) => {
 });
 
 // The minion setup: its own small form, stored apart from the settings because it changes nothing else.
-const MINION_FIELDS = { tier: 'm-tier', count: 'm-count', fuel: 'm-fuel', up1: 'm-up1', up2: 'm-up2' };
-const minionSetup = { tier: 11, count: 1, fuel: 'lava', up1: 'compactor', up2: 'spreading', ...load('bt.minions', {}) };
+const MINION_FIELDS = { tier: 'm-tier', count: 'm-count', fuel: 'm-fuel', up1: 'm-up1', up2: 'm-up2', spider: 'm-spider', zombie: 'm-zombie', hide: 'm-hide' };
+const MINION_NUMBERS = ['tier', 'count', 'spider', 'zombie', 'hide'];
+const minionSetup = { tier: 11, count: 1, fuel: 'lava', up1: 'compactor', up2: 'spreading', spider: 9, zombie: 9, hide: 0, ...load('bt.minions', {}) };
 const options = (list) => list.map((o) => `<option value="${o.key}">${o.name}</option>`).join('');
 $('m-tier').innerHTML = Array.from({ length: MAX_TIER }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('');
 $('m-fuel').innerHTML = options(FUELS);
 $('m-up1').innerHTML = $('m-up2').innerHTML = options(UPGRADES);
+$('m-spider').innerHTML = $('m-zombie').innerHTML = Array.from({ length: 10 }, (_, i) => `<option value="${i}">${i}</option>`).join('');
 for (const [key, id] of Object.entries(MINION_FIELDS)) {
   $(id).value = minionSetup[key];
   // a stored value the lists no longer have falls back to the first option
   if ($(id).tagName === 'SELECT' && $(id).selectedIndex < 0) $(id).selectedIndex = 0;
 }
 $('minion-setup').addEventListener('change', () => {
-  for (const [key, id] of Object.entries(MINION_FIELDS)) minionSetup[key] = key === 'tier' || key === 'count' ? Number($(id).value) : $(id).value;
+  for (const [key, id] of Object.entries(MINION_FIELDS)) minionSetup[key] = MINION_NUMBERS.includes(key) ? Number($(id).value) : $(id).value;
   minionSetup.count = Math.min(50, Math.max(1, Math.floor(minionSetup.count) || 1));
   $('m-count').value = minionSetup.count;
   save('bt.minions', minionSetup);
@@ -323,7 +325,7 @@ $('minion-setup').addEventListener('change', () => {
 $('minion-setup').addEventListener('submit', (e) => e.preventDefault());
 
 // A tap on a minion opens its sheet instead of the raw item; "View item" inside it goes there.
-const minionSetupFull = () => ({ ...minionSetup, upgrades: [minionSetup.up1, minionSetup.up2] });
+const minionSetupFull = () => ({ ...minionSetup, upgrades: [minionSetup.up1, minionSetup.up2], hide: false });
 bindSheet($('minion-sheet'));
 $('minion-list').addEventListener('click', (e) => {
   const key = e.target.closest?.('[data-minion]')?.dataset.minion;
@@ -346,10 +348,27 @@ document.addEventListener('click', (e) => {
   if (hint) { e.preventDefault(); openCraft(hint); }
 });
 
+// Derpy quadruples the Bazaar tax (wiki, Derpy: "Bazaar and Auction House tax are quadrupled"). The note
+// compares it with the setting and offers the matching one; it also offers the way back when Derpy is gone.
+function taxNote() {
+  if (!['today', 'trade'].includes(area())) return '';
+  const advice = taxAdvice(election?.mayor?.name === 'Derpy', settings.tax);
+  return advice ? `<p class="tax-note why">${advice.text} <button type="button" data-tax="${advice.want}">Use ${advice.want}%</button></p>` : '';
+}
+document.addEventListener('click', (e) => {
+  const to = e.target.closest?.('[data-tax]')?.dataset.tax;
+  if (!to) return;
+  settings.tax = Number(to);
+  save('bt.settings', settings);
+  fillForm();
+  applySettings();
+});
+
 // The areas that are one page each. Trade is drawn by renderPage itself.
 function renderArea() {
+  $('tax-note').innerHTML = taxNote();
   if (area() === 'minions' && products) {
-    const rows = minionRows(products, npc, { ...minionSetup, upgrades: [minionSetup.up1, minionSetup.up2] }, { tax: settings.tax / 100, stats });
+    const rows = minionRows(products, npc, { ...minionSetup, upgrades: [minionSetup.up1, minionSetup.up2], hide: minionSetup.hide === 1 }, { tax: settings.tax / 100, stats });
     $('minion-note').textContent = `${rows.length} minions, best first · coins per day for ${minionSetup.count === 1 ? '1 minion' : `${minionSetup.count} minions`} · Bazaar = sold at once to buy orders, after tax`;
     $('minion-list').innerHTML = rows.map(minionCard).join('');
   }

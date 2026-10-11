@@ -44,12 +44,14 @@ export const MINIONS = [
   { key: 'slime', name: 'Slime Minion', delays: [26, 26, 24, 24, 22, 22, 19, 19, 16, 16, 12],
     drops: [{ id: 'SLIME_BALL', qty: 2, compact: ['ENCHANTED_SLIME_BALL', SC] }] },
   { key: 'tarantula', name: 'Tarantula Minion', delays: [29, 29, 26, 26, 23, 23, 19, 19, 14.5, 14.5, 10, 8],
+    requires: { slayer: 'spider', name: 'Spider Slayer', text: 'Spider Slayer V (tiers I to XI), IX (tier XII)' },
     drops: [
       { id: 'STRING', qty: 3.16, compact: ['ENCHANTED_STRING', SC] },
       { id: 'SPIDER_EYE', qty: 1, compact: ['ENCHANTED_SPIDER_EYE', SC] },
       { id: 'IRON_INGOT', qty: 0.2, compact: ['ENCHANTED_IRON', SC] },
     ] },
   { key: 'revenant', name: 'Revenant Minion', delays: [29, 29, 26, 26, 23, 23, 19, 19, 14.5, 14.5, 10, 8],
+    requires: { slayer: 'zombie', name: 'Zombie Slayer', text: 'Zombie Slayer V (tiers I to XI), IX (tier XII); the recipe also needs armor' },
     drops: [
       { id: 'ROTTEN_FLESH', qty: 3.16, compact: ['ENCHANTED_ROTTEN_FLESH', SC] },
       { id: 'DIAMOND', qty: 0.2, compact: ['ENCHANTED_DIAMOND', SC] },
@@ -86,6 +88,18 @@ export const MINIONS = [
     ] },
 ].map((m) => ({ ...m, storage: (m.storageList ?? STORAGE).slice(0, m.delays.length) }));
 export const MAX_TIER = 12;
+
+// A minion that needs a Slayer level (wiki: Tarantula "Spider Slayer V (5)", tier XII "IX (9)"; Revenant the
+// same with Zombie Slayer). setup.spider and setup.zombie are the player's levels; a missing one counts as 9,
+// so nothing is locked until the player says otherwise.
+export const SLAYER_TIER_XII = 9;
+export const SLAYER_TIER_I = 5;
+export function minionLocked(minion, setup) {
+  const req = minion.requires;
+  if (!req?.slayer) return false;
+  const level = setup[req.slayer] ?? 9;
+  return level < ((Math.floor(setup.tier) || 1) >= 12 ? SLAYER_TIER_XII : SLAYER_TIER_I);
+}
 
 // speed: added to the minion's speed (0.25 = 25%). mult: every item is generated this many times instead.
 // hours: how long one piece lasts; without it the fuel is permanent and costs nothing per day.
@@ -196,7 +210,8 @@ function bestForm(id, perDay, products, { tax, stats, count }) {
 // fillHours: until one minion's storage is full. lowVolume: ids whose market is too thin for the amount.
 // A price that is missing counts as 0 and adds a note to `unsure`.
 export function minionRows(products, npc, setup, { tax, stats = null }) {
-  const rows = MINIONS.map((minion) => minionRow(minion, products, npc, setup, { tax, stats }));
+  const rows = MINIONS.map((minion) => minionRow(minion, products, npc, setup, { tax, stats }))
+    .filter((r) => !(setup.hide && r.locked));
   return rows.sort((a, b) => (a.lowVolume.length > 0) - (b.lowVolume.length > 0) || b.net - a.net);
 }
 
@@ -230,7 +245,7 @@ export function minionRow(minion, products, npc, setup, { tax, stats = null }) {
     bazaar: bazaar * count, npcCoins: npcCoins * count, fuelCost: fuelCost * count, best,
     net: (Math.max(bazaar, npcCoins) - fuelCost) * count,
     itemsDay: perDay * count, fillHours: made.storage / (perDay / 24), storage: made.storage, delay: made.delay, speed: made.speed,
-    unsure, lowVolume, parts,
+    unsure, lowVolume, parts, requires: minion.requires?.text ?? null, locked: minionLocked(minion, setup),
   };
 }
 

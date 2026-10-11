@@ -426,7 +426,8 @@ export const minionCard = (row) => `<li class="card minion">
     <div class="name">${tile(row.id, 32)}<span>${esc(row.name)}</span></div>
     <div class="badges"><span class="badge badge-trend">Tier ${ROMAN[row.tier - 1]}${row.tier === row.maxTier ? ' (highest)' : ''}</span>${
       row.lowVolume?.length ? `<span class="badge badge-warn">${ICONS.warn}low volume</span>` : ''}${
-      row.unsure.length ? `<span class="badge badge-warn">${ICONS.warn}not confirmed</span>` : ''}</div>
+      row.unsure.length ? `<span class="badge badge-warn">${ICONS.warn}not confirmed</span>` : ''}${
+      row.requires ? `<span class="badge ${row.locked ? 'badge-warn' : 'badge-trend'}">requires ${esc(row.requires.split(' (')[0].split(';')[0])}</span>` : ''}</div>
     <div class="key">
       <div><span class="big ${gain(row.net)}">${num(row.net)}</span><span class="lbl">Coins/day</span></div>
       <div><span class="big">${row.best === 'npc' ? 'NPC' : 'Bazaar'}</span><span class="lbl">Sell at</span></div>
@@ -453,6 +454,7 @@ export function minionSheet({ minion, row, tiers }, { name, count }) {
   return `<div class="panel-head"><h2>${esc(minion.name)}</h2><button type="button" data-act="close" aria-label="Close">${ICONS.close ?? '×'}</button></div>
 <div class="sheet-body">
   <p class="muted">Tier ${ROMAN[row.tier - 1]} · ${count === 1 ? '1 minion' : `${count} minions`} · ${bonus} · an action every ${plain.format(row.delay)} s</p>
+  ${row.requires ? `<p class="${row.locked ? 'why' : 'muted'}">Requires ${esc(row.requires)} (wiki).${row.locked ? ' Not yet reached at your levels.' : ''}</p>` : ''}
   <h3>Tiers (same fuel and upgrades)</h3>
   <table class="tiers"><thead><tr><th>Tier</th><th>Action</th><th>Storage</th><th>Items/day</th><th>Coins/day</th></tr></thead><tbody>${
     tiers.map((t) => `<tr${t.tier === row.tier ? ' class="on"' : ''}><td>${ROMAN[t.tier - 1]}</td><td>${plain.format(t.delay)} s</td><td>${t.storage}</td><td>${num(t.itemsDay)}</td><td>${num(t.net)}</td></tr>`).join('')}</tbody></table>

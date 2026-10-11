@@ -6,7 +6,7 @@ Branch `feat/v0.7.2`, one commit per part. Not pushed, not merged.
 - [x] G. Craft modes
 - [x] H. NPC tab with craft steps
 - [x] I. Calendar check (matches), "Year of the" countdown (no year on the wiki, left open)
-- [ ] J. Small notes (minion requirements, Derpy tax)
+- [x] J. Small notes (minion requirements, Derpy tax)
 - [ ] Changelog 0.7.2, README, APK, docs/summary-v0.7.2.md
 
 ## F.1 answer (one Bazaar snapshot 2026-10-11, stats and recipes from the data branch, default settings)
@@ -63,3 +63,18 @@ the 20-minute day plus that vagueness.
 pages: "every 12 SkyBlock Years" and real-world dates of the update (Seal:
 Feb 6, 2025), but **no SkyBlock year number** and no order of the cycle.
 Nothing was computed, no countdown. Left open.
+
+## J
+
+- Minion requirements (wiki pages of each minion): Tarantula "Spider Slayer V
+  (5)" for tiers I to XI, IX for tier XII; Revenant the same with Zombie
+  Slayer, and its recipe needs armor. Fishing: Raw Cod collection II. All
+  others are unlocked by tier I of their collection; Snow by default. Shown as
+  a badge and in the sheet; the minion form has Spider and Zombie Slayer
+  levels and "Hide those I cannot craft". The Pumpkin page lists "Zombie
+  Slayer V" but that belongs to the Voodoo Doll recipe, not the minion.
+- Derpy: wiki page Derpy, history 2024-07-02: "Bazaar and Auction House tax are
+  quadrupled" (Trivia: the Auction House part only for sales over 1M coins).
+  So the Bazaar tax is four times the player's own: 5%, 4.5% or 4%. Note on
+  Today and Trade with a "Use X%" button; the tax setting got the three
+  quadrupled values. After Derpy the note offers the way back.

@@ -147,3 +147,23 @@ test('the better of item and block is sold, a thin market is marked and sorted l
   assert.ok(flagged.unsure.some((u) => u.startsWith('Low volume – price unreliable')));
   assert.ok(rows.findIndex((r) => r.key === 'clay') > rows.findIndex((r) => r.key === 'cobblestone'));
 });
+
+test('Slayer requirements: Tarantula and Revenant lock below V, tier XII below IX, and can be hidden', () => {
+  const setup = { tier: 11, count: 1, fuel: 'none', upgrades: ['none', 'none'] };
+  const rows = (o) => minionRows({}, {}, { ...setup, ...o }, { tax: 0 });
+  const get = (r, key) => r.find((x) => x.key === key);
+  // nothing is locked until the levels are given
+  assert.equal(get(rows({}), 'tarantula').locked, false);
+  assert.equal(get(rows({}), 'tarantula').requires, 'Spider Slayer V (tiers I to XI), IX (tier XII)');
+  assert.equal(get(rows({ spider: 4 }), 'tarantula').locked, true);
+  assert.equal(get(rows({ spider: 4 }), 'revenant').locked, false);
+  assert.equal(get(rows({ zombie: 5, tier: 11 }), 'revenant').locked, false);
+  assert.equal(get(rows({ zombie: 8, tier: 12 }), 'revenant').locked, true);
+  assert.equal(get(rows({ zombie: 9, tier: 12 }), 'revenant').locked, false);
+  // other minions have no Slayer requirement
+  assert.equal(get(rows({ spider: 0, zombie: 0 }), 'diamond').locked, false);
+  assert.equal(get(rows({}), 'diamond').requires, null);
+  // hidden when the player cannot craft them
+  const hidden = rows({ spider: 0, zombie: 0, hide: true }).map((r) => r.key);
+  assert.ok(!hidden.includes('tarantula') && !hidden.includes('revenant') && hidden.includes('diamond'));
+});

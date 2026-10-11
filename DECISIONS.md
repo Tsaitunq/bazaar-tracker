@@ -775,3 +775,7 @@ Selbstständig getroffen (Auftrag: unbeaufsichtigt, ohne Rückfragen). Spec:
   kein Jahr im Wiki, also kein Countdown; die Ansicht bleibt bei „no date“.
   Das Update-Datum (6.2.2025) sagt nicht, in welchem SkyBlock-Jahr das Event
   lief, und wird nicht als Jahr gelesen.
+- **Teil J:** Slayer-Level standardmäßig 9, damit nichts gesperrt wirkt,
+  bis der Spieler seine Level einträgt. Derpy: Steuer = 4 × eigene Steuer
+  (das Wiki nennt keinen Prozentsatz, nur „quadrupled“); wer Bazaar Flipper
+  hat, bekommt entsprechend 4,5 % oder 4 %.

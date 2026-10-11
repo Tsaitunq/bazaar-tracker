@@ -113,6 +113,18 @@ export const PERK_EXPECT = {
   'Fishing Festival': { why: 'shark loot from the festivals', items: EVENTS.find((e) => e.key === 'fishing').items },
 };
 
+// Derpy's QUAD TAXES!!!: "Bazaar and Auction House tax are quadrupled" (wiki, Derpy). The Bazaar tax a player
+// has (1.25, 1.125 or 1 percent) becomes four times as much.
+export const DERPY_TAX = { 1.25: 5, 1.125: 4.5, 1: 4 };
+// What to tell the player about the tax setting: { want, text } or null when the setting is fine.
+// With Derpy the setting should be the quadrupled one; without him a quadrupled setting is a left-over.
+export function taxAdvice(derpy, set) {
+  const want = derpy ? DERPY_TAX[set] : Object.keys(DERPY_TAX).find((k) => DERPY_TAX[k] === set);
+  if (!want) return null;
+  const mayor = derpy ? 'Derpy is mayor' : 'Derpy is not mayor';
+  return { want: Number(want), text: `${mayor} – Bazaar tax is ${want}%. Your setting: ${set}%.` };
+}
+
 export const LEAVING_MS = 24 * 3600000; // a term this close to its end is announced on the items it holds down
 
 // { itemId: { kind, text } } for the portfolio: what the election may do to an item's price. Two cases, both from
