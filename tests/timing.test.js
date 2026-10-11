@@ -17,14 +17,14 @@ const run = (before, during, after, id = 'GREEN_CANDY') => ({ p: { [id]: [before
 const find = (list, key) => list.find((o) => o.key === key);
 
 test('pattern: three runs in the same direction confirm it, the typical change is the median', () => {
-  assert.deepEqual(pattern([0.1, 0.2, 0.3]), { pct: 0.2, dir: 1, n: 3, confirmed: true });
+  assert.deepEqual(pattern([0.1, 0.2, 0.3]), { pct: 0.2, dir: 1, n: 3, nOwn: 3, nBackfill: 0, confirmed: true });
   assert.equal(pattern([0.1, 0.2]).confirmed, false);
   // one run went the other way: it is not counted
   assert.equal(pattern([-0.1, -0.2, 0.3]).n, 2);
   assert.equal(pattern([-0.1, -0.2, 0.3, -0.05]).confirmed, true);
   // below 1% there is no direction
-  assert.deepEqual(pattern([0.001, 0.002, 0.003]), { pct: 0.002, dir: 0, n: 0, confirmed: false });
-  assert.deepEqual(pattern([]), { pct: null, dir: 0, n: 0, confirmed: false });
+  assert.deepEqual(pattern([0.001, 0.002, 0.003]), { pct: 0.002, dir: 0, n: 0, nOwn: 0, nBackfill: 0, confirmed: false });
+  assert.deepEqual(pattern([]), { pct: null, dir: 0, n: 0, nOwn: 0, nBackfill: 0, confirmed: false });
 });
 
 test('itemPattern: before to during and during to after, runs with a missing median are left out', () => {

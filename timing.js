@@ -2,6 +2,8 @@
 // The snapshot run keeps three medians per run and item in timing.json; the snapshots themselves
 // expire. A run is { s, e, b, a, p }: start and end, where the "before" window starts and the
 // "after" window ends (all in minutes), and p[itemId] = [median before, during, after].
+// src is "backfill" for a run filled in afterwards from SkyCofl's price history (scripts/timing-backfill.mjs);
+// a run the snapshot run recorded itself has no src and counts as "own".
 import { PERK_EXPECT, DAY_MS, YEAR_DAYS, EVENTS, skyDate, skyTime, activePerks, upcoming, termStart } from './events.js';
 import { median } from './history.js';
 
@@ -12,6 +14,40 @@ const WINDOW_MS = 24 * 3600000;
 const TERM_NOTICE_MS = 6 * 3600000;      // a new mayor is announced for this long
 const RETRY_MIN = 2 * 24 * 60;           // a window without prices is given up after two days
 const YEAR_MS = YEAR_DAYS * DAY_MS;
+export const BACKFILL = 'backfill';
+
+// The median of the sell price (point[2]) of the points in [from, to) minutes, rounded like timing.json keeps it.
+export function windowMedian(points, from, to) {
+  const m = median(points.filter(([t]) => t >= from && t < to).map((p) => p[2]));
+  return m == null ? null : Math.round(m * 10) / 10;
+}
+
+// The three medians of a finished run from an item's points [minute, buy, sell].
+export const runMedians = (points, run) => [[run.b, run.s], [run.s, run.e], [run.e, run.a]].map(([from, to]) => windowMedian(points, from, to));
+
+// timing without the runs that came from the backfill; a pattern that needed them is no longer confirmed
+// because patterns are always computed from the runs.
+export function removeBackfill(timing) {
+  const r = Object.fromEntries(Object.entries(timing?.r ?? {})
+    .map(([key, runs]) => [key, runs.filter((run) => run.src !== BACKFILL)]).filter(([, runs]) => runs.length));
+  return { ...timing, r };
+}
+
+// timing plus the runs of a backfill file ({ r: { key: [run] } }). A run the snapshot run recorded itself, or one
+// that starts at the same minute, is never replaced. Idempotent.
+export function mergeBackfill(timing, backfill) {
+  const r = Object.fromEntries(Object.entries(timing?.r ?? {}).map(([key, runs]) => [key, [...runs]]));
+  for (const [key, runs] of Object.entries(backfill?.r ?? {})) {
+    const have = new Set((r[key] ?? []).map((run) => run.s));
+    for (const run of runs) {
+      if (have.has(run.s)) continue;
+      (r[key] ??= []).push({ ...run, src: BACKFILL });
+      have.add(run.s);
+    }
+    r[key]?.sort((x, y) => x.s - y.s);
+  }
+  return { ...timing, r };
+}
 
 // Events and terms that have started and whose "after" window is still open, with times in ms.
 // Windows are cut where they would reach into the neighbouring run (Fishing Festival: every month).
@@ -55,8 +91,7 @@ export function updateTiming(timing, election, series, nowMs) {
       if (now < to || now > to + RETRY_MIN) return;
       for (const [id, v] of Object.entries(run.p)) {
         if (v[i] != null) continue;
-        const m = median(series(id).filter(([t]) => t >= from && t < to).map((p) => p[2]));
-        v[i] = m == null ? null : Math.round(m * 10) / 10;
+        v[i] = windowMedian(series(id), from, to);
       }
     });
   }
@@ -65,23 +100,29 @@ export function updateTiming(timing, election, series, nowMs) {
 
 // changes: one relative price change per run. pct: the typical one; dir: its direction or 0;
 // n: runs that went the same way.
-export function pattern(changes) {
+// sources: the src of each run, same order. Own and backfilled runs count together; nOwn and nBackfill say how many
+// of the n came from which.
+export function pattern(changes, sources = []) {
   const pct = median(changes);
   const dir = pct == null || Math.abs(pct) < FLAT ? 0 : Math.sign(pct);
-  const n = dir ? changes.filter((c) => Math.abs(c) >= FLAT && Math.sign(c) === dir).length : 0;
-  return { pct, dir, n, confirmed: n >= CONFIRM };
+  const same = (c) => Math.abs(c) >= FLAT && Math.sign(c) === dir;
+  const n = dir ? changes.filter(same).length : 0;
+  const nBackfill = dir ? changes.filter((c, i) => same(c) && sources[i] === BACKFILL).length : 0;
+  return { pct, dir, n, nOwn: n - nBackfill, nBackfill, confirmed: n >= CONFIRM };
 }
 
 // into: before → during; out: during → after
 export function itemPattern(runs = [], id) {
-  const changes = (i) => runs.map((run) => run.p[id]).filter((v) => v?.[i] > 0 && v[i + 1] != null).map((v) => v[i + 1] / v[i] - 1);
-  return { into: pattern(changes(0)), out: pattern(changes(1)) };
+  const usable = (i) => runs.filter((run) => run.p[id]?.[i] > 0 && run.p[id][i + 1] != null);
+  const of = (i) => { const rs = usable(i); return pattern(rs.map((run) => run.p[id][i + 1] / run.p[id][i] - 1), rs.map((run) => run.src)); };
+  return { into: of(0), out: of(1) };
 }
 
 const signed = (x) => `${x > 0 ? '+' : '−'}${Math.round(Math.abs(x) * 1000) / 10}%`;
 // when: "during event", "during term", "after event"
 export const patternText = (p, when) =>
-  (p.confirmed ? `Usually ${signed(p.pct)} ${when} (seen ${p.n} times)` : `not enough data yet (${p.n}/${CONFIRM})`);
+  (p.confirmed ? `Usually ${signed(p.pct)} ${when} (seen ${p.n} times${history(p)})` : `not enough data yet (${p.n}/${CONFIRM}${history(p)})`);
+const history = (p) => (p.nBackfill > 0 ? `, ${p.nBackfill} from historical data (SkyCofl)` : '');
 
 // What the Android worker shows, ready-made so it needs no calendar: each notice is due between
 // `from` and `to`. lines: [itemId, text]; the worker knows the item names.

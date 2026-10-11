@@ -77,7 +77,7 @@ current perks come from the election API
 
 | Perk | When | Items marked | Source |
 |---|---|---|---|
-| Fishing Festival (Marina) | first 3 days of every month | `SHARK_FIN`, `ENCHANTED_SHARK_FIN`, `NURSE_SHARK_TOOTH`, `BLUE_SHARK_TOOTH`, `TIGER_SHARK_TOOTH`, `GREAT_WHITE_SHARK_TOOTH` | https://hypixelskyblock.minecraft.wiki/w/Fishing_Festival |
+| Fishing Festival (Marina) | first 3 days of every month | `SHARK_FIN`, `ENCHANTED_SHARK_FIN`, `NURSE_SHARK_TOOTH`, `BLUE_SHARK_TOOTH`, `TIGER_SHARK_TOOTH`, `GREAT_WHITE_SHARK_TOOTH`; crafted from them (wiki page Fishing Festival, 2026-10-11): `GREAT_WHITE_TOOTH_MEAL` (Great White Shark Tooth and Enchanted Bone), `SHARK_BAIT` (Shark Fin). Not on the Bazaar: Rod of the Sea, Shark Scale armor, Ichthyic and Finwave sets, Bluertooth Ring, the Shark Tooth necklaces | https://hypixelskyblock.minecraft.wiki/w/Fishing_Festival |
 | Mining Fiesta (Cole) | shown as an active perk without dates | `REFINED_MINERAL`, `GLOSSY_GEMSTONE` | https://hypixelskyblock.minecraft.wiki/w/Mining_Fiesta ; the perk text from the API names both items |
 | Mythological Ritual (Diana) | whole term | burrow loot: `GRIFFIN_FEATHER`, `BRAIDED_GRIFFIN_FEATHER` (Deific Spade), `MYTHOS_FRAGMENT`; every creature: `ANCIENT_CLAW`, `ENCHANTED_ANCIENT_CLAW`; Minotaur: `DAEDALUS_STICK`, `SHARD_MINOTAUR`; Minos Inquisitor: `ENCHANTMENT_ULTIMATE_CHIMERA_1` (Chimera I); Manticore: `FATEFUL_STINGER`; Sphinx: `BRAIN_FOOD`, `SHARD_SPHINX`; Minos Hunter: `SHARD_MINOS_HUNTER`; Cretan Bull: `SHARD_CRETAN_BULL`; Harpy: `SHARD_HARPY`; King Minos: `SHARD_KING_MINOS` | https://hypixelskyblock.minecraft.wiki/w/Mythological_Ritual (burrow loot per spade and the drops per creature; read on 2026-10-10) |
 

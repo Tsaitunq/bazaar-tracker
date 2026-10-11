@@ -41,7 +41,9 @@ export const EVENTS = [
   { key: 'feast', name: 'Harvest Feast', starts: [[6, 1]], days: 3 * MONTH_DAYS, items: FEAST },
   { key: 'grandfeast', name: 'Grand Feast', perk: 'Grand Feast', starts: [[0, 1]], days: 12 * MONTH_DAYS, items: FEAST },
   { key: 'fishing', name: 'Fishing Festival', perk: 'Fishing Festival', starts: MONTHS.map((_, month) => [month, 1]), days: 3,
-    items: ['SHARK_FIN', 'ENCHANTED_SHARK_FIN', 'NURSE_SHARK_TOOTH', 'BLUE_SHARK_TOOTH', 'TIGER_SHARK_TOOTH', 'GREAT_WHITE_SHARK_TOOTH'] },
+    items: ['SHARK_FIN', 'ENCHANTED_SHARK_FIN', 'NURSE_SHARK_TOOTH', 'BLUE_SHARK_TOOTH', 'TIGER_SHARK_TOOTH', 'GREAT_WHITE_SHARK_TOOTH',
+      // crafted from them and traded on the Bazaar (wiki, Fishing Festival: "Items Crafted From Festival Items")
+      'GREAT_WHITE_TOOTH_MEAL', 'SHARK_BAIT'] },
 ];
 
 // Perks that run for the whole term and bring their own items.

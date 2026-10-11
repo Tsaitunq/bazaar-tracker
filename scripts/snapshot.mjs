@@ -1,11 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { recipesStale, refreshRecipes } from './recipes.mjs';
 import { fetchLowestBins } from './auctions.mjs';
 import { compactElection } from './election.mjs';
 import { trendSlope } from '../trends.js';
-import { updateTiming } from '../timing.js';
+import { updateTiming, mergeBackfill } from '../timing.js';
 import { SHARDS, KEEP_DAYS, shardOf, dayKey, dayKeys, compactPrices, appendSnapshot, seriesFor, itemStats } from '../history.js';
 
 const readChunk = (file) => (fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : null);
@@ -51,7 +51,13 @@ export function runSnapshot(dataDir, products, nowMs) {
   // kept for good, unlike the snapshots; a broken file stops the run here instead of being overwritten
   const timingFile = path.join(dataDir, 'timing.json');
   const election = readChunk(path.join(dataDir, 'election.json'));
-  fs.writeFileSync(timingFile, JSON.stringify(updateTiming(readChunk(timingFile), election, (id) => seriesFor(chunks, id), nowMs)));
+  // Runs from SkyCofl's history (scripts/timing-backfill.mjs) are put in while timing-backfill.json is in the repo.
+  // They never replace a run recorded here. Deleting the file stops it; scripts/timing-remove-backfill.mjs takes
+  // the runs out of timing.json.
+  const backfillFile = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'timing-backfill.json');
+  const known = readChunk(timingFile);
+  const timing = fs.existsSync(backfillFile) ? mergeBackfill(known, readChunk(backfillFile)) : known;
+  fs.writeFileSync(timingFile, JSON.stringify(updateTiming(timing, election, (id) => seriesFor(chunks, id), nowMs)));
   return { day, count: Object.keys(prices).length };
 }
 
