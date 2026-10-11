@@ -209,3 +209,28 @@ test('retry runs a failing call again and gives up after the last wait', async (
   await assert.rejects(retry(async () => { calls++; throw new Error('HTTP 500'); }, [0, 0]), /HTTP 500/);
   assert.equal(calls, 3);
 });
+
+test('timing.json: backfilled runs are put in, an own run of the same start stays, and the file is optional', () => withDir((dir) => {
+  const start = skyTime(519, 7, 29);
+  const back = path.join(dir, 'back.json');
+  const sMin = start / 60000;
+  fs.writeFileSync(back, JSON.stringify({ r: { 'event:spooky': [
+    { s: sMin, e: sMin + 60, b: sMin - 1440, a: sMin + 1500, p: { GREEN_CANDY: [9, 9, 9] } },
+    { s: 10, e: 20, b: 0, a: 30, p: { GREEN_CANDY: [1, 2, 3] } },
+  ] } }));
+  const candy = { GREEN_CANDY: { sell_summary: [{ pricePerUnit: 1 }], buy_summary: [{ pricePerUnit: 100 }] } };
+  // the snapshot run recorded this start itself earlier
+  fs.writeFileSync(path.join(dir, 'timing.json'), JSON.stringify({ t: 1, r: { 'event:spooky': [{ s: sMin, e: sMin + 60, b: sMin - 1440, a: sMin + 1500, p: { GREEN_CANDY: [7, 8, 9] } }] } }));
+  runSnapshot(dir, candy, start - 20 * 60000, { backfillFile: back });
+  const runs = readJson(dir, 'timing.json').r['event:spooky'];
+  // the old one is added and marked; the run of this start was recorded by the snapshot run itself and is not replaced
+  assert.deepEqual(runs.map((r) => [r.s, r.src]).sort((a, b) => a[0] - b[0]), [[10, 'backfill'], [sMin, undefined]]);
+  assert.deepEqual(runs.find((r) => r.s === sMin).p.GREEN_CANDY, [7, 8, 9]);
+  // without the option nothing is merged
+  const other = path.join(dir, 'other');
+  fs.mkdirSync(other);
+  runSnapshot(other, candy, start + 20 * 60000);
+  const plain = readJson(other, 'timing.json').r['event:spooky'];
+  assert.equal(plain.length, 1);
+  assert.equal(plain[0].src, undefined);
+}));

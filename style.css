@@ -470,3 +470,8 @@ html.sheet-open, html.sheet-open body, html:has(dialog:modal), html:has(dialog:m
 .outside details { padding: 8px 0; }
 .outside summary { min-height: 44px; display: flex; align-items: center; color: var(--muted); cursor: pointer; }
 .outside .card { opacity: .75; }
+
+.effects li.group-head { padding: 12px 0 2px; border-bottom: 0; }
+.effects li.group-head[hidden] { display: none; }
+.effects h4 { margin: 0; font-size: 15px; color: var(--accent); }
+.badge.role { margin-left: 2px; }

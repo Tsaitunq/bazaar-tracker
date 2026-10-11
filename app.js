@@ -10,6 +10,7 @@ import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radar
 import { chartHit, when } from './chart.js';
 import { level } from './trends.js';
 import { activePerks, upcoming, electionWindow, eventItems, flipRisks, planElection, taxAdvice } from './events.js';
+import { buyNow, itemWindows } from './timing.js';
 import { bindSheet, openSheet } from './sheet.js';
 import { initOnboarding, refreshHints, offerAdvanced, returning } from './tour.js';
 
@@ -283,7 +284,7 @@ function flashChanges() {
 let radarShown = '';
 function renderRadar() {
   const now = Date.now();
-  const data = { election, perks: activePerks(election), events: upcoming(now, election), vote: electionWindow(now), now, name: nameOf, timing, query: effectsQuery };
+  const data = { election, perks: activePerks(election), events: upcoming(now, election), vote: electionWindow(now), now, name: nameOf, timing, query: effectsQuery, tax: settings.tax / 100, volume: weekVolume };
   const plain = radarView(data);
   if (plain === radarShown) return;
   const box = $('radar');
@@ -298,7 +299,11 @@ $('market').addEventListener('input', (e) => {
   if (e.target.id !== 'effects-q') return;
   effectsQuery = e.target.value;
   const q = effectsQuery.trim().toLowerCase();
-  for (const li of $('market').querySelectorAll('.effects li')) li.hidden = !!q && !li.dataset.q.includes(q);
+  const rowsLi = [...$('market').querySelectorAll('.effects li[data-q]')];
+  for (const li of rowsLi) li.hidden = !!q && !li.dataset.q.includes(q);
+  // a group heading stays while one of its rows does
+  const open = new Set(rowsLi.filter((li) => !li.hidden).map((li) => li.dataset.g));
+  for (const head of $('market').querySelectorAll('.effects li.group-head')) head.hidden = !!q && !open.has(head.dataset.g);
 });
 
 // The minion setup: its own small form, stored apart from the settings because it changes nothing else.
@@ -369,6 +374,9 @@ document.addEventListener('click', (e) => {
   applySettings();
 });
 
+// Units a week, the smaller of the two sides (like the flips), or null when the item has no book.
+const weekVolume = (id) => { const q = products?.[id]?.quick_status; return q ? Math.min(q.buyMovingWeek, q.sellMovingWeek) : null; };
+
 // The areas that are one page each. Trade is drawn by renderPage itself.
 function renderArea() {
   $('tax-note').innerHTML = taxNote();
@@ -385,6 +393,7 @@ function renderArea() {
       events: upcoming(now, election), vote: electionWindow(now), election,
       voteItems: Object.keys(risks).filter((id) => risks[id].kind === 'election'),
       fresh: (lastVisit ? opps.filter((f) => !lastVisit.has(f.id)) : opps).slice(0, 3), firstVisit: !lastVisit, now, name: nameOf,
+      buying: buyNow(now, election, timing, settings.tax / 100), volume: weekVolume,
     }) : '<p class="count muted">Loading…</p>';
   }
   if (area() === 'market') {
@@ -409,7 +418,7 @@ function renderDetail() {
   const forged = products && forge?.[id] ? forgeFlip(id, forge[id], products, ah, baseOpts()) : null;
   detailSuspicious = !!flip?.suspicious;
   for (const i of forged?.ingredients ?? []) i.name = nameOf(i.id);
-  $('detail').innerHTML = detailView({ ...decorate({ id, sell: flip?.sell }), flip, forge: forged, ...stat, back: lastList, isFav: favs.has(id), range, points, tax: settings.tax / 100 });
+  $('detail').innerHTML = detailView({ ...decorate({ id, sell: flip?.sell }), flip, forge: forged, ...stat, back: lastList, isFav: favs.has(id), range, points, tax: settings.tax / 100, windows: itemWindows(timing, id, settings.tax / 100), volume: weekVolume(id) });
   flashChanges();
 }
 

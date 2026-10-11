@@ -39,6 +39,45 @@ Source for all dates: https://hypixelskyblock.minecraft.wiki/w/Events
 | Harvest Feast | Early Autumn 1 to Late Autumn 31, every year ("3 months spanning Early Autumn, Autumn, and Late Autumn") | the 13 Rare Crops: `CORNUCOPIA`, `CARROT_ZEST`, `DEEPFRIES`, `AGGOURDIAN`, `CANE_KNOT`, `MELON_JUICE`, `CACTUS_FLOWER`, `DESIGNER_COFFEE_BEANS`, `FEASTFUNGUS`, `BOTROOT`, `SALTED_SUNFLOWER_SEEDS`, `CRYSTALIZED_MOONLIGHT`, `FLORAL_GELATIN`, and `FEAST_FLASK` | https://hypixelskyblock.minecraft.wiki/w/Harvest_Feast and the Events page. The wiki table names the Rare Crops but gives no item ids; the ids are the Bazaar items of the same name (all exist in the 2026-10-11 snapshot). Seasoning "has no physical item" |
 | Mayor election | booth opens Late Summer 27, closes Late Spring 27 | none | – |
 
+### Jerry's Workshop: Einary's shop and the Gifts (added in 0.7.3)
+
+Wiki pages Einary and Jerry's Workshop, read 2026-10-11. Einary's Emporium sells
+for North Stars (the only price on the page: Refrigerate "50→10 North Stars"):
+Looting IV, Scavenger IV, Luck VI (enchanted books), Reindeer Pet, the Gift
+Talismans (White, Green, Blue, Purple, Gold), Snow Cloak, Belt, Gloves and
+Necklace, Ice Minion XII, Snow Minion XII, Refrigerate, Magic Top Hat and
+Winter Fragment. The page does not say which are tradable. The Bazaar items
+among them, added to the Workshop's items and marked as role "shop":
+`ENCHANTMENT_LOOTING_4`, `ENCHANTMENT_SCAVENGER_4`, `ENCHANTMENT_LUCK_6`,
+`MAGIC_TOP_HAT`, `WINTER_FRAGMENT` (listed in the shop's picture with a "2" and
+no price). Refrigerate has no Bazaar id in the 2026-10-11 snapshot.
+
+Gifts: `WHITE_GIFT` (about 20 scattered over the Workshop each time it opens),
+`GREEN_GIFT` (from St. Jerry after all White Gifts, also a mob drop),
+`RED_GIFT` (Chicken Race, also a mob drop); Golden Gift is named without a
+source and has no Bazaar id. They are role "shop": only obtainable while the
+Workshop is open. Ice Bait (`ICE_BAIT`) is role "demand" by expectation only:
+the page lists it among the Ice Fishing items without saying how it is used.
+
+**AH – later** (not on the Bazaar, left out for now): Reindeer Pet, Gift
+Talismans, Snow Cloak/Belt/Gloves/Necklace, Ice Minion XII, Snow Minion XII,
+Gift the Fish, Snowman Pet, Santa and Gingerbread Man minion skins, Snow Suit
+Armor, Rune and Disc rewards.
+
+**Paul, dungeon players:** the Dungeons page names "Dungeon potions consumed
+during the run" and nothing else that is used up per run, and not whether it is
+on the Bazaar. No demand item was added for Paul: no source.
+
+### Roles
+
+Every item has a role in the lists: **supply** (more of it while the driver
+runs, cheaper during and dearer after), **demand** (used up while it runs:
+dearer during, cheaper after) and **shop** (only obtainable while it runs, the
+same curve as supply). The start is `expectedRole` in `events.js`; the measured
+change of the median price (before to during, 1% or more) overrules it
+(`itemRole` in `timing.js`), then the badge says "(measured)". The wiki states
+no role.
+
 ### Grand Feast (Finnegan)
 
 Event **Grand Feast**, only with Finnegan's perk "Grand Feast": "Finnegan
@@ -77,7 +116,7 @@ current perks come from the election API
 
 | Perk | When | Items marked | Source |
 |---|---|---|---|
-| Fishing Festival (Marina) | first 3 days of every month | `SHARK_FIN`, `ENCHANTED_SHARK_FIN`, `NURSE_SHARK_TOOTH`, `BLUE_SHARK_TOOTH`, `TIGER_SHARK_TOOTH`, `GREAT_WHITE_SHARK_TOOTH` | https://hypixelskyblock.minecraft.wiki/w/Fishing_Festival |
+| Fishing Festival (Marina) | first 3 days of every month | `SHARK_FIN`, `ENCHANTED_SHARK_FIN`, `NURSE_SHARK_TOOTH`, `BLUE_SHARK_TOOTH`, `TIGER_SHARK_TOOTH`, `GREAT_WHITE_SHARK_TOOTH`; crafted from them (wiki page Fishing Festival, 2026-10-11): `GREAT_WHITE_TOOTH_MEAL` (Great White Shark Tooth and Enchanted Bone), `SHARK_BAIT` (Shark Fin). Not on the Bazaar: Rod of the Sea, Shark Scale armor, Ichthyic and Finwave sets, Bluertooth Ring, the Shark Tooth necklaces | https://hypixelskyblock.minecraft.wiki/w/Fishing_Festival |
 | Mining Fiesta (Cole) | shown as an active perk without dates | `REFINED_MINERAL`, `GLOSSY_GEMSTONE` | https://hypixelskyblock.minecraft.wiki/w/Mining_Fiesta ; the perk text from the API names both items |
 | Mythological Ritual (Diana) | whole term | burrow loot: `GRIFFIN_FEATHER`, `BRAIDED_GRIFFIN_FEATHER` (Deific Spade), `MYTHOS_FRAGMENT`; every creature: `ANCIENT_CLAW`, `ENCHANTED_ANCIENT_CLAW`; Minotaur: `DAEDALUS_STICK`, `SHARD_MINOTAUR`; Minos Inquisitor: `ENCHANTMENT_ULTIMATE_CHIMERA_1` (Chimera I); Manticore: `FATEFUL_STINGER`; Sphinx: `BRAIN_FOOD`, `SHARD_SPHINX`; Minos Hunter: `SHARD_MINOS_HUNTER`; Cretan Bull: `SHARD_CRETAN_BULL`; Harpy: `SHARD_HARPY`; King Minos: `SHARD_KING_MINOS` | https://hypixelskyblock.minecraft.wiki/w/Mythological_Ritual (burrow loot per spade and the drops per creature; read on 2026-10-10) |
 

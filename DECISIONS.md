@@ -784,3 +784,20 @@ Selbstständig getroffen (Auftrag: unbeaufsichtigt, ohne Rückfragen). Spec:
   bisherigen Icon-Quelle (Coflnet), die Lizenz dort ist nicht belegt und steht
   so in `docs/image-sources.md`. Eine Preisspanne von mehr als dem Dreifachen
   (Angebot gegen beste Order) gilt wie ein dünner Markt als unzuverlässig.
+
+## Timing backfill
+
+- **Perk-Änderungen laut Wiki:** Marauder, Mythological Ritual, Fishing
+  Festival unverändert. Mining Fiesta ab 2026-08-25 (nur wenige Amtszeiten),
+  Blooming Business und Stock Exchange ab 2024-07-02, Grand Feast ab
+  2026-04-28; es zählen nur Amtszeiten ab diesem Tag.
+- **Season of Jerry weggelassen:** eine Stunde innerhalb von Jerry's
+  Workshop mit denselben Items, nicht trennbar.
+- **Kurze Events:** Zeitfenster „während“ mindestens 6 Stunden (3 Punkte bei
+  2 h Auflösung), damit Spooky (1 Stunde echt) messbar ist.
+- **Nach-Fenster einer Amtszeit** endet nach 7 Tagen ab Beginn des
+  Vor-Fensters (22 von 24 Stunden), weil SkyCofl darüber nur Tageswerte gibt.
+- **Backfill-Läufe liegen in `timing-backfill.json` im Repo**; der Snapshot-
+  Lauf mischt sie in `timing.json`. So braucht es keinen Eingriff in den
+  data-Branch, und Entfernen heißt: Datei löschen und
+  `scripts/timing-remove-backfill.mjs` auf `timing.json`.
