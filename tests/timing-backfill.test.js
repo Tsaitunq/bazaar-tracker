@@ -88,7 +88,7 @@ test('a pattern keeps own and backfilled runs apart, and takes the backfill out 
   const timing = { r: { 'perk:A': [run(1, null, [100, 120, 110]), run(2, BACKFILL, [100, 130, 110]), run(3, BACKFILL, [100, 125, 110])] } };
   const p = itemPattern(timing.r['perk:A'], 'X').into;
   assert.deepEqual([p.n, p.nOwn, p.nBackfill, p.confirmed], [3, 1, 2, true]);
-  assert.match(patternText(p, 'during term'), /seen 3 times, 2 from historical data \(SkyCofl\)/);
+  assert.match(patternText(p, 'during term'), /seen 3 times, 1 own, 2 from historical data \(SkyCofl\)/);
   const without = removeBackfill(timing);
   const q = itemPattern(without.r['perk:A'], 'X').into;
   assert.deepEqual([q.n, q.nOwn, q.nBackfill, q.confirmed], [1, 1, 0, false]);

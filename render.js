@@ -261,6 +261,8 @@ export function portfolioView(plan, { capital, slots, sharePercent, simple = fal
 </section>`;
 }
 
+const HISTORY_CREDIT = 'Historical prices provided by <a href="https://sky.coflnet.com/data" rel="noopener">SkyCofl</a>.';
+
 // The mayor and event radar of the Market area: one line as a summary, then the mayor's perks, the
 // election and the events, each of which unfolds to its details.
 // perks: activePerks(); events: upcoming(); vote: electionWindow(); name(id): an item's name;
@@ -322,7 +324,7 @@ export function radarView({ election, perks, events, vote, now, name, open = new
   ${votes}
   <h3>Events</h3>
   <ul>${list}</ul>
-  <p class="muted">Based on past events, not a guarantee.</p>
+  <p class="muted">Based on past events, not a guarantee. Patterns marked "historical data" use runs from SkyCofl's price history, back to 2020. ${HISTORY_CREDIT}</p>
   ${effectsView({ perks, events, now, name, query })}
 </section>`;
 }

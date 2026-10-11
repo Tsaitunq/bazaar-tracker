@@ -122,7 +122,9 @@ const signed = (x) => `${x > 0 ? '+' : '−'}${Math.round(Math.abs(x) * 1000) / 
 // when: "during event", "during term", "after event"
 export const patternText = (p, when) =>
   (p.confirmed ? `Usually ${signed(p.pct)} ${when} (seen ${p.n} times${history(p)})` : `not enough data yet (${p.n}/${CONFIRM}${history(p)})`);
-const history = (p) => (p.nBackfill > 0 ? `, ${p.nBackfill} from historical data (SkyCofl)` : '');
+// where the runs came from: only the backfill, or both
+const history = (p) => (p.nBackfill > 0
+  ? (p.nOwn > 0 ? `, ${p.nOwn} own, ${p.nBackfill} from historical data (SkyCofl)` : ', based on historical data (SkyCofl)') : '');
 
 // What the Android worker shows, ready-made so it needs no calendar: each notice is due between
 // `from` and `to`. lines: [itemId, text]; the worker knows the item names.

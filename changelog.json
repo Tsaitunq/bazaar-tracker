@@ -1,6 +1,14 @@
 {
   "versions": [
     {
+      "version": "0.7.3",
+      "date": "2026-10-11",
+      "entries": [
+        { "title": "Patterns from history", "text": "The mayor and event radar now has price patterns from the history back to 2020, so many of them are confirmed at once; they say when they rest on historical data.", "target": "#radar", "route": "#/market" },
+        { "title": "Fishing Festival over the whole term", "text": "Marina is measured over her whole term, with the shark teeth, Shark Fin, Shark Bait and Great White Tooth Meal.", "target": "#radar", "route": "#/market" }
+      ]
+    },
+    {
       "version": "0.7.2",
       "date": "2026-10-11",
       "entries": [
