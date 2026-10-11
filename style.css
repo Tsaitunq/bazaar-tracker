@@ -451,3 +451,9 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 /* Simple mode: everything marked .pro is left out, and so is the rarity word on a card */
 [data-mode="simple"] .pro { display: none !important; }
 [data-mode="simple"] .card::after { content: none; }
+.sheet table.tiers { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 8px; }
+.sheet table.tiers th, .sheet table.tiers td { padding: 5px 4px; text-align: right; border-bottom: 1px solid var(--line); }
+.sheet table.tiers th:first-child, .sheet table.tiers td:first-child { text-align: left; }
+.sheet table.tiers th { color: var(--muted); font-weight: 600; }
+.sheet table.tiers tr.on td { color: var(--accent); font-weight: 600; }
+.sheet .sheet-body { padding: 12px 16px 16px; }

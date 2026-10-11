@@ -142,7 +142,7 @@ export function minionYield(minion, { tier = 1, fuel = 'none', upgrades = [] } =
     const [to, per] = has('compactor') ? compact[id] : [id, 1];
     items[to] = (items[to] ?? 0) + amount / per;
   }
-  return { tier: t, items, storage: minion.storage[t - 1], unsure };
+  return { tier: t, items, storage: minion.storage[t - 1], unsure, speed, delay: (minion.delays[t - 1]) / (1 + speed) };
 }
 
 // The second step of the Super Compactor 3000: [item, how many of the first make one]. Only the ones the
@@ -196,34 +196,50 @@ function bestForm(id, perDay, products, { tax, stats, count }) {
 // fillHours: until one minion's storage is full. lowVolume: ids whose market is too thin for the amount.
 // A price that is missing counts as 0 and adds a note to `unsure`.
 export function minionRows(products, npc, setup, { tax, stats = null }) {
+  const rows = MINIONS.map((minion) => minionRow(minion, products, npc, setup, { tax, stats }));
+  return rows.sort((a, b) => (a.lowVolume.length > 0) - (b.lowVolume.length > 0) || b.net - a.net);
+}
+
+// One minion with the setup: the row of minionRows, plus parts (per item sold: id, amount per day, form,
+// coins per day after tax, low) and delay (seconds between two actions with the speed bonus).
+export function minionRow(minion, products, npc, setup, { tax, stats = null }) {
   const count = Math.max(1, Math.floor(setup.count) || 1);
   const fuel = byKey(FUELS, setup.fuel);
   const fuelPrice = fuel.hours ? (products[fuel.id] && bookPrices(products[fuel.id])?.sell) ?? null : 0;
-  const rows = MINIONS.map((minion) => {
-    const made = minionYield(minion, setup);
-    const unsure = [...made.unsure];
-    const lowVolume = [];
-    let bazaar = 0, npcCoins = 0, perDay = 0;
-    for (const [id, amount] of Object.entries(made.items)) {
-      const sold = bestForm(id, amount, products, { tax, stats, count });
-      if (!sold) unsure.push(`No buy order for ${id} right now; it counts as 0 at the Bazaar.`);
-      else {
-        bazaar += sold.coins;
-        if (sold.low) { lowVolume.push(sold.id); unsure.push(`Low volume – price unreliable: ${sold.id} trades too little for this amount.`); }
-        if (sold.spike) unsure.push(`${sold.id} is far above its 7 day median or above its enchanted form; counted at that value.`);
-      }
-      npcCoins += amount * (npc[id] ?? 0);
-      perDay += amount;
+  const made = minionYield(minion, setup);
+  const unsure = [...made.unsure];
+  const lowVolume = [], parts = [];
+  let bazaar = 0, npcCoins = 0, perDay = 0;
+  for (const [id, amount] of Object.entries(made.items)) {
+    const sold = bestForm(id, amount, products, { tax, stats, count });
+    if (!sold) unsure.push(`No buy order for ${id} right now; it counts as 0 at the Bazaar.`);
+    else {
+      bazaar += sold.coins;
+      parts.push({ id: sold.id, amount: sold.amount * count, form: sold.form, coins: sold.coins * count, low: sold.low });
+      if (sold.low) { lowVolume.push(sold.id); unsure.push(`Low volume – price unreliable: ${sold.id} trades too little for this amount.`); }
+      if (sold.spike) unsure.push(`${sold.id} is far above its 7 day median or above its enchanted form; counted at that value.`);
     }
-    if (fuelPrice === null) unsure.push(`No sell offer for ${fuel.name} right now; its cost is missing.`);
-    const fuelCost = fuel.hours ? (24 / fuel.hours) * (fuelPrice ?? 0) : 0;
-    const best = npcCoins > bazaar ? 'npc' : 'bazaar';
-    return {
-      key: minion.key, name: minion.name, id: minion.drops[0].id, tier: made.tier, maxTier: minion.delays.length,
-      bazaar: bazaar * count, npcCoins: npcCoins * count, fuelCost: fuelCost * count, best,
-      net: (Math.max(bazaar, npcCoins) - fuelCost) * count,
-      itemsDay: perDay * count, fillHours: made.storage / (perDay / 24), unsure, lowVolume,
-    };
-  });
-  return rows.sort((a, b) => (a.lowVolume.length > 0) - (b.lowVolume.length > 0) || b.net - a.net);
+    npcCoins += amount * (npc[id] ?? 0);
+    perDay += amount;
+  }
+  if (fuelPrice === null) unsure.push(`No sell offer for ${fuel.name} right now; its cost is missing.`);
+  const fuelCost = fuel.hours ? (24 / fuel.hours) * (fuelPrice ?? 0) : 0;
+  const best = npcCoins > bazaar ? 'npc' : 'bazaar';
+  return {
+    key: minion.key, name: minion.name, id: minion.drops[0].id, tier: made.tier, maxTier: minion.delays.length,
+    bazaar: bazaar * count, npcCoins: npcCoins * count, fuelCost: fuelCost * count, best,
+    net: (Math.max(bazaar, npcCoins) - fuelCost) * count,
+    itemsDay: perDay * count, fillHours: made.storage / (perDay / 24), storage: made.storage, delay: made.delay, speed: made.speed,
+    unsure, lowVolume, parts,
+  };
+}
+
+// The detail sheet of one minion: the row for the setup and one row per tier it has, tier I first.
+export function minionDetail(key, products, npc, setup, opts) {
+  const minion = MINIONS.find((m) => m.key === key);
+  if (!minion) return null;
+  return {
+    minion, row: minionRow(minion, products, npc, setup, opts),
+    tiers: minion.delays.map((_, i) => minionRow(minion, products, npc, { ...setup, tier: i + 1 }, opts)),
+  };
 }

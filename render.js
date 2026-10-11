@@ -397,6 +397,32 @@ export const minionCard = (row) => `<li class="card minion">
   </a>
 </li>`;
 
+// The sheet of one minion. detail comes from minionDetail; name turns an item id into its name.
+const FORMS = { item: '', block: ' (block)' };
+export function minionSheet({ minion, row, tiers }, { name, count }) {
+  const list = (x) => esc(x.toLocaleString('en-US', { maximumFractionDigits: 1 }));
+  const wiki = 'https://hypixelskyblock.minecraft.wiki/w/' + minion.name.replace(/ /g, '_');
+  const parts = row.parts.map((p) => `<li><span>${esc(name(p.id))}${FORMS[p.form]}${p.low ? ' · <strong>low volume – price unreliable</strong>' : ''}</span>
+      <span class="side">${num(p.amount)}/day · ${num(p.coins)}</span></li>`).join('');
+  const bonus = row.speed > 0 ? `speed +${Math.round(row.speed * 100)}%` : 'no speed bonus';
+  return `<div class="panel-head"><h2>${esc(minion.name)}</h2><button type="button" data-act="close" aria-label="Close">${ICONS.close ?? '×'}</button></div>
+<div class="sheet-body">
+  <p class="muted">Tier ${ROMAN[row.tier - 1]} · ${count === 1 ? '1 minion' : `${count} minions`} · ${bonus} · an action every ${plain.format(row.delay)} s</p>
+  <h3>Tiers (same fuel and upgrades)</h3>
+  <table class="tiers"><thead><tr><th>Tier</th><th>Action</th><th>Storage</th><th>Items/day</th><th>Coins/day</th></tr></thead><tbody>${
+    tiers.map((t) => `<tr${t.tier === row.tier ? ' class="on"' : ''}><td>${ROMAN[t.tier - 1]}</td><td>${plain.format(t.delay)} s</td><td>${t.storage}</td><td>${num(t.itemsDay)}</td><td>${num(t.net)}</td></tr>`).join('')}</tbody></table>
+  <h3>What it earns per day</h3>
+  <ul class="coming">${parts || '<li class="muted">No price for any item right now.</li>'}
+    <li><span>Fuel</span><span class="side">${row.fuelCost > 0 ? '−' + num(row.fuelCost) : '–'}</span></li>
+    <li><span>Sold at ${row.best === 'npc' ? 'the NPC' : 'the Bazaar, after tax'}</span><span class="side"><strong class="${gain(row.net)}">${num(row.net)}</strong></span></li>
+  </ul>
+  <p>Storage ${list(row.storage)} items, full after about ${duration(row.fillHours * 3600)}.</p>${row.unsure.length ? `
+  <p class="why">${esc(row.unsure.join(' '))}</p>` : ''}
+  <p class="muted">Source: <a href="${esc(wiki)}" target="_blank" rel="noopener">${esc(minion.name)} on the SkyBlock wiki</a>, details in docs/minions-sources.md.</p>
+  <p><a class="more" href="${esc(itemHref(row.id))}" data-act="close">View item</a></p>
+</div>`;
+}
+
 // The four areas of the bar at the bottom. Trade holds the tabs and the item page; the others are one page each.
 export const AREAS = ['today', 'minions', 'market'];
 export const areaOf = (view) => (AREAS.includes(view) ? view : 'trade');

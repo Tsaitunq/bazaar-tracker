@@ -477,3 +477,16 @@ test('minionCard: coins per day, where to sell, and a mark on numbers that are n
   assert.ok(open.includes('Tier XII (highest)') && open.includes('<span class="big">NPC</span>') && open.includes('not confirmed'));
   assert.ok(open.includes('2 to 5 &#60;per&#62; harvest'));
 });
+
+test('the minion sheet lists every tier and leads to the item', async () => {
+  const { minionDetail } = await import('../minions.js');
+  const { minionSheet } = await import('../render.js');
+  const product = (buy, sell) => ({ sell_summary: [{ pricePerUnit: buy }], buy_summary: [{ pricePerUnit: sell }] });
+  const detail = minionDetail('diamond', { DIAMOND: product(8, 9) }, {}, { tier: 5, count: 2, fuel: 'none', upgrades: ['none', 'none'] }, { tax: 0.0125 });
+  const html = minionSheet(detail, { name: (id) => id, count: 2 });
+  assert.equal(detail.tiers.length, 12);
+  assert.equal((html.match(/<tr/g) ?? []).length, 13); // head and twelve tiers
+  assert.match(html, /<tr class="on"><td>V<\/td>/);
+  assert.match(html, /href="#\/item\/DIAMOND"/);
+  assert.match(html, /hypixelskyblock\.minecraft\.wiki\/w\/Diamond_Minion/);
+});

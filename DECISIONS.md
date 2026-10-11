@@ -739,3 +739,6 @@ Selbstständig getroffen (Auftrag: unbeaufsichtigt, ohne Rückfragen). Spec:
   markiert und hinter die anderen sortiert. Die 20 ist meine Wahl.
 - **Rohpreis darf nicht über den Enchanted-Preis je Stück + 30 % steigen**
   (Craften ist immer möglich); ebenso nicht über den 7-Tage-Median + 30 %.
+- **Teil C:** eigenes `<dialog id="minion-sheet">`, getrennt vom News-Sheet.
+  Die Tier-Tabelle nutzt dieselbe Zeilenrechnung wie die Liste
+  (`minionRow` je Tier), damit Tabelle und Karte nie auseinanderlaufen.

@@ -2,11 +2,11 @@ import { buildFlips, computeFlip, opportunities, portfolio, MAX_SLOTS, statOf, s
 import { npcFlips } from './npc.js';
 import { craftFlips, craftHints } from './craft.js';
 import { forgeFlips, forgeFlip } from './forge.js';
-import { minionRows, FUELS, UPGRADES, MAX_TIER } from './minions.js';
+import { minionRows, minionDetail, FUELS, UPGRADES, MAX_TIER } from './minions.js';
 import { loadItems, fallbackName } from './names.js';
 import { loadStats, loadRecipes, loadForge, loadAh, loadElection, loadTiming, loadHistory } from './data.js';
 import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission } from './native.js';
-import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, trendsView, todayView, minionCard, parseRoute, detailView, portfolioView, warningsView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, viewsFor, areaOf, coins, percent, PLACEHOLDER_ICON } from './render.js';
+import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, trendsView, todayView, minionCard, minionSheet, parseRoute, detailView, portfolioView, warningsView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, viewsFor, areaOf, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
 import { level } from './trends.js';
 import { activePerks, upcoming, electionWindow, eventItems, flipRisks, planElection } from './events.js';
@@ -294,6 +294,19 @@ $('minion-setup').addEventListener('change', () => {
   render();
 });
 $('minion-setup').addEventListener('submit', (e) => e.preventDefault());
+
+// A tap on a minion opens its sheet instead of the raw item; "View item" inside it goes there.
+const minionSetupFull = () => ({ ...minionSetup, upgrades: [minionSetup.up1, minionSetup.up2] });
+bindSheet($('minion-sheet'));
+$('minion-list').addEventListener('click', (e) => {
+  const key = e.target.closest?.('[data-minion]')?.dataset.minion;
+  if (!key || !products) return;
+  e.preventDefault();
+  const detail = minionDetail(key, products, npc, minionSetupFull(), { tax: settings.tax / 100, stats });
+  if (!detail) return;
+  $('minion-sheet').innerHTML = minionSheet(detail, { name: nameOf, count: Math.max(1, minionSetup.count) });
+  openSheet($('minion-sheet'));
+});
 
 // The areas that are one page each. Trade is drawn by renderPage itself.
 function renderArea() {
