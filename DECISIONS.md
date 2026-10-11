@@ -759,3 +759,9 @@ Selbstständig getroffen (Auftrag: unbeaufsichtigt, ohne Rückfragen). Spec:
 - **Teil F:** der Hinweis auf Opportunity-Karten ist kein Link (die Karte ist
   schon einer), sondern ein Button mit `data-craft`; Tippen setzt die Suche
   auf das Endprodukt und öffnet den Craft-Tab. Einsatz = units × buy.
+- **Teil G:** Standardmenge 16 Crafts pro Durchgang (bei 160 Zutaten 2.560
+  Stück: tief genug, um Tiefe zu zeigen, klein genug für eine Sitzung).
+  Die Volumenbegrenzung pro Stunde nimmt die Seite, die der Modus nutzt
+  (Sofortkauf verbraucht Angebote = buyMovingWeek). Der Craft-Tab nutzt jetzt
+  den Volumenfilter der anderen Tabs und blendet suspicious Crafts aus; die
+  Portfolio-Hinweise sind unverändert.

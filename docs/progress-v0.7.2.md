@@ -3,7 +3,7 @@
 Branch `feat/v0.7.2`, one commit per part. Not pushed, not merged.
 
 - [x] F. Craft hint on opportunity cards
-- [ ] G. Craft modes
+- [x] G. Craft modes
 - [ ] H. NPC tab with craft steps
 - [ ] I. Calendar check, "Year of the" countdown
 - [ ] J. Small notes (minion requirements, Derpy tax)
@@ -21,3 +21,13 @@ coins, which is rare.
 F.2: opportunity cards use the same calculation (`craftHints`, stake =
 units × buy) and the same text plus "recipe must be unlocked". A tap sets the
 search to the end product and opens the Craft tab.
+
+## G
+
+`craft.js`: `walkBook` (depth), `CRAFT_MODES`, `craftFlip(... mode, runs, minVolume,
+noSuspicious)`. API sides, checked on a snapshot: `buy_summary` = sell offers,
+cheapest first (instant-buy cost); `sell_summary` = buy orders, highest first
+(instant-sell revenue). Settings `craftMode` (0 to 2) and `craftRuns` (default
+16), filters in the Craft filter sheet. The Craft tab now also hides crafts
+with a suspicious result or ingredient and with a weekly volume below the
+"Vol./week" filter for the result or any ingredient.

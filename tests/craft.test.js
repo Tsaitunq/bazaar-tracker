@@ -94,3 +94,49 @@ test('an opportunity card carries the same hint and opens the end product in the
   // no hint, no extra line
   assert.ok(!flipCard({ ...opp, name: 'Ingredient', sell: 12, profit: 1, margin: 0.1, weekVol: 5 }, false).includes('data-craft'));
 });
+
+// Craft modes. buy_summary are the offers (cheapest first, what an instant buyer pays), sell_summary the buy
+// orders (highest first, what an instant seller gets); the names read backwards, see craft.js.
+const deep = {
+  ING: { sell_summary: [{ amount: 9999, pricePerUnit: 9, orders: 1 }], buy_summary: [{ amount: 200, pricePerUnit: 10, orders: 1 }, { amount: 100000, pricePerUnit: 14, orders: 1 }], quick_status: liquid },
+  OUT: { sell_summary: [{ amount: 5, pricePerUnit: 2000, orders: 1 }, { amount: 1000, pricePerUnit: 1500, orders: 1 }], buy_summary: [{ amount: 10, pricePerUnit: 2200, orders: 1 }], quick_status: liquid },
+};
+const rec = { OUT: { n: 1, i: { ING: 160 } } };
+const mode = (m, runs) => craftFlips(deep, rec, { tax: 0.0125, maxCapital: 0, sort: 'profitHour', mode: m, runs });
+
+test('craft modes: the same recipe at the top of the book, and what the depth does to it', () => {
+  // top of the book, one craft: order buys at 9, sells at the offer 2200; insta buys at 10
+  const [oo] = mode(0, 1);
+  assert.equal(oo.cost, 160 * 9);
+  assert.equal(oo.revenue, 2200 * 0.9875);
+  assert.equal(oo.orders, 2);
+  const [io] = mode(1, 1);
+  assert.equal(io.cost, 1600);
+  assert.equal(io.orders, 1);
+  const [ii] = mode(2, 1);
+  assert.equal(ii.revenue, 2000 * 0.9875);
+  assert.equal(ii.profit, 375);
+  assert.equal(ii.orders, 0);
+  assert.equal(ii.capital, 1600);
+  assert.equal(ii.profitItem, 375);
+  // five crafts: 800 ingredients go 200 at 10 and 600 at 14 (13 on average), and 5 results take the 2000 order
+  const [io5] = mode(1, 5);
+  assert.equal(io5.cost, (200 * 10 + 600 * 14) / 5);
+  assert.equal(io5.capital, 200 * 10 + 600 * 14);
+  // insta-sell of ten results goes through the 2000 and 1500 levels; with the dearer ingredients it loses
+  assert.deepEqual(mode(2, 5), []);
+  // a pass the book cannot fill has no price
+  assert.deepEqual(mode(1, 100000), []);
+  // orders do not look at the depth
+  assert.equal(mode(0, 5)[0].cost, 160 * 9);
+});
+
+test('craft filters: suspicious prices and too little volume hide a craft, without them nothing is filtered', () => {
+  const run = (o) => craftFlips(deep, rec, { tax: 0.0125, maxCapital: 0, sort: 'profitHour', mode: 2, runs: 1, ...o });
+  assert.equal(run({}).length, 1);
+  assert.equal(run({ minVolume: 1e9 }).length, 0);
+  assert.equal(run({ minVolume: 1000 }).length, 1);
+  const thin = { ...deep, ING: { ...deep.ING, quick_status: { ...liquid, buyOrders: 1 } } };
+  assert.equal(craftFlips(thin, rec, { tax: 0.0125, maxCapital: 0, sort: 'profitHour', mode: 2, runs: 1, noSuspicious: true }).length, 0);
+  assert.equal(craftFlips(thin, rec, { tax: 0.0125, maxCapital: 0, sort: 'profitHour', mode: 2, runs: 1 }).length, 1);
+});

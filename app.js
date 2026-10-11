@@ -1,6 +1,6 @@
 import { buildFlips, computeFlip, opportunities, portfolio, MAX_SLOTS, statOf, searchFlip, outsideOpportunities, flipIssues, oppIssues, bySort, planWarnings, trackPlan } from './flips.js';
 import { npcFlips } from './npc.js';
-import { craftFlips, craftHints } from './craft.js';
+import { craftFlips, craftHints, CRAFT_RUNS } from './craft.js';
 import { forgeFlips, forgeFlip } from './forge.js';
 import { minionRows, minionDetail, FUELS, UPGRADES, MAX_TIER } from './minions.js';
 import { loadItems, fallbackName } from './names.js';
@@ -20,7 +20,7 @@ const STATS_TTL = 20 * 60000;
 const CARDS = { flips: flipCard, opps: flipCard, npc: npcCard, craft: craftCard, forge: forgeCard };
 const DEFAULTS = { tax: 1.25, minVolume: 100000, maxCapital: 5000000, interval: 2, share: 5, sort: 'profitHour', favOnly: false, alerts: false, alertMargin: 5,
   marketAlerts: false, marketMargin: 10, marketMinVolume: 100000, marketMinProfit: 100000, marketCooldown: 6, eventAlerts: false, mayorAlerts: false,
-  portfolioCapital: 50000000, portfolioSlots: MAX_SLOTS, portfolioMargin: 3, portfolioTurnover: 1000000000, hotm: 10, forgeAh: true,
+  portfolioCapital: 50000000, portfolioSlots: MAX_SLOTS, portfolioMargin: 3, portfolioTurnover: 1000000000, hotm: 10, forgeAh: true, craftMode: 0, craftRuns: CRAFT_RUNS,
   portfolioDrop: 5, portfolioCooldown: 6, planPriceAlerts: false, planSuspiciousAlerts: false, planElectionAlerts: false, planLeavingAlerts: false };
 const PLAN_ALERTS = ['planPriceAlerts', 'planSuspiciousAlerts', 'planElectionAlerts', 'planLeavingAlerts'];
 
@@ -29,7 +29,7 @@ const load = (key, fallback) => { try { return JSON.parse(localStorage.getItem(k
 const save = (key, value) => { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} };
 
 // the fields of the panel; they take effect together, on Apply
-const FIELDS = ['tax', 'interval', 'share', 'minVolume', 'maxCapital', 'alertMargin', 'marketMargin', 'marketMinVolume', 'marketMinProfit', 'marketCooldown', 'portfolioCapital', 'portfolioSlots', 'portfolioMargin', 'portfolioTurnover', 'hotm', 'portfolioDrop', 'portfolioCooldown'];
+const FIELDS = ['tax', 'interval', 'share', 'minVolume', 'maxCapital', 'alertMargin', 'marketMargin', 'marketMinVolume', 'marketMinProfit', 'marketCooldown', 'portfolioCapital', 'portfolioSlots', 'portfolioMargin', 'portfolioTurnover', 'hotm', 'portfolioDrop', 'portfolioCooldown', 'craftMode', 'craftRuns'];
 const settings = { ...DEFAULTS, ...load('bt.settings', {}) };
 // A stored interval of 0 would refresh in a tight loop, so bad values fall back to defaults.
 function sanitize() {
@@ -54,6 +54,9 @@ function sanitize() {
   settings.hotm = Math.floor(settings.hotm);
   if (!(settings.hotm >= 0 && settings.hotm <= 10)) settings.hotm = DEFAULTS.hotm;
   settings.forgeAh = settings.forgeAh !== false;
+  if (![0, 1, 2].includes(settings.craftMode)) settings.craftMode = DEFAULTS.craftMode;
+  settings.craftRuns = Math.floor(settings.craftRuns);
+  if (!(settings.craftRuns >= 1 && settings.craftRuns <= 10000)) settings.craftRuns = DEFAULTS.craftRuns;
   if (!(settings.portfolioDrop > 0 && settings.portfolioDrop <= 90)) settings.portfolioDrop = DEFAULTS.portfolioDrop;
   if (!(settings.portfolioCooldown > 0 && settings.portfolioCooldown <= 168)) settings.portfolioCooldown = DEFAULTS.portfolioCooldown;
   for (const key of PLAN_ALERTS) settings[key] = settings[key] === true;
@@ -165,7 +168,7 @@ function compute(v) {
   else if (v === 'opps') list = opportunities(products, oppOpts());
   else if (v === 'npc') list = npcFlips(products, npc, opts);
   else if (v === 'forge') list = forge ? forgeFlips(products, forge, ah, opts) : [];
-  else list = recipes ? craftFlips(products, recipes, opts) : [];
+  else list = recipes ? craftFlips(products, recipes, { ...opts, mode: settings.craftMode, runs: settings.craftRuns, noSuspicious: true }) : [];
   for (const f of list) {
     decorate(f);
     for (const i of f.ingredients ?? []) i.name = nameOf(i.id);

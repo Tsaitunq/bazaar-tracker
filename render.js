@@ -123,7 +123,10 @@ export const craftCard = (f, isFav) => card(f, isFav, false, [
   fact('Cost', num(f.cost)),
   fact('Revenue', num(f.revenue)),
   fact('Profit/craft', num(f.profit), gain(f.profit)),
+  fact('Profit/item', num(f.profitItem ?? f.profit / f.n), gain(f.profit)),
   fact('Crafts/h', num(f.craftsHour)),
+  fact('Orders', String(f.orders ?? f.ingredients.length + 1)),
+  fact('Capital', num(f.capital ?? f.cost)),
 ], ingredientList(f));
 
 // 21600 -> "6h", 5400 -> "1h 30m": the two largest units are enough for a forge time
@@ -164,7 +167,7 @@ export const FILTERS = {
   flips: ['minVolume', 'maxCapital'],
   opps: ['marketMargin', 'marketMinVolume', 'marketMinProfit', 'maxCapital'],
   npc: ['minVolume', 'maxCapital'],
-  craft: ['maxCapital'],
+  craft: ['craftMode', 'craftRuns', 'maxCapital'],
   forge: ['hotm', 'maxCapital'],
 };
 export const activeFilters = (tab, settings, defaults) => (FILTERS[tab] ?? []).filter((key) => settings[key] !== defaults[key]);
@@ -175,6 +178,8 @@ const FILTER_TEXT = {
   marketMinVolume: (v) => `Vol./week ≥ ${num(v)}`,
   marketMinProfit: (v) => `Profit/h ≥ ${num(v)}`,
   hotm: (v) => `HotM ≤ ${v}`,
+  craftMode: (v) => ['Order → Order', 'Insta-buy → Order', 'Insta-buy → Insta-sell'][v],
+  craftRuns: (v) => `${v} crafts per pass`,
 };
 // One chip per active filter (keys from activeFilters); its X puts the filter back to the default.
 export const filterChips = (keys, settings) => keys.map((key) => {

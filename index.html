@@ -87,6 +87,18 @@
         <input id="maxCapital" type="number" min="0" step="1" inputmode="numeric">
         <small>Coins you are willing to put into one item. Limits the units per hour and hides items that cost more. The portfolio never gives one flip more than this either. 0 means no limit.</small>
       </label>
+      <label class="pro">Craft mode
+        <select id="craftMode">
+          <option value="0">Order → Order</option>
+          <option value="1">Insta-buy → Order</option>
+          <option value="2">Insta-buy → Insta-sell</option>
+        </select>
+        <small>How the Craft tab buys the ingredients and sells the result. Buying or selling at once goes through the book level by level, so a big pass costs more per item.</small>
+      </label>
+      <label class="pro">Crafts per pass
+        <input id="craftRuns" type="number" min="1" max="10000" step="1" inputmode="numeric">
+        <small>How many crafts you do in one go. It decides how deep an instant buy or sell reaches into the book.</small>
+      </label>
     </fieldset>
 
     <fieldset class="pro">
