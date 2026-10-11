@@ -6,7 +6,8 @@
       "entries": [
         { "title": "Patterns from history", "text": "The mayor and event radar now has price patterns from the history back to 2020, so many of them are confirmed at once; they say when they rest on historical data.", "target": "#radar", "route": "#/market" },
         { "title": "Fishing Festival over the whole term", "text": "Marina is measured over her whole term, with the shark teeth, Shark Fin, Shark Bait and Great White Tooth Meal.", "target": "#radar", "route": "#/market" },
-        { "title": "Buy and sell windows", "text": "For items around a mayor term or event the app now says when the price is usually lowest and when highest, the gain after tax and how often it paid; the Market area, the item page and Today show it.", "target": "#radar", "route": "#/market" }
+        { "title": "Buy and sell windows", "text": "For items around a mayor term or event the app now says when the price is usually lowest and when highest, the gain after tax and how often it paid; the Market area, the item page and Today show it.", "target": "#radar", "route": "#/market" },
+        { "title": "Drivers and roles", "text": "The effects are grouped by mayor or event, each item shows whether it is supply, demand or a shop item, measured where there is history, and the windows show the weekly volume and warn about thin markets.", "target": "#effects-q", "route": "#/market" }
       ]
     },
     {

@@ -141,3 +141,72 @@ in it); 12 runs are a few weeks.
 Today notice (`buyNow`) on the data branch's election (Paul, at the time of
 writing): Precursor Gear and Fuming Potato Book are in their buy phase now,
 Wither Blood and Carrot Zest (Harvest Feast) within a day.
+
+## Drivers, roles, new items and volume
+
+**Driver, not perk.** Lists name the mayor or the event: "Paul – more dungeon
+players" (the wiki states the perk, the reading that more dungeon players move
+the market is ours), "Finnegan – more Garden visitors", and the perk only where
+it starts the event: Mythological Ritual (Diana), Fishing Festival (Marina),
+Mining Fiesta (Cole), Stock Exchange (Diaz), Grand Feast (Finnegan). "Mayor &
+event effects" is grouped by driver with a heading per group.
+
+**Role per item** (badge Supply / Demand / Shop; the measured change before to
+during decides, the expectation only picks shop over supply and stands in when
+nothing was measured; "(measured)" marks an overruled expectation):
+
+| Driver | Item | Expected | Measured (before → during) | Role | Recovers after |
+|---|---|---|---|---|---|
+| Fishing Festival (Marina) | Shark Bait | demand | −54% | supply (measured) | no |
+| Jerry's Workshop | Ice Bait | demand | +35% | demand | yes |
+| Jerry's Workshop | White Gift | shop | −9% | shop | no |
+| Jerry's Workshop | Green Gift | shop | −14% | shop | no |
+| Jerry's Workshop | Red Gift | shop | −2% | shop | no |
+| Jerry's Workshop | Looting IV (book) | shop | −14% | shop | no |
+| Jerry's Workshop | Luck VI (book) | shop | −31% | shop | no |
+| Jerry's Workshop | Scavenger IV, Magic Top Hat, Winter Fragment | shop | 0% | shop (flat) | no |
+| Mythological Ritual (Diana) | King Minos Shard | supply | +2% | demand (measured, weak) | yes |
+| Harvest Feast | Deepfries | supply | +2% | demand (measured, weak) | yes |
+| Grand Feast | Feast Flask | supply | +12% | demand (measured, 3 runs) | yes |
+
+Every other item (Marauder, Ritual, Festival, Spooky, Feast, Workshop, Stock
+Exchange, Blooming Business items) measured as expected: cheaper while the
+driver runs. Only Ice Bait is dearer while its event runs among the Workshop
+items. "Recovers" is the change from the term or event to the 24 h after it.
+
+**New items** (wiki pages Einary and Jerry's Workshop; backfilled for these
+items only, 78 requests, one process, one a second): `ENCHANTMENT_LOOTING_4`,
+`ENCHANTMENT_SCAVENGER_4`, `ENCHANTMENT_LUCK_6`, `MAGIC_TOP_HAT`,
+`WINTER_FRAGMENT`. All Gifts on the Bazaar (White, Green, Red) were in already,
+the Golden Gift has no Bazaar id. Not added: the rest of Einary's shop and
+the Gift rewards are Auction House items ("AH – later" in
+`docs/events-sources.md`). For Paul no Bazaar consumable has a source: the wiki
+only says "Dungeon potions consumed during the run", so no demand item was
+added. The Packrat Shard (Mining Fiesta) had no data for the window.
+
+**Top 10 now** (tax 1.25%, weekly volume from the Bazaar snapshot of
+2026-10-11; "low" is under 1,000 a week):
+
+| # | Driver | Item | Buy around | Sell around | Gain | Hits | Vol./week |
+|---|---|---|---|---|---|---|---|
+| 1 | Paul – more dungeon players | Necromancer's Brooch | day 5 of the term | 3 days after | +160% | 10/12 | 9,713 |
+| 2 | Paul – more dungeon players | Dark Orb | day 5 | 3 days after | +52% | 11/12 | 5,684 |
+| 3 | Jerry's Workshop | Looting IV | 1 day after | 3 days after | +46% | 8/12 | 4,714 |
+| 4 | Mythological Ritual (Diana) | Fateful Stinger | day 3 | 2 days after | +35% | 8/8 | 754 – **low volume, hard to fill** |
+| 5 | Mythological Ritual (Diana) | Ancient Claw | day 3 | 3 days after | +34% | 8/11 | 845,127 |
+| 6 | Grand Feast | Melon Juice | day 4 | 2 days after | +27% | 3/3 (3 runs) | 45,752 |
+| 7 | Jerry's Workshop | Green Gift | 1 day after | 3 days after | +27% | 9/12 | 398,951 |
+| 8 | Spooky Festival | Pumpkin Guts | during | 2 days after | +26% | 9/11 | 4,279 |
+| 9 | Grand Feast | Designer Coffee Beans | 1 day after | 3 days after | +25% | 2/3 (3 runs) | 41,862 |
+| 10 | Jerry's Workshop | White Gift | 1 day after | 3 days after | +22% | 8/12 | 606,241 |
+
+**Did the top 10 change?** Yes, by one: Looting IV from Einary's list enters at
+3, the new window (26 instead of 25 in all); Soul Fragment (+19%) drops to
+11. No other window changed. Of the new shop items only Looting IV has a
+window; Luck VI falls 31% during the Workshop but does not recover in three
+days, and Magic Top Hat (44 a week), Winter Fragment (560) and Scavenger IV
+(411) are too thin to show anything.
+
+Caveat: "buy around 1 day after the event" for the Workshop gifts is a
+market-wide pattern over twelve runs in two months; at 400k to 600k a week the
+gifts are liquid, Fateful Stinger is not.
