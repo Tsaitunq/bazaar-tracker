@@ -231,6 +231,10 @@ body:not([data-area="today"]) #today, body:not([data-area="minions"]) #minions, 
 .coming li { padding: 8px 0; }
 .coming li small { display: block; color: var(--muted); font-size: 12px; }
 .coming a { color: var(--text); }
+/* in a sheet the lines are plain rows: the name on the left, the amounts on the right */
+.sheet .coming { list-style: none; margin: 0 0 8px; padding: 0; }
+.sheet .coming li { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; border-bottom: 1px solid var(--line); }
+.sheet .coming .side { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 /* portfolio: the plan at the top of the Opportunities tab */
 .portfolio { margin: 4px 0 16px; padding: 12px; background: var(--card); border: 1px solid var(--accent); border-radius: 12px; max-width: 720px; }

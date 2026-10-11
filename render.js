@@ -506,9 +506,31 @@ export const minionCard = (row, { name = (id) => id } = {}) => `<li class="card 
   </div>
 </li>`;
 
+// The Inferno Minion's fuel: two choices (the grade, and the Distillate that decides what the minion makes),
+// what a piece costs, the rare drops with their odds, and the choice that earns most right now.
+// The selects carry data-inferno; app.js stores the value and opens the sheet again.
+function infernoBlock({ row, inferno, setup, name, count }) {
+  const pick = (kind, list, current) => `<select data-inferno="${kind}">${list.map((o) => `<option value="${esc(o.key)}"${o.key === current ? ' selected' : ''}>${esc(o.name)}</option>`).join('')}</select>`;
+  const odds = Object.fromEntries(inferno.rare.map((r) => [r.id, r.odds]));
+  const fuel = row.infernoFuel;
+  const rare = row.parts.filter((p) => odds[p.id]);
+  const b = inferno.best;
+  const label = (o) => `${inferno.fuels.find((f) => f.key === o.infFuel).name}${o.infFuel === 'none' ? '' : ' with ' + inferno.specialties.find((x) => x.key === o.infSpec).name}`;
+  return `<h3>Inferno fuel</h3>
+  <div class="setup">
+    <label>Fuel ${pick('fuel', inferno.fuels, setup.infFuel ?? 'none')}</label>
+    <label>Distillate ${pick('spec', inferno.specialties, setup.infSpec ?? 'crude')}</label>
+  </div>
+  <ul class="coming">${fuel?.parts.length ? fuel.parts.map((l) => `<li><span>${esc(name(l.id))} <small>${l.price === null ? '<strong>not on Bazaar</strong>' : `${num(l.price)} each`}</small></span><span class="side">${num(l.amount)} · ${l.price === null ? '–' : num(l.coins)}</span></li>`).join('') : '<li class="muted">No fuel: nothing is used up.</li>'}
+    <li><span>Fuel per day and minion${fuel?.parts.length && fuel.fuel.startsWith('Legendary') ? ' (after the Ionized Ceramics it leaves)' : ''}</span><span class="side"><strong class="loss">${row.fuelCost > 0 ? '−' + num(row.fuelCost / count) : '–'}</strong></span></li>
+  </ul>
+  ${rare.length ? `<p class="muted">Rare drops of Legendary fuel, one roll per harvest:</p><ul class="coming">${rare.map((p) => `<li><span>${esc(name(p.id))} <small>1 in ${num(odds[p.id])}${p.low ? ' · <strong>price unreliable</strong>' : ''}</small></span><span class="side">${p.amount < 0.1 ? p.amount.toPrecision(2) : plain.format(p.amount)}/day · ${num(p.coins)}</span></li>`).join('')}</ul>` : ''}
+  <p class="muted">Best right now at this tier: ${b ? `${esc(label(b))}, ${num(b.net)} coins/day${b.net > 0 && b.payback !== null ? ', pays back in ' + paybackText(b.payback, row.cost.missing.length > 0) : ''}.` : '–'}</p>`;
+}
+
 // The sheet of one minion. detail comes from minionDetail; name turns an item id into its name.
 const KINDS = { raw: 'raw', enchanted: 'enchanted', block: 'block (second step)' };
-export function minionSheet({ minion, row, tiers }, { name, count }) {
+export function minionSheet({ minion, row, tiers, inferno = null }, { name, count, setup = {} }) {
   const list = (x) => esc(x.toLocaleString('en-US', { maximumFractionDigits: 1 }));
   const wiki = 'https://hypixelskyblock.minecraft.wiki/w/' + minion.name.replace(/ /g, '_');
   const parts = row.parts.map((p) => `<li><span>${esc(name(p.id))} <small>${KINDS[p.kind]} · ${num(p.price)} each${p.low ? ' · <strong>price unreliable</strong>' : ''}</small></span>
@@ -518,6 +540,7 @@ export function minionSheet({ minion, row, tiers }, { name, count }) {
 <div class="sheet-body">
   <p class="muted">Tier ${ROMAN[row.tier - 1]} · ${count === 1 ? '1 minion' : `${count} minions`} · ${bonus} · an action every ${plain.format(row.delay)} s</p>
   ${row.requires ? `<p class="${row.locked ? 'why' : 'muted'}">Requires ${esc(row.requires)} (wiki).${row.locked ? ' Not yet reached at your levels.' : ''}</p>` : ''}
+  ${inferno ? infernoBlock({ row, inferno, setup, name, count }) : ''}
   <h3>Tiers (same fuel and upgrades)</h3>
   <table class="tiers"><thead><tr><th>Tier</th><th>Action</th><th>Storage</th><th>Items/day</th><th>Coins/day</th><th>Upgrade cost</th><th>Upgrade pays back in</th></tr></thead><tbody>${
     tiers.map((t) => `<tr${t.tier === row.tier ? ' class="on"' : ''}><td>${ROMAN[t.tier - 1]}</td><td>${plain.format(t.delay)} s</td><td>${t.storage}</td><td>${num(t.itemsDay)}</td><td>${num(t.net)}</td>${

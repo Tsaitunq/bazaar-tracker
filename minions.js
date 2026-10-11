@@ -87,8 +87,68 @@ export const MINIONS = [
       { id: 'PRISMARINE_SHARD', qty: 0.02734, compact: ['ENCHANTED_PRISMARINE_SHARD', SC] },
       { id: 'SPONGE', qty: 0.02734, compact: ['ENCHANTED_SPONGE', 40] },
     ] },
+  // Wiki (Inferno Minion): 1013 s at tier I down to 697 s at tier XI, no tier XII. One Crude Gabagool per harvest;
+  // the fuel, its specialty and the rare drops are INFERNO_* below. The wiki's own check: tier I = 42.65 a day.
+  { key: 'inferno', name: 'Inferno Minion', inferno: true, delays: [1013, 982, 950, 919, 886, 855, 823, 792, 760, 728, 697],
+    requires: { slayer: 'blaze', min: 3, name: 'Blaze Slayer', text: 'Blaze Slayer III (to craft and upgrade; the minion can be traded and used without it)' },
+    drops: [{ id: 'CRUDE_GABAGOOL', qty: 1, compact: ['VERY_CRUDE_GABAGOOL', 192] }] },
 ].map((m) => ({ ...m, storage: (m.storageList ?? STORAGE).slice(0, m.delays.length) }));
 export const MAX_TIER = 12;
+
+// The Inferno Minion's own fuel (wiki: Inferno Minion Fuel). One piece lasts 24 hours and is made of one Gabagool,
+// 2 Inferno Fuel Blocks and 6 Distillates; the Distillate picks what the minion makes instead of Crude Gabagool in
+// 80% of the harvests. speed: the multiplier the page names (10x, 15x, 20x); the wiki's Bugs section says the
+// game applies 1 more (11x, 16x, 21x) and that is what is used. Only LEGENDARY fuel gives the rare drops.
+export const INFERNO_FUELS = [
+  { key: 'none', name: 'No fuel' },
+  { key: 'rare', name: 'Rare fuel (10x)', gabagool: 'FUEL_GABAGOOL', speed: 10 },
+  { key: 'epic', name: 'Epic fuel (15x)', gabagool: 'HEAVY_GABAGOOL', speed: 15 },
+  { key: 'legendary', name: 'Legendary fuel (20x)', gabagool: 'HYPERGOLIC_GABAGOOL', speed: 20, rare: true },
+];
+// amount: items per specialty harvest. The wiki gives ranges for three; their middle is used (marked unsure).
+export const INFERNO_SPECIALTIES = [
+  { key: 'crude', name: 'Crude Gabagool', distillate: 'CRUDE_GABAGOOL_DISTILLATE', id: 'CRUDE_GABAGOOL', amount: 1, compact: ['VERY_CRUDE_GABAGOOL', 192] },
+  { key: 'blaze', name: 'Blaze Rod', distillate: 'BLAZE_ROD_DISTILLATE', id: 'BLAZE_ROD', amount: 1, compact: ['ENCHANTED_BLAZE_POWDER', SC] },
+  { key: 'magma', name: 'Magma Cream (1 to 3)', distillate: 'MAGMA_CREAM_DISTILLATE', id: 'MAGMA_CREAM', amount: 2, compact: ['ENCHANTED_MAGMA_CREAM', SC], range: true },
+  { key: 'wart', name: 'Nether Wart (3 to 7)', distillate: 'NETHER_STALK_DISTILLATE', id: 'NETHER_STALK', amount: 5, compact: ['ENCHANTED_NETHER_STALK', SC], range: true },
+  { key: 'glow', name: 'Glowstone Dust (2 to 3)', distillate: 'GLOWSTONE_DUST_DISTILLATE', id: 'GLOWSTONE_DUST', amount: 2.5, compact: ['ENCHANTED_GLOWSTONE_DUST', SC], range: true },
+];
+export const INFERNO_REPLACE = 0.8;
+export const INFERNO_FUEL_BLOCKS = 2;
+export const INFERNO_DISTILLATES = 6;
+// Rare drops of LEGENDARY fuel, one roll per harvest: one in `odds`. Read off the Inferno Minion Fuel page; the
+// Inferno Minion page lists the same five numbers in the same order with one row label missing.
+export const INFERNO_RARE = [
+  { id: 'CHILI_PEPPER', odds: 136 }, { id: 'INFERNO_VERTEX', odds: 5950 }, { id: 'INFERNO_APEX', odds: 1309091 },
+  { id: 'REAPER_PEPPER', odds: 458182 }, { id: 'GABAGOOL_THE_FISH', odds: 3927273 },
+];
+// A rare item that fewer than this many change hands in a week has no price one can rely on (the app's own rule).
+export const RARE_MIN_WEEK = 100;
+// Rising Celsius: "Each Inferno Minion increases the speed of ALL Inferno Minions by 18%, up to 180%".
+export const RISING_CELSIUS = 0.18;
+export const RISING_CELSIUS_CAP = 1.8;
+// What a piece of LEGENDARY fuel leaves when it runs out.
+export const INFERNO_LEFTOVER = 'HYPERGOLIC_IONIZED_CERAMICS';
+const INFERNO_RARE_IDS = new Set(INFERNO_RARE.map((r) => r.id));
+const INFERNO_NOTES = [
+  'Inferno fuel: the wiki says the 10x, 15x and 20x of the fuel are really 11x, 16x and 21x (a bug on its page); the effective values are used.',
+  'Rising Celsius (+18% per Inferno Minion placed, up to 180%) is counted for the number of minions you place and added to the upgrades before the fuel multiplies; the wiki does not say whether a lone minion counts itself.',
+  'Capsaicin Eyedrops (+30% rare drops for 24 hours) are not counted.',
+];
+
+// The drops of a minion for a setup. Only the Inferno Minion changes with its fuel: 20% of the harvests stay
+// Crude Gabagool and 80% become the Distillate's item; LEGENDARY fuel adds the rare drops.
+function dropsOf(minion, setup) {
+  if (!minion.inferno) return minion.drops;
+  const fuel = byKey(INFERNO_FUELS, setup.infFuel);
+  if (!fuel.gabagool) return minion.drops;
+  const spec = byKey(INFERNO_SPECIALTIES, setup.infSpec);
+  const drops = spec.id === 'CRUDE_GABAGOOL' ? minion.drops : [
+    { ...minion.drops[0], qty: 1 - INFERNO_REPLACE },
+    { id: spec.id, qty: INFERNO_REPLACE * spec.amount, compact: spec.compact, unsure: spec.range ? `The wiki gives a range for ${spec.id}; its middle is used.` : undefined },
+  ];
+  return fuel.rare ? [...drops, ...INFERNO_RARE.map((r) => ({ id: r.id, qty: 1 / r.odds, compact: [r.id, 1], rare: true }))] : drops;
+}
 
 // A minion that needs a Slayer level (wiki: Tarantula "Spider Slayer V (5)", tier XII "IX (9)"; Revenant the
 // same with Zombie Slayer). setup.spider and setup.zombie are the player's levels; a missing one counts as 9,
@@ -99,7 +159,7 @@ export function minionLocked(minion, setup) {
   const req = minion.requires;
   if (!req?.slayer) return false;
   const level = setup[req.slayer] ?? 9;
-  return level < ((Math.floor(setup.tier) || 1) >= 12 ? SLAYER_TIER_XII : SLAYER_TIER_I);
+  return level < (req.min ?? ((Math.floor(setup.tier) || 1) >= 12 ? SLAYER_TIER_XII : SLAYER_TIER_I));
 }
 
 // speed: added to the minion's speed (0.25 = 25%). mult: every item is generated this many times instead.
@@ -132,22 +192,28 @@ const byKey = (list, key) => list.find((x) => x.key === key) ?? list[0];
 // What one minion generates per day: { tier, items: { itemId: amount }, storage, unsure: [notes] }.
 // setup: { tier: 1 to 12, fuel: key, upgrades: [key, key] }. A tier the minion does not have becomes its highest.
 // Speed bonuses add up and shorten the time between actions: time = base / (1 + bonus).
-export function minionYield(minion, { tier = 1, fuel = 'none', upgrades = [] } = {}) {
+export function minionYield(minion, setup = {}) {
+  const { tier = 1, fuel = 'none', upgrades = [] } = setup;
   const t = Math.min(Math.max(1, Math.floor(tier) || 1), minion.delays.length);
   const fuelUsed = byKey(FUELS, fuel);
   const used = upgrades.map((key) => byKey(UPGRADES, key));
   const has = (key) => used.some((u) => u.key === key);
-  const speed = (fuelUsed.speed ?? 0) + used.reduce((sum, u) => sum + (u.speed ?? 0), 0);
-  const mult = fuelUsed.mult ?? 1;
+  const upgradeSpeed = used.reduce((sum, u) => sum + (u.speed ?? 0), 0);
+  // the Inferno Minion has its own fuel, which multiplies after Rising Celsius and the upgrades
+  const inferno = minion.inferno ? byKey(INFERNO_FUELS, setup.infFuel) : null;
+  const rising = inferno ? Math.min(RISING_CELSIUS_CAP, RISING_CELSIUS * Math.max(1, Math.floor(setup.count) || 1)) : 0;
+  const speed = inferno ? (1 + rising + upgradeSpeed) * (1 + (inferno.speed ?? 0)) - 1 : (fuelUsed.speed ?? 0) + upgradeSpeed;
+  const mult = inferno ? 1 : fuelUsed.mult ?? 1;
+  const drops = dropsOf(minion, setup);
   const harvests = DAY_S / ((minion.actions ?? ACTIONS_PER_HARVEST) * minion.delays[t - 1] / (1 + speed));
 
-  const unsure = [...minion.drops.map((d) => d.unsure), minion.note].filter(Boolean);
+  const unsure = [...drops.map((d) => d.unsure), minion.note, ...(inferno ? INFERNO_NOTES : [])].filter(Boolean);
   const raw = {};
-  for (const d of minion.drops) raw[d.id] = (raw[d.id] ?? 0) + d.qty * harvests * mult;
-  const compact = Object.fromEntries(minion.drops.map((d) => [d.id, d.compact]));
+  for (const d of drops) raw[d.id] = (raw[d.id] ?? 0) + d.qty * harvests * mult;
+  const compact = Object.fromEntries(drops.map((d) => [d.id, d.compact]));
   if (has('spreading')) {
     // per item collected, so a minion that harvests four items at once gets four chances
-    const collected = minion.drops.reduce((sum, d) => sum + d.qty, 0) * harvests;
+    const collected = drops.filter((d) => !d.rare).reduce((sum, d) => sum + d.qty, 0) * harvests;
     raw.DIAMOND = (raw.DIAMOND ?? 0) + collected * SPREADING_CHANCE;
     compact.DIAMOND = ['ENCHANTED_DIAMOND', 160];
     if (mult > 1) unsure.push(SPREADING_WITH_MULT);
@@ -170,14 +236,14 @@ const BLOCKS = {
   ENCHANTED_WHEAT: ['ENCHANTED_HAY_BALE', 160], ENCHANTED_SEEDS: ['BOX_OF_SEEDS', 160],
   ENCHANTED_CARROT: ['ENCHANTED_GOLDEN_CARROT', 160], ENCHANTED_POTATO: ['ENCHANTED_BAKED_POTATO', 160],
   ENCHANTED_CACTUS_GREEN: ['ENCHANTED_CACTUS', 160], ENCHANTED_GLOWSTONE_DUST: ['ENCHANTED_GLOWSTONE', 160],
-  ENCHANTED_SPONGE: ['ENCHANTED_WET_SPONGE', 40],
+  ENCHANTED_SPONGE: ['ENCHANTED_WET_SPONGE', 40], ENCHANTED_BLAZE_POWDER: ['ENCHANTED_BLAZE_ROD', 160],
 };
 // A form counts as thin when its weekly volume is less than this many times what the minions make in a week.
 export const LOW_VOLUME_FACTOR = 20;
 // raw item -> [enchanted item, how many make one], to tell a raw price that no one could really get
-const COMPACT_OF = Object.fromEntries(MINIONS.flatMap((m) => m.drops.map((d) => [d.id, d.compact])));
+const COMPACT_OF = Object.fromEntries([...MINIONS.flatMap((m) => m.drops.map((d) => [d.id, d.compact])), ...INFERNO_SPECIALTIES.map((x) => [x.id, x.compact])]);
 // ids a minion drops as they are; everything else the calculator prices is an enchanted item or a block
-const RAW_IDS = new Set(MINIONS.flatMap((m) => m.drops.map((d) => d.id)));
+const RAW_IDS = new Set([...MINIONS.flatMap((m) => m.drops.map((d) => d.id)), ...INFERNO_SPECIALTIES.map((x) => x.id)]);
 const weekVolume = (p) => { const q = p?.quick_status; return q ? Math.min(q.buyMovingWeek, q.sellMovingWeek) : null; };
 
 // Sells perDay of one item at the Bazaar: the item itself or, with a Super Compactor 3000, the block of it,
@@ -204,7 +270,7 @@ function bestForm(id, perDay, products, { tax, stats, count }) {
     const wide = topOffer * (1 - tax) / price - 1 > 2;
     options.push({ form, id: fid, amount, price: spike ? cap : price, coins: amount * (spike ? cap : price) * (1 - tax), spike,
       kind: kinds.has(fid) ? 'raw' : form === 'block' ? 'block' : 'enchanted',
-      low: wide || (vol !== null && vol < LOW_VOLUME_FACTOR * amount * count * 7) });
+      low: wide || (vol !== null && vol < LOW_VOLUME_FACTOR * amount * count * 7) || (INFERNO_RARE_IDS.has(fid) && vol !== null && vol < RARE_MIN_WEEK) });
   }
   const sorted = options.sort((x, y) => y.coins - x.coins);
   return sorted.find((o) => !o.low) ?? sorted[0] ?? null;
@@ -238,6 +304,24 @@ function setupItems(setup, fuel) {
   return items;
 }
 
+// What one piece of Inferno fuel costs (it lasts a day), at the lowest sell offers: the Gabagool, 2 Fuel Blocks
+// and 6 Distillates, minus the Ionized Ceramics a LEGENDARY piece leaves (sold to the highest buy order, after
+// tax). { perDay, parts: [{ id, amount, price }], unsure } per minion; perDay is 0 without fuel.
+function infernoFuelCost(setup, products, tax) {
+  const fuel = byKey(INFERNO_FUELS, setup.infFuel);
+  if (!fuel.gabagool) return { perDay: 0, parts: [], unsure: [] };
+  const spec = byKey(INFERNO_SPECIALTIES, setup.infSpec);
+  const need = { [fuel.gabagool]: 1, INFERNO_FUEL_BLOCK: INFERNO_FUEL_BLOCKS, [spec.distillate]: INFERNO_DISTILLATES };
+  const priced = priceItems(need, products);
+  const unsure = priced.missing.map((id) => `No sell offer for ${id} right now; the fuel cost is missing it.`);
+  let perDay = priced.coins;
+  if (fuel.rare) {
+    const back = products[INFERNO_LEFTOVER]?.sell_summary?.[0]?.pricePerUnit;
+    if (back > 0) perDay -= back * (1 - tax);
+  }
+  return { perDay, parts: priced.lines, unsure, fuel: fuel.name, specialty: spec.name };
+}
+
 // Every minion with the same setup, the one that earns most first, minions that rely on a thin market last.
 // setup: as for minionYield, plus count (minions placed). npc: NPC sell price per item id. tax: fraction.
 // stats: the app's stats (7 day medians) or null. Per row, for all `count` minions and per day: bazaar (sold to
@@ -257,7 +341,8 @@ export function minionRows(products, npc, setup, { tax, stats = null }) {
 // coins per day after tax, low) and delay (seconds between two actions with the speed bonus).
 export function minionRow(minion, products, npc, setup, { tax, stats = null }) {
   const count = Math.max(1, Math.floor(setup.count) || 1);
-  const fuel = byKey(FUELS, setup.fuel);
+  // the Inferno Minion takes its own fuel, not one of FUELS
+  const fuel = minion.inferno ? FUELS[0] : byKey(FUELS, setup.fuel);
   const fuelPrice = fuel.hours ? (products[fuel.id] && bookPrices(products[fuel.id])?.sell) ?? null : 0;
   const made = minionYield(minion, setup);
   const unsure = [...made.unsure];
@@ -269,14 +354,22 @@ export function minionRow(minion, products, npc, setup, { tax, stats = null }) {
     else {
       bazaar += sold.coins;
       parts.push({ id: sold.id, amount: sold.amount * count, form: sold.form, kind: sold.kind, price: sold.price, coins: sold.coins * count, low: sold.low });
-      if (sold.low) { lowVolume.push(sold.id); unsure.push(`Low volume – price unreliable: ${sold.id} trades too little for this amount, or its book is far apart.`); }
+      // a thin rare drop is marked but does not push the whole minion down the list
+      if (sold.low && INFERNO_RARE_IDS.has(sold.id)) unsure.push(`Price unreliable: ${sold.id} changes hands less than ${RARE_MIN_WEEK} times a week.`);
+      else if (sold.low) { lowVolume.push(sold.id); unsure.push(`Low volume – price unreliable: ${sold.id} trades too little for this amount, or its book is far apart.`); }
       if (sold.spike) unsure.push(`${sold.id} is far above its 7 day median or above its enchanted form; counted at that value.`);
     }
     npcCoins += amount * (npc[id] ?? 0);
     perDay += amount;
   }
   if (fuelPrice === null) unsure.push(`No sell offer for ${fuel.name} right now; its cost is missing.`);
-  const fuelCost = fuel.hours ? (24 / fuel.hours) * (fuelPrice ?? 0) : 0;
+  let fuelCost = fuel.hours ? (24 / fuel.hours) * (fuelPrice ?? 0) : 0;
+  let infernoFuel = null;
+  if (minion.inferno) {
+    infernoFuel = infernoFuelCost(setup, products, tax);
+    fuelCost = infernoFuel.perDay;
+    unsure.push(...infernoFuel.unsure);
+  }
   const best = npcCoins > bazaar ? 'npc' : 'bazaar';
   const net = (Math.max(bazaar, npcCoins) - fuelCost) * count;
   // what it costs to have it: every step up to the tier, upgrades and a permanent fuel, for all `count` minions
@@ -295,6 +388,7 @@ export function minionRow(minion, products, npc, setup, { tax, stats = null }) {
     // days until the coins are earned back; null when the minion earns nothing after fuel
     payback: net > 0 ? cost.total / net : null,
     itemsDay: perDay * count, fillHours: made.storage / (perDay / 24), storage: made.storage, delay: made.delay, speed: made.speed,
+    infernoFuel, rare: parts.filter((p) => INFERNO_RARE_IDS.has(p.id)).reduce((sum, p) => sum + p.coins, 0),
     unsure, lowVolume, parts, fuelPermanent: !!fuel.id && !fuel.hours, requires: minion.requires?.text ?? null, locked: minionLocked(minion, setup),
   };
 }
@@ -309,5 +403,14 @@ export function minionDetail(key, products, npc, setup, opts) {
     const gain = i > 0 ? r.net - rows[i - 1].net : r.net;
     return { ...r, upgrade: i > 0 ? { cost: r.step.coins, missing: r.step.missing, payback: gain > 0 ? r.step.coins / gain : null } : null };
   });
-  return { minion, row: minionRow(minion, products, npc, setup, opts), tiers };
+  // the Inferno Minion: the fuel choices and, for the tier of the setup, which of them earns most right now
+  let inferno = null;
+  if (minion.inferno) {
+    const options = INFERNO_FUELS.flatMap((f) => INFERNO_SPECIALTIES.map((x) => ({ infFuel: f.key, infSpec: x.key })))
+      .filter((o) => o.infFuel !== 'none' || o.infSpec === 'crude')
+      .map((o) => { const r = minionRow(minion, products, npc, { ...setup, ...o }, opts); return { ...o, net: r.net, payback: r.payback, fuelCost: r.fuelCost, rare: r.rare }; })
+      .sort((a, b) => b.net - a.net);
+    inferno = { fuels: INFERNO_FUELS, specialties: INFERNO_SPECIALTIES, rare: INFERNO_RARE, best: options[0] ?? null };
+  }
+  return { minion, row: minionRow(minion, products, npc, setup, opts), tiers, inferno };
 }

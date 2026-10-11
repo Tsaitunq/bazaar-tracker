@@ -188,3 +188,97 @@ so each list was checked against the page's own cumulative table, see below).
 - **Payback** = total cost ÷ net coins per day. Upgrade payback = cost of the
   step ÷ (net of the tier − net of the tier before). A tier with the same
   speed as the one before only holds more: "no gain".
+
+## Inferno Minion (0.7.4)
+
+Pages read 2026-10-11: `Inferno_Minion` and `Inferno_Minion_Fuel` (W), and
+`Blaze_Minion`, `Magma_Cube_Minion`, `Nether_Wart_Minion` for what the
+Super Compactor 3000 makes of the Distillate items.
+
+| Minion | Time between actions (s), tier I to XI | Drops per harvest | Super Compactor 3000 | Source |
+|---|---|---|---|---|
+| Inferno Minion | 1013, 982, 950, 919, 886, 855, 823, 792, 760, 728, 697 | 1 Crude Gabagool (100%) | 192 Crude Gabagool → Very Crude Gabagool | W:Inferno Minion; storage 64, 192, 192, 384, 384, 576, 576, 768, 768, 960, 960 |
+
+The wiki gives no tier XII. Its own check: 43, 44, 45 ... 62 Crude Gabagool a
+day for tiers I to XI; 86,400 ÷ (2 × 1,013) is 42.65, the value the page
+names as the coins per day at the NPC (1 coin each), so two actions per
+harvest holds here as well. Nothing here is estimated; what the source leaves
+open is listed below and marked in the app.
+
+### Crafting (cumulative cost table checked)
+
+Tier I 80 Derelict Ashe and a Blaze Minion I (80 Blaze Rod, written out as the
+wiki's cumulative table does); II 320 Derelict Ashe; III to VIII 8, 16, 32,
+64, 128, 256 Molten Powder; IX 256 Molten Powder and 16 Inferno Vertex; X 256
+Molten Powder and 48 Inferno Vertex; XI 256 Molten Powder, 48 Inferno Vertex,
+1 Inferno Apex and an Inferno Minion VIII. The cumulative table to tier XI:
+1,776 Molten Powder, 800 Derelict Ashe, 160 Blaze Rod, 112 Inferno Vertex, 1
+Inferno Apex. That sum only works if tier XI uses the tier X **and** an Inferno
+Minion VIII (the page's bullet list says VIII, its diagram X); the cumulative
+sum is what is used, and it is marked "not confirmed" here.
+
+### Requirement
+
+Blaze Slayer III (3): "unlocks recipes", needed to craft and upgrade; the
+minion can be traded and used without it. Upgrade slots are not stated on
+the page; the rule of W:Minion (two) is used.
+
+### Fuel
+
+| Fuel | Gabagool in it | Speed (page) | Speed (page's Bugs section) |
+|---|---|---|---|
+| Rare fuel (10x) | Fuel Gabagool | 10x | 11x |
+| Epic fuel (15x) | Heavy Gabagool | 15x | 16x |
+| Legendary fuel (20x) | Hypergolic Gabagool | 20x | 21x |
+
+(The wiki's names are "RARE", "EPIC" and "LEGENDARY Inferno Minion Fuel".)
+
+- One piece lasts 24 hours; the recipe is 1 Gabagool, 2 Inferno Fuel Blocks
+  and 6 Distillates of one kind, and the Distillate sets the specialty
+  (page: "will be collected by the Minion 80% of time it makes a harvest").
+  The calculator prices the pieces at the lowest sell offer of the Bazaar items
+  FUEL_GABAGOOL, HEAVY_GABAGOOL, HYPERGOLIC_GABAGOOL, INFERNO_FUEL_BLOCK and the
+  five *_DISTILLATE items; the fuel itself is not sold on the Bazaar.
+- Specialties: Magma Cream 1 to 3, Blaze Rod 1, Nether Wart 3 to 7,
+  Glowstone Dust 2 to 3, Crude Gabagool 1. **Not confirmed:** the middle of a
+  range is used (2, 5, 2.5).
+- Compacting the specialty: Crude Gabagool 192 → Very Crude Gabagool (W:Inferno
+  Minion); Blaze Rod 160 → Enchanted Blaze Powder, and 160 of that →
+  Enchanted Blaze Rod (W:Blaze Minion); Magma Cream 160 → Enchanted Magma Cream
+  (W:Magma Cube Minion); Nether Wart 160 → Enchanted Nether Wart
+  (W:Nether Wart Minion); Glowstone Dust 160 → Enchanted Glowstone Dust.
+- Speed: the page says the fuel multiplier "is applied after the other
+  buffs", so speed = (1 + Rising Celsius + upgrades) × (1 + fuel multiplier),
+  with the effective 11x, 16x, 21x. **Not confirmed:** whether the bug note
+  still holds in the game.
+- **Rising Celsius**: "Each Inferno Minion increases the speed of ALL
+  Inferno Minions by 18%, up to 180%." Counted for the number of minions in the
+  setup (ten reach the cap). Not confirmed: whether a lone minion counts itself.
+- **Hypergolic Ionized Ceramics**: a piece of Legendary fuel leaves one when it
+  runs out; counted as a sale at the highest buy order, after tax, against the
+  fuel cost. (The wiki notes that before 9 April 2025 only one appeared however
+  many pieces were inserted.)
+- **Capsaicin Eyedrops** (+30% rare drops for 24 hours): not counted.
+
+### Rare drops (Legendary fuel only)
+
+"Each harvesting action rolls each drop" and "the rare drops ... rolled once
+per harvest". Chances from the Inferno Minion Fuel page:
+
+| Drop | Chance per harvest | Bazaar item |
+|---|---|---|
+| Chili Pepper | 1 in 136 (0.7353%) | CHILI_PEPPER |
+| Inferno Vertex | 1 in 5,950 | INFERNO_VERTEX |
+| Inferno Apex | 1 in 1,309,091 | INFERNO_APEX |
+| Reaper Pepper | 1 in 458,182 | REAPER_PEPPER |
+| Gabagool the Fish | 1 in 3,927,273 | not on the Bazaar |
+
+**Not confirmed:** the Inferno Minion page's drop table has the same five
+numbers in the same order but the label of its first row is missing in the
+text read, so its names sit one row off (it reads Chili Pepper 1 in 5,950).
+The assignment of the fuel page is used. Reaper Pepper being more common than
+Inferno Apex follows from those numbers as they stand.
+
+An item that changes hands fewer than 100 times a week (the app's rule, not
+the wiki's) is shown as "price unreliable"; with the snapshot of 2026-10-11
+that is Inferno Apex (43) and Reaper Pepper (95).
