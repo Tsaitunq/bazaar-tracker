@@ -307,9 +307,9 @@ $('market').addEventListener('input', (e) => {
 });
 
 // The minion setup: its own small form, stored apart from the settings because it changes nothing else.
-const MINION_FIELDS = { tier: 'm-tier', count: 'm-count', fuel: 'm-fuel', up1: 'm-up1', up2: 'm-up2', spider: 'm-spider', zombie: 'm-zombie', hide: 'm-hide' };
+const MINION_FIELDS = { tier: 'm-tier', count: 'm-count', fuel: 'm-fuel', up1: 'm-up1', up2: 'm-up2', spider: 'm-spider', zombie: 'm-zombie', hide: 'm-hide', sort: 'm-sort' };
 const MINION_NUMBERS = ['tier', 'count', 'spider', 'zombie', 'hide'];
-const minionSetup = { tier: 11, count: 1, fuel: 'lava', up1: 'compactor', up2: 'spreading', spider: 9, zombie: 9, hide: 0, ...load('bt.minions', {}) };
+const minionSetup = { tier: 11, count: 1, fuel: 'lava', up1: 'compactor', up2: 'spreading', spider: 9, zombie: 9, hide: 0, sort: 'net', ...load('bt.minions', {}) };
 const options = (list) => list.map((o) => `<option value="${o.key}">${o.name}</option>`).join('');
 $('m-tier').innerHTML = Array.from({ length: MAX_TIER }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('');
 $('m-fuel').innerHTML = options(FUELS);
@@ -382,8 +382,8 @@ function renderArea() {
   $('tax-note').innerHTML = taxNote();
   if (area() === 'minions' && products) {
     const rows = minionRows(products, npc, { ...minionSetup, upgrades: [minionSetup.up1, minionSetup.up2], hide: minionSetup.hide === 1 }, { tax: settings.tax / 100, stats });
-    $('minion-note').textContent = `${rows.length} minions, best first · coins per day for ${minionSetup.count === 1 ? '1 minion' : `${minionSetup.count} minions`} · Bazaar = sold at once to buy orders, after tax`;
-    $('minion-list').innerHTML = rows.map(minionCard).join('');
+    $('minion-note').textContent = `${rows.length} minions, ${minionSetup.sort === 'payback' ? 'shortest payback first' : 'best first'} · coins per day for ${minionSetup.count === 1 ? '1 minion' : `${minionSetup.count} minions`} · Bazaar = sold at once to buy orders, after tax`;
+    $('minion-list').innerHTML = rows.map((r) => minionCard(r, { name: nameOf })).join('');
   }
   if (area() === 'today') {
     const now = Date.now();

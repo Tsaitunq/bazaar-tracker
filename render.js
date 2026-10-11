@@ -478,7 +478,10 @@ const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'
 // The whole card is the button that opens the sheet (app.js reads data-minion). The raw item is only
 // reached from "View item" inside the sheet. Not a link, so a tap can never navigate by itself.
 export const minionTile = (key, size) => `<span class="tile"><img class="icon" src="icons/minions/${esc(key)}.png" width="${size}" height="${size}" alt="" decoding="async"></span>`;
-export const minionCard = (row) => `<li class="card minion" data-minion="${esc(row.key)}">
+// days until a cost is earned back; `missing` means part of the cost has no price, so the real figure is higher
+const paybackText = (days, missing = false, none = 'never') => (days === null ? none : (missing ? 'at least ' : '') + (days < 1 ? 'under 1 day' : `${plain.format(Math.ceil(days))} day${Math.ceil(days) === 1 ? '' : 's'}`));
+const missingText = (ids, name) => `Not on the Bazaar, left out of the cost: ${ids.map((id) => name(id)).join(', ')}.`;
+export const minionCard = (row, { name = (id) => id } = {}) => `<li class="card minion" data-minion="${esc(row.key)}">
   <div class="body" role="button" tabindex="0" aria-haspopup="dialog">
     <div class="name">${minionTile(row.key, 32)}<span>${esc(row.name)}</span></div>
     <div class="badges"><span class="badge badge-trend">Tier ${ROMAN[row.tier - 1]}${row.tier === row.maxTier ? ' (highest)' : ''}</span>${
@@ -495,8 +498,11 @@ export const minionCard = (row) => `<li class="card minion" data-minion="${esc(r
       fact('Fuel/day', row.fuelCost > 0 ? `−${num(row.fuelCost)}` : row.fuelPermanent ? 'permanent (one-time cost)' : '–'),
       fact('Items/day', num(row.itemsDay)),
       fact('Full after', `about ${duration(row.fillHours * 3600)}`),
+      fact(`Cost (Tier ${ROMAN[row.tier - 1]})`, `${num(row.cost.total)}${row.cost.missing.length ? '+' : ''}`),
+      fact('Pays back in', paybackText(row.payback, row.cost.missing.length > 0)),
     ].join('')}</dl>${row.unsure.length ? `
-    <p class="why">${esc(row.unsure.join(' '))}</p>` : ''}
+    <p class="why">${esc(row.unsure.join(' '))}</p>` : ''}${row.cost.missing.length ? `
+    <p class="why">${esc(missingText(row.cost.missing, name))}</p>` : ''}
   </div>
 </li>`;
 
@@ -513,12 +519,20 @@ export function minionSheet({ minion, row, tiers }, { name, count }) {
   <p class="muted">Tier ${ROMAN[row.tier - 1]} · ${count === 1 ? '1 minion' : `${count} minions`} · ${bonus} · an action every ${plain.format(row.delay)} s</p>
   ${row.requires ? `<p class="${row.locked ? 'why' : 'muted'}">Requires ${esc(row.requires)} (wiki).${row.locked ? ' Not yet reached at your levels.' : ''}</p>` : ''}
   <h3>Tiers (same fuel and upgrades)</h3>
-  <table class="tiers"><thead><tr><th>Tier</th><th>Action</th><th>Storage</th><th>Items/day</th><th>Coins/day</th></tr></thead><tbody>${
-    tiers.map((t) => `<tr${t.tier === row.tier ? ' class="on"' : ''}><td>${ROMAN[t.tier - 1]}</td><td>${plain.format(t.delay)} s</td><td>${t.storage}</td><td>${num(t.itemsDay)}</td><td>${num(t.net)}</td></tr>`).join('')}</tbody></table>
+  <table class="tiers"><thead><tr><th>Tier</th><th>Action</th><th>Storage</th><th>Items/day</th><th>Coins/day</th><th>Upgrade cost</th><th>Upgrade pays back in</th></tr></thead><tbody>${
+    tiers.map((t) => `<tr${t.tier === row.tier ? ' class="on"' : ''}><td>${ROMAN[t.tier - 1]}</td><td>${plain.format(t.delay)} s</td><td>${t.storage}</td><td>${num(t.itemsDay)}</td><td>${num(t.net)}</td>${
+      t.upgrade ? `<td>${num(t.upgrade.cost)}${t.upgrade.missing.length ? '+' : ''}</td><td>${paybackText(t.upgrade.payback, t.upgrade.missing.length > 0, 'no gain')}</td>` : '<td>–</td><td>–</td>'}</tr>`).join('')}</tbody></table>
+  <p class="muted">Upgrade cost is the step from the tier before: what its recipe costs at the lowest sell offer, for all your minions. It pays back from the extra coins per day; “no gain” means the tier only holds more.</p>
   <h3>What it earns per day</h3>
   <ul class="coming">${parts || '<li class="muted">No price for any item right now.</li>'}
     <li><span>Fuel</span><span class="side">${row.fuelCost > 0 ? '−' + num(row.fuelCost) : row.fuelPermanent ? 'permanent (one-time cost)' : '–'}</span></li>
     <li><span>Sold at ${row.best === 'npc' ? 'the NPC' : 'the Bazaar, after tax'}</span><span class="side"><strong class="${gain(row.net)}">${num(row.net)}</strong></span></li>
+  </ul>
+  <h3>What it costs (Tier ${ROMAN[row.tier - 1]}${count > 1 ? `, ${count} minions` : ''})</h3>
+  <ul class="coming">${row.cost.lines.map((l) => `<li><span>${esc(name(l.id))} <small>${l.price === null ? '<strong>not on Bazaar</strong>' : `${num(l.price)} each`}</small></span>
+      <span class="side">${num(l.amount)} · ${l.price === null ? '–' : num(l.coins)}</span></li>`).join('')}
+    <li><span>Total${row.cost.missing.length ? ' (without the items not on the Bazaar)' : ''}</span><span class="side"><strong>${num(row.cost.total)}</strong></span></li>
+    <li><span>Pays back in</span><span class="side"><strong>${paybackText(row.payback, row.cost.missing.length > 0)}</strong></span></li>
   </ul>
   <p>Storage ${list(row.storage)} items, full after about ${duration(row.fillHours * 3600)}.</p>${row.unsure.length ? `
   <p class="why">${esc(row.unsure.join(' '))}</p>` : ''}

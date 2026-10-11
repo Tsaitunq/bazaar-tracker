@@ -147,3 +147,44 @@ snapshot on 2026-10-11 (all ids used exist there).
   honestly sell for more.
 - The 20× and 30% limits are choices of this calculator (30% is the app's
   existing median limit); the wiki states none.
+
+## Crafting cost (0.7.4)
+
+`minioncosts.js`. Source: the "Crafting" and "Total Cumulative Cost" tables of
+each `<Name>_Minion` page on W (read 2026-10-11, read through a page summariser,
+so each list was checked against the page's own cumulative table, see below).
+
+- A step is what the wiki lists as the direct recipe of a tier. The minion of
+  the tier before is part of it and is not an item here; the cost up to a tier
+  is the sum of the steps, and for every minion that sum equals the wiki's
+  cumulative table (tests in `tests/minions.test.js`, Clay XI and Tarantula XI
+  as examples).
+- **Tarantula and Revenant.** The wiki recipe names "Spider Minion N" (Zombie
+  Minion N for Revenant) as an ingredient, not the previous Tarantula tier. The
+  cumulative table lists the items those minions are made of (String,
+  Enchanted String; Rotten Flesh, Enchanted Rotten Flesh), so the step is
+  written out as the direct recipe plus the difference of the cumulative
+  tables: 80, 240, 560, 1,072 String, then 1,072 String with 8, 24, 56, 120,
+  248, 504 Enchanted String.
+- **Tier XII** adds 2,000,000 Coins (Snow, Cobblestone, Coal, Diamond, Lapis,
+  Redstone, Emerald, Obsidian, Glowstone; Snow also 500 North Stars), 75 Pelts
+  (Sugar Cane, Wheat, Carrot, Potato, Melon, Pumpkin, Cactus) or an Upgrade
+  Stone (Clay, Tarantula, Revenant, Fishing). The Bazaar sells the stones as
+  GENERATOR_UPGRADE_STONE_<NAME>_12.
+- **Not on the Bazaar**, counted as 0 and shown as such: Pelt, North Star,
+  Crystallized Heart (Revenant I) and the wooden tools and Fishing Rod of
+  tier I. The card says "at least" in front of the payback when one is missing.
+- **Snow Minion I** comes from gifts; the wiki gives "upgrade cost 0 Coins".
+- **Slime** has no tier XII on its page (tiers I to XI).
+- Slime steps: the wiki writes "8x Slimeball (10 each)" for tier I; read as 8
+  stacks, 80 Slimeballs, which its cumulative table confirms.
+- **Prices.** Insta-buy = the lowest sell offer (`buy_summary[0]`). The
+  cost counts the steps up to the tier, the two upgrades (Diamond Spreading,
+  Super Compactor 3000, Flycatcher, Minion Expander; a speed upgrade chosen
+  twice counts twice) and a fuel that never runs out (the lava, magma and
+  plasma bucket), once per minion. Fuel that is used up stays in the daily net.
+- Upgrade ids for the Bazaar: DIAMOND_SPREADING, SUPER_COMPACTOR_3000,
+  FLYCATCHER_UPGRADE, MINION_EXPANDER.
+- **Payback** = total cost ÷ net coins per day. Upgrade payback = cost of the
+  step ÷ (net of the tier − net of the tier before). A tier with the same
+  speed as the one before only holds more: "no gain".

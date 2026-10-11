@@ -167,3 +167,66 @@ test('Slayer requirements: Tarantula and Revenant lock below V, tier XII below I
   const hidden = rows({ spider: 0, zombie: 0, hide: true }).map((r) => r.key);
   assert.ok(!hidden.includes('tarantula') && !hidden.includes('revenant') && hidden.includes('diamond'));
 });
+
+// ---- 0.7.4: cost to craft, payback ----
+import { COSTS, costUpTo } from '../minioncosts.js';
+import { priceItems, minionRow, minionDetail } from '../minions.js';
+
+test('every minion has one recipe step per tier, and the sums match the wiki cumulative cost', () => {
+  for (const m of MINIONS) assert.equal(COSTS[m.key]?.length, m.delays.length, m.key);
+  // Clay XI: wiki "Total Cumulative Cost" 1,072 Clay Ball and 1,016 Enchanted Clay Ball (plus the shovel)
+  assert.deepEqual(costUpTo('clay', 11), { CLAY_BALL: 1072, WOODEN_SHOVEL: 1, ENCHANTED_CLAY_BALL: 1016 });
+  // Tarantula XI: the Spider Minions of the steps are written out as String and Enchanted String
+  const t = costUpTo('tarantula', 11);
+  assert.equal(t.TARANTULA_WEB, 948); assert.equal(t.TARANTULA_SILK, 889); assert.equal(t.STRING, 8384); assert.equal(t.ENCHANTED_STRING, 960);
+  assert.equal(costUpTo('tarantula', 12).GENERATOR_UPGRADE_STONE_TARANTULA_12, 1);
+  assert.equal(costUpTo('melon', 12).MELON_BLOCK, 896);
+  assert.equal(costUpTo('snow', 1) && Object.keys(costUpTo('snow', 1)).length, 0);
+});
+
+test('priceItems buys at the lowest sell offer and names what has no price', () => {
+  const products = { A: product(1, 10), B: product(5, null) };
+  // product(buy, sell): buy_summary holds the sell offers
+  const r = priceItems({ A: 3, B: 2, C: 1, COINS: 100 }, products);
+  assert.equal(r.coins, 3 * 10 + 100);
+  assert.deepEqual(r.missing, ['B', 'C']);
+});
+
+test('a minion row carries its cost and payback; upgrades and permanent fuel count', () => {
+  const products = {
+    COBBLESTONE: product(1, 2), ENCHANTED_COBBLESTONE: product(100, 200), WOODEN_PICKAXE: undefined,
+    ENCHANTED_LAVA_BUCKET: product(1, 1000), SUPER_COMPACTOR_3000: product(1, 5000),
+  };
+  const setup = { tier: 5, count: 2, fuel: 'lava', upgrades: ['compactor', 'none'] };
+  const row = minionRow(minion('cobblestone'), products, {}, setup, { tax: 0 });
+  // tier V: 1,072 Cobblestone and 8 Enchanted Cobblestone, per minion; plus the compactor and the lava bucket
+  assert.equal(row.cost.minion, 2 * (1072 * 2 + 8 * 200));
+  assert.equal(row.cost.extras, 2 * (5000 + 1000));
+  assert.equal(row.cost.total, row.cost.minion + row.cost.extras);
+  assert.deepEqual(row.cost.missing, ['WOODEN_PICKAXE']);
+  near(row.payback, row.cost.total / row.net);
+  // a minion that earns nothing never pays back
+  assert.equal(minionRow(minion('cobblestone'), {}, {}, setup, { tax: 0 }).payback, null);
+});
+
+test('the tier table has the step cost and what it pays back in', () => {
+  const products = { SNOW_BLOCK: product(1, 10), SNOW_BALL: product(100, 100), ENCHANTED_SNOW_BLOCK: product(1, 10) };
+  const d = minionDetail('snow', products, {}, { tier: 3, count: 1, fuel: 'none', upgrades: ['none', 'none'] }, { tax: 0 });
+  assert.equal(d.tiers[0].upgrade, null);
+  // tier II is as fast as tier I (13 s): it adds nothing, so it never pays back; tier III = 64 Snow Block at 10
+  assert.equal(d.tiers[1].upgrade.cost, 320);
+  assert.equal(d.tiers[1].upgrade.payback, null);
+  assert.equal(d.tiers[2].upgrade.cost, 640);
+  near(d.tiers[2].upgrade.payback, 640 / (d.tiers[2].net - d.tiers[1].net));
+});
+
+test('sorting by payback puts the shortest first and the ones that never pay back last', () => {
+  const products = {
+    SNOW_BALL: product(1, 1), COBBLESTONE: product(10, 10), COAL: product(10, 10), CLAY_BALL: product(10, 10),
+    ENCHANTED_COBBLESTONE: product(10, 10), ENCHANTED_COAL: product(10, 10), COAL_BLOCK: product(10, 10),
+  };
+  const rows = minionRows(products, {}, { tier: 2, count: 1, fuel: 'none', upgrades: ['none', 'none'], sort: 'payback' }, { tax: 0 });
+  const paid = rows.filter((r) => r.payback !== null).map((r) => r.payback);
+  assert.deepEqual(paid, [...paid].sort((a, b) => a - b));
+  assert.equal(rows.at(-1).payback, null);
+});

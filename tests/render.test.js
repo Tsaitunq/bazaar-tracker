@@ -468,11 +468,16 @@ test('todayView: portfolio in short, warnings, what comes next and what is new, 
 
 test('minionCard: coins per day, where to sell, and a mark on numbers that are not confirmed', async () => {
   const { minionCard } = await import('../render.js');
-  const row = { key: 'snow', name: 'Snow Minion', id: 'SNOW_BALL', tier: 11, maxTier: 12, bazaar: 52000, npcCoins: 26000, fuelCost: 400, best: 'bazaar', net: 51600, itemsDay: 26584.6, fillHours: 0.87, unsure: [] };
+  const row = { key: 'snow', name: 'Snow Minion', id: 'SNOW_BALL', tier: 11, maxTier: 12, bazaar: 52000, npcCoins: 26000, fuelCost: 400, best: 'bazaar', net: 51600, itemsDay: 26584.6, fillHours: 0.87, unsure: [], cost: { total: 3.4e6, missing: [] }, payback: 65.9 };
   const html = minionCard(row);
   assert.ok(html.includes('Snow Minion') && html.includes('Tier XI<') && html.includes('51.6k') && html.includes('Coins/day'));
   assert.ok(html.includes('<span class="big">Bazaar</span>') && html.includes('−400') && html.includes('about 52m'));
   assert.ok(!html.includes('not confirmed') && !html.includes('class="why"'));
+  assert.ok(html.includes('Cost (Tier XI)') && html.includes('3.4M') && html.includes('66 days'));
+  // a cost with items that have no price says so, and the payback is a lower bound
+  const part = minionCard({ ...row, cost: { total: 1000, missing: ['PELT'] } }, { name: () => 'Pelt' });
+  assert.ok(part.includes('1,000+') && part.includes('at least 66 days') && part.includes('Not on the Bazaar, left out of the cost: Pelt.'));
+  assert.ok(minionCard({ ...row, payback: null }).includes('>never<'));
   const open = minionCard({ ...row, tier: 12, best: 'npc', fuelCost: 0, unsure: ['The wiki gives 2 to 5 <per> harvest.'] });
   assert.ok(open.includes('Tier XII (highest)') && open.includes('<span class="big">NPC</span>') && open.includes('not confirmed'));
   assert.ok(open.includes('2 to 5 &#60;per&#62; harvest'));

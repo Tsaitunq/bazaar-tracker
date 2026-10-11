@@ -2,6 +2,7 @@
 // the wiki; every number has its source in docs/minions-sources.md. Nothing is estimated: where the
 // sources leave something open, the entry carries `unsure` and the app shows it.
 import { bookPrices, statOf, MEDIAN_SPIKE } from './flips.js';
+import { COSTS, COINS, costUpTo } from './minioncosts.js';
 
 const DAY_S = 86400;
 // A minion works in turns: one action places a block or spawns a mob, the next one harvests it.
@@ -119,10 +120,10 @@ export const FUELS = [
 // A minion has two upgrade slots. Speed upgrades add up, also twice the same; the other two count once.
 export const UPGRADES = [
   { key: 'none', name: 'No upgrade' },
-  { key: 'spreading', name: 'Diamond Spreading' },
-  { key: 'compactor', name: 'Super Compactor 3000' },
-  { key: 'flycatcher', name: 'Flycatcher', speed: 0.2 },
-  { key: 'expander', name: 'Minion Expander', speed: 0.05 },
+  { key: 'spreading', name: 'Diamond Spreading', id: 'DIAMOND_SPREADING' },
+  { key: 'compactor', name: 'Super Compactor 3000', id: 'SUPER_COMPACTOR_3000' },
+  { key: 'flycatcher', name: 'Flycatcher', id: 'FLYCATCHER_UPGRADE', speed: 0.2 },
+  { key: 'expander', name: 'Minion Expander', id: 'MINION_EXPANDER', speed: 0.05 },
 ];
 
 const SPREADING_WITH_MULT = 'The sources do not say whether a Catalyst also multiplies the Diamonds of Diamond Spreading; they are counted once.';
@@ -209,6 +210,34 @@ function bestForm(id, perDay, products, { tax, stats, count }) {
   return sorted.find((o) => !o.low) ?? sorted[0] ?? null;
 }
 
+// Buying at once costs the lowest sell offer. null when nobody offers the item (not on the Bazaar, or sold out).
+const instaBuy = (p) => (p?.buy_summary?.[0]?.pricePerUnit > 0 ? p.buy_summary[0].pricePerUnit : null);
+
+// Prices a list { id: amount } at insta-buy: { coins, lines: [{ id, amount, price, coins }], missing: [ids with no price] }.
+// Coins in the list count as they are. An item without a price adds 0 to coins and is named in `missing`.
+export function priceItems(items, products) {
+  const lines = [], missing = [];
+  let coins = 0;
+  for (const [id, amount] of Object.entries(items)) {
+    const price = id === COINS ? 1 : instaBuy(products[id]);
+    if (price === null) missing.push(id);
+    lines.push({ id, amount, price, coins: price === null ? 0 : amount * price });
+    coins += price === null ? 0 : amount * price;
+  }
+  return { coins, lines, missing };
+}
+
+// What the setup needs besides the minion, once per minion: both upgrades (speed upgrades each, Diamond
+// Spreading and the Super Compactor once) and a fuel that never runs out.
+function setupItems(setup, fuel) {
+  const items = {};
+  const add = (id) => { if (id) items[id] = (items[id] ?? 0) + 1; };
+  const used = (setup.upgrades ?? []).map((key) => byKey(UPGRADES, key));
+  used.filter((u, i) => u.speed || used.findIndex((v) => v.key === u.key) === i).forEach((u) => add(u.id));
+  if (fuel.id && !fuel.hours) add(fuel.id);
+  return items;
+}
+
 // Every minion with the same setup, the one that earns most first, minions that rely on a thin market last.
 // setup: as for minionYield, plus count (minions placed). npc: NPC sell price per item id. tax: fraction.
 // stats: the app's stats (7 day medians) or null. Per row, for all `count` minions and per day: bazaar (sold to
@@ -219,7 +248,9 @@ function bestForm(id, perDay, products, { tax, stats, count }) {
 export function minionRows(products, npc, setup, { tax, stats = null }) {
   const rows = MINIONS.map((minion) => minionRow(minion, products, npc, setup, { tax, stats }))
     .filter((r) => !(setup.hide && r.locked));
-  return rows.sort((a, b) => (a.lowVolume.length > 0) - (b.lowVolume.length > 0) || b.net - a.net);
+  // payback: shortest first, a minion that never pays back last
+  const order = setup.sort === 'payback' ? (a, b) => (a.payback ?? Infinity) - (b.payback ?? Infinity) || b.net - a.net : (a, b) => b.net - a.net;
+  return rows.sort((a, b) => (a.lowVolume.length > 0) - (b.lowVolume.length > 0) || order(a, b));
 }
 
 // One minion with the setup: the row of minionRows, plus parts (per item sold: id, amount per day, form,
@@ -247,10 +278,22 @@ export function minionRow(minion, products, npc, setup, { tax, stats = null }) {
   if (fuelPrice === null) unsure.push(`No sell offer for ${fuel.name} right now; its cost is missing.`);
   const fuelCost = fuel.hours ? (24 / fuel.hours) * (fuelPrice ?? 0) : 0;
   const best = npcCoins > bazaar ? 'npc' : 'bazaar';
+  const net = (Math.max(bazaar, npcCoins) - fuelCost) * count;
+  // what it costs to have it: every step up to the tier, upgrades and a permanent fuel, for all `count` minions
+  const own = priceItems(costUpTo(minion.key, made.tier), products);
+  const extra = priceItems(setupItems(setup, fuel), products);
+  const step = priceItems(Object.fromEntries(COSTS[minion.key][made.tier - 1] ?? []), products);
+  const cost = {
+    total: (own.coins + extra.coins) * count, minion: own.coins * count, extras: extra.coins * count,
+    lines: [...own.lines, ...extra.lines].map((l) => ({ ...l, amount: l.amount * count, coins: l.coins * count })),
+    missing: [...new Set([...own.missing, ...extra.missing])],
+  };
   return {
     key: minion.key, name: minion.name, id: minion.drops[0].id, tier: made.tier, maxTier: minion.delays.length,
     bazaar: bazaar * count, npcCoins: npcCoins * count, fuelCost: fuelCost * count, best,
-    net: (Math.max(bazaar, npcCoins) - fuelCost) * count,
+    net, cost, step: { coins: step.coins * count, missing: step.missing },
+    // days until the coins are earned back; null when the minion earns nothing after fuel
+    payback: net > 0 ? cost.total / net : null,
     itemsDay: perDay * count, fillHours: made.storage / (perDay / 24), storage: made.storage, delay: made.delay, speed: made.speed,
     unsure, lowVolume, parts, fuelPermanent: !!fuel.id && !fuel.hours, requires: minion.requires?.text ?? null, locked: minionLocked(minion, setup),
   };
@@ -260,8 +303,11 @@ export function minionRow(minion, products, npc, setup, { tax, stats = null }) {
 export function minionDetail(key, products, npc, setup, opts) {
   const minion = MINIONS.find((m) => m.key === key);
   if (!minion) return null;
-  return {
-    minion, row: minionRow(minion, products, npc, setup, opts),
-    tiers: minion.delays.map((_, i) => minionRow(minion, products, npc, { ...setup, tier: i + 1 }, opts)),
-  };
+  const rows = minion.delays.map((_, i) => minionRow(minion, products, npc, { ...setup, tier: i + 1 }, opts));
+  // the step from the tier before: what it costs and in how many days the extra earnings pay it back
+  const tiers = rows.map((r, i) => {
+    const gain = i > 0 ? r.net - rows[i - 1].net : r.net;
+    return { ...r, upgrade: i > 0 ? { cost: r.step.coins, missing: r.step.missing, payback: gain > 0 ? r.step.coins / gain : null } : null };
+  });
+  return { minion, row: minionRow(minion, products, npc, setup, opts), tiers };
 }
