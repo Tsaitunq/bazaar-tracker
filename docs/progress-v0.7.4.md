@@ -5,7 +5,7 @@ Branch `feat/v0.7.4`, one commit per part. Not pushed, not merged.
 
 - [x] A. Minion cost and payback
 - [x] B. Inferno Minion
-- [ ] Changelog 0.7.4, README, APK, docs/summary-v0.7.4.md
+- [x] Changelog 0.7.4, README, APK, docs/summary-v0.7.4.md
 
 ## A
 
