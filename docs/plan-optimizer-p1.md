@@ -193,7 +193,7 @@ Die Normalform enthält weder Lore-Text noch Item-UUID (Spec 2.6). `lore` ist nu
 
 **Files:**
 - Modify: `sync.js` (`syncView`), `progress.js` (`progressView`-Parameter `syncBar`), `app.js`, `index.html`, `style.css`, `changelog.json`, `AlertsPlugin.java`, `ProfileStore.java`
-- Delete: `scripts/check-fixture.mjs`, temporärer Knopf und `saveFixture`
+- Delete: `scripts/check-fixture.mjs`, temporärer Knopf und `shareFixture`
 - Test: `tests/sync.test.js`, `tests/progress.test.js`
 
 **Interfaces:**
