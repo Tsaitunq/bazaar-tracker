@@ -1,6 +1,15 @@
 {
   "versions": [
     {
+      "version": "0.9.3",
+      "date": "2026-10-31",
+      "entries": [
+        { "title": "Next upgrades", "text": "Progress can now show the next open step of every line, cheapest first, with what the next five cost.", "personal": true },
+        { "title": "Undo and honest totals", "text": "Checked a step by mistake? Undo it right there, and what is left now counts only the cheapest way to the top level.", "personal": true },
+        { "title": "Real quantities", "text": "Steps now show how many of an item you need, and prices count every piece.", "personal": true }
+      ]
+    },
+    {
       "version": "0.9.2",
       "date": "2026-10-31",
       "entries": [

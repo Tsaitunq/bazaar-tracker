@@ -21,14 +21,16 @@ function validItem(i) {
   const forge = validRecipe(i?.forge);
   if (i?.forge !== undefined && !forge) return null;
   const without = Array.isArray(i?.without) ? i.without.filter(text) : [];
-  return { ...(id && { id }), ...(name && { name }), qty, ...(i.ah === true && { ah: true }), ...(i.nt === true && { nt: true }), ...(forge && { forge }), ...(without.length && { without }), ...(Number.isInteger(i?.combine) && i.combine >= 0 && { combine: i.combine }) };
+  const anyOf = Array.isArray(i?.anyOf) ? i.anyOf.filter(text) : [];
+  if (anyOf.length && !name) return null;
+  return { ...(id && { id }), ...(name && { name }), qty, ...(i.ah === true && { ah: true }), ...(i.nt === true && { nt: true }), ...(forge && { forge }), ...(without.length && { without }), ...(anyOf.length && { anyOf }), ...(Number.isInteger(i?.skip) && i.skip > 0 && { skip: i.skip }), ...(Number.isInteger(i?.combine) && i.combine >= 0 && { combine: i.combine }) };
 }
 
 function validStep(s) {
   if (!text(s?.text)) return null;
   const items = s.items === undefined ? [] : Array.isArray(s.items) ? s.items.map(validItem) : [null];
   if (items.includes(null)) return null;
-  return { text: s.text, ...(items.length && { items }), ...(text(s.hint) && { hint: s.hint }), ...(s.table === true && { table: true }) };
+  return { text: s.text, ...(items.length && { items }), ...(text(s.hint) && { hint: s.hint }), ...(s.table === true && { table: true }), ...(text(s.line) && { line: s.line }), ...(Number.isInteger(s.priority) && s.priority > 0 && { priority: s.priority }) };
 }
 
 // A guide from a file is outside data: only the known fields come through, and a link only as http(s).
@@ -101,6 +103,28 @@ export function importData(raw) {
 // A checkmark belongs to its section and text, so a changed guide keeps the marks of the steps it kept.
 export const stepKey = (section, step) => `${section.name}|${step.text}`;
 
+// A table step needs no coins and counts as done until the player unticks it, which is stored as UNDONE + key.
+const UNDONE = 'undone:';
+export function doneSet(guide, marks) {
+  const done = new Set(marks);
+  for (const section of guide.sections) {
+    for (const step of section.steps) {
+      const key = stepKey(section, step);
+      if (step.table && !marks.has(UNDONE + key)) done.add(key);
+    }
+  }
+  return done;
+}
+
+export function setMark(guide, marks, key, on) {
+  const isTable = guide.sections.some((section) => section.steps.some((step) => step.table && stepKey(section, step) === key));
+  marks.delete(key);
+  marks.delete(UNDONE + key);
+  if (isTable ? !on : on) marks.add(isTable ? UNDONE + key : key);
+}
+
+export const pushRecent = (recent, key) => [key, ...recent.filter((k) => k !== key)].slice(0, 10);
+
 // Shards and enchanted books only trade on the bazaar, so asking the auction side for them is wasted.
 const BAZAAR_ONLY = /^(ENCHANTMENT_|SHARD_)/;
 
@@ -149,26 +173,45 @@ const bazaarCost = (id, qty, products) => {
   return book?.length ? walkBook(book, qty, true) : null;
 };
 
+// Two of the level below, of which the player may already own or be able to work up the first.
+function combineCost(id, level, qty, combine, products, have) {
+  if (!have) return bookCost(id, qty * 2, combine, products);
+  const second = bookCost(id, qty, combine, products);
+  if (have >= level) return second;
+  const first = bookCost(id, qty, combine, products, have);
+  return first && second && { coins: first.coins + second.coins };
+}
+
 // A book of level L: bought as it is, or made from two of L-1 where combine (the wiki's limit) allows that.
-function bookCost(id, qty, combine, products) {
+function bookCost(id, qty, combine, products, have = 0) {
   const [, base, lvl] = id.match(/^(.+)_(\d+)$/) ?? [];
   const level = Number(lvl);
   const direct = bazaarCost(id, qty, products);
-  const lower = level > 1 && level <= combine ? bookCost(`${base}_${level - 1}`, qty * 2, combine, products) : null;
+  const lower = level > 1 && level <= combine ? combineCost(`${base}_${level - 1}`, level - 1, qty, combine, products, have) : null;
   if (lower && (direct === null || lower.coins < direct)) return { coins: lower.coins, made: true, direct, lower: lower.coins, level };
   return direct === null ? null : { coins: direct, made: false, direct, lower: lower?.coins ?? null, level };
 }
 
 function bookPrice(item, ctx) {
-  const b = bookCost(item.id, item.qty, item.combine, ctx.products);
+  const b = bookCost(item.id, item.qty, item.combine, ctx.products, ctx.have?.get(item) ?? 0);
   if (!b) return { source: null, coins: 0 };
   const made = b.lower !== null && `combine 2× ${ROMAN[b.level - 1]}: ${coins(b.lower)}`;
   const bought = b.direct !== null && `book: ${coins(b.direct)}`;
   return { source: 'bazaar', coins: b.coins, nt: false, note: (b.made ? [made, bought] : [bought, made]).filter(Boolean).join(' · ') };
 }
 
+// The guide leaves the piece open: the cheapest qty of the list, after the skip cheapest an earlier step already bought.
+function piecesPrice(item, ctx) {
+  const found = item.anyOf.map((id) => ({ id, ...priceItem({ id, qty: 1 }, ctx) })).filter((p) => p.source).sort((a, b) => a.coins - b.coins);
+  const skip = item.skip ?? 0;
+  const picked = found.slice(skip, skip + item.qty);
+  if (picked.length < item.qty) return { source: null, coins: 0 };
+  return { source: picked[0].source, coins: picked.reduce((sum, p) => sum + p.coins, 0), picked: picked.map((p) => p.id) };
+}
+
 // What one guide item costs: source is bazaar, forge, ah, nt (not tradeable) or null when nothing has a price.
 export function priceItem(item, ctx) {
+  if (item.anyOf) return piecesPrice(item, ctx);
   if (item.id && item.combine !== undefined) return bookPrice(item, ctx);
   const tradeable = !item.nt;
   if (!item.id || (!tradeable && !item.forge && !ctx.forge?.[item.id])) return { source: item.nt ? 'nt' : null, coins: 0 };
@@ -188,14 +231,34 @@ export function stepCost(step, ctx) {
   };
 }
 
-// Counts for the guide and per section; only open steps count towards what is left to pay.
+const bookOf = (step) => (step.items?.length === 1 && step.items[0].combine !== undefined ? step.items[0] : null);
+const bookLevel = (item) => item.id.match(/^(.+)_(\d+)$/) ?? [];
+
+// Per book of a guide the highest level of the same enchant already checked below it.
+function haveLevels(guide, checked) {
+  const books = guide.sections.flatMap((section) => section.steps.filter(bookOf).map((step) => ({ item: bookOf(step), done: checked.has(stepKey(section, step)) })));
+  const have = new Map();
+  for (const { item } of books) {
+    const [, base, level] = bookLevel(item);
+    const below = books.filter((b) => b.done && bookLevel(b.item)[1] === base && Number(bookLevel(b.item)[2]) < Number(level));
+    if (below.length) have.set(item, Math.max(...below.map((b) => Number(bookLevel(b.item)[2]))));
+  }
+  return have;
+}
+
+// Counts for the guide and per section; only open steps count towards what is left to pay. Of a line of books only
+// the last one costs: its price is the cheapest way there from the level reached, so the levels between are in it.
 export function guideStats(guide, checked, ctx) {
   let next = null;
+  ctx.have = haveLevels(guide, checked);
+  const ends = new Map();
+  for (const section of guide.sections) for (const step of section.steps) if (step.line && bookOf(step)) ends.set(step.line, step);
   const sections = guide.sections.map((section) => {
     const left = { done: 0, total: section.steps.length, coins: 0, unpriced: 0 };
     for (const step of section.steps) {
       if (checked.has(stepKey(section, step))) { left.done++; continue; }
       next ??= { section, step };
+      if (step.line && bookOf(step) && ends.get(step.line) !== step) continue;
       const cost = stepCost(step, ctx);
       left.coins += cost.coins;
       left.unpriced += cost.unpriced;
@@ -205,24 +268,42 @@ export function guideStats(guide, checked, ctx) {
   return { done: sections.reduce((n, s) => n + s.done, 0), total: sections.reduce((n, s) => n + s.total, 0), next, sections };
 }
 
+// Per line only its first open step, a step without a line stands alone. Pinned first by weight, then priced by
+// price, then what has no full price: a sum that leaves out an item would look cheaper than the step is.
+export function nextUpgrades(guide, checked, ctx) {
+  ctx.have = haveLevels(guide, checked);
+  const seen = new Set();
+  const rows = [];
+  for (const section of guide.sections) {
+    for (const step of section.steps) {
+      if (checked.has(stepKey(section, step)) || seen.has(step.line)) continue;
+      if (step.line) seen.add(step.line);
+      const cost = stepCost(step, ctx);
+      rows.push({ section, step, ...cost, priced: cost.coins > 0 && !cost.unpriced });
+    }
+  }
+  return rows.sort((a, b) => (b.step.priority ?? 0) - (a.step.priority ?? 0) || b.priced - a.priced || (a.priced ? a.coins - b.coins : 0));
+}
+
 const SOURCES = { bazaar: 'Bazaar', forge: 'Forge', ah: 'AH', nt: 'not tradeable' };
 const badge = (source) => `<span class="guide-src" data-src="${source}">${SOURCES[source]}</span>`;
 
 function itemLine(item, ctx, name) {
-  const label = `${esc(item.name ?? name(item.id))} × ${item.qty}`;
+  const label = `${item.qty}× ${esc(item.name ?? name(item.id))}`;
   const p = priceItem(item, ctx);
+  const way = p.picked ? p.picked.map(name).join(', ') : p.note;
   if (p.source === 'nt') return `<small class="guide-item">${label} ${badge('nt')}</small>`;
   if (!p.source) return `<small class="guide-item">${label} · <strong>${ctx.products ? 'no price' : '…'}</strong></small>`;
-  return `<small class="guide-item">${label} · <strong>${coins(p.coins)}</strong> ${badge(p.source)}${p.nt ? ` ${badge('nt')}` : ''}${p.note ? `<span class="guide-way">${esc(p.note)}</span>` : ''}</small>`;
+  return `<small class="guide-item">${label} · <strong>${coins(p.coins)}</strong> ${badge(p.source)}${p.nt ? ` ${badge('nt')}` : ''}${way ? `<span class="guide-way">${esc(way)}</span>` : ''}</small>`;
 }
 
-const stepRow = (section, step, checked, ctx, name) => {
+const stepRow = (section, step, checked, ctx, name, extra = '') => {
   const key = stepKey(section, step);
   // a finished step needs no price from the network
   const itemCtx = checked.has(key) ? { ...ctx, wants: null } : ctx;
   return `<li class="guide-step"><label>
     <input type="checkbox" data-step="${esc(key)}"${checked.has(key) ? ' checked' : ''}>
-    <span><span class="guide-text">${esc(step.text)}</span>${step.table ? '<span class="guide-src" data-src="table">table</span>' : ''}${(step.items ?? []).map((i) => itemLine(i, itemCtx, name)).join('')}${step.hint ? `<small class="guide-hint">${esc(step.hint)}</small>` : ''}</span>
+    <span><span class="guide-text">${esc(step.text)}</span>${step.table ? '<span class="guide-src" data-src="table">table</span>' : ''}${extra}${(step.items ?? []).map((i) => itemLine(i, itemCtx, name)).join('')}${step.hint ? `<small class="guide-hint">${esc(step.hint)}</small>` : ''}</span>
   </label></li>`;
 };
 
@@ -232,15 +313,49 @@ function restNote(s, products) {
   return [s.coins > 0 && `Left ${coins(s.coins)}`, s.unpriced > 0 && `+ ${s.unpriced} unpriced`].filter(Boolean).join(' ');
 }
 
+function noPriceNote(row) {
+  if (row.step.table) return 'No coins: enchanting table';
+  if (row.unpriced) return `${row.unpriced} of its items without a price`;
+  return row.step.items ? 'Not tradeable, no coins to buy' : 'Nothing to buy listed';
+}
+
+const stepText = (guide, key) => {
+  for (const section of guide.sections) for (const step of section.steps) if (stepKey(section, step) === key) return step.text;
+  return null;
+};
+
+function recentView(guide, recent, undo) {
+  const known = recent.filter((key) => stepText(guide, key) !== null);
+  const bar = undo && stepText(guide, undo) !== null ? `<p class="guide-undo" role="status"><span>Checked: ${esc(stepText(guide, undo))}</span><button type="button" data-guide-undo="${esc(undo)}">Undo</button></p>` : '';
+  if (!known.length) return bar;
+  return `${bar}<section class="guide-recent" aria-label="Recently checked"><h2>Recently checked</h2><ul class="guide-steps">${known.map((key) => `<li class="guide-recent-row"><span>${esc(stepText(guide, key))}</span><button type="button" data-guide-undo="${esc(key)}">Undo</button></li>`).join('')}</ul></section>`;
+}
+
+function nextView(guide, checked, ctx, name, products, recent, undo) {
+  const rows = nextUpgrades(guide, checked, ctx);
+  const after = recentView(guide, recent, undo);
+  if (!rows.length) return `<p class="muted">All steps are done.</p>${after}`;
+  const top = rows.slice(0, 5);
+  const unpriced = top.filter((r) => !r.priced && r.unpriced).length;
+  const total = `Next ${top.length} upgrade${top.length === 1 ? '' : 's'} cost ${products ? coins(top.reduce((sum, r) => sum + r.coins, 0)) : '…'}${unpriced ? ` + ${unpriced} unpriced` : ''}`;
+  return `<section class="guide-next" aria-label="Next upgrades"><h2>${total}</h2><ul class="guide-steps">${rows.map((r) => {
+    const pin = r.step.priority ? '<span class="guide-src" data-src="pin">priority</span>' : '';
+    const where = `<small class="guide-hint">${esc(r.section.name)}${r.priced ? ' · ' + coins(r.coins) : products ? ' · ' + noPriceNote(r) : ''}</small>`;
+    return stepRow(r.section, r.step, checked, ctx, name, pin + where);
+  }).join('')}</ul></section>${after}`;
+}
+
 // open: the unfolded sections' names, or null at first, when the first one with open steps unfolds.
-export function progressView({ guides, current, checked, products, prices = {}, name, open = null, armed = false, removable = false }) {
+export function progressView({ guides, current, checked: marks, products, prices = {}, name, open = null, armed = false, removable = false, mode = 'slot', recent = [], undo = null }) {
   const ctx = { ...prices, products };
   const guide = guides.find((g) => g.id === current) ?? guides[0];
+  const checked = doneSet(guide, marks);
   const stats = guideStats(guide, checked, ctx);
   const first = open ? null : guide.sections.find((_, i) => stats.sections[i].done < stats.sections[i].total)?.name;
   const page = `<div class="bar ranges guide-switch" role="group" aria-label="Guide">${guides.map((g) => `<button type="button" data-guide="${esc(g.id)}" aria-pressed="${g.id === guide.id}">${esc(g.title)}</button>`).join('')}</div>
   <p class="guide-count"><strong>${stats.done} / ${stats.total}</strong>${guide.source ? ` <a class="muted" href="${esc(guide.source)}" rel="noopener">Source</a>` : ''}</p>
-  <section class="guide-next" aria-label="Next step"><h2>Next step</h2>${stats.next
+  <div class="bar ranges guide-switch" role="group" aria-label="View">${[['slot', 'By slot'], ['next', 'Next upgrades']].map(([m, label]) => `<button type="button" data-guide-mode="${m}" aria-pressed="${m === mode}">${label}</button>`).join('')}</div>
+  ${mode === 'next' ? nextView(guide, checked, ctx, name, products, recent, undo) : `<section class="guide-next" aria-label="Next step"><h2>Next step</h2>${stats.next
     ? `<small class="guide-hint">${esc(stats.next.section.name)}</small><ul class="guide-steps">${stepRow(stats.next.section, stats.next.step, checked, ctx, name)}</ul>`
     : '<p class="muted">All steps are done.</p>'}</section>
   ${guide.sections.map((section, i) => {
@@ -252,7 +367,7 @@ export function progressView({ guides, current, checked, products, prices = {}, 
       ${section.goal ? `<p class="guide-goal">${esc(section.goal)}</p>` : ''}
       ${s.total ? `<ul class="guide-steps">${section.steps.map((step) => stepRow(section, step, checked, ctx, name)).join('')}</ul>` : ''}
     </details>`;
-  }).join('')}
+  }).join('')}`}
   <div class="actions guide-foot">${armed
     ? '<span class="muted">Clear all checkmarks of this guide?</span><button type="button" data-guide-act="reset-yes" class="primary">Reset</button><button type="button" data-guide-act="reset-no">Cancel</button>'
     : `${removable ? '<button type="button" data-guide-act="remove">Remove imported copy</button>' : ''}<button type="button" data-guide-act="reset">Reset guide</button>`}</div>`;

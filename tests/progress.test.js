@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validGuide, loadBundled, mergeGuides, exportData, importData, stepKey, stepCost, priceItem, guideStats, progressView, personalVisibility, secretTap } from '../progress.js';
+import { validGuide, loadBundled, mergeGuides, exportData, importData, stepKey, stepCost, priceItem, guideStats, nextUpgrades, doneSet, setMark, pushRecent, progressView, personalVisibility, secretTap } from '../progress.js';
 
 const guide = { title: 'Test guide', source: 'https://example.com/x', sections: [
   { name: 'First', goal: 'Goal', steps: [
@@ -141,7 +141,7 @@ test('progressView shows badges, the unpriced count and the credit, and escapes 
   const html = view({ B: 500 });
   assert.match(html, /0 \/ 4/);
   assert.match(html, /Next step/);
-  assert.match(html, /A × 3 · <strong>350<\/strong> <span class="guide-src" data-src="bazaar">Bazaar/);
+  assert.match(html, /3× A · <strong>350<\/strong> <span class="guide-src" data-src="bazaar">Bazaar/);
   assert.match(html, /data-src="ah">AH/);
   assert.match(html, /data-src="nt">not tradeable/);
   assert.match(html, /Left 950 \+ 1 unpriced/);
@@ -176,4 +176,145 @@ test('secretTap opens on the fifth quick tap only', () => {
   assert.deepEqual(secretTap(taps, 3000).taps, []);
   // a pause starts the count again
   assert.deepEqual(secretTap(taps, 9000), { taps: [9000], open: false });
+});
+
+const pieces = (extra) => ({ name: 'Piece', qty: 2, anyOf: ['H', 'C', 'L'], ...extra });
+const binCtx = { products: {}, ah: { H: 30, C: 10, L: 20 } };
+
+test('an open choice takes the cheapest pieces and a later step the next one', () => {
+  assert.deepEqual(priceItem(pieces(), binCtx), { source: 'ah', coins: 30, picked: ['C', 'L'] });
+  assert.deepEqual(priceItem(pieces({ qty: 1, skip: 2 }), binCtx), { source: 'ah', coins: 30, picked: ['H'] });
+  assert.equal(priceItem(pieces({ qty: 2, skip: 2 }), binCtx).source, null);
+});
+
+test('an open choice asks for every piece and shows the quantity and what it picked', () => {
+  const wants = new Set();
+  priceItem(pieces(), { products: {}, wants });
+  assert.deepEqual([...wants], ['H', 'C', 'L']);
+  const g = { id: 'q', title: 'Q', sections: [{ name: 'S', steps: [{ text: 'Set', items: [pieces()] }, { text: 'Stones', items: [{ id: 'A', qty: 3 }] }] }] };
+  const html = progressView({ guides: [g], current: 'q', checked: new Set(), products: { A: { buy_summary: [{ amount: 9, pricePerUnit: 5 }] } }, prices: { ah: binCtx.ah }, name: (id) => `N${id}` });
+  assert.match(html, /2× Piece/);
+  assert.match(html, /NC, NL/);
+  assert.match(html, /3× NA/);
+});
+
+test('quantities multiply a set: pieces add up and a stack walks the book', () => {
+  const step = { text: 'x', items: [{ id: 'A', qty: 4 }, pieces()] };
+  const book = { A: { buy_summary: [{ amount: 2, pricePerUnit: 100 }, { amount: 10, pricePerUnit: 150 }] } };
+  assert.deepEqual(stepCost(step, { ...binCtx, products: book }), { coins: 530, unpriced: 0 });
+});
+
+test('validGuide keeps an open choice only with a name', () => {
+  const one = (i) => validGuide({ title: 't', sections: [{ name: 'S', steps: [{ text: 'a', items: [i] }] }] });
+  assert.deepEqual(one(pieces({ skip: 1 })).sections[0].steps[0].items[0], pieces({ skip: 1 }));
+  assert.equal(one({ qty: 1, anyOf: ['H'] }), null);
+});
+
+const lines = { id: 'n', title: 'N', sections: [
+  { name: 'Gear', steps: [
+    { text: 'Big', line: 'L', items: [{ id: 'X', qty: 3 }] },
+    { text: 'Bigger', line: 'L', items: [{ id: 'X', qty: 1 }] },
+    { text: 'Solo', items: [{ id: 'X', qty: 2 }] },
+    { text: 'Table', table: true },
+    { text: 'Missing', items: [{ id: 'X', qty: 1 }, { id: 'NOPE', qty: 1 }] },
+  ] },
+  { name: 'Must', steps: [{ text: 'Pinned', priority: 1, items: [{ id: 'X', qty: 9 }] }, { text: 'Top', priority: 2 }] },
+] };
+const flat = { products: { X: { buy_summary: [{ amount: 99, pricePerUnit: 10 }] } } };
+const order = (checked) => nextUpgrades(lines, new Set(checked), flat).map((r) => r.step.text);
+
+test('next upgrades: one step per line, pinned first, then by price, without a price last', () => {
+  assert.deepEqual(order([]), ['Top', 'Pinned', 'Solo', 'Big', 'Table', 'Missing']);
+});
+
+test('next upgrades: checking a step moves its line up and sorts again', () => {
+  assert.deepEqual(order(['Gear|Big']), ['Top', 'Pinned', 'Bigger', 'Solo', 'Table', 'Missing']);
+  assert.deepEqual(order(['Gear|Big', 'Gear|Bigger', 'Must|Top', 'Must|Pinned', 'Gear|Solo', 'Gear|Table', 'Gear|Missing']), []);
+});
+
+test('next upgrades view totals the first five and notes what has no price', () => {
+  const html = progressView({ guides: [lines], current: 'n', checked: new Set(), products: flat.products, name: (id) => id, mode: 'next' });
+  assert.match(html, /Next 5 upgrades cost 150 \+ 1 unpriced</);
+  assert.doesNotMatch(html, /No coins: enchanting table/);
+  assert.match(progressView({ guides: [lines], current: 'n', checked: new Set(['undone:Gear|Table']), products: flat.products, name: (id) => id, mode: 'next' }), /No coins: enchanting table/);
+  assert.match(html, /aria-pressed="true">Next upgrades/);
+  assert.doesNotMatch(html, /<details/);
+  assert.match(progressView({ guides: [lines], current: 'n', checked: new Set(), products: flat.products, name: (id) => id }), /<details/);
+});
+
+test('validGuide keeps line and a positive priority', () => {
+  const step = (s) => validGuide({ title: 't', sections: [{ name: 'S', steps: [s] }] }).sections[0].steps[0];
+  assert.deepEqual(step({ text: 'a', line: 'L', priority: 2 }), { text: 'a', line: 'L', priority: 2 });
+  assert.deepEqual(step({ text: 'a', line: 3, priority: 0 }), { text: 'a' });
+});
+
+const ladder = { id: 'l', title: 'L', sections: [
+  { name: 'Books', steps: [
+    { text: 'Table', table: true, line: 'E' },
+    { text: 'III', line: 'E', items: [{ id: 'B_3', qty: 4, combine: 5 }] },
+    { text: 'IV', line: 'E', items: [{ id: 'B_4', qty: 4, combine: 5 }] },
+    { text: 'V', line: 'E', items: [{ id: 'B_5', qty: 4, combine: 5 }] },
+  ] },
+] };
+const level = (coins) => ({ buy_summary: [{ amount: 99, pricePerUnit: coins }] });
+const books = { products: { B_3: level(10), B_4: level(100), B_5: level(150) } };
+const keys = (...t) => new Set(['Books|Table', ...t.map((x) => `Books|${x}`)]);
+
+test('what is left of a line of books is the cheapest way to its last level, not every level', () => {
+  // 4x V from nothing: 16 IIIs at 10 beat the IV books and the V books
+  assert.equal(guideStats(ladder, keys(), { ...books }).sections[0].coins, 160);
+  // with 4x IV in hand only 4 more IVs are missing, 2 IIIs each
+  assert.equal(guideStats(ladder, keys('III', 'IV'), { ...books }).sections[0].coins, 80);
+  // only the top book on sale: 4 of it
+  assert.equal(guideStats(ladder, keys(), { products: { B_5: level(150) } }).sections[0].coins, 600);
+  assert.equal(guideStats(ladder, keys('III', 'IV', 'V'), { ...books }).sections[0].coins, 0);
+});
+
+test('a missing last level counts once as unpriced, the levels before it not at all', () => {
+  const s = guideStats(ladder, keys(), { products: { B_3: level(10) } }).sections[0];
+  assert.equal(s.unpriced, 0);
+  assert.equal(s.coins, 160);
+  const end = guideStats(ladder, keys(), { products: {} }).sections[0];
+  assert.deepEqual([end.coins, end.unpriced], [0, 1]);
+});
+
+test('next upgrades shows the cost of the one jump from the level reached', () => {
+  const top = (done) => { const r = nextUpgrades(ladder, done, { ...books })[0]; return [r.step.text, r.coins]; };
+  assert.deepEqual(top(keys()), ['III', 40]);
+  // IV from III: 4 more IIIs at 10 beat the book at 100
+  assert.deepEqual(top(keys('III')), ['IV', 40]);
+  assert.deepEqual(top(keys('III', 'IV')), ['V', 80]);
+});
+
+test('a table step is done by default, can be unticked and ticked again', () => {
+  const done = () => doneSet(ladder, marks).has('Books|Table');
+  const marks = new Set();
+  assert.equal(done(), true);
+  setMark(ladder, marks, 'Books|Table', false);
+  assert.deepEqual([...marks], ['undone:Books|Table']);
+  assert.equal(done(), false);
+  setMark(ladder, marks, 'Books|Table', true);
+  assert.deepEqual([...marks], []);
+  assert.equal(done(), true);
+  setMark(ladder, marks, 'Books|III', true);
+  assert.deepEqual([...marks], ['Books|III']);
+  setMark(ladder, marks, 'Books|III', false);
+  assert.deepEqual([...marks], []);
+});
+
+test('recently checked keeps the last ten, newest first, without doubles', () => {
+  let recent = [];
+  for (let i = 0; i < 12; i++) recent = pushRecent(recent, `k${i}`);
+  assert.equal(recent.length, 10);
+  assert.equal(recent[0], 'k11');
+  assert.deepEqual(pushRecent(['a', 'b'], 'b'), ['b', 'a']);
+});
+
+test('the view shows the undo bar and the recent list only for steps it knows', () => {
+  const view = (extra) => progressView({ guides: [ladder], current: 'l', checked: new Set(['Books|III']), products: books.products, name: (id) => id, mode: 'next', ...extra });
+  const html = view({ recent: ['Books|III', 'Gone|x'], undo: 'Books|III' });
+  assert.match(html, /Checked: III/);
+  assert.match(html, /Recently checked/);
+  assert.equal(html.match(/data-guide-undo=/g).length, 2);
+  assert.doesNotMatch(view(), /data-guide-undo|Recently checked/);
 });

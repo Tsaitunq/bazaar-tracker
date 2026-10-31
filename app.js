@@ -12,7 +12,7 @@ import { level } from './trends.js';
 import { activePerks, upcoming, electionWindow, eventItems, flipRisks, planElection, taxAdvice } from './events.js';
 import { buyNow, itemWindows, readWindowAlerts, windowAlerts, MIN_ALERT_RUNS } from './timing.js';
 import { bindSheet, openSheet } from './sheet.js';
-import { loadBundled, mergeGuides, exportData, importData, progressView, personalVisibility, secretTap } from './progress.js';
+import { loadBundled, mergeGuides, exportData, importData, progressView, personalVisibility, secretTap, setMark, pushRecent } from './progress.js';
 import { initOnboarding, refreshHints, offerAdvanced, returning } from './tour.js';
 
 const API = 'https://api.hypixel.net/v2/skyblock/bazaar';
@@ -652,6 +652,11 @@ $('settings').addEventListener('click', (e) => {
 });
 // The Progress page. What is unfolded is kept per guide while the app runs.
 let guideId = load('bt.guide', null);
+let guideMode = load('bt.guideMode', 'slot');
+const guideRecent = load('bt.guideRecent', {});
+let undoKey = null;
+let undoTimer = 0;
+const UNDO_MS = 5000;
 let resetArmed = false;
 const guideOpen = {};
 function currentGuide() {
@@ -679,32 +684,54 @@ async function askBins(wants) {
   // the guide on screen can have changed during the run, and what it still wants is asked now
   else if (area() === PERSONAL) renderProgress();
 }
+function markStep(guide, key, on) {
+  const marks = checksOf(guide.id);
+  setMark(guide, marks, key, on);
+  guideChecks[guide.id] = [...marks];
+  save('bt.guideChecks', guideChecks);
+  const recent = (guideRecent[guide.id] ?? []).filter((k) => k !== key);
+  guideRecent[guide.id] = on && guideMode === 'next' ? pushRecent(recent, key) : recent;
+  save('bt.guideRecent', guideRecent);
+  clearTimeout(undoTimer);
+  undoKey = on && guideMode === 'next' ? key : null;
+  if (undoKey) undoTimer = setTimeout(() => { undoKey = null; if (area() === PERSONAL) renderProgress(); }, UNDO_MS);
+}
 function renderProgress() {
   const guide = currentGuide();
   if (!guide) { $('progress').innerHTML = '<p class="count muted">Loading…</p>'; return; }
   const wants = new Set();
-  $('progress').innerHTML = progressView({ guides: guides(), current: guide.id, checked: checksOf(guide.id), products, prices: { forge, ah, cofl: freshBins(bins), wants }, name: nameOf, open: guideOpen[guide.id] ?? null, armed: resetArmed, removable: imported.some((g) => g.id === guide.id) });
+  $('progress').innerHTML = progressView({ guides: guides(), current: guide.id, checked: checksOf(guide.id), products, prices: { forge, ah, cofl: freshBins(bins), wants }, name: nameOf, open: guideOpen[guide.id] ?? null, armed: resetArmed, removable: imported.some((g) => g.id === guide.id), mode: guideMode, recent: guideRecent[guide.id] ?? [], undo: undoKey });
   askBins(wants);
 }
 $('progress').addEventListener('change', (e) => {
   const key = e.target.dataset?.step;
   if (key === undefined) return;
-  const id = currentGuide().id;
-  const marks = checksOf(id);
-  if (e.target.checked) marks.add(key);
-  else marks.delete(key);
-  guideChecks[id] = [...marks];
-  save('bt.guideChecks', guideChecks);
+  markStep(currentGuide(), key, e.target.checked);
   renderProgress();
   // the page was redrawn: the keyboard stays on the same step
-  [...$('progress').querySelectorAll('[data-step]')].find((b) => b.dataset.step === key)?.focus({ preventScroll: true });
+  const boxes = [...$('progress').querySelectorAll('[data-step]')];
+  // in Next upgrades the checked step is gone: the first row takes over
+  (boxes.find((b) => b.dataset.step === key) ?? boxes[0])?.focus({ preventScroll: true });
 });
 $('progress').addEventListener('click', (e) => {
   const pick = e.target.closest('[data-guide]')?.dataset.guide;
   if (pick) {
     guideId = pick;
     resetArmed = false;
+    undoKey = null;
     save('bt.guide', guideId);
+    return renderProgress();
+  }
+  const back = e.target.closest('[data-guide-undo]')?.dataset.guideUndo;
+  if (back !== undefined) {
+    markStep(currentGuide(), back, false);
+    renderProgress();
+    return [...$('progress').querySelectorAll('[data-step]')].find((b) => b.dataset.step === back)?.focus({ preventScroll: true });
+  }
+  const mode = e.target.closest('[data-guide-mode]')?.dataset.guideMode;
+  if (mode) {
+    guideMode = mode;
+    save('bt.guideMode', guideMode);
     return renderProgress();
   }
   const act = e.target.closest('[data-guide-act]')?.dataset.guideAct;
@@ -714,6 +741,9 @@ $('progress').addEventListener('click', (e) => {
   if (act === 'reset-yes') {
     delete guideChecks[id];
     save('bt.guideChecks', guideChecks);
+    delete guideRecent[id];
+    save('bt.guideRecent', guideRecent);
+    undoKey = null;
   }
   if (act === 'remove') {
     imported = imported.filter((g) => g.id !== id);

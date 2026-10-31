@@ -191,9 +191,12 @@ body:not([data-area="today"]) #today, body:not([data-area="minions"]) #minions, 
 .guide-switch { flex-wrap: wrap; }
 .guide-count { margin: 8px 0; font-size: 20px; font-variant-numeric: tabular-nums; }
 .guide-count a { margin-left: 8px; }
-.guide-next, .guide-section { margin-top: 12px; padding: 12px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; }
+.guide-next, .guide-section, .guide-recent { margin-top: 12px; padding: 12px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; }
 .guide-next { border-color: var(--accent); }
 .guide-next h2 { margin: 0 0 4px; font-size: 14px; color: var(--accent); }
+.guide-recent h2 { margin: 0 0 4px; font-size: 14px; color: var(--muted); }
+.guide-recent-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 0; }
+.guide-undo { position: fixed; z-index: 3; left: 12px; right: 12px; bottom: calc(84px + env(safe-area-inset-bottom)); display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0; padding: 8px 12px; background: var(--card); border: 1px solid var(--accent); border-radius: 10px; }
 .guide-section summary { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-height: 44px; cursor: pointer; }
 .guide-name { font-weight: 600; flex: 1 1 60%; }
 .guide-rest { flex: 1 1 100%; color: var(--muted); }
