@@ -44,7 +44,8 @@ export async function fetchBins(ids, cache, onAnswer, { get = fetch, wait = (ms)
     if (n) await wait(BIN_GAP);
     try {
       const res = await get(`${COFL}${encodeURIComponent(id)}/bin`);
-      if (!res.ok && res.status !== 404) return false;
+      // an item the service does not know answers 400 or 404: that is no auction, not a failure
+      if (!res.ok && res.status !== 400 && res.status !== 404) return false;
       const lowest = res.ok && res.status !== 204 ? (await res.json())?.lowest : 0;
       cache[id] = { p: lowest > 0 ? lowest : 0, t: now() };
     } catch {

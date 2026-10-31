@@ -40,7 +40,7 @@ test('loadHistory fetches two day files and survives one 404', async () => {
 });
 
 test('fetchBins caches answers and no auction, stops when the service fails', async () => {
-  const answers = { A: { ok: true, status: 200, json: async () => ({ lowest: 70 }) }, B: { ok: false, status: 404 }, C: { ok: false, status: 429 } };
+  const answers = { A: { ok: true, status: 200, json: async () => ({ lowest: 70 }) }, B: { ok: false, status: 400 }, C: { ok: false, status: 429 } };
   const asked = [];
   const get = async (url) => { const id = url.split('/').at(-2); asked.push(url); return answers[id]; };
   const cache = {};
