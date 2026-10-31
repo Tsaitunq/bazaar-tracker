@@ -144,7 +144,7 @@ Inventarfelder sind Base64 von gzip-komprimiertem NBT [Doku]. Das reicht ohne ne
 
 ### 2.2 Feldpfade
 
-Quelle ist [SkyCrypt-Types](https://github.com/SkyCryptWebsite/SkyCrypt-Types) (letzter Commit 2026-10-28), also Fremdquelle [nicht bestätigt]. Das offizielle OpenAPI-Schema beschreibt diese Felder nicht im Detail. Paket 1 prüft sie an einem echten Abruf.
+Am 2026-10-31 an einem echten Abruf eines Coop-Profils geprüft [geprüft], soweit nicht anders vermerkt. Die Prüfung gab nur Struktur aus, keine Werte.
 
 | Daten | Pfad unter `members[uuid]` |
 |---|---|
@@ -152,31 +152,33 @@ Quelle ist [SkyCrypt-Types](https://github.com/SkyCryptWebsite/SkyCrypt-Types) (
 | Equipment | `inventory.equipment_contents.data` |
 | Inventar, Ender Chest | `inventory.inv_contents.data`, `inventory.ender_chest_contents.data` |
 | Backpacks | `inventory.backpack_contents["0"…].data` |
-| Wardrobe | `inventory.wardrobe_contents.data` (in SkyCrypt-Types auskommentiert, **gesondert prüfen**) |
+| Wardrobe | `loadout.armor["N"].HELMET/CHESTPLATE/LEGGINGS/BOOTS.data`, `loadout.armor.equipped_set`. **Nicht** `inventory.wardrobe_contents`: das Feld gibt es nicht |
+| Wardrobe-Equipment | `loadout.equipment["N"].EQUIPMENT_SLOT_1…4.data`, `loadout.equipment.equipped_set` |
+| Personal Vault | `inventory.personal_vault_contents.data` |
 | Accessories | `inventory.bag_contents.talisman_bag.data` |
 | Magical Power | `accessory_bag_storage.highest_magical_power`, `.selected_power`, `.tuning` |
 | Pets | `pets_data.pets[]`: `type, exp, tier, active, heldItem, candyUsed` |
-| HOTM | `skill_tree` (Knoten, `tokens_spent`, `experience`) sowie `mining_core` für Pulver |
+| HOTM | `skill_tree.nodes.mining` (Perk zu Stufe, dazu `toggle_*` als Boolean), `skill_tree.experience.mining`, `skill_tree.tokens_spent` sowie `mining_core` für Pulver |
 | Collections | `collection` (Item-ID zu Menge) |
 | Skills | `player_data.experience` |
 | Slayer | `slayer.slayer_bosses` |
 
-`skill_tree` entschlüsselt SkyCrypt-Types per eigenem Parser, die genaue Knotenform ist also noch offen.
+Skills heißen `SKILL_MINING` usw. Kuudra-Stufen stehen in `nether_island_player_data.kuudra_completed_tiers`. Für Paket 2 interessant: `shards` und `attributes.stacks` existieren, Shard-Schritte könnten also doch erkennbar sein.
 
 ### 2.3 Item-Felder
 
-Pro Slot liegt ein NBT-Eintrag mit `tag.ExtraAttributes` und `tag.display.Lore` vor; ein leerer Slot hat keinen `tag` [nicht bestätigt].
+Pro Slot liegt ein NBT-Eintrag mit `tag.ExtraAttributes` und `tag.display.Lore` vor; ein leerer Slot ist `{}` [geprüft].
 
 | Merkmal | Feld |
 |---|---|
 | Item-ID | `id` |
 | Reforge | `modifier` |
 | Enchants | `enchantments` (Name zu Stufe) |
-| Gemstones | `gems` (Schlüssel wie `JADE_0`, `COMBAT_0` mit `COMBAT_0_gem`, dazu `unlocked_slots`) |
+| Gemstones | `gems`: Schlüssel `JADE_0` oder `COMBAT_0` mit `COMBAT_0_gem` (auch `CHISEL_0`), dazu `unlocked_slots`. Der Wert ist die Qualität als String **oder** `{ uuid, quality }` [geprüft] |
 | Recomb | `rarity_upgrades` |
-| Stars | `upgrade_level` oder `dungeon_item_level` |
+| Stars | `upgrade_level` [geprüft]; `dungeon_item_level` kam im Abruf nicht vor |
 | Hot Potato, Art of War | `hot_potato_count`, `art_of_war_count` |
-| Drill-Teile | `drill_part_engine`, `drill_part_fuel_tank`, `drill_part_upgrade_module` |
+| Drill-Teile | `drill_part_engine`, `drill_part_fuel_tank`, `drill_part_upgrade_module` (kamen im Abruf nicht vor, weiter [nicht bestätigt]) |
 | Angezeigte Stats | `display.Lore` |
 
 Normalform in `profile.js`:
@@ -187,7 +189,7 @@ Normalform in `profile.js`:
 
 ### 2.4 Lore-Parser
 
-Pro Lore-Zeile wird nach Entfernen der `§`-Farbcodes geprüft: `Name: +1,234`, dahinter optional `(+x)` oder `[+y]`. Nur die erste Zahl zählt. Die Liste bekannter Stat-Namen ist fest, Unbekanntes wird ignoriert. Format und Bedeutung der Klammern muss Paket 1 prüfen [nicht bestätigt].
+Pro Lore-Zeile wird nach Entfernen der `§`-Farbcodes geprüft: `Name: +1,234`, auch mit `%`, dahinter bis zu drei Klammern `(+x)` [geprüft: Format]. Nur die erste Zahl zählt, die Liste bekannter Stat-Namen ist fest, Unbekanntes wird ignoriert. Dass die erste Zahl der Gesamtwert ist, passt zu 103 von 115 geprüften Zeilen (erste Zahl mindestens so groß wie die Summe der Klammern). Die übrigen 12 sind ungeklärt; der `/stats`-Abgleich in Paket 4 muss das zeigen.
 
 ### 2.5 Loadouts: das Wardrobe-Problem
 
@@ -195,7 +197,7 @@ Wer beim Sync die Mining-Rüstung trägt, hat die Blaze-Rüstung in der Wardrobe
 
 **Entscheidung:** Es gibt zwei Sichten auf denselben Datenstand:
 
-- **Besitz:** alle Items aus Rüstung, Equipment, Wardrobe, Inventar, Ender Chest und Backpacks. Grundlage für "besitze ich das?" (Sacks und Forge zählen nicht).
+- **Besitz:** alle Items aus Rüstung, Equipment, Wardrobe, Inventar, Ender Chest, Backpacks und Personal Vault, doppelte über die Item-UUID nur einmal. Grundlage für "besitze ich das?" (Sacks und Forge zählen nicht).
 - **Loadout je Bereich:** pro Slot das Item, das für den Bereich am besten ist. Mining: höchster Wert laut gewichtetem Score. Blaze: höchster Wert aus True Defense plus geschätztem Schaden. Waffe bzw. Tool analog. Pet: bestes Pet für den Bereich, unabhängig von `active`.
 
 Die UI listet das erkannte Loadout auf, damit eine Fehlwahl auffällt. Ein manueller Override kommt erst, falls die Automatik im Betrieb danebenliegt.
@@ -491,7 +493,7 @@ Umsetzung und Absicherung:
 - **Snapshot-Job:** bekommt keinen Key und ruft nur öffentliche Resources ab. `items.json` enthält keine Profildaten.
 - **Export:** `exportData(guides, progress)` bleibt in Signatur und Inhalt unverändert. `auto` und Key sind damit gar nicht erreichbar. Test: Export nach einem Sync enthält weder Key, UUID noch Item-UUIDs.
 - **Import:** `importData` ignoriert fremde Felder bereits.
-- **Repo:** `personal/` ist in `.gitignore` [geprüft]. Testdaten sind synthetisch: Der Test erzeugt NBT mit einem kleinen Encoder. Ein echter Abruf liegt anonymisiert in `personal/fixtures/`, und Tests dagegen überspringen sich ohne die Datei. Er entsteht in der App (Key-Eingabe nur dort) über einen temporären Knopf in Paket 1 und kommt per `adb pull` auf den Rechner; `copy-web.mjs` kopiert aus `personal/` nur `guides`, also landet er nicht im APK. Regel aus `CLAUDE.md`: Tests rufen nie die API auf.
+- **Repo:** `personal/` ist in `.gitignore` [geprüft]. Testdaten sind synthetisch: Der Test erzeugt NBT mit einem kleinen Encoder. Ein echter Abruf liegt anonymisiert in `personal/fixtures/`, und Tests dagegen überspringen sich ohne die Datei. Er entsteht in der App (Key-Eingabe nur dort) über einen temporären Knopf in Paket 1 und kommt per Android-Teilen-Menü oder `adb exec-out run-as` auf den Rechner; `copy-web.mjs` kopiert aus `personal/` nur `guides`, also landet er nicht im APK. Regel aus `CLAUDE.md`: Tests rufen nie die API auf.
 - **Logs:** Kein `console.*` im Sync-Code. `fetch`-Fehler werden auf Fehlerklassen abgebildet, nie durchgereicht.
 - **Löschen:** Knopf "Remove key and profile data" entfernt alles und setzt `auto` zurück. Manuelle Haken bleiben.
 - **Guard-Test:** Der String `API-Key` darf nur in einer Datei vorkommen. Ein Test scannt außerdem `SHELL`-Dateien auf Key-Muster.
@@ -521,8 +523,6 @@ Neue Dateien: `nbt.js`, `profile.js`, `stats.js`, `optimizer.js`, `optimizer-dat
 
 | Risiko | Folge | Gegenmaßnahme |
 |---|---|---|
-| Feldpfade weichen ab, v. a. `wardrobe_contents`, `skill_tree` | Paket 1 dauert länger | Prüfung als erster Schritt in Paket 1, vor allem anderen Code |
-| Wardrobe nicht lesbar | Blaze-Stand unvollständig, wenn Mining-Rüstung getragen wird | Hinweis "put on your Blaze set, then sync"; Besitzprüfung über die übrigen Lager |
 | Lore-Format ändert sich oder Klammern anders als angenommen | falsche Stats | `/stats`-Abgleich macht es sichtbar; Parser ist getestet und klein |
 | Application-Genehmigung dauert oder wird abgelehnt | Blockiert ab Paket 1 | Development Key nur für Paket 1 zum Entwickeln |
 | Inaktivitätsregel (28 Tage) | App deaktiviert | Hinweis ab 21 Tagen |
