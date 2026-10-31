@@ -85,8 +85,6 @@ const done = async (call) => {
 export const setApiKey = (key) => done((p) => p.setApiKey({ key }));
 export const saveProfile = (profile) => done((p) => p.saveProfile({ json: JSON.stringify(profile) }));
 export const clearProfileData = () => done(async (p) => { await p.clearApiKey(); await p.clearProfile(); });
-// shortcut: temporary for field check, removed in Task 6
-export const shareFixture = (copy) => done((p) => p.shareFixture({ json: JSON.stringify(copy) }));
 
 export async function loadProfile() {
   try {

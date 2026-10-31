@@ -5,7 +5,7 @@ import { forgeFlips, forgeFlip } from './forge.js';
 import { minionRows, minionDetail, FUELS, UPGRADES, MAX_TIER } from './minions.js';
 import { loadItems, fallbackName } from './names.js';
 import { loadStats, loadRecipes, loadForge, loadAh, loadElection, loadTiming, loadWindows, loadHistory, freshBins, fetchBins } from './data.js';
-import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission, loadHeld, storeHeld, canSync, getApiKey, setApiKey, loadProfile, saveProfile, clearProfileData, shareFixture } from './native.js';
+import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission, loadHeld, storeHeld, canSync, getApiKey, setApiKey, loadProfile, saveProfile, clearProfileData } from './native.js';
 import { esc, PERSONAL, flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, trendsView, todayView, windowBanners, minionCard, minionSheet, parseRoute, detailView, portfolioView, warningsView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, viewsFor, areaOf, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
 import { level } from './trends.js';
@@ -13,7 +13,7 @@ import { activePerks, upcoming, electionWindow, eventItems, flipRisks, planElect
 import { buyNow, itemWindows, readWindowAlerts, windowAlerts, MIN_ALERT_RUNS } from './timing.js';
 import { bindSheet, openSheet } from './sheet.js';
 import { loadBundled, mergeGuides, exportData, importData, progressView, personalVisibility, secretTap, setMark, pushRecent } from './progress.js';
-import { createSync, syncMessage, normalizeUuid, cleanKey } from './sync.js';
+import { createSync, syncMessage, syncView, normalizeUuid, cleanKey } from './sync.js';
 import { summarize } from './profile.js';
 import { initOnboarding, refreshHints, offerAdvanced, returning } from './tour.js';
 
@@ -657,6 +657,8 @@ let guideId = load('bt.guide', null);
 let guideMode = load('bt.guideMode', 'slot');
 const guideRecent = load('bt.guideRecent', {});
 let undoKey = null;
+let profileState = null;
+let syncNote = {};
 let undoTimer = 0;
 const UNDO_MS = 5000;
 let resetArmed = false;
@@ -702,7 +704,7 @@ function renderProgress() {
   const guide = currentGuide();
   if (!guide) { $('progress').innerHTML = '<p class="count muted">Loading…</p>'; return; }
   const wants = new Set();
-  $('progress').innerHTML = progressView({ guides: guides(), current: guide.id, checked: checksOf(guide.id), products, prices: { forge, ah, cofl: freshBins(bins), wants }, name: nameOf, open: guideOpen[guide.id] ?? null, armed: resetArmed, removable: imported.some((g) => g.id === guide.id), mode: guideMode, recent: guideRecent[guide.id] ?? [], undo: undoKey });
+  $('progress').innerHTML = progressView({ guides: guides(), current: guide.id, checked: checksOf(guide.id), products, prices: { forge, ah, cofl: freshBins(bins), wants }, name: nameOf, open: guideOpen[guide.id] ?? null, armed: resetArmed, removable: imported.some((g) => g.id === guide.id), mode: guideMode, recent: guideRecent[guide.id] ?? [], undo: undoKey, syncBar: canSync() ? syncView(profileState, Date.now(), esc, syncNote) : '' });
   askBins(wants);
 }
 $('progress').addEventListener('change', (e) => {
@@ -716,6 +718,9 @@ $('progress').addEventListener('change', (e) => {
   (boxes.find((b) => b.dataset.step === key) ?? boxes[0])?.focus({ preventScroll: true });
 });
 $('progress').addEventListener('click', (e) => {
+  if (e.target.closest('[data-sync="run"]')) return runProfileSync();
+  const syncPick = e.target.closest('[data-sync-pick]')?.dataset.syncPick;
+  if (syncPick) return runProfileSync(syncPick);
   const pick = e.target.closest('[data-guide]')?.dataset.guide;
   if (pick) {
     guideId = pick;
@@ -836,33 +841,28 @@ $('personal-settings').addEventListener('click', async (e) => {
   guideMessage(copied ? 'Copied to the clipboard.' : 'Copy the text above.');
 });
 const profileSync = createSync({ store: { getApiKey, loadProfile, saveProfile }, summarize });
-// shortcut: temporary for field check, removed in Task 6. Only ever the anonymized copy, and only in memory.
-let testCopy = null;
 let removeArmed = false;
 const hpStatus = (text) => { $('hp-status').textContent = text; };
 async function showProfile() {
   if (!canSync()) return;
-  $('hp-uuid').value = (await loadProfile())?.uuid ?? '';
+  profileState = await loadProfile();
+  $('hp-uuid').value = profileState?.uuid ?? '';
   $('hp-key-state').textContent = await getApiKey() ? 'Key saved.' : 'No key saved.';
+  if (area() === PERSONAL) renderProgress();
 }
 async function runProfileSync(pick) {
-  hpStatus('Syncing…');
-  $('hp-choices').hidden = true;
+  syncNote = { message: 'Syncing…' };
+  renderProgress();
   const result = await profileSync.run(pick);
   if (result.status === 'busy') return;
-  if (result.status === 'error') return hpStatus(syncMessage(result.error, result.retryIn));
-  if (result.status === 'choose') {
-    $('hp-choices').hidden = false;
-    $('hp-choices').innerHTML = result.choices.map((c) => `<button type="button" data-hp-pick="${esc(c.id)}">${esc(c.name)} (${c.members})</button>`).join('');
-    return hpStatus('Pick your profile.');
-  }
-  testCopy = result.fixture;
-  $('hypixel-profile').querySelector('[data-hp="share"]').hidden = false;
-  hpStatus(`Synced ${result.state.profileName}.`);
+  syncNote = result.status === 'error' ? { message: syncMessage(result.error, result.retryIn) }
+    : result.status === 'choose' ? { message: 'Pick your profile.', choices: result.choices }
+    : { message: 'Synced.' };
+  if (result.status === 'ok') profileState = result.state;
+  if (area() === PERSONAL) renderProgress();
 }
 async function saveProfileFields() {
-  const typed = $('hp-uuid').value;
-  const uuid = normalizeUuid(typed);
+  const uuid = normalizeUuid($('hp-uuid').value);
   if (!uuid) return hpStatus(syncMessage('input'));
   const state = await loadProfile();
   // another player's stand must not stay behind under a new UUID
@@ -874,18 +874,14 @@ async function saveProfileFields() {
   hpStatus('Saved.');
 }
 $('hypixel-profile').addEventListener('click', async (e) => {
-  const pick = e.target.closest('[data-hp-pick]')?.dataset.hpPick;
-  if (pick) return runProfileSync(pick);
   const act = e.target.closest('[data-hp]')?.dataset.hp;
   if (!act) return;
-  const remove = e.target.closest('[data-hp="remove"]');
-  if (act !== 'remove' && removeArmed) {
+  const remove = $('hypixel-profile').querySelector('[data-hp="remove"]');
+  if (act === 'save') {
     removeArmed = false;
-    $('hypixel-profile').querySelector('[data-hp="remove"]').textContent = 'Remove key and profile data';
+    remove.textContent = 'Remove key and profile data';
+    return saveProfileFields();
   }
-  if (act === 'save') return saveProfileFields();
-  if (act === 'sync') return runProfileSync();
-  if (act === 'share') return hpStatus(testCopy && await shareFixture(testCopy) ? 'Share menu opened.' : 'Could not share the copy.');
   if (!removeArmed) {
     removeArmed = true;
     remove.textContent = 'Tap again to remove';
@@ -893,8 +889,7 @@ $('hypixel-profile').addEventListener('click', async (e) => {
   }
   removeArmed = false;
   remove.textContent = 'Remove key and profile data';
-  testCopy = null;
-  $('hypixel-profile').querySelector('[data-hp="share"]').hidden = true;
+  syncNote = {};
   hpStatus(await clearProfileData() ? 'Key and profile data removed.' : 'Could not remove them.');
   await showProfile();
 });

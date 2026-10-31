@@ -3,13 +3,10 @@ package com.tsaitunq.bazaarflip;
 import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
-import android.content.ClipData;
 import android.content.SharedPreferences;
-import android.net.Uri;
 import android.os.Build;
 
 import androidx.core.app.NotificationManagerCompat;
-import androidx.core.content.FileProvider;
 import androidx.work.Constraints;
 import androidx.work.ExistingPeriodicWorkPolicy;
 import androidx.work.NetworkType;
@@ -67,6 +64,8 @@ public class AlertsPlugin extends Plugin {
     @Override
     public void load() {
         route(getActivity().getIntent());
+        // the field check build left a copy of the profile here
+        new File(getContext().getCacheDir(), "profile-fixture.json").delete();
     }
 
     @Override
@@ -244,29 +243,6 @@ public class AlertsPlugin extends Plugin {
     public void clearProfile(PluginCall call) {
         ProfileStore.clearProfile(getContext());
         call.resolve();
-    }
-
-    // shortcut: temporary for field check, removed in Task 6
-    @PluginMethod
-    public void shareFixture(PluginCall call) {
-        String json = call.getString("json");
-        if (json == null) {
-            call.reject("no copy");
-            return;
-        }
-        try {
-            File file = ProfileStore.saveFixture(getContext(), json);
-            Uri uri = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".fileprovider", file);
-            Intent send = new Intent(Intent.ACTION_SEND)
-                .setType("application/json")
-                .putExtra(Intent.EXTRA_STREAM, uri)
-                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            send.setClipData(ClipData.newRawUri(null, uri));
-            getActivity().startActivity(Intent.createChooser(send, "Share test copy"));
-            call.resolve();
-        } catch (IOException | RuntimeException e) {
-            call.reject("could not share the copy");
-        }
     }
 
     @PluginMethod

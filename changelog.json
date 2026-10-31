@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.10.0",
+      "date": "2026-10-31",
+      "entries": [
+        { "title": "Sync your profile", "text": "Progress can now read your own SkyBlock profile with your personal API key, stored only on this phone.", "personal": true }
+      ]
+    },
+    {
       "version": "0.9.3",
       "date": "2026-10-31",
       "entries": [

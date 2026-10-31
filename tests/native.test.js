@@ -1,6 +1,6 @@
 import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { alertConfig, plugin, syncAlerts, syncNames, onRoute, requestAlertPermission, canSync, getApiKey, setApiKey, loadProfile, saveProfile, clearProfileData, shareFixture } from '../native.js';
+import { alertConfig, plugin, syncAlerts, syncNames, onRoute, requestAlertPermission, canSync, getApiKey, setApiKey, loadProfile, saveProfile, clearProfileData } from '../native.js';
 
 afterEach(() => { delete globalThis.Capacitor; });
 
@@ -125,12 +125,4 @@ test('the profile goes to the plugin as JSON and a broken one reads as none', as
   assert.deepEqual(calls[1], { key: 'K2' });
   assert.equal(await clearProfileData(), true);
   assert.deepEqual(calls.slice(2), ['key', 'profile']);
-});
-
-test('the anonymous copy goes to the share menu as JSON', async () => {
-  assert.equal(await shareFixture({ a: 1 }), false);
-  const calls = [];
-  globalThis.Capacitor = { isNativePlatform: () => true, Plugins: { BazaarAlerts: { shareFixture: async (c) => { calls.push(c); } } } };
-  assert.equal(await shareFixture({ a: 1 }), true);
-  assert.deepEqual(calls, [{ json: '{"a":1}' }]);
 });

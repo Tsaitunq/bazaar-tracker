@@ -346,13 +346,13 @@ function nextView(guide, checked, ctx, name, products, recent, undo) {
 }
 
 // open: the unfolded sections' names, or null at first, when the first one with open steps unfolds.
-export function progressView({ guides, current, checked: marks, products, prices = {}, name, open = null, armed = false, removable = false, mode = 'slot', recent = [], undo = null }) {
+export function progressView({ guides, current, checked: marks, products, prices = {}, name, open = null, armed = false, removable = false, mode = 'slot', recent = [], undo = null, syncBar = '' }) {
   const ctx = { ...prices, products };
   const guide = guides.find((g) => g.id === current) ?? guides[0];
   const checked = doneSet(guide, marks);
   const stats = guideStats(guide, checked, ctx);
   const first = open ? null : guide.sections.find((_, i) => stats.sections[i].done < stats.sections[i].total)?.name;
-  const page = `<div class="bar ranges guide-switch" role="group" aria-label="Guide">${guides.map((g) => `<button type="button" data-guide="${esc(g.id)}" aria-pressed="${g.id === guide.id}">${esc(g.title)}</button>`).join('')}</div>
+  const page = `${syncBar}<div class="bar ranges guide-switch" role="group" aria-label="Guide">${guides.map((g) => `<button type="button" data-guide="${esc(g.id)}" aria-pressed="${g.id === guide.id}">${esc(g.title)}</button>`).join('')}</div>
   <p class="guide-count"><strong>${stats.done} / ${stats.total}</strong>${guide.source ? ` <a class="muted" href="${esc(guide.source)}" rel="noopener">Source</a>` : ''}</p>
   <div class="bar ranges guide-switch" role="group" aria-label="View">${[['slot', 'By slot'], ['next', 'Next upgrades']].map(([m, label]) => `<button type="button" data-guide-mode="${m}" aria-pressed="${m === mode}">${label}</button>`).join('')}</div>
   ${mode === 'next' ? nextView(guide, checked, ctx, name, products, recent, undo) : `<section class="guide-next" aria-label="Next step"><h2>Next step</h2>${stats.next

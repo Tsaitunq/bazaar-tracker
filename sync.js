@@ -43,20 +43,6 @@ export function chooseProfile(list, savedId) {
   return profile ? { profile } : { choices: list };
 }
 
-const withDashes = (u) => `${u.slice(0, 8)}-${u.slice(8, 12)}-${u.slice(12, 16)}-${u.slice(16, 20)}-${u.slice(20)}`;
-
-// shortcut: inventories stay encoded, so item uuids and names inside them remain; only for the gitignored field check, removed in Task 6.
-export function anonymize(profile, uuid) {
-  const { profile_id, cute_name, banking, community_upgrades, members, ...rest } = profile;
-  const { coop_invitation, ...own } = members[uuid].profile ?? {};
-  let text = JSON.stringify({ ...rest, members: { self: { ...members[uuid], profile: own } } });
-  for (const id of Object.keys(members)) {
-    const name = id === uuid ? 'self' : 'mate';
-    text = text.replaceAll(id, name).replaceAll(withDashes(id), name);
-  }
-  return JSON.parse(text);
-}
-
 const MESSAGES = {
   nokey: 'Add your API key first.',
   nouuid: 'Add your Minecraft UUID first.',
@@ -97,7 +83,7 @@ export function createSync({ store, get = fetch, now = Date.now, summarize }) {
     }
     const next = { uuid: state.uuid, profileId: profile.profile_id, profileName: profile.cute_name, syncedAt: now(), summary };
     if (!await store.saveProfile(next)) return fail('store');
-    return { status: 'ok', state: next, fixture: anonymize(profile, state.uuid) };
+    return { status: 'ok', state: next };
   }
 
   return {
@@ -111,4 +97,29 @@ export function createSync({ store, get = fetch, now = Date.now, summarize }) {
       }
     },
   };
+}
+
+const DAY = 86400e3;
+const REMINDER_DAYS = 21;
+const API_NAMES = { inventory: 'API: Inventory', collections: 'API: Collections', skills: 'API: Skills' };
+
+function seenLine(s) {
+  const count = (...where) => s.items.filter((i) => where.includes(i.where)).length;
+  return `Seen: ${count('armor')} armor, ${count('equipment')} equipment, ${count('wardrobe')} wardrobe, ${count('inventory', 'ender', 'backpack', 'vault')} storage, ${count('accessory')} accessories, ${s.pets.length} pets${s.mp === null ? '' : ` · MP ${s.mp}`}`;
+}
+
+// The line above the guides: when the last sync was, what it found, and what the player has to do about it.
+export function syncView(state, now, esc, { message = '', choices = [] } = {}) {
+  const days = state?.syncedAt ? Math.floor((now - state.syncedAt) / DAY) : null;
+  const off = Object.keys(API_NAMES).filter((k) => state?.summary?.missing?.[k]).map((k) => API_NAMES[k]);
+  const lines = days === null
+    ? ['Not synced yet. Add your UUID and key in the settings.']
+    : [
+      `${esc(state.profileName)} · ${days ? `${days} d ago` : 'today'}`,
+      seenLine(state.summary),
+      ...(off.length ? [`Turn on ${off.join(', ')} in SkyBlock Menu → Settings → API Settings.`] : []),
+      ...(days >= REMINDER_DAYS ? ['Sync soon: Hypixel can disable an API application after 28 days without a request.'] : []),
+    ];
+  const picks = choices.map((c) => `<button type="button" data-sync-pick="${esc(c.id)}">${esc(c.name)} (${c.members})</button>`).join('');
+  return `<section class="guide-sync" aria-label="Profile sync"><div class="actions"><button type="button" data-sync="run" class="primary">Sync profile</button>${picks}</div>${lines.map((l) => `<small>${l}</small>`).join('')}<small role="status">${esc(message)}</small></section>`;
 }

@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeUuid, cleanKey, fetchProfiles, eligibleProfiles, chooseProfile, anonymize, syncMessage, createSync } from '../sync.js';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { normalizeUuid, cleanKey, fetchProfiles, eligibleProfiles, chooseProfile, syncMessage, createSync, syncView } from '../sync.js';
+import { esc } from '../render.js';
+import { exportData } from '../progress.js';
 
 const U = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 const MATE = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
@@ -78,16 +81,6 @@ test('chooseProfile: saved id, then selected, then ask', () => {
   assert.deepEqual(chooseProfile([], 'a'), { none: true });
 });
 
-test('anonymize keeps only this member and removes coop traces', () => {
-  const copy = anonymize(coopProfile, U);
-  const out = JSON.stringify(copy);
-  for (const secret of [U, dashed(U), MATE, dashed(MATE), 'profileid', 'CuteName', 'banking', 'coop_invitation', 'mate stuff']) assert.ok(!out.includes(secret), secret);
-  assert.deepEqual(Object.keys(copy.members), ['self']);
-  assert.equal(copy.members.self.inventory.x, 1);
-  // the input stays as it was
-  assert.ok(coopProfile.members[U].profile.coop_invitation);
-});
-
 function setup({ state = { uuid: U }, key = 'K3Y', get, summarize = async () => ({ seen: 1 }), now = () => 1e9 } = {}) {
   const saved = [];
   let calls = 0;
@@ -108,13 +101,6 @@ test('a successful run stores the summary and no coop mate', async () => {
   assert.deepEqual(member, coopProfile.members[U]);
   assert.deepEqual(saved[0], { uuid: U, profileId: 'profileid', profileName: 'CuteName', syncedAt: 1e9, summary: { seen: 1 } });
   assert.ok(!JSON.stringify(saved).includes(MATE));
-});
-
-test('the copy for checking is anonymous already when the run returns', async () => {
-  const { fixture } = await setup().sync.run();
-  const out = JSON.stringify(fixture);
-  assert.ok(!out.includes(U) && !out.includes(MATE));
-  assert.ok(fixture.members.self);
 });
 
 test('the previous summary reaches summarize', async () => {
@@ -184,4 +170,71 @@ test('a profile that cannot be stored is reported', async () => {
     get: async () => json(200, { success: true, profiles: [coopProfile] }), now: () => 1e9, summarize: async () => ({}),
   });
   assert.deepEqual(await sync.run(), { status: 'error', error: 'store' });
+});
+
+const DAY = 86400e3;
+const summary = {
+  items: [...Array(4).fill({ where: 'armor' }), ...Array(3).fill({ where: 'equipment' }), { where: 'wardrobe' }, { where: 'ender' }, { where: 'backpack' }, ...Array(2).fill({ where: 'accessory' })],
+  pets: [{}, {}], mp: 823, missing: { inventory: false, collections: false, skills: false },
+};
+const synced = { uuid: U, profileName: 'Apple', syncedAt: 1000 * DAY, summary };
+
+test('syncView shows age, profile and what was seen', () => {
+  const html = syncView(synced, 1000 * DAY + 3 * DAY, esc);
+  assert.match(html, /data-sync="run"/);
+  assert.match(html, /Apple/);
+  assert.match(html, /3 d ago/);
+  assert.match(html, /Seen: 4 armor, 3 equipment, 1 wardrobe, 2 storage, 2 accessories, 2 pets · MP 823/);
+  assert.ok(!html.includes(U));
+});
+
+test('syncView says when nothing was synced yet', () => {
+  assert.match(syncView(null, 0, esc), /Not synced yet/);
+  assert.match(syncView({ uuid: U }, 0, esc), /Not synced yet/);
+});
+
+test('syncView warns after 21 days without a sync', () => {
+  assert.ok(!syncView(synced, 1000 * DAY + 20 * DAY, esc).includes('28 days'));
+  assert.match(syncView(synced, 1000 * DAY + 21 * DAY, esc), /28 days/);
+});
+
+test('syncView names a switched-off API with the menu path', () => {
+  const html = syncView({ ...synced, summary: { ...summary, missing: { inventory: true, collections: true, skills: false } } }, 1000 * DAY, esc);
+  assert.match(html, /API: Inventory, API: Collections/);
+  assert.match(html, /SkyBlock Menu → Settings → API Settings/);
+  assert.ok(!html.includes('API: Skills'));
+});
+
+test('syncView shows a message and the profiles to pick', () => {
+  const html = syncView(synced, 1000 * DAY, esc, { message: 'Syncing…', choices: [{ id: 'a', name: 'Pear', members: 2 }] });
+  assert.match(html, /Syncing…/);
+  assert.match(html, /data-sync-pick="a"[^>]*>Pear \(2\)/);
+});
+
+test('syncView escapes profile names', () => {
+  const html = syncView({ ...synced, profileName: '<img src=x>' }, 1000 * DAY, esc, { choices: [{ id: '"x', name: '<b>', members: 1 }] });
+  assert.ok(!html.includes('<img') && !html.includes('<b>') && !html.includes('"x'));
+});
+
+test('export after a sync has no key, uuid or profile data', () => {
+  const out = JSON.parse(exportData([{ id: 'g', title: 'G', sections: [] }], { g: ['a'] }));
+  assert.deepEqual(Object.keys(out), ['type', 'guides', 'progress']);
+  assert.match(readFileSync('app.js', 'utf8'), /exportData\(guides\(\), guideChecks\)/);
+});
+
+test('the key header exists only in sync.js and nothing logs or stores there', () => {
+  const web = readdirSync('.').filter((f) => f.endsWith('.js') || f === 'index.html');
+  assert.deepEqual(web.filter((f) => readFileSync(f, 'utf8').includes('API-Key')), ['sync.js']);
+  for (const f of ['sync.js', 'profile.js', 'nbt.js']) {
+    const src = readFileSync(f, 'utf8');
+    assert.ok(!src.includes('console.') && !src.includes('localStorage'), f);
+  }
+  const java = readFileSync('android/app/src/main/java/com/tsaitunq/bazaarflip/ProfileStore.java', 'utf8');
+  assert.ok(!java.includes('util.Log') && !java.includes('printStackTrace'));
+});
+
+test('the temporary field-check parts are gone', () => {
+  const files = [...readdirSync('.').filter((f) => f.endsWith('.js') || f === 'index.html'), 'android/app/src/main/java/com/tsaitunq/bazaarflip/AlertsPlugin.java'];
+  for (const f of files) assert.ok(!/shareFixture|Share test copy|anonymize/.test(readFileSync(f, 'utf8')), f);
+  assert.ok(!existsSync('scripts/check-fixture.mjs'));
 });
