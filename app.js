@@ -5,14 +5,15 @@ import { forgeFlips, forgeFlip } from './forge.js';
 import { minionRows, minionDetail, FUELS, UPGRADES, MAX_TIER } from './minions.js';
 import { loadItems, fallbackName } from './names.js';
 import { loadStats, loadRecipes, loadForge, loadAh, loadElection, loadTiming, loadWindows, loadHistory, freshBins, fetchBins } from './data.js';
-import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission, loadHeld, storeHeld } from './native.js';
-import { PERSONAL, flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, trendsView, todayView, windowBanners, minionCard, minionSheet, parseRoute, detailView, portfolioView, warningsView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, viewsFor, areaOf, coins, percent, PLACEHOLDER_ICON } from './render.js';
+import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission, loadHeld, storeHeld, canSync, getApiKey, setApiKey, loadProfile, saveProfile, clearProfileData, shareFixture } from './native.js';
+import { esc, PERSONAL, flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, trendsView, todayView, windowBanners, minionCard, minionSheet, parseRoute, detailView, portfolioView, warningsView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, viewsFor, areaOf, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
 import { level } from './trends.js';
 import { activePerks, upcoming, electionWindow, eventItems, flipRisks, planElection, taxAdvice } from './events.js';
 import { buyNow, itemWindows, readWindowAlerts, windowAlerts, MIN_ALERT_RUNS } from './timing.js';
 import { bindSheet, openSheet } from './sheet.js';
 import { loadBundled, mergeGuides, exportData, importData, progressView, personalVisibility, secretTap, setMark, pushRecent } from './progress.js';
+import { createSync, syncMessage, normalizeUuid, cleanKey } from './sync.js';
 import { initOnboarding, refreshHints, offerAdvanced, returning } from './tour.js';
 
 const API = 'https://api.hypixel.net/v2/skyblock/bazaar';
@@ -763,6 +764,7 @@ function refreshProgress() {
   const shown = personalVisibility(guides().length, importUnlocked);
   $('personal-settings').hidden = !shown.section;
   $('personal-switch').hidden = !shown.toggle;
+  $('hypixel-profile').hidden = !shown.toggle || !canSync();
   // the address can already say Progress, so no hashchange comes when the area appears
   if (parseRoute(location.hash).view === PERSONAL) {
     if (!progressOn()) history.replaceState(null, '', '#/flips');
@@ -832,6 +834,70 @@ $('personal-settings').addEventListener('click', async (e) => {
   }
   guideMessage(copied ? 'Copied to the clipboard.' : 'Copy the text above.');
 });
+const profileSync = createSync({ store: { getApiKey, loadProfile, saveProfile }, summarize: async () => ({}) });
+// shortcut: temporary for field check, removed in Task 6. Only ever the anonymized copy, and only in memory.
+let testCopy = null;
+let removeArmed = false;
+const hpStatus = (text) => { $('hp-status').textContent = text; };
+async function showProfile() {
+  if (!canSync()) return;
+  $('hp-uuid').value = (await loadProfile())?.uuid ?? '';
+  $('hp-key-state').textContent = await getApiKey() ? 'Key saved.' : 'No key saved.';
+}
+async function runProfileSync(pick) {
+  hpStatus('Syncing…');
+  $('hp-choices').hidden = true;
+  const result = await profileSync.run(pick);
+  if (result.status === 'busy') return;
+  if (result.status === 'error') return hpStatus(syncMessage(result.error, result.retryIn));
+  if (result.status === 'choose') {
+    $('hp-choices').hidden = false;
+    $('hp-choices').innerHTML = result.choices.map((c) => `<button type="button" data-hp-pick="${esc(c.id)}">${esc(c.name)} (${c.members})</button>`).join('');
+    return hpStatus('Pick your profile.');
+  }
+  testCopy = result.fixture;
+  $('hypixel-profile').querySelector('[data-hp="share"]').hidden = false;
+  hpStatus(`Synced ${result.state.profileName}.`);
+}
+async function saveProfileFields() {
+  const typed = $('hp-uuid').value;
+  const uuid = normalizeUuid(typed);
+  if (!uuid) return hpStatus(syncMessage('input'));
+  const state = await loadProfile();
+  // another player's stand must not stay behind under a new UUID
+  if (state?.uuid !== uuid && !await saveProfile({ uuid })) return hpStatus(syncMessage('store'));
+  const key = cleanKey($('hp-key').value);
+  $('hp-key').value = '';
+  if (key && !await setApiKey(key)) return hpStatus('Could not save the key on this phone.');
+  await showProfile();
+  hpStatus('Saved.');
+}
+$('hypixel-profile').addEventListener('click', async (e) => {
+  const pick = e.target.closest('[data-hp-pick]')?.dataset.hpPick;
+  if (pick) return runProfileSync(pick);
+  const act = e.target.closest('[data-hp]')?.dataset.hp;
+  if (!act) return;
+  const remove = e.target.closest('[data-hp="remove"]');
+  if (act !== 'remove' && removeArmed) {
+    removeArmed = false;
+    $('hypixel-profile').querySelector('[data-hp="remove"]').textContent = 'Remove key and profile data';
+  }
+  if (act === 'save') return saveProfileFields();
+  if (act === 'sync') return runProfileSync();
+  if (act === 'share') return hpStatus(testCopy && await shareFixture(testCopy) ? 'Share menu opened.' : 'Could not share the copy.');
+  if (!removeArmed) {
+    removeArmed = true;
+    remove.textContent = 'Tap again to remove';
+    return;
+  }
+  removeArmed = false;
+  remove.textContent = 'Remove key and profile data';
+  testCopy = null;
+  $('hypixel-profile').querySelector('[data-hp="share"]').hidden = true;
+  hpStatus(await clearProfileData() ? 'Key and profile data removed.' : 'Could not remove them.');
+  await showProfile();
+});
+showProfile();
 $('search').addEventListener('input', render);
 $('refresh').addEventListener('click', refresh);
 $('fav-only').addEventListener('click', () => {

@@ -219,6 +219,25 @@
       <textarea id="guide-json" rows="4" spellcheck="false" aria-label="Guides as JSON"></textarea>
       <div class="actions"><button type="button" data-guides="paste">Import text</button></div>
       <p id="guide-msg" class="hint" role="status" hidden></p>
+      <div id="hypixel-profile" hidden>
+        <strong>Hypixel profile</strong>
+        <small>Your key and profile stay on this phone. They are sent only to Hypixel, and only when you tap Sync.</small>
+        <label>Minecraft UUID
+          <input id="hp-uuid" type="text" autocomplete="off" autocapitalize="off" spellcheck="false">
+        </label>
+        <label>API key
+          <input id="hp-key" type="password" autocomplete="off" autocapitalize="off" spellcheck="false">
+        </label>
+        <small id="hp-key-state"></small>
+        <div class="actions">
+          <button type="button" data-hp="save">Save</button>
+          <button type="button" data-hp="sync" class="primary">Sync profile</button>
+          <button type="button" data-hp="share" hidden>Share test copy</button>
+          <button type="button" data-hp="remove">Remove key and profile data</button>
+        </div>
+        <div id="hp-choices" class="actions" hidden></div>
+        <small id="hp-status" role="status"></small>
+      </div>
     </fieldset>
 
     <fieldset id="timing-alert-settings" class="pro" hidden>

@@ -31,6 +31,7 @@ final class ProfileStore {
     private static final int TAG_BITS = 128;
     private static final String KEY_FILE = "hypixel.key";
     private static final String PROFILE_FILE = "profile.json";
+    private static final String FIXTURE_FILE = "profile-fixture.json";
 
     private ProfileStore() {}
 
@@ -111,5 +112,13 @@ final class ProfileStore {
 
     static void clearProfile(Context context) {
         file(context, PROFILE_FILE).delete();
+        new File(context.getCacheDir(), FIXTURE_FILE).delete();
+    }
+
+    // shortcut: temporary for field check, removed in Task 6. The cache directory is what the app's FileProvider can share.
+    static File saveFixture(Context context, String json) throws IOException {
+        File target = new File(context.getCacheDir(), FIXTURE_FILE);
+        write(target, json.getBytes(StandardCharsets.UTF_8));
+        return target;
     }
 }
