@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validGuide, loadBundled, mergeGuides, exportData, importData, stepKey, stepCost, priceItem, guideStats, nextUpgrades, progressView, personalVisibility, secretTap } from '../progress.js';
+import { validGuide, loadBundled, mergeGuides, exportData, importData, stepKey, stepCost, priceItem, guideStats, nextUpgrades, doneSet, setMark, pushRecent, progressView, personalVisibility, secretTap } from '../progress.js';
 
 const guide = { title: 'Test guide', source: 'https://example.com/x', sections: [
   { name: 'First', goal: 'Goal', steps: [
@@ -234,8 +234,9 @@ test('next upgrades: checking a step moves its line up and sorts again', () => {
 
 test('next upgrades view totals the first five and notes what has no price', () => {
   const html = progressView({ guides: [lines], current: 'n', checked: new Set(), products: flat.products, name: (id) => id, mode: 'next' });
-  assert.match(html, /Next 5 upgrades cost 140</);
-  assert.match(html, /No coins: enchanting table/);
+  assert.match(html, /Next 5 upgrades cost 150 \+ 1 unpriced</);
+  assert.doesNotMatch(html, /No coins: enchanting table/);
+  assert.match(progressView({ guides: [lines], current: 'n', checked: new Set(['undone:Gear|Table']), products: flat.products, name: (id) => id, mode: 'next' }), /No coins: enchanting table/);
   assert.match(html, /aria-pressed="true">Next upgrades/);
   assert.doesNotMatch(html, /<details/);
   assert.match(progressView({ guides: [lines], current: 'n', checked: new Set(), products: flat.products, name: (id) => id }), /<details/);
@@ -245,4 +246,75 @@ test('validGuide keeps line and a positive priority', () => {
   const step = (s) => validGuide({ title: 't', sections: [{ name: 'S', steps: [s] }] }).sections[0].steps[0];
   assert.deepEqual(step({ text: 'a', line: 'L', priority: 2 }), { text: 'a', line: 'L', priority: 2 });
   assert.deepEqual(step({ text: 'a', line: 3, priority: 0 }), { text: 'a' });
+});
+
+const ladder = { id: 'l', title: 'L', sections: [
+  { name: 'Books', steps: [
+    { text: 'Table', table: true, line: 'E' },
+    { text: 'III', line: 'E', items: [{ id: 'B_3', qty: 4, combine: 5 }] },
+    { text: 'IV', line: 'E', items: [{ id: 'B_4', qty: 4, combine: 5 }] },
+    { text: 'V', line: 'E', items: [{ id: 'B_5', qty: 4, combine: 5 }] },
+  ] },
+] };
+const level = (coins) => ({ buy_summary: [{ amount: 99, pricePerUnit: coins }] });
+const books = { products: { B_3: level(10), B_4: level(100), B_5: level(150) } };
+const keys = (...t) => new Set(['Books|Table', ...t.map((x) => `Books|${x}`)]);
+
+test('what is left of a line of books is the cheapest way to its last level, not every level', () => {
+  // 4x V from nothing: 16 IIIs at 10 beat the IV books and the V books
+  assert.equal(guideStats(ladder, keys(), { ...books }).sections[0].coins, 160);
+  // with 4x IV in hand only 4 more IVs are missing, 2 IIIs each
+  assert.equal(guideStats(ladder, keys('III', 'IV'), { ...books }).sections[0].coins, 80);
+  // only the top book on sale: 4 of it
+  assert.equal(guideStats(ladder, keys(), { products: { B_5: level(150) } }).sections[0].coins, 600);
+  assert.equal(guideStats(ladder, keys('III', 'IV', 'V'), { ...books }).sections[0].coins, 0);
+});
+
+test('a missing last level counts once as unpriced, the levels before it not at all', () => {
+  const s = guideStats(ladder, keys(), { products: { B_3: level(10) } }).sections[0];
+  assert.equal(s.unpriced, 0);
+  assert.equal(s.coins, 160);
+  const end = guideStats(ladder, keys(), { products: {} }).sections[0];
+  assert.deepEqual([end.coins, end.unpriced], [0, 1]);
+});
+
+test('next upgrades shows the cost of the one jump from the level reached', () => {
+  const top = (done) => { const r = nextUpgrades(ladder, done, { ...books })[0]; return [r.step.text, r.coins]; };
+  assert.deepEqual(top(keys()), ['III', 40]);
+  // IV from III: 4 more IIIs at 10 beat the book at 100
+  assert.deepEqual(top(keys('III')), ['IV', 40]);
+  assert.deepEqual(top(keys('III', 'IV')), ['V', 80]);
+});
+
+test('a table step is done by default, can be unticked and ticked again', () => {
+  const done = () => doneSet(ladder, marks).has('Books|Table');
+  const marks = new Set();
+  assert.equal(done(), true);
+  setMark(ladder, marks, 'Books|Table', false);
+  assert.deepEqual([...marks], ['undone:Books|Table']);
+  assert.equal(done(), false);
+  setMark(ladder, marks, 'Books|Table', true);
+  assert.deepEqual([...marks], []);
+  assert.equal(done(), true);
+  setMark(ladder, marks, 'Books|III', true);
+  assert.deepEqual([...marks], ['Books|III']);
+  setMark(ladder, marks, 'Books|III', false);
+  assert.deepEqual([...marks], []);
+});
+
+test('recently checked keeps the last ten, newest first, without doubles', () => {
+  let recent = [];
+  for (let i = 0; i < 12; i++) recent = pushRecent(recent, `k${i}`);
+  assert.equal(recent.length, 10);
+  assert.equal(recent[0], 'k11');
+  assert.deepEqual(pushRecent(['a', 'b'], 'b'), ['b', 'a']);
+});
+
+test('the view shows the undo bar and the recent list only for steps it knows', () => {
+  const view = (extra) => progressView({ guides: [ladder], current: 'l', checked: new Set(['Books|III']), products: books.products, name: (id) => id, mode: 'next', ...extra });
+  const html = view({ recent: ['Books|III', 'Gone|x'], undo: 'Books|III' });
+  assert.match(html, /Checked: III/);
+  assert.match(html, /Recently checked/);
+  assert.equal(html.match(/data-guide-undo=/g).length, 2);
+  assert.doesNotMatch(view(), /data-guide-undo|Recently checked/);
 });

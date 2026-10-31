@@ -103,6 +103,28 @@ export function importData(raw) {
 // A checkmark belongs to its section and text, so a changed guide keeps the marks of the steps it kept.
 export const stepKey = (section, step) => `${section.name}|${step.text}`;
 
+// A table step needs no coins and counts as done until the player unticks it, which is stored as UNDONE + key.
+const UNDONE = 'undone:';
+export function doneSet(guide, marks) {
+  const done = new Set(marks);
+  for (const section of guide.sections) {
+    for (const step of section.steps) {
+      const key = stepKey(section, step);
+      if (step.table && !marks.has(UNDONE + key)) done.add(key);
+    }
+  }
+  return done;
+}
+
+export function setMark(guide, marks, key, on) {
+  const isTable = guide.sections.some((section) => section.steps.some((step) => step.table && stepKey(section, step) === key));
+  marks.delete(key);
+  marks.delete(UNDONE + key);
+  if (isTable ? !on : on) marks.add(isTable ? UNDONE + key : key);
+}
+
+export const pushRecent = (recent, key) => [key, ...recent.filter((k) => k !== key)].slice(0, 10);
+
 // Shards and enchanted books only trade on the bazaar, so asking the auction side for them is wasted.
 const BAZAAR_ONLY = /^(ENCHANTMENT_|SHARD_)/;
 
@@ -151,18 +173,27 @@ const bazaarCost = (id, qty, products) => {
   return book?.length ? walkBook(book, qty, true) : null;
 };
 
+// Two of the level below, of which the player may already own or be able to work up the first.
+function combineCost(id, level, qty, combine, products, have) {
+  if (!have) return bookCost(id, qty * 2, combine, products);
+  const second = bookCost(id, qty, combine, products);
+  if (have >= level) return second;
+  const first = bookCost(id, qty, combine, products, have);
+  return first && second && { coins: first.coins + second.coins };
+}
+
 // A book of level L: bought as it is, or made from two of L-1 where combine (the wiki's limit) allows that.
-function bookCost(id, qty, combine, products) {
+function bookCost(id, qty, combine, products, have = 0) {
   const [, base, lvl] = id.match(/^(.+)_(\d+)$/) ?? [];
   const level = Number(lvl);
   const direct = bazaarCost(id, qty, products);
-  const lower = level > 1 && level <= combine ? bookCost(`${base}_${level - 1}`, qty * 2, combine, products) : null;
+  const lower = level > 1 && level <= combine ? combineCost(`${base}_${level - 1}`, level - 1, qty, combine, products, have) : null;
   if (lower && (direct === null || lower.coins < direct)) return { coins: lower.coins, made: true, direct, lower: lower.coins, level };
   return direct === null ? null : { coins: direct, made: false, direct, lower: lower?.coins ?? null, level };
 }
 
 function bookPrice(item, ctx) {
-  const b = bookCost(item.id, item.qty, item.combine, ctx.products);
+  const b = bookCost(item.id, item.qty, item.combine, ctx.products, ctx.have?.get(item) ?? 0);
   if (!b) return { source: null, coins: 0 };
   const made = b.lower !== null && `combine 2× ${ROMAN[b.level - 1]}: ${coins(b.lower)}`;
   const bought = b.direct !== null && `book: ${coins(b.direct)}`;
@@ -200,14 +231,34 @@ export function stepCost(step, ctx) {
   };
 }
 
-// Counts for the guide and per section; only open steps count towards what is left to pay.
+const bookOf = (step) => (step.items?.length === 1 && step.items[0].combine !== undefined ? step.items[0] : null);
+const bookLevel = (item) => item.id.match(/^(.+)_(\d+)$/) ?? [];
+
+// Per book of a guide the highest level of the same enchant already checked below it.
+function haveLevels(guide, checked) {
+  const books = guide.sections.flatMap((section) => section.steps.filter(bookOf).map((step) => ({ item: bookOf(step), done: checked.has(stepKey(section, step)) })));
+  const have = new Map();
+  for (const { item } of books) {
+    const [, base, level] = bookLevel(item);
+    const below = books.filter((b) => b.done && bookLevel(b.item)[1] === base && Number(bookLevel(b.item)[2]) < Number(level));
+    if (below.length) have.set(item, Math.max(...below.map((b) => Number(bookLevel(b.item)[2]))));
+  }
+  return have;
+}
+
+// Counts for the guide and per section; only open steps count towards what is left to pay. Of a line of books only
+// the last one costs: its price is the cheapest way there from the level reached, so the levels between are in it.
 export function guideStats(guide, checked, ctx) {
   let next = null;
+  ctx.have = haveLevels(guide, checked);
+  const ends = new Map();
+  for (const section of guide.sections) for (const step of section.steps) if (step.line && bookOf(step)) ends.set(step.line, step);
   const sections = guide.sections.map((section) => {
     const left = { done: 0, total: section.steps.length, coins: 0, unpriced: 0 };
     for (const step of section.steps) {
       if (checked.has(stepKey(section, step))) { left.done++; continue; }
       next ??= { section, step };
+      if (step.line && bookOf(step) && ends.get(step.line) !== step) continue;
       const cost = stepCost(step, ctx);
       left.coins += cost.coins;
       left.unpriced += cost.unpriced;
@@ -220,6 +271,7 @@ export function guideStats(guide, checked, ctx) {
 // Per line only its first open step, a step without a line stands alone. Pinned first by weight, then priced by
 // price, then what has no full price: a sum that leaves out an item would look cheaper than the step is.
 export function nextUpgrades(guide, checked, ctx) {
+  ctx.have = haveLevels(guide, checked);
   const seen = new Set();
   const rows = [];
   for (const section of guide.sections) {
@@ -267,9 +319,22 @@ function noPriceNote(row) {
   return row.step.items ? 'Not tradeable, no coins to buy' : 'Nothing to buy listed';
 }
 
-function nextView(guide, checked, ctx, name, products) {
+const stepText = (guide, key) => {
+  for (const section of guide.sections) for (const step of section.steps) if (stepKey(section, step) === key) return step.text;
+  return null;
+};
+
+function recentView(guide, recent, undo) {
+  const known = recent.filter((key) => stepText(guide, key) !== null);
+  const bar = undo && stepText(guide, undo) !== null ? `<p class="guide-undo" role="status"><span>Checked: ${esc(stepText(guide, undo))}</span><button type="button" data-guide-undo="${esc(undo)}">Undo</button></p>` : '';
+  if (!known.length) return bar;
+  return `${bar}<section class="guide-recent" aria-label="Recently checked"><h2>Recently checked</h2><ul class="guide-steps">${known.map((key) => `<li class="guide-recent-row"><span>${esc(stepText(guide, key))}</span><button type="button" data-guide-undo="${esc(key)}">Undo</button></li>`).join('')}</ul></section>`;
+}
+
+function nextView(guide, checked, ctx, name, products, recent, undo) {
   const rows = nextUpgrades(guide, checked, ctx);
-  if (!rows.length) return '<p class="muted">All steps are done.</p>';
+  const after = recentView(guide, recent, undo);
+  if (!rows.length) return `<p class="muted">All steps are done.</p>${after}`;
   const top = rows.slice(0, 5);
   const unpriced = top.filter((r) => !r.priced && r.unpriced).length;
   const total = `Next ${top.length} upgrade${top.length === 1 ? '' : 's'} cost ${products ? coins(top.reduce((sum, r) => sum + r.coins, 0)) : '…'}${unpriced ? ` + ${unpriced} unpriced` : ''}`;
@@ -277,19 +342,20 @@ function nextView(guide, checked, ctx, name, products) {
     const pin = r.step.priority ? '<span class="guide-src" data-src="pin">priority</span>' : '';
     const where = `<small class="guide-hint">${esc(r.section.name)}${r.priced ? ' · ' + coins(r.coins) : products ? ' · ' + noPriceNote(r) : ''}</small>`;
     return stepRow(r.section, r.step, checked, ctx, name, pin + where);
-  }).join('')}</ul></section>`;
+  }).join('')}</ul></section>${after}`;
 }
 
 // open: the unfolded sections' names, or null at first, when the first one with open steps unfolds.
-export function progressView({ guides, current, checked, products, prices = {}, name, open = null, armed = false, removable = false, mode = 'slot' }) {
+export function progressView({ guides, current, checked: marks, products, prices = {}, name, open = null, armed = false, removable = false, mode = 'slot', recent = [], undo = null }) {
   const ctx = { ...prices, products };
   const guide = guides.find((g) => g.id === current) ?? guides[0];
+  const checked = doneSet(guide, marks);
   const stats = guideStats(guide, checked, ctx);
   const first = open ? null : guide.sections.find((_, i) => stats.sections[i].done < stats.sections[i].total)?.name;
   const page = `<div class="bar ranges guide-switch" role="group" aria-label="Guide">${guides.map((g) => `<button type="button" data-guide="${esc(g.id)}" aria-pressed="${g.id === guide.id}">${esc(g.title)}</button>`).join('')}</div>
   <p class="guide-count"><strong>${stats.done} / ${stats.total}</strong>${guide.source ? ` <a class="muted" href="${esc(guide.source)}" rel="noopener">Source</a>` : ''}</p>
   <div class="bar ranges guide-switch" role="group" aria-label="View">${[['slot', 'By slot'], ['next', 'Next upgrades']].map(([m, label]) => `<button type="button" data-guide-mode="${m}" aria-pressed="${m === mode}">${label}</button>`).join('')}</div>
-  ${mode === 'next' ? nextView(guide, checked, ctx, name, products) : `<section class="guide-next" aria-label="Next step"><h2>Next step</h2>${stats.next
+  ${mode === 'next' ? nextView(guide, checked, ctx, name, products, recent, undo) : `<section class="guide-next" aria-label="Next step"><h2>Next step</h2>${stats.next
     ? `<small class="guide-hint">${esc(stats.next.section.name)}</small><ul class="guide-steps">${stepRow(stats.next.section, stats.next.step, checked, ctx, name)}</ul>`
     : '<p class="muted">All steps are done.</p>'}</section>
   ${guide.sections.map((section, i) => {
