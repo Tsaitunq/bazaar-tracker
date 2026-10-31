@@ -20,3 +20,24 @@ test('copyWeb copies the app shell and icons, nothing else', () => {
     fs.rmSync(out, { recursive: true, force: true });
   }
 });
+
+test('copyWeb takes private guides along with an index, and needs none', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'bt-root-'));
+  const out = path.join(root, 'www');
+  try {
+    fs.writeFileSync(path.join(root, 'sw.js'), "const SHELL = ['a.html'];");
+    fs.writeFileSync(path.join(root, 'a.html'), '');
+    fs.mkdirSync(path.join(root, 'icons'));
+    copyWeb(root, out);
+    assert.ok(!fs.existsSync(path.join(out, 'personal')));
+    fs.mkdirSync(path.join(root, 'personal', 'guides'), { recursive: true });
+    fs.writeFileSync(path.join(root, 'personal', 'guides', 'g.json'), '{}');
+    fs.writeFileSync(path.join(root, 'personal', 'guides', 'note.txt'), 'x');
+    copyWeb(root, out);
+    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(out, 'personal', 'guides', 'index.json'))), ['g.json']);
+    assert.ok(fs.existsSync(path.join(out, 'personal', 'guides', 'g.json')));
+    assert.ok(!fs.existsSync(path.join(out, 'personal', 'guides', 'note.txt')));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});

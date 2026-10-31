@@ -205,6 +205,22 @@
       <p id="alert-hint" class="hint" role="alert" hidden>Notifications for this app are blocked in the Android settings.</p>
     </fieldset>
 
+    <fieldset id="personal-settings">
+      <legend>Personal tab</legend>
+      <label class="check"><input id="personalTab" type="checkbox"> Personal tab</label>
+      <small>Adds a Progress area to the bar when at least one guide is present.</small>
+      <div class="actions guide-actions">
+        <button type="button" data-guides="export">Export JSON</button>
+        <label class="file-button">Import file<input id="guide-file" type="file" accept=".json,application/json"></label>
+      </div>
+      <label>JSON text
+        <textarea id="guide-json" rows="4" spellcheck="false"></textarea>
+        <small>Export puts the guides and checkmarks here and copies them. To import, paste them here.</small>
+      </label>
+      <div class="actions"><button type="button" data-guides="paste">Import text</button></div>
+      <p id="guide-msg" class="hint" role="status" hidden></p>
+    </fieldset>
+
     <fieldset id="timing-alert-settings" class="pro" hidden>
       <legend>Event alerts</legend>
       <label class="check"><input id="eventAlerts" type="checkbox"> Notify me before events</label>
@@ -239,6 +255,7 @@
       <p id="minion-note" class="count muted">Loading…</p>
       <ul id="minion-list" class="list"></ul>
     </div>
+    <div id="progress"></div>
     <div id="market">
       <div id="radar" class="pro"></div>
       <div id="trends"></div>
@@ -258,6 +275,7 @@
     <a href="#/flips" data-area="trade"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h14M14 4l4 4-4 4M20 16H6M10 12l-4 4 4 4"/></svg>Trade</a>
     <a href="#/minions" data-area="minions" class="pro"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="4" width="10" height="9" rx="2"/><path d="M10 8v1M14 8v1M9 13v7M15 13v7M5 14l2-1M19 14l-2-1"/></svg>Minions</a>
     <a href="#/market" data-area="market" class="pro"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="6" width="16" height="14" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>Market</a>
+    <a id="area-progress" href="#/progress" data-area="progress" hidden><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 12l3 3 5-6"/></svg>Progress</a>
   </nav>
 
   <dialog id="sheet" class="sheet"></dialog>

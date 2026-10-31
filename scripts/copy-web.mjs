@@ -3,6 +3,17 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+// Private guides are not in git and not in SHELL, so their names stay out of the repo; the app finds them through index.json.
+function copyGuides(root, out) {
+  const dir = path.join(root, 'personal', 'guides');
+  const names = fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith('.json') && f !== 'index.json').sort() : [];
+  if (!names.length) return;
+  const to = path.join(out, 'personal', 'guides');
+  fs.mkdirSync(to, { recursive: true });
+  for (const f of names) fs.copyFileSync(path.join(dir, f), path.join(to, f));
+  fs.writeFileSync(path.join(to, 'index.json'), JSON.stringify(names));
+}
+
 export function copyWeb(root, out) {
   const shell = fs.readFileSync(path.join(root, 'sw.js'), 'utf8').match(/const SHELL = \[([^\]]*)\]/)[1];
   const files = [...shell.matchAll(/'([^']+)'/g)].map((m) => m[1]).filter((f) => f !== './');
@@ -12,6 +23,7 @@ export function copyWeb(root, out) {
     fs.copyFileSync(path.join(root, f), path.join(out, f));
   }
   fs.cpSync(path.join(root, 'icons'), path.join(out, 'icons'), { recursive: true });
+  copyGuides(root, out);
   return files.length;
 }
 

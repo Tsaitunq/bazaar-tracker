@@ -6,12 +6,13 @@ import { minionRows, minionDetail, FUELS, UPGRADES, MAX_TIER } from './minions.j
 import { loadItems, fallbackName } from './names.js';
 import { loadStats, loadRecipes, loadForge, loadAh, loadElection, loadTiming, loadHistory } from './data.js';
 import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission } from './native.js';
-import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, trendsView, todayView, minionCard, minionSheet, parseRoute, detailView, portfolioView, warningsView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, viewsFor, areaOf, coins, percent, PLACEHOLDER_ICON } from './render.js';
+import { PERSONAL, flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, trendsView, todayView, minionCard, minionSheet, parseRoute, detailView, portfolioView, warningsView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, viewsFor, areaOf, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
 import { level } from './trends.js';
 import { activePerks, upcoming, electionWindow, eventItems, flipRisks, planElection, taxAdvice } from './events.js';
 import { buyNow, itemWindows } from './timing.js';
 import { bindSheet, openSheet } from './sheet.js';
+import { loadBundled, mergeGuides, exportData, importData } from './progress.js';
 import { initOnboarding, refreshHints, offerAdvanced, returning } from './tour.js';
 
 const API = 'https://api.hypixel.net/v2/skyblock/bazaar';
@@ -22,7 +23,7 @@ const CARDS = { flips: flipCard, opps: flipCard, npc: npcCard, craft: craftCard,
 const DEFAULTS = { tax: 1.25, minVolume: 100000, maxCapital: 5000000, interval: 2, share: 5, sort: 'profitHour', favOnly: false, alerts: false, alertMargin: 5,
   marketAlerts: false, marketMargin: 10, marketMinVolume: 100000, marketMinProfit: 100000, marketCooldown: 6, eventAlerts: false, mayorAlerts: false,
   portfolioCapital: 50000000, portfolioSlots: MAX_SLOTS, portfolioMargin: 3, portfolioTurnover: 1000000000, hotm: 10, forgeAh: true, craftMode: 0, craftRuns: CRAFT_RUNS,
-  portfolioDrop: 5, portfolioCooldown: 6, planPriceAlerts: false, planSuspiciousAlerts: false, planElectionAlerts: false, planLeavingAlerts: false };
+  portfolioDrop: 5, portfolioCooldown: 6, personalTab: false, planPriceAlerts: false, planSuspiciousAlerts: false, planElectionAlerts: false, planLeavingAlerts: false };
 const PLAN_ALERTS = ['planPriceAlerts', 'planSuspiciousAlerts', 'planElectionAlerts', 'planLeavingAlerts'];
 
 const $ = (id) => document.getElementById(id);
@@ -61,6 +62,7 @@ function sanitize() {
   if (!(settings.portfolioDrop > 0 && settings.portfolioDrop <= 90)) settings.portfolioDrop = DEFAULTS.portfolioDrop;
   if (!(settings.portfolioCooldown > 0 && settings.portfolioCooldown <= 168)) settings.portfolioCooldown = DEFAULTS.portfolioCooldown;
   for (const key of PLAN_ALERTS) settings[key] = settings[key] === true;
+  settings.personalTab = settings.personalTab === true;
 }
 sanitize();
 // A new user starts in Simple mode; whoever used the app before keeps everything (Pro). Stored at once,
@@ -71,9 +73,19 @@ if (settings.mode !== 'simple' && settings.mode !== 'pro') {
 }
 const simple = () => settings.mode === 'simple';
 const tabs = () => tabsFor(settings.mode);
+// The private guides: the shipped ones (null until loaded) and imported ones, plus the checkmarks per guide.
+let bundled = null;
+const storedGuides = load('bt.guides', []);
+let imported = Array.isArray(storedGuides) ? storedGuides : [];
+const storedChecks = load('bt.guideChecks', {});
+const guideChecks = storedChecks && typeof storedChecks === 'object' ? storedChecks : {};
+const guides = () => mergeGuides(bundled ?? [], imported);
+// While the shipped guides load the route stays, so an app left on Progress opens there again.
+const progressOn = () => settings.personalTab && (bundled === null || guides().length > 0);
 // a page that Simple mode does not show opens as Flips
 function readRoute() {
   const r = parseRoute(location.hash);
+  if (r.view === PERSONAL) return progressOn() ? r : { view: 'flips' };
   return r.view !== 'item' && !viewsFor(settings.mode).includes(r.view) ? { view: 'flips' } : r;
 }
 // Without an address the app opens where it was left; the very first time that is Today.
@@ -391,6 +403,7 @@ const weekVolume = (id) => { const q = products?.[id]?.quick_status; return q ? 
 // The areas that are one page each. Trade is drawn by renderPage itself.
 function renderArea() {
   $('tax-note').innerHTML = taxNote();
+  if (area() === PERSONAL) $('progress').textContent = guides().map((g) => g.title).join(', ');
   if (area() === 'minions' && products) {
     const rows = minionRows(products, npc, { ...minionSetup, upgrades: [minionSetup.up1, minionSetup.up2], hide: minionSetup.hide === 1 }, { tax: settings.tax / 100, stats });
     $('minion-note').textContent = `${rows.length} minions, ${minionSetup.sort === 'payback' ? 'shortest payback first' : 'best first'} · coins per day for ${minionSetup.count === 1 ? '1 minion' : `${minionSetup.count} minions`} · Bazaar = sold at once to buy orders, after tax`;
@@ -466,6 +479,7 @@ function renderPage() {
     else a.removeAttribute('aria-current');
   }
   document.querySelector('#areas [data-area="trade"]').setAttribute('href', `#/${lastTab}`);
+  $('area-progress').hidden = !(settings.personalTab && guides().length);
   if (item) return renderDetail();
   $('detail').innerHTML = '';
   renderArea();
@@ -602,6 +616,67 @@ $('settings').addEventListener('click', (e) => {
   noteRoute();
   applySettings();
   if (!simple()) offerAdvanced();
+});
+// After a change to the switch or the guides: the bar shows the area or not, and an open page leaves when it is gone.
+function refreshProgress() {
+  if (settings.personalTab && bundled === null) {
+    loadBundled().then((list) => { bundled = list; refreshProgress(); });
+  }
+  if (route.view === PERSONAL && !progressOn()) {
+    history.replaceState(null, '', '#/flips');
+    route = readRoute();
+    noteRoute();
+    recompute();
+  }
+  render();
+}
+$('personalTab').checked = settings.personalTab;
+$('personalTab').addEventListener('change', (e) => {
+  settings.personalTab = e.target.checked;
+  applySettings();
+  refreshProgress();
+});
+function guideMessage(text) {
+  $('guide-msg').textContent = text;
+  $('guide-msg').hidden = false;
+}
+function runImport(raw) {
+  try {
+    const data = importData(raw);
+    // a shipped guide coming back unchanged stays shipped, so a later app update can still change it
+    const same = (g) => JSON.stringify(g) === JSON.stringify((bundled ?? []).find((b) => b.id === g.id));
+    imported = mergeGuides(imported, data.guides).filter((g) => !same(g));
+    Object.assign(guideChecks, data.progress);
+    save('bt.guides', imported);
+    save('bt.guideChecks', guideChecks);
+    guideMessage(`Imported ${data.guides.length} ${data.guides.length === 1 ? 'guide' : 'guides'}.`);
+    refreshProgress();
+  } catch (e) {
+    guideMessage(e.message);
+  }
+}
+$('guide-file').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (file) runImport(await file.text());
+  e.target.value = '';
+});
+$('personal-settings').addEventListener('click', async (e) => {
+  const act = e.target.closest('[data-guides]')?.dataset.guides;
+  if (act === 'paste') return runImport($('guide-json').value);
+  if (act !== 'export') return;
+  const json = exportData(guides(), guideChecks);
+  $('guide-json').value = json;
+  let copied = false;
+  try { await navigator.clipboard.writeText(json); copied = true; } catch {}
+  // the Android WebView has no downloads, so there the text and the clipboard are the export
+  if (!plugin()) {
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+    link.download = 'progress-guides.json';
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+  guideMessage(copied ? 'Copied to the clipboard.' : 'Copy the text above.');
 });
 $('search').addEventListener('input', render);
 $('refresh').addEventListener('click', refresh);
@@ -841,6 +916,7 @@ function sendNames() {
 
 $('fav-only').setAttribute('aria-pressed', settings.favOnly);
 applyMode();
+refreshProgress();
 refresh();
 refreshStats();
 loadItems().then((items) => {

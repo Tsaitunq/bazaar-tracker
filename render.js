@@ -405,7 +405,7 @@ export function parseRoute(hash) {
   if (view === 'item' && arg) {
     try { return { view, id: decodeURIComponent(arg) }; } catch {}
   }
-  return { view: TABS.includes(view) || AREAS.includes(view) ? view : 'flips' };
+  return { view: TABS.includes(view) || AREAS.includes(view) || view === PERSONAL ? view : 'flips' };
 }
 
 // The Market area's own list: the items whose sell price moved most over the last day.
@@ -568,7 +568,9 @@ export function minionSheet({ minion, row, tiers, inferno = null }, { name, coun
 
 // The four areas of the bar at the bottom. Trade holds the tabs and the item page; the others are one page each.
 export const AREAS = ['today', 'minions', 'market'];
-export const areaOf = (view) => (AREAS.includes(view) ? view : 'trade');
+// The private fifth area; app.js decides whether it is on.
+export const PERSONAL = 'progress';
+export const areaOf = (view) => (AREAS.includes(view) || view === PERSONAL ? view : 'trade');
 // The pages a mode can open; Simple mode has no Minions and no Market.
 export const viewsFor = (mode) => [...tabsFor(mode), ...(mode === 'simple' ? AREAS.slice(0, 1) : AREAS)];
 

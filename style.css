@@ -186,7 +186,8 @@ footer a { color: inherit; }
 body:has(#search:focus) #areas { display: none; }
 /* what belongs to one area only: search, sorting, filters and tabs are Trade's */
 body:not([data-area="trade"]) :is(.filters, #tabs, #chips, #portfolio, #count, #list),
-body:not([data-area="today"]) #today, body:not([data-area="minions"]) #minions, body:not([data-area="market"]) #market { display: none; }
+body:not([data-area="today"]) #today, body:not([data-area="minions"]) #minions, body:not([data-area="market"]) #market, body:not([data-area="progress"]) #progress { display: none; }
+#areas a[hidden] { display: none; }
 #today, #minions, #market { min-height: 60vh; }
 
 /* radar: mayor, election and events in the Market area */
@@ -413,6 +414,10 @@ body.detail #tabs, body.detail .filters, body.detail #count, body.detail #list, 
 .summary-list p { grid-column: 1 / -1; margin: 0; font-size: 12px; color: var(--muted); }
 .actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px; }
 .actions button { padding: 0 16px; }
+#guide-json { width: 100%; box-sizing: border-box; font: 12px monospace; background: var(--raised); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+#settings label.file-button { display: flex; align-items: center; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--raised); font-weight: 600; }
+.file-button input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.file-button:focus-within { outline: 2px solid var(--accent); }
 .actions .progress { margin-right: auto; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 700; }
 

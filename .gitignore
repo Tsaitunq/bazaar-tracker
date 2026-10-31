@@ -4,3 +4,4 @@ node_modules/
 www/
 *.tmp
 timing-backfill.json.partial.json
+personal/
