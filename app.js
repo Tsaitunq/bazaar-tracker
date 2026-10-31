@@ -12,7 +12,7 @@ import { level } from './trends.js';
 import { activePerks, upcoming, electionWindow, eventItems, flipRisks, planElection, taxAdvice } from './events.js';
 import { buyNow, itemWindows, readWindowAlerts, windowAlerts, MIN_ALERT_RUNS } from './timing.js';
 import { bindSheet, openSheet } from './sheet.js';
-import { loadBundled, mergeGuides, exportData, importData, progressView } from './progress.js';
+import { loadBundled, mergeGuides, exportData, importData, progressView, personalVisibility, secretTap } from './progress.js';
 import { initOnboarding, refreshHints, offerAdvanced, returning } from './tour.js';
 
 const API = 'https://api.hypixel.net/v2/skyblock/bazaar';
@@ -708,9 +708,9 @@ $('progress').addEventListener('toggle', () => {
 
 // After a change to the switch or the guides: the bar shows the area or not, and an open page leaves when it is gone.
 function refreshProgress() {
-  if (settings.personalTab && bundled === null) {
-    loadBundled().then((list) => { bundled = list; refreshProgress(); });
-  }
+  const shown = personalVisibility(guides().length, importUnlocked);
+  $('personal-settings').hidden = !shown.section;
+  $('personal-switch').hidden = !shown.toggle;
   // the address can already say Progress, so no hashchange comes when the area appears
   if (parseRoute(location.hash).view === PERSONAL) {
     if (!progressOn()) history.replaceState(null, '', '#/flips');
@@ -720,6 +720,18 @@ function refreshProgress() {
   }
   render();
 }
+// Five quick taps on the version number open the import where no guide exists yet (the website).
+let importUnlocked = false;
+let versionTaps = [];
+$('version').addEventListener('click', () => {
+  const tap = secretTap(versionTaps, Date.now());
+  versionTaps = tap.taps;
+  if (!tap.open) return;
+  importUnlocked = true;
+  refreshProgress();
+  openPanel();
+  $('personal-settings').scrollIntoView({ block: 'center' });
+});
 $('personalTab').checked = settings.personalTab;
 $('personalTab').addEventListener('change', (e) => {
   settings.personalTab = e.target.checked;
@@ -1051,7 +1063,11 @@ loadItems().then((items) => {
 });
 loadRecipes().then((r) => { recipes = r; recompute(); render(); });
 loadForge().then((r) => { forge = r; recompute(); render(); });
+// Known before the start window: what's new depends on whether a guide exists.
+const guidesKnown = loadBundled().then((list) => { bundled = list; refreshProgress(); });
 initOnboarding({
+  guidesKnown,
+  hasGuides: () => guides().length > 0,
   native: !!plugin(),
   ready,
   forge: () => ({ hotm: settings.hotm, ah: settings.forgeAh }),

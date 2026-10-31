@@ -205,10 +205,12 @@
       <p id="alert-hint" class="hint" role="alert" hidden>Notifications for this app are blocked in the Android settings.</p>
     </fieldset>
 
-    <fieldset id="personal-settings">
+    <fieldset id="personal-settings" hidden>
       <legend>Personal tab</legend>
-      <label class="check"><input id="personalTab" type="checkbox"> Personal tab</label>
-      <small>Adds a Progress area to the bar when at least one guide is present.</small>
+      <div id="personal-switch" hidden>
+        <label class="check"><input id="personalTab" type="checkbox"> Personal tab</label>
+        <small>Adds a Progress area to the bar when at least one guide is present.</small>
+      </div>
       <div class="actions guide-actions">
         <button type="button" data-guides="export">Export JSON</button>
         <label class="file-button">Import file<input id="guide-file" type="file" accept=".json,application/json"></label>

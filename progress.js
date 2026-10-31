@@ -57,6 +57,16 @@ export function mergeGuides(bundled, imported) {
   return [...bundled.filter((g) => !ids.has(g.id)), ...imported];
 }
 
+// What the settings show: import after the hidden unlock or with a guide, the switch only with a guide.
+export const personalVisibility = (guideCount, unlocked) => ({ section: guideCount > 0 || unlocked, toggle: guideCount > 0 });
+
+// The hidden way in: true on the fifth tap in a row, each within the given time of the one before.
+export function secretTap(taps, now, need = 5, gap = 1500) {
+  const last = taps[taps.length - 1];
+  const next = last !== undefined && now - last <= gap ? [...taps, now] : [now];
+  return { taps: next.length >= need ? [] : next, open: next.length >= need };
+}
+
 export const exportData = (guides, progress) => JSON.stringify({ type: 'bt-progress', guides, progress }, null, 2);
 
 // Reads an export of the app or one plain guide file. Throws with a message for the player.

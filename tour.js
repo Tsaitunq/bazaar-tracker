@@ -2,8 +2,7 @@
 import {
   currentVersion, startupAction, migrateState, SCHEME, setupResult, tourSteps, advancedSteps, newsRoute,
   welcomeHtml, newsHtml, helpHtml, advancedOfferHtml, setupOfferHtml, setupFormHtml, setupSummaryHtml, bubbleHtml,
-  HINTS, HINT_IDS, PRO_OFFER, initialHints, pickHint, hintHtml,
-} from './onboarding.js';
+  HINTS, HINT_IDS, PRO_OFFER, initialHints, pickHint, hintHtml, visibleNews } from './onboarding.js';
 
 const STATE_KEY = 'bt.onboarding';
 const HINTS_KEY = 'bt.hints';
@@ -276,7 +275,7 @@ export async function initOnboarding(context) {
     else if (act === 'hints-reset') { seen = seen.filter((id) => !HINT_IDS.includes(id)); saveSeen(); closeSheet(); }
     else if (act === 'news-show') startNewsTour(shownNews);
     else if (act === 'setup') showSetup();
-    else if (act === 'news') showNews(log.versions, { history: true });
+    else if (act === 'news') showNews(visibleNews(log.versions, ctx.hasGuides()), { history: true });
     else if (act === 'setup-next') { readSetupForm(); sheet(setupSummaryHtml(setupRows()), 'setup'); }
     else if (act === 'setup-back') showSetup();
     else if (act === 'setup-apply') {
@@ -305,11 +304,13 @@ export async function initOnboarding(context) {
 
   $('open-help').addEventListener('click', () => sheet(helpHtml({ pro: ctx.pro() }), 'help'));
 
+  await ctx.guidesKnown;
   const action = startupAction(readState(), log, hadData);
-  shownNews = action.news ?? [];
+  shownNews = visibleNews(action.news ?? [], ctx.hasGuides());
   if (action.type === 'welcome') showWelcome();
-  else if (action.type === 'tourOffer') showNews(action.news, { offerTour: true });
-  else if (action.type === 'whatsNew') showNews(action.news, { offerAdvanced: action.advanced && ctx.pro() });
+  else if (action.type === 'tourOffer') showNews(shownNews, { offerTour: true });
+  else if (action.type === 'whatsNew' && (shownNews.length || action.advanced)) showNews(shownNews, { offerAdvanced: action.advanced && ctx.pro() });
+  else if (action.type === 'whatsNew') markSeen(); // only hidden entries: nothing to show, and nothing to show later
   started = true;
   refreshHints();
 }

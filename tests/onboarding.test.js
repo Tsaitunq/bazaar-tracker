@@ -4,8 +4,7 @@ import fs from 'node:fs';
 import {
   compareVersions, currentVersion, newsSince, startupAction, migrateState, SCHEME, setupResult, tourSteps, advancedSteps,
   welcomeHtml, newsHtml, helpHtml, advancedOfferHtml, setupOfferHtml, setupFormHtml, setupSummaryHtml, bubbleHtml, CAPITALS,
-  HINTS, HINT_IDS, PRO_OFFER, initialHints, pickHint, hintHtml,
-} from '../onboarding.js';
+  HINTS, HINT_IDS, PRO_OFFER, initialHints, pickHint, hintHtml, visibleNews } from '../onboarding.js';
 
 // a small changelog instead of the real file, so the tests do not change with every release
 const entry = (title, target) => ({ title, text: `${title} text`, ...(target && { target }) });
@@ -363,4 +362,15 @@ test('"Show me" follows the radar to the Market area and keeps every other route
   const real = JSON.parse(fs.readFileSync(new URL('../changelog.json', import.meta.url), 'utf8'));
   const pages = ['#/today', '#/flips', '#/opps', '#/npc', '#/craft', '#/forge', '#/minions', '#/market'];
   for (const e of real.versions.flatMap((v) => v.entries)) if (e.target) assert.ok(pages.includes(newsRoute(e)), e.title);
+});
+
+test('entries about the private area show only with a guide', () => {
+  const versions = [
+    { version: '0.2.0', date: 'x', entries: [{ title: 'Public', text: 't' }, { title: 'Mine', text: 't', personal: true }] },
+    { version: '0.1.0', date: 'x', entries: [{ title: 'Only mine', text: 't', personal: true }] },
+  ];
+  assert.deepEqual(visibleNews(versions, true), versions);
+  const hidden = visibleNews(versions, false);
+  assert.deepEqual(hidden.map((v) => v.version), ['0.2.0']);
+  assert.deepEqual(hidden[0].entries.map((e) => e.title), ['Public']);
 });

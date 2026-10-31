@@ -12,6 +12,7 @@ The app is not 1.0 yet, so versions are `0.minor.patch`: a feature update raises
 2. Each entry has a short `title` and one sentence of `text`, in plain English for players, not for developers.
 3. If the entry is about something visible, add `target` (a CSS selector) and, if it is on another tab, `route` (for example `"#/opps"`), so "Show me" can point at it.
 4. Do not edit or remove older versions; users who skipped updates see every version since the one they last saw.
+5. An entry about the private Progress area gets `"personal": true`; only installations with a guide show it.
 
 Bug fixes without a visible change get a higher patch version only if users should be told about them.
 
