@@ -24,6 +24,7 @@ The app has four areas in a bar at the bottom: **Today**, **Trade**, **Minions**
 - **Favorites, search and sorting**, plus swiping between tabs on a phone.
 - **Tours and setup assistant:** a basic tour in seven steps, an optional advanced tour, and five questions that suggest settings for you.
 - **Android app:** notifications for favorites, for new market opportunities and for warnings about your portfolio, checked about every 15 minutes.
+- **Buy and sell alerts:** the snapshot run writes the windows as concrete times to `timing-windows.json`. The Android app notifies from it, the browser shows banners on Today; items can be marked as bought.
 
 ## How it calculates
 
