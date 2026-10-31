@@ -213,6 +213,35 @@
       <small>When a new mayor takes office, with the items their perks usually or presumably make cheaper.</small>
       <p id="timing-hint" class="hint" role="alert" hidden>Notifications for this app are blocked in the Android settings.</p>
     </fieldset>
+
+    <fieldset id="window-alert-settings" class="pro" hidden>
+      <legend>Buy and sell alerts</legend>
+      <p class="intro" id="window-intro">Notifications for the buy and sell windows of mayors and events. Based on past runs, not a guarantee.</p>
+      <label class="check"><input id="windowBuy" type="checkbox"> Buying window opens</label>
+      <small>When an item's usual low starts, with a "Bought" button.</small>
+      <label class="check"><input id="windowSell" type="checkbox"> Selling window starts</label>
+      <small>Only for items you marked as bought.</small>
+      <label class="check"><input id="windowAvoid" type="checkbox"> Sell before warnings</label>
+      <small>12 hours before a mayor or event after which an item usually drops and does not recover.</small>
+      <label class="check"><input id="windowFavOnly" type="checkbox"> Only favorites</label>
+      <small>Items you marked as bought are always included.</small>
+      <label>Min. gain %
+        <input id="windowMinSpread" type="number" min="0" max="1000" step="0.5" inputmode="decimal">
+        <small>Typical gain after tax, or drop, a buy or warning needs.</small>
+      </label>
+      <label>Max. per day
+        <input id="windowMaxPerDay" type="number" min="1" max="50" step="1" inputmode="numeric">
+        <small>What is over the limit comes the next day if its window is still open.</small>
+      </label>
+      <label>Quiet hours from (hour)
+        <input id="quietStart" type="number" min="0" max="23" step="1" inputmode="numeric">
+      </label>
+      <label>Quiet hours until (hour)
+        <input id="quietEnd" type="number" min="0" max="23" step="1" inputmode="numeric">
+        <small>Nothing comes in this time; what is still open arrives together afterwards. The same hour twice means no quiet hours.</small>
+      </label>
+      <p id="window-hint" class="hint" role="alert" hidden>Notifications for this app are blocked in the Android settings.</p>
+    </fieldset>
   </form>
   <div class="actions panel-foot">
     <button type="button" data-act="reset">Reset</button>

@@ -589,7 +589,7 @@ const RANGES = [['24h', '24 h'], ['7d', '7 days']];
 
 // flip is the item's bazaar flip or null while prices are unknown; points are already cut to the range.
 // forge is the item's forge recipe as a flip (forgeFlip, with names on the ingredients), or null.
-export function detailView({ id, name, tier, flip, forge = null, score, median, provisional, trend, level, event, back = 'flips', isFav, range, points, tax, windows = [], volume = null }) {
+export function detailView({ id, name, tier, flip, forge = null, score, median, provisional, trend, level, event, back = 'flips', isFav, range, points, tax, windows = [], volume = null, held = false }) {
   const stat = { score, provisional, median, trend, level, event, ah: forge?.ah };
   const forged = forge ? `<section class="forged pro"><h3>Forge</h3>${forge.ah ? `<p class="why">${esc(forgeNotes(forge).join(' · '))}</p>` : ''}
 <div class="summary">${keyStats(forge, 'Profit/forge hour')}<dl class="facts">${forgeFacts(forge).join('')}</dl></div>
@@ -612,5 +612,6 @@ ${ingredientList(forge)}</section>` : '';
 <div class="detail-head" data-rarity="${rarity(tier)}">${star(id, name, isFav)}
 ${tile(id, 48)}<h2 class="name">${esc(name)}</h2></div>
 ${badges(stat, flip?.suspicious)}
+${flip ? `<div class="bar held pro"><button type="button" data-held="${esc(id)}" aria-pressed="${held}">${held ? 'Bought – remove mark' : 'Mark as bought'}</button></div>` : ''}
 ${current}${forged}${windows.length ? `<section class="windows-item"><h3>Event timing</h3><ul class="timing">${windows.map((x) => `<li><small>${esc(keyTitle(x.key))}: ${esc(x.text)}${volumeNote(volume)}</small></li>`).join('')}</ul></section>` : ''}${forge?.ah ? '' : `<div class="bar ranges">${buttons}</div>${charts}`}`;
 }

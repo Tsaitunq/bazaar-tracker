@@ -32,7 +32,34 @@ export const alertConfig = (settings, favs, names, plan = {}) => ({
     perks: plan.perks ?? {},
     term: plan.term ?? null,
   },
+  windows: {
+    buy: settings.windowBuy === true,
+    sell: settings.windowSell === true,
+    avoid: settings.windowAvoid === true,
+    minSpread: settings.windowMinSpread / 100,
+    favOnly: settings.windowFavOnly === true,
+    maxPerDay: settings.windowMaxPerDay,
+    quietStart: settings.quietStart,
+    quietEnd: settings.quietEnd,
+  },
 });
+
+// Items marked as bought, { id: when }. The Android app keeps them natively, because the notification's "Bought"
+// works without the web view; null where there is no plugin.
+export async function loadHeld() {
+  try {
+    return (await plugin()?.getHeld())?.held ?? null;
+  } catch {
+    return null;
+  }
+}
+export async function storeHeld(id, held) {
+  try {
+    return (await plugin()?.setHeld({ id, held }))?.held ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export function syncAlerts(settings, favs, names, plan) {
   plugin()?.configure(alertConfig(settings, favs, names, plan)).catch(() => {});

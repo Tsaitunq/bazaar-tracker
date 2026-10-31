@@ -370,6 +370,38 @@ export function timingWindows(nowMs, election, timing, tax) {
   return { t: nowMs, tax, w, a };
 }
 
+// Everything in timing-windows.json as alerts: a buy and a sell per window, an avoid per warning. size: the typical
+// gain or drop. The same in AlertLogic.java (readWindows, dueWindows, windowText); change both together.
+export function readWindowAlerts(file) {
+  const of = (x, kind, from, to, size) => ({ k: `${kind}|${x.id}|${x.key}|${x.s}`, kind, id: x.id, driver: x.driver, from, to, size, hits: x.hits, n: x.n });
+  return [
+    ...(file?.w ?? []).flatMap((x) => [of(x, 'buy', x.buyStart, x.buyEnd, x.spread), of(x, 'sell', x.sellStart, x.sellEnd, x.spread)]),
+    ...(file?.a ?? []).map((x) => of(x, 'avoid', x.notifyAt, x.at, x.drop)),
+  ];
+}
+
+// The alerts due now that were not shown yet: sells first, then warnings about held items, other warnings and buys,
+// biggest first. held: { itemId: when it was marked }. A sell only counts for a window that starts after the item was
+// bought. The min. margin and "favorites only" never hide a held item.
+export function windowAlerts(all, { buy, sell, avoid, minSpread, favOnly }, favs, held, shown, nowMs) {
+  const rank = (a) => (a.kind === 'sell' ? 0 : a.kind === 'buy' ? 3 : a.id in held ? 1 : 2);
+  return all.filter((a) => {
+    if (nowMs < a.from || nowMs >= a.to || shown.has(a.k)) return false;
+    const mine = a.id in held;
+    const wanted = !favOnly || favs.has(a.id);
+    if (a.kind === 'sell') return sell && mine && a.from >= held[a.id];
+    if (a.kind === 'avoid') return avoid && (mine || (wanted && a.size >= minSpread));
+    return buy && !mine && wanted && a.size >= minSpread;
+  }).sort((a, b) => rank(a) - rank(b) || b.size - a.size);
+}
+
+export function windowText(a, name) {
+  const pct = Math.round(a.size * 100);
+  if (a.kind === 'sell') return `Sell now: ${name} – selling window started`;
+  if (a.kind === 'avoid') return `Sell before ${a.driver}: ${name} usually drops ${pct}%`;
+  return `Buying window open: ${name} (${a.driver}, typical +${pct}%, ${a.hits}/${a.n})`;
+}
+
 // The tax the snapshot run counts with: the app's default, quadrupled under Derpy.
 export const windowTax = (election) => (election?.mayor?.name === 'Derpy' ? DERPY_TAX[1.25] : 1.25) / 100;
 
