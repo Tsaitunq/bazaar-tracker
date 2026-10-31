@@ -14,6 +14,7 @@ import { buyNow, itemWindows, readWindowAlerts, windowAlerts, MIN_ALERT_RUNS } f
 import { bindSheet, openSheet } from './sheet.js';
 import { loadBundled, mergeGuides, exportData, importData, progressView, personalVisibility, secretTap, setMark, pushRecent } from './progress.js';
 import { createSync, syncMessage, normalizeUuid, cleanKey } from './sync.js';
+import { summarize } from './profile.js';
 import { initOnboarding, refreshHints, offerAdvanced, returning } from './tour.js';
 
 const API = 'https://api.hypixel.net/v2/skyblock/bazaar';
@@ -834,7 +835,7 @@ $('personal-settings').addEventListener('click', async (e) => {
   }
   guideMessage(copied ? 'Copied to the clipboard.' : 'Copy the text above.');
 });
-const profileSync = createSync({ store: { getApiKey, loadProfile, saveProfile }, summarize: async () => ({}) });
+const profileSync = createSync({ store: { getApiKey, loadProfile, saveProfile }, summarize });
 // shortcut: temporary for field check, removed in Task 6. Only ever the anonymized copy, and only in memory.
 let testCopy = null;
 let removeArmed = false;
