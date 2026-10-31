@@ -188,6 +188,25 @@ body:has(#search:focus) #areas { display: none; }
 body:not([data-area="trade"]) :is(.filters, #tabs, #chips, #portfolio, #count, #list),
 body:not([data-area="today"]) #today, body:not([data-area="minions"]) #minions, body:not([data-area="market"]) #market, body:not([data-area="progress"]) #progress { display: none; }
 #areas a[hidden] { display: none; }
+.guide-switch { flex-wrap: wrap; }
+.guide-count { margin: 8px 0; font-size: 20px; font-variant-numeric: tabular-nums; }
+.guide-count a { margin-left: 8px; }
+.guide-next, .guide-section { margin-top: 12px; padding: 12px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; }
+.guide-next { border-color: var(--accent); }
+.guide-next h2 { margin: 0 0 4px; font-size: 14px; color: var(--accent); }
+.guide-section summary { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-height: 44px; cursor: pointer; }
+.guide-name { font-weight: 600; flex: 1 1 60%; }
+.guide-rest { flex: 1 1 100%; color: var(--muted); }
+.guide-goal { margin: 4px 0 8px; font-size: 13px; color: var(--muted); }
+.guide-steps { list-style: none; margin: 0; padding: 0; }
+.guide-step label { display: flex; align-items: flex-start; gap: 12px; min-height: 48px; padding: 10px 0; cursor: pointer; }
+.guide-step + .guide-step { border-top: 1px solid var(--line); }
+.guide-step input { flex: none; width: 26px; height: 26px; min-height: 0; margin: 0; accent-color: var(--accent); }
+.guide-step input:checked + span .guide-text { color: var(--muted); text-decoration: line-through; }
+.guide-text, .guide-item, .guide-hint { display: block; }
+.guide-item { margin-top: 2px; }
+.guide-hint { margin-top: 2px; font-size: 12px; color: var(--muted); }
+.guide-foot { margin: 16px 0; }
 #today, #minions, #market { min-height: 60vh; }
 
 /* radar: mayor, election and events in the Market area */

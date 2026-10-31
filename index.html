@@ -213,10 +213,8 @@
         <button type="button" data-guides="export">Export JSON</button>
         <label class="file-button">Import file<input id="guide-file" type="file" accept=".json,application/json"></label>
       </div>
-      <label>JSON text
-        <textarea id="guide-json" rows="4" spellcheck="false"></textarea>
-        <small>Export puts the guides and checkmarks here and copies them. To import, paste them here.</small>
-      </label>
+      <p class="intro">Export puts the guides and checkmarks in this box and copies them. To import, paste them here.</p>
+      <textarea id="guide-json" rows="4" spellcheck="false" aria-label="Guides as JSON"></textarea>
       <div class="actions"><button type="button" data-guides="paste">Import text</button></div>
       <p id="guide-msg" class="hint" role="status" hidden></p>
     </fieldset>

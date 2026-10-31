@@ -12,7 +12,7 @@ import { level } from './trends.js';
 import { activePerks, upcoming, electionWindow, eventItems, flipRisks, planElection, taxAdvice } from './events.js';
 import { buyNow, itemWindows } from './timing.js';
 import { bindSheet, openSheet } from './sheet.js';
-import { loadBundled, mergeGuides, exportData, importData } from './progress.js';
+import { loadBundled, mergeGuides, exportData, importData, progressView } from './progress.js';
 import { initOnboarding, refreshHints, offerAdvanced, returning } from './tour.js';
 
 const API = 'https://api.hypixel.net/v2/skyblock/bazaar';
@@ -403,7 +403,7 @@ const weekVolume = (id) => { const q = products?.[id]?.quick_status; return q ? 
 // The areas that are one page each. Trade is drawn by renderPage itself.
 function renderArea() {
   $('tax-note').innerHTML = taxNote();
-  if (area() === PERSONAL) $('progress').textContent = guides().map((g) => g.title).join(', ');
+  if (area() === PERSONAL) renderProgress();
   if (area() === 'minions' && products) {
     const rows = minionRows(products, npc, { ...minionSetup, upgrades: [minionSetup.up1, minionSetup.up2], hide: minionSetup.hide === 1 }, { tax: settings.tax / 100, stats });
     $('minion-note').textContent = `${rows.length} minions, ${minionSetup.sort === 'payback' ? 'shortest payback first' : 'best first'} · coins per day for ${minionSetup.count === 1 ? '1 minion' : `${minionSetup.count} minions`} · Bazaar = sold at once to buy orders, after tax`;
@@ -617,13 +617,70 @@ $('settings').addEventListener('click', (e) => {
   applySettings();
   if (!simple()) offerAdvanced();
 });
+// The Progress page. What is unfolded is kept per guide while the app runs.
+let guideId = load('bt.guide', null);
+let resetArmed = false;
+const guideOpen = {};
+function currentGuide() {
+  const all = guides();
+  return all.find((g) => g.id === guideId) ?? all[0];
+}
+const checksOf = (id) => new Set(Array.isArray(guideChecks[id]) ? guideChecks[id] : []);
+function renderProgress() {
+  const guide = currentGuide();
+  if (!guide) { $('progress').innerHTML = '<p class="count muted">Loading…</p>'; return; }
+  $('progress').innerHTML = progressView({ guides: guides(), current: guide.id, checked: checksOf(guide.id), products, name: nameOf, open: guideOpen[guide.id] ?? null, armed: resetArmed, removable: imported.some((g) => g.id === guide.id) });
+}
+$('progress').addEventListener('change', (e) => {
+  const key = e.target.dataset?.step;
+  if (key === undefined) return;
+  const id = currentGuide().id;
+  const marks = checksOf(id);
+  if (e.target.checked) marks.add(key);
+  else marks.delete(key);
+  guideChecks[id] = [...marks];
+  save('bt.guideChecks', guideChecks);
+  renderProgress();
+  // the page was redrawn: the keyboard stays on the same step
+  [...$('progress').querySelectorAll('[data-step]')].find((b) => b.dataset.step === key)?.focus({ preventScroll: true });
+});
+$('progress').addEventListener('click', (e) => {
+  const pick = e.target.closest('[data-guide]')?.dataset.guide;
+  if (pick) {
+    guideId = pick;
+    resetArmed = false;
+    save('bt.guide', guideId);
+    return renderProgress();
+  }
+  const act = e.target.closest('[data-guide-act]')?.dataset.guideAct;
+  if (!act) return;
+  const id = currentGuide().id;
+  resetArmed = act === 'reset';
+  if (act === 'reset-yes') {
+    delete guideChecks[id];
+    save('bt.guideChecks', guideChecks);
+  }
+  if (act === 'remove') {
+    imported = imported.filter((g) => g.id !== id);
+    save('bt.guides', imported);
+    return refreshProgress();
+  }
+  renderProgress();
+});
+// toggle does not bubble
+$('progress').addEventListener('toggle', () => {
+  const guide = currentGuide();
+  if (guide) guideOpen[guide.id] = new Set([...$('progress').querySelectorAll('details[open]')].map((d) => d.dataset.section));
+}, true);
+
 // After a change to the switch or the guides: the bar shows the area or not, and an open page leaves when it is gone.
 function refreshProgress() {
   if (settings.personalTab && bundled === null) {
     loadBundled().then((list) => { bundled = list; refreshProgress(); });
   }
-  if (route.view === PERSONAL && !progressOn()) {
-    history.replaceState(null, '', '#/flips');
+  // the address can already say Progress, so no hashchange comes when the area appears
+  if (parseRoute(location.hash).view === PERSONAL) {
+    if (!progressOn()) history.replaceState(null, '', '#/flips');
     route = readRoute();
     noteRoute();
     recompute();
@@ -916,7 +973,6 @@ function sendNames() {
 
 $('fav-only').setAttribute('aria-pressed', settings.favOnly);
 applyMode();
-refreshProgress();
 refresh();
 refreshStats();
 loadItems().then((items) => {
@@ -949,6 +1005,8 @@ initOnboarding({
     applySettings();
   },
 });
+
+refreshProgress();
 
 // The Android app ships its files inside the APK and needs no service worker.
 if ('serviceWorker' in navigator && !window.Capacitor?.isNativePlatform?.()) navigator.serviceWorker.register('sw.js');
