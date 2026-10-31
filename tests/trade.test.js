@@ -101,6 +101,39 @@ test('buyNow: now while the buy phase runs, soon within a day, not after the sel
   assert.equal(buyNow(at(s + 124 * H + 60 * H), election, timing, TAX).length, 0); // the sell phase is over
 });
 
+test('buyNow: a buy phase after an event that has ended is now', () => {
+  const start = skyTime(519, 7, 29); // Spooky Festival, lasts an hour and is measured over six
+  const runs = Array.from({ length: 5 }, (_, i) => eventRun(start / 60000 - (i + 1) * 20000, { during: 1, a1: 0.7, a2: 0.8, a3: 1 }));
+  const timing = { 'event:spooky': runs };
+  const a1 = start + 6 * 3600000;
+  const list = buyNow(a1 + 2 * 3600000, election, timing, TAX);
+  assert.equal(list.length, 1);
+  assert.equal(list[0].state, 'now');
+  assert.equal(list[0].from, a1);
+  assert.equal(list[0].to, a1 + 24 * 3600000);
+  assert.equal(buyNow(a1 + 80 * 3600000, election, timing, TAX).length, 0); // the sell phase is over
+});
+
+test('buyNow: an item is listed once when two occurrences are in reach', () => {
+  const start = skyTime(519, 7, 29);
+  // buy on the day before: soon for the next festival while nothing else runs
+  const runs = Array.from({ length: 5 }, (_, i) => eventRun(start / 60000 - (i + 1) * 20000, { during: 1, a1: 0.7, a2: 0.8, a3: 1 }));
+  const week = start + 6 * 3600000 + 23 * 3600000;
+  assert.equal(buyNow(week, election, { 'event:spooky': runs }, TAX, 200 * 3600000).length, 1);
+});
+
+test('buyNow: a buy phase after the term before, and nothing from a leader who is not elected yet', () => {
+  const start = skyTime(519, 2, 27);
+  const runs = Array.from({ length: 5 }, (_, i) => termRun(start / 60000 - (i + 1) * 20000, { a1: 0.7, a2: 0.8, a3: 1 }));
+  const prior = { s: start / 60000, e: start / 60000 + 124 * H, p: {}, c: {} };
+  const end = start + YEAR_DAYS * DAY_MS;
+  const next = { ...election, mayor: { name: 'Finnegan', year: 519, perks: [], minister: null }, vote: null };
+  assert.deepEqual(buyNow(end + 2 * 3600000, next, { 'perk:Marauder': [...runs, prior] }, TAX).map((b) => [b.id, b.state, b.from]), [['X', 'now', end]]);
+  const dip = Array.from({ length: 5 }, (_, i) => termRun(start / 60000 - (i + 1) * 20000, { pre2: 0.7, pre1: 1, d1: 1, a1: 1 }));
+  const leads = { ...election, mayor: { name: 'Aatrox', year: 518, perks: [], minister: null }, vote: { year: 519, candidates: [{ name: 'Paul', votes: 9, perks: ['Marauder'], minister: null }] } };
+  assert.deepEqual(buyNow(skyTime(520, 2, 27) - 50 * 3600000, leads, { 'perk:Marauder': dip }, TAX), []);
+});
+
 test('updateTiming: a run collects its price curve, own runs only, once its last phase is over', () => {
   const start = skyTime(519, 7, 29); // Spooky Festival
   const sMin = start / 60000;
@@ -117,7 +150,7 @@ test('views: the radar lists the windows, the item page and Today carry them', (
   const up = Array.from({ length: 5 }, (_, i) => eventRun(i * 10000, { during: 1.3 }));
   const timing = { 'event:spooky': up };
   const name = (id) => `Name of ${id}`;
-  const radar = windowsView(timing, TAX, name);
+  const radar = windowsView(timing, TAX, name, undefined, 5);
   assert.match(radar, /Buy and sell windows/);
   assert.match(radar, /Name of X<\/a> <small>Spooky Festival: Buy around: 1 day before the event · Sell around: during the event · typical \+2\d% \(5\/5\)/);
   assert.equal(windowsView({}, TAX, name), '');
@@ -126,7 +159,7 @@ test('views: the radar lists the windows, the item page and Today carry them', (
   assert.ok(!detailView({ id: 'X', name: 'X', points: null, range: '1d' }).includes('Event timing'));
   const now = Date.now();
   const today = todayView({ plan: null, capital: 0, slots: 1, now, name, vote: { open: false, at: now }, buying: [
-    { id: 'X', key: 'event:spooky', state: 'now', from: now - 3600000, to: now + 3600000, text: 'Buy around: …' }] });
+    { id: 'X', key: 'event:spooky', state: 'now', from: now - 3600000, to: now + 3600000, text: 'Buy around: …', w: windows[0].w }] });
   assert.match(today, /Buying window[\s\S]*Name of X[\s\S]*now · /);
   assert.equal(phaseLabel('d3', { who: null, term: true }), 'day 3 of the term');
   assert.equal(YEAR_DAYS * DAY_MS, 124 * 3600000);
@@ -203,6 +236,6 @@ test('volume: shown with every window, and a window that is hard to fill is mark
   const timing = { 'event:spooky': Array.from({ length: 5 }, (_, i) => eventRun(i * 10000, { during: 1.3 })) };
   const view = windowsView(timing, TAX, (id) => id, () => 500);
   assert.match(view, /Vol\.\/week 500 · <strong>low volume – hard to fill<\/strong>/);
-  const detail = detailView({ id: 'X', name: 'X', points: null, range: '1d', windows: itemWindows(timing, 'X', TAX), volume: 2500 });
+  const detail = detailView({ id: 'X', name: 'X', points: null, range: '1d', windows: itemWindows(timing, 'X', TAX), volume: 2500, minRuns: 5 });
   assert.match(detail, /Vol\.\/week 2,500<\/small>/);
 });

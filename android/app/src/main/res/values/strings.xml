@@ -8,4 +8,6 @@
     <string name="market_channel">Market alerts</string>
     <string name="timing_channel">Events and mayors</string>
     <string name="portfolio_channel">Portfolio warnings</string>
+    <string name="windows_channel">Buy and sell windows</string>
+    <string name="action_bought">Bought</string>
 </resources>

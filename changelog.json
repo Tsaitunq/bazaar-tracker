@@ -1,6 +1,16 @@
 {
   "versions": [
     {
+      "version": "0.8.0",
+      "date": "2026-10-31",
+      "entries": [
+        { "title": "Alerts for buy and sell windows", "text": "The Android app can tell you when an item's usual buying window opens, when to sell an item you bought, and 12 hours before an event after which an item you hold or favorited usually drops and stays down; turn them on in Settings under Buy and sell alerts in Pro mode." },
+        { "title": "Mark items as bought", "text": "Tap Bought on the notification, or mark and unmark an item on its page, and you get a sell alert for it when its selling window starts." },
+        { "title": "Your limits", "text": "Choose a minimum gain, a minimum number of past runs, favorites only, a maximum per day and quiet hours; what comes up at night arrives together in the morning, and windows from few runs are marked \"few data\" instead of sending an alert." },
+        { "title": "Banners in the browser", "text": "In the browser the same hints appear as banners on Today, with the same settings." }
+      ]
+    },
+    {
       "version": "0.7.4",
       "date": "2026-10-11",
       "entries": [

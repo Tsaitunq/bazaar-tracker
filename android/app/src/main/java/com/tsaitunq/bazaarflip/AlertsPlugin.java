@@ -52,6 +52,10 @@ public class AlertsPlugin extends Plugin {
     static final String KEY_MARKET_NOTIFIED = "marketNotified";
     static final String KEY_TIMING_SHOWN = "timingShown";
     static final String KEY_PLAN_NOTIFIED = "planNotified";
+    static final String KEY_WINDOWS_SHOWN = "windowsShown";
+    static final String KEY_WINDOWS_DAY = "windowsDay";
+    static final String KEY_WINDOWS_SENT = "windowsSent";
+    static final String KEY_HELD = "held";
     static final String EXTRA_ROUTE = "route";
     private static final String NAMES_FILE = "names.json";
     private static final String WORK = "bazaar-alerts";
@@ -84,6 +88,7 @@ public class AlertsPlugin extends Plugin {
         // the stored portfolio, with a switch per kind of warning
         JSObject portfolio = call.getObject("portfolio", new JSObject());
         boolean portfolioEnabled = portfolioEnabled(portfolio);
+        JSObject windows = call.getObject("windows", new JSObject());
         JSONObject favs = new JSONObject();
         JSArray list = call.getArray("favs", new JSArray());
         try {
@@ -98,7 +103,8 @@ public class AlertsPlugin extends Plugin {
                 .put("favs", favs)
                 .put("market", market)
                 .put("timing", timing)
-                .put("portfolio", portfolio);
+                .put("portfolio", portfolio)
+                .put("windows", windows);
             SharedPreferences.Editor edit = prefs(getContext()).edit().putString(KEY_CONFIG, config.toString());
             // Forget the last result when switched off, so switching on again reports current hits.
             if (!enabled) edit.remove(KEY_ABOVE);
@@ -112,7 +118,7 @@ public class AlertsPlugin extends Plugin {
         }
 
         WorkManager work = WorkManager.getInstance(getContext());
-        boolean scheduled = (enabled && favs.length() > 0) || marketEnabled || timingEnabled || portfolioEnabled;
+        boolean scheduled = (enabled && favs.length() > 0) || marketEnabled || timingEnabled || portfolioEnabled || windowsEnabled(windows);
         if (scheduled) {
             // 15 minutes is the shortest period Android allows; KEEP leaves a running schedule untouched.
             PeriodicWorkRequest request = new PeriodicWorkRequest.Builder(AlertWorker.class, 15, TimeUnit.MINUTES)
@@ -130,6 +136,46 @@ public class AlertsPlugin extends Plugin {
         return portfolio != null && portfolio.optJSONArray("items") != null && portfolio.optJSONArray("items").length() > 0
             && (portfolio.optBoolean("price") || portfolio.optBoolean("suspicious")
                 || portfolio.optBoolean("election") || portfolio.optBoolean("leaving"));
+    }
+
+    static boolean windowsEnabled(JSONObject windows) {
+        return windows != null && (windows.optBoolean("buy") || windows.optBoolean("sell") || windows.optBoolean("avoid"));
+    }
+
+    /** Items marked as bought, item id to when. Kept here because the notification's "Bought" works without the web app. */
+    @PluginMethod
+    public void getHeld(PluginCall call) {
+        try {
+            call.resolve(new JSObject().put("held", new JSONObject(prefs(getContext()).getString(KEY_HELD, "{}"))));
+        } catch (JSONException e) {
+            call.reject("invalid held items", e);
+        }
+    }
+
+    @PluginMethod
+    public void setHeld(PluginCall call) {
+        String id = call.getString("id");
+        if (id == null) {
+            call.reject("no item");
+            return;
+        }
+        try {
+            setHeld(getContext(), id, Boolean.TRUE.equals(call.getBoolean("held", false)));
+            getHeld(call);
+        } catch (JSONException e) {
+            call.reject("could not store held item", e);
+        }
+    }
+
+    /** One item at a time, so a "Bought" from a notification is not overwritten by the app's older copy. */
+    static synchronized void setHeld(Context context, String id, boolean held) throws JSONException {
+        JSONObject all = new JSONObject(prefs(context).getString(KEY_HELD, "{}"));
+        if (held) {
+            if (!all.has(id)) all.put(id, System.currentTimeMillis());
+        } else {
+            all.remove(id);
+        }
+        prefs(context).edit().putString(KEY_HELD, all.toString()).apply();
     }
 
     /** Item names for market notifications; the worker cannot ask the web app for them. */

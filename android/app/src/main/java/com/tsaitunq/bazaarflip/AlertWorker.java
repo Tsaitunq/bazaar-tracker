@@ -21,6 +21,8 @@ import com.tsaitunq.bazaarflip.AlertLogic.PlanItem;
 import com.tsaitunq.bazaarflip.AlertLogic.Product;
 import com.tsaitunq.bazaarflip.AlertLogic.Stat;
 import com.tsaitunq.bazaarflip.AlertLogic.Warning;
+import com.tsaitunq.bazaarflip.AlertLogic.WindowAlert;
+import com.tsaitunq.bazaarflip.AlertLogic.WindowPrefs;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -34,6 +36,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -44,9 +47,10 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Periodic check with four independent parts: favourites that newly reach their minimum margin,
+ * Periodic check with five independent parts: favourites that newly reach their minimum margin,
  * market-wide opportunities that newly meet every market alert condition, notices about
- * events and mayors that the snapshot run prepared, and warnings about the flips of the stored portfolio.
+ * events and mayors that the snapshot run prepared, buy and sell windows from timing-windows.json,
+ * and warnings about the flips of the stored portfolio.
  */
 public class AlertWorker extends Worker {
     private static final String API = "https://api.hypixel.net/v2/skyblock/bazaar";
@@ -61,6 +65,11 @@ public class AlertWorker extends Worker {
     private static final Object[] EVENT = { "timing", R.string.timing_channel, 3 };
     private static final Object[] MAYOR = { "timing", R.string.timing_channel, 4 };
     private static final Object[] PORTFOLIO = { "portfolio", R.string.portfolio_channel, 5 };
+    private static final Object[] WINDOW = { "windows", R.string.windows_channel, 6 };
+    private static final String WINDOW_GROUP = "windows";
+    private static final String WINDOWS = "https://raw.githubusercontent.com/Tsaitunq/bazaar-tracker/data/timing-windows.json";
+    /** Longer than any window lasts, so one is never reported twice. */
+    private static final long WINDOW_SHOWN_MS = 14 * 24 * HOUR_MS;
 
     private interface Parser<T> {
         T parse(Reader reader) throws IOException;
@@ -88,6 +97,14 @@ public class AlertWorker extends Worker {
                     checkTiming(prefs, eventsOn, mayorOn);
                 } catch (IOException e) {
                     // A notice is due for hours; the next round shows it.
+                }
+            }
+            JSONObject windows = config.optJSONObject("windows");
+            if (AlertsPlugin.windowsEnabled(windows)) {
+                try {
+                    checkWindows(prefs, windows, favs);
+                } catch (IOException e) {
+                    // A window stays open for hours; the next round shows it.
                 }
             }
             JSONObject plan = config.optJSONObject("portfolio");
@@ -257,6 +274,62 @@ public class AlertWorker extends Worker {
         }
     }
 
+    /**
+     * Buy, sell and "sell before" notifications. In the quiet hours nothing is shown or remembered, so what is still
+     * open afterwards comes then, grouped. What the daily limit holds back is still due tomorrow if it is still open.
+     */
+    private void checkWindows(SharedPreferences prefs, JSONObject windows, JSONObject favs) throws IOException, JSONException {
+        Calendar clock = Calendar.getInstance();
+        if (AlertLogic.quiet(clock.get(Calendar.HOUR_OF_DAY), windows.optInt("quietStart", 23), windows.optInt("quietEnd", 8))) return;
+        long now = clock.getTimeInMillis();
+        Map<String, Long> shown = recent(prefs.getString(AlertsPlugin.KEY_WINDOWS_SHOWN, "{}"), now, WINDOW_SHOWN_MS);
+        Map<String, Long> held = recent(prefs.getString(AlertsPlugin.KEY_HELD, "{}"), now, Long.MAX_VALUE);
+        WindowPrefs wanted = new WindowPrefs(windows.optBoolean("buy"), windows.optBoolean("sell"), windows.optBoolean("avoid"),
+            windows.optDouble("minSpread", 0.05), windows.optBoolean("favOnly"), windows.optInt("minRuns", 6));
+        Set<String> favIds = favs == null ? Collections.emptySet() : strings(favs).keySet();
+        List<WindowAlert> due = AlertLogic.dueWindows(fetch(WINDOWS, AlertLogic::readWindows), wanted, favIds, held, shown.keySet(), now);
+
+        int today = clock.get(Calendar.YEAR) * 1000 + clock.get(Calendar.DAY_OF_YEAR);
+        int sent = prefs.getInt(AlertsPlugin.KEY_WINDOWS_DAY, 0) == today ? prefs.getInt(AlertsPlugin.KEY_WINDOWS_SENT, 0) : 0;
+        due = due.subList(0, Math.min(due.size(), Math.max(0, windows.optInt("maxPerDay", 5) - sent)));
+        for (WindowAlert a : due) shown.put(a.key, now);
+        prefs.edit()
+            .putString(AlertsPlugin.KEY_WINDOWS_SHOWN, new JSONObject(shown).toString())
+            .putInt(AlertsPlugin.KEY_WINDOWS_DAY, today)
+            .putInt(AlertsPlugin.KEY_WINDOWS_SENT, sent + due.size())
+            .apply();
+        Map<String, String> names = AlertsPlugin.names(getApplicationContext());
+        for (WindowAlert a : due) showWindow(a, names);
+        if (due.size() > 1) {
+            List<String> lines = new ArrayList<>();
+            for (WindowAlert a : due) lines.add(AlertLogic.windowText(a, names));
+            NotificationManager manager = (NotificationManager) getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
+            if (manager != null) {
+                manager.notify((Integer) WINDOW[2], builder(WINDOW, "Buy and sell windows: " + due.size(), lines, "#/today", (Integer) WINDOW[2])
+                    .setGroup(WINDOW_GROUP).setGroupSummary(true).build());
+            }
+        }
+    }
+
+    /** Its own notification per item, so "Bought" and the item page belong to it. */
+    private void showWindow(WindowAlert a, Map<String, String> names) {
+        Context context = getApplicationContext();
+        NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (manager == null || !manager.areNotificationsEnabled()) return;
+        // above the fixed ids of the other kinds; a clash would only replace the older notification
+        int id = 1000 + (a.key.hashCode() & 0xFFFFFF);
+        NotificationCompat.Builder builder = builder(WINDOW, AlertLogic.displayName(names, a.id),
+            Collections.singletonList(AlertLogic.windowText(a, names)), "#/item/" + Uri.encode(a.id), id).setGroup(WINDOW_GROUP);
+        if (a.kind.equals("buy")) {
+            Intent bought = new Intent(context, BoughtReceiver.class)
+                .putExtra(BoughtReceiver.EXTRA_ITEM, a.id)
+                .putExtra(BoughtReceiver.EXTRA_NOTIFICATION, id);
+            builder.addAction(0, context.getString(R.string.action_bought), PendingIntent.getBroadcast(
+                context, id, bought, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+        }
+        manager.notify(id, builder.build());
+    }
+
     static Map<String, String> strings(JSONObject object) {
         Map<String, String> out = new HashMap<>();
         for (Iterator<String> it = object.keys(); it.hasNext();) {
@@ -284,11 +357,17 @@ public class AlertWorker extends Worker {
 
     private void show(Object[] kind, String title, List<String> lines, String route) {
         Context context = getApplicationContext();
-        String channel = (String) kind[0];
         int id = (Integer) kind[2];
         NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         if (manager == null || !manager.areNotificationsEnabled()) return;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        manager.notify(id, builder(kind, title, lines, route, id).build());
+    }
+
+    private NotificationCompat.Builder builder(Object[] kind, String title, List<String> lines, String route, int id) {
+        Context context = getApplicationContext();
+        String channel = (String) kind[0];
+        NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (manager != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             manager.createNotificationChannel(new NotificationChannel(
                 channel, context.getString((Integer) kind[1]), NotificationManager.IMPORTANCE_DEFAULT));
         }
@@ -298,14 +377,13 @@ public class AlertWorker extends Worker {
         // the notification id doubles as request code so the two kinds keep separate intents
         PendingIntent tap = PendingIntent.getActivity(
             context, id, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        manager.notify(id, new NotificationCompat.Builder(context, channel)
+        return new NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_stat_bars)
             .setColor(context.getColor(R.color.accent))
             .setContentTitle(title)
             .setContentText(lines.get(0))
             .setStyle(new NotificationCompat.BigTextStyle().bigText(String.join("\n", lines)))
             .setContentIntent(tap)
-            .setAutoCancel(true)
-            .build());
+            .setAutoCancel(true);
     }
 }
