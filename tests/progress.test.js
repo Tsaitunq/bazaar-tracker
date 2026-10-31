@@ -141,7 +141,7 @@ test('progressView shows badges, the unpriced count and the credit, and escapes 
   const html = view({ B: 500 });
   assert.match(html, /0 \/ 4/);
   assert.match(html, /Next step/);
-  assert.match(html, /A × 3 · <strong>350<\/strong> <span class="guide-src" data-src="bazaar">Bazaar/);
+  assert.match(html, /3× A · <strong>350<\/strong> <span class="guide-src" data-src="bazaar">Bazaar/);
   assert.match(html, /data-src="ah">AH/);
   assert.match(html, /data-src="nt">not tradeable/);
   assert.match(html, /Left 950 \+ 1 unpriced/);
@@ -176,4 +176,36 @@ test('secretTap opens on the fifth quick tap only', () => {
   assert.deepEqual(secretTap(taps, 3000).taps, []);
   // a pause starts the count again
   assert.deepEqual(secretTap(taps, 9000), { taps: [9000], open: false });
+});
+
+const pieces = (extra) => ({ name: 'Piece', qty: 2, anyOf: ['H', 'C', 'L'], ...extra });
+const binCtx = { products: {}, ah: { H: 30, C: 10, L: 20 } };
+
+test('an open choice takes the cheapest pieces and a later step the next one', () => {
+  assert.deepEqual(priceItem(pieces(), binCtx), { source: 'ah', coins: 30, picked: ['C', 'L'] });
+  assert.deepEqual(priceItem(pieces({ qty: 1, skip: 2 }), binCtx), { source: 'ah', coins: 30, picked: ['H'] });
+  assert.equal(priceItem(pieces({ qty: 2, skip: 2 }), binCtx).source, null);
+});
+
+test('an open choice asks for every piece and shows the quantity and what it picked', () => {
+  const wants = new Set();
+  priceItem(pieces(), { products: {}, wants });
+  assert.deepEqual([...wants], ['H', 'C', 'L']);
+  const g = { id: 'q', title: 'Q', sections: [{ name: 'S', steps: [{ text: 'Set', items: [pieces()] }, { text: 'Stones', items: [{ id: 'A', qty: 3 }] }] }] };
+  const html = progressView({ guides: [g], current: 'q', checked: new Set(), products: { A: { buy_summary: [{ amount: 9, pricePerUnit: 5 }] } }, prices: { ah: binCtx.ah }, name: (id) => `N${id}` });
+  assert.match(html, /2× Piece/);
+  assert.match(html, /NC, NL/);
+  assert.match(html, /3× NA/);
+});
+
+test('quantities multiply a set: pieces add up and a stack walks the book', () => {
+  const step = { text: 'x', items: [{ id: 'A', qty: 4 }, pieces()] };
+  const book = { A: { buy_summary: [{ amount: 2, pricePerUnit: 100 }, { amount: 10, pricePerUnit: 150 }] } };
+  assert.deepEqual(stepCost(step, { ...binCtx, products: book }), { coins: 530, unpriced: 0 });
+});
+
+test('validGuide keeps an open choice only with a name', () => {
+  const one = (i) => validGuide({ title: 't', sections: [{ name: 'S', steps: [{ text: 'a', items: [i] }] }] });
+  assert.deepEqual(one(pieces({ skip: 1 })).sections[0].steps[0].items[0], pieces({ skip: 1 }));
+  assert.equal(one({ qty: 1, anyOf: ['H'] }), null);
 });

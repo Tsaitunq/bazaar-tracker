@@ -21,7 +21,9 @@ function validItem(i) {
   const forge = validRecipe(i?.forge);
   if (i?.forge !== undefined && !forge) return null;
   const without = Array.isArray(i?.without) ? i.without.filter(text) : [];
-  return { ...(id && { id }), ...(name && { name }), qty, ...(i.ah === true && { ah: true }), ...(i.nt === true && { nt: true }), ...(forge && { forge }), ...(without.length && { without }), ...(Number.isInteger(i?.combine) && i.combine >= 0 && { combine: i.combine }) };
+  const anyOf = Array.isArray(i?.anyOf) ? i.anyOf.filter(text) : [];
+  if (anyOf.length && !name) return null;
+  return { ...(id && { id }), ...(name && { name }), qty, ...(i.ah === true && { ah: true }), ...(i.nt === true && { nt: true }), ...(forge && { forge }), ...(without.length && { without }), ...(anyOf.length && { anyOf }), ...(Number.isInteger(i?.skip) && i.skip > 0 && { skip: i.skip }), ...(Number.isInteger(i?.combine) && i.combine >= 0 && { combine: i.combine }) };
 }
 
 function validStep(s) {
@@ -167,8 +169,18 @@ function bookPrice(item, ctx) {
   return { source: 'bazaar', coins: b.coins, nt: false, note: (b.made ? [made, bought] : [bought, made]).filter(Boolean).join(' · ') };
 }
 
+// The guide leaves the piece open: the cheapest qty of the list, after the skip cheapest an earlier step already bought.
+function piecesPrice(item, ctx) {
+  const found = item.anyOf.map((id) => ({ id, ...priceItem({ id, qty: 1 }, ctx) })).filter((p) => p.source).sort((a, b) => a.coins - b.coins);
+  const skip = item.skip ?? 0;
+  const picked = found.slice(skip, skip + item.qty);
+  if (picked.length < item.qty) return { source: null, coins: 0 };
+  return { source: picked[0].source, coins: picked.reduce((sum, p) => sum + p.coins, 0), picked: picked.map((p) => p.id) };
+}
+
 // What one guide item costs: source is bazaar, forge, ah, nt (not tradeable) or null when nothing has a price.
 export function priceItem(item, ctx) {
+  if (item.anyOf) return piecesPrice(item, ctx);
   if (item.id && item.combine !== undefined) return bookPrice(item, ctx);
   const tradeable = !item.nt;
   if (!item.id || (!tradeable && !item.forge && !ctx.forge?.[item.id])) return { source: item.nt ? 'nt' : null, coins: 0 };
@@ -209,11 +221,12 @@ const SOURCES = { bazaar: 'Bazaar', forge: 'Forge', ah: 'AH', nt: 'not tradeable
 const badge = (source) => `<span class="guide-src" data-src="${source}">${SOURCES[source]}</span>`;
 
 function itemLine(item, ctx, name) {
-  const label = `${esc(item.name ?? name(item.id))} × ${item.qty}`;
+  const label = `${item.qty}× ${esc(item.name ?? name(item.id))}`;
   const p = priceItem(item, ctx);
+  const way = p.picked ? p.picked.map(name).join(', ') : p.note;
   if (p.source === 'nt') return `<small class="guide-item">${label} ${badge('nt')}</small>`;
   if (!p.source) return `<small class="guide-item">${label} · <strong>${ctx.products ? 'no price' : '…'}</strong></small>`;
-  return `<small class="guide-item">${label} · <strong>${coins(p.coins)}</strong> ${badge(p.source)}${p.nt ? ` ${badge('nt')}` : ''}${p.note ? `<span class="guide-way">${esc(p.note)}</span>` : ''}</small>`;
+  return `<small class="guide-item">${label} · <strong>${coins(p.coins)}</strong> ${badge(p.source)}${p.nt ? ` ${badge('nt')}` : ''}${way ? `<span class="guide-way">${esc(way)}</span>` : ''}</small>`;
 }
 
 const stepRow = (section, step, checked, ctx, name) => {
