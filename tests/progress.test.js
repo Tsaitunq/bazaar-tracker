@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validGuide, loadBundled, mergeGuides, exportData, importData, stepKey, stepCost, guideStats, progressView, personalVisibility, secretTap } from '../progress.js';
+import { validGuide, loadBundled, mergeGuides, exportData, importData, stepKey, stepCost, priceItem, guideStats, progressView, personalVisibility, secretTap } from '../progress.js';
 
 const guide = { title: 'Test guide', source: 'https://example.com/x', sections: [
   { name: 'First', goal: 'Goal', steps: [
@@ -15,6 +15,7 @@ test('validGuide keeps known fields and rejects a bad shape', () => {
   assert.equal(validGuide({ title: 'x' }), null);
   assert.equal(validGuide({ ...guide, sections: [{ name: 'S', steps: [{ text: '' }] }] }), null);
   assert.equal(validGuide({ ...guide, sections: [{ name: 'S', steps: [{ text: 'a', items: [{ id: 'A', qty: 0 }] }] }] }), null);
+  assert.equal(validGuide({ ...guide, sections: [{ name: 'S', steps: [{ text: 'a', items: [{ id: 'A', forge: { d: 0, i: {} } }] }] }] }), null);
 });
 
 test('validGuide drops a link that is not http(s)', () => {
@@ -46,39 +47,88 @@ test('import refuses what is not a guide', () => {
   assert.throws(() => importData('{"type":"bt-progress","guides":[]}'), /No guides/);
 });
 
-const products = { A: { buy_summary: [{ pricePerUnit: 100 }] }, E: { buy_summary: [] } };
+const products = {
+  A: { buy_summary: [{ amount: 2, pricePerUnit: 100 }, { amount: 10, pricePerUnit: 150 }] },
+  E: { buy_summary: [] },
+  ING: { buy_summary: [{ amount: 100, pricePerUnit: 10 }] },
+};
 const priced = { id: 'p', title: 'Priced', sections: [
   { name: 'S1', steps: [
     { text: 'Buy', items: [{ id: 'A', qty: 3 }] },
     { text: 'Auction', items: [{ id: 'B', qty: 1, ah: true }, { id: 'A', qty: 1 }] },
     { text: 'Empty book', items: [{ id: 'E', qty: 2 }] },
+    { text: 'Soulbound', items: [{ name: 'Badge', qty: 1, nt: true }] },
   ] },
   { name: 'S2', goal: 'Only a goal', steps: [] },
 ] };
 
-test('stepCost multiplies the insta-buy price and flags what it cannot price', () => {
-  assert.deepEqual(stepCost(priced.sections[0].steps[0], products), { coins: 300, ah: false, unpriced: false });
-  assert.deepEqual(stepCost(priced.sections[0].steps[1], products), { coins: 100, ah: true, unpriced: false });
-  assert.deepEqual(stepCost(priced.sections[0].steps[2], products), { coins: 0, ah: false, unpriced: true });
+test('stepCost walks the book, takes auction prices and counts what has no price', () => {
+  const ctx = { products, ah: { B: 500 } };
+  assert.deepEqual(stepCost(priced.sections[0].steps[0], ctx), { coins: 350, unpriced: 0 });
+  assert.deepEqual(stepCost(priced.sections[0].steps[1], ctx), { coins: 600, unpriced: 0 });
+  assert.deepEqual(stepCost(priced.sections[0].steps[2], ctx), { coins: 0, unpriced: 1 });
+  assert.deepEqual(stepCost(priced.sections[0].steps[3], ctx), { coins: 0, unpriced: 0 });
+});
+
+test('a forge item shows the cheaper way next to the other, with the chain time', () => {
+  const forge = { SUB: { n: 1, d: 3600, i: { ING: 2 } }, TOP: { n: 1, d: 7200, c: 5, i: { SUB: 1, ING: 1 } } };
+  const p = priceItem({ id: 'TOP', qty: 1 }, { products, forge, ah: { TOP: 100, SUB: 999 } });
+  assert.equal(p.source, 'forge');
+  assert.equal(p.coins, 35);
+  assert.equal(p.note, 'forge: 35 + 3h · AH: 100');
+  assert.equal(priceItem({ id: 'TOP', qty: 1 }, { products, forge, ah: { TOP: 20 } }).source, 'ah');
+});
+
+test('an upgrade leaves out what the player owns and a guide recipe beats no recipe', () => {
+  const item = { id: 'NEW', qty: 1, without: ['OLD'], forge: { d: 30, i: { OLD: 1, ING: 3 } } };
+  assert.deepEqual(priceItem(item, { products }), { source: 'forge', coins: 30, nt: false, note: 'forge: 30 + 30s' });
+});
+
+test('a forge chain stops at a recipe loop and a missing ingredient', () => {
+  const forge = { X: { n: 1, d: 1, i: { Y: 1 } }, Y: { n: 1, d: 1, i: { X: 1 } }, Z: { n: 1, d: 1, i: { NONE: 1 } } };
+  assert.equal(priceItem({ id: 'X', qty: 1 }, { products, forge }).source, null);
+  assert.equal(priceItem({ id: 'Z', qty: 1 }, { products, forge }).source, null);
+});
+
+test('not tradeable is its own state, and a forgeable one never looks at the auction house', () => {
+  assert.deepEqual(priceItem({ name: 'Badge', qty: 1, nt: true }, { products }), { source: 'nt', coins: 0 });
+  const relic = { id: 'R', qty: 1, nt: true, forge: { d: 60, i: { ING: 1 } } };
+  const p = priceItem(relic, { products, ah: { R: 1 } });
+  assert.deepEqual([p.source, p.coins, p.nt, p.note], ['forge', 10, true, 'forge: 10 + 1m']);
+});
+
+test('only what bazaar and ah.json lack is wanted from the service, never books or shards', () => {
+  const wants = new Set();
+  priceItem({ id: 'B', qty: 1 }, { products, ah: {}, cofl: {}, wants });
+  priceItem({ id: 'A', qty: 1 }, { products, ah: {}, cofl: {}, wants });
+  priceItem({ id: 'SHARD_X', qty: 1 }, { products, ah: {}, cofl: {}, wants });
+  priceItem({ id: 'ENCHANTMENT_X_1', qty: 1 }, { products, ah: {}, cofl: {}, wants });
+  priceItem({ id: 'C', qty: 1 }, { products, ah: { C: 5 }, cofl: {}, wants });
+  priceItem({ id: 'D', qty: 1 }, { products, ah: {}, cofl: { D: 0 }, wants });
+  assert.deepEqual([...wants], ['B']);
 });
 
 test('guideStats counts only open steps towards what is left', () => {
   const done = new Set([stepKey(priced.sections[0], priced.sections[0].steps[0])]);
-  const stats = guideStats(priced, done, products);
+  const stats = guideStats(priced, done, { products, ah: { B: 500 } });
   assert.equal(stats.done, 1);
-  assert.equal(stats.total, 3);
+  assert.equal(stats.total, 4);
   assert.equal(stats.next.step.text, 'Auction');
-  assert.deepEqual({ coins: stats.sections[0].coins, ah: stats.sections[0].ah, unpriced: stats.sections[0].unpriced }, { coins: 100, ah: true, unpriced: true });
-  assert.equal(guideStats(priced, new Set(['S1|Buy', 'S1|Auction', 'S1|Empty book']), products).next, null);
+  assert.deepEqual({ coins: stats.sections[0].coins, unpriced: stats.sections[0].unpriced }, { coins: 600, unpriced: 1 });
+  assert.equal(guideStats(priced, new Set(['S1|Buy', 'S1|Auction', 'S1|Empty book', 'S1|Soulbound']), { products }).next, null);
 });
 
-test('progressView shows count, next step, prices and the AH note, and escapes guide text', () => {
-  const html = progressView({ guides: [priced], current: 'p', checked: new Set(), products, name: (id) => id });
-  assert.match(html, /0 \/ 3/);
+test('progressView shows badges, the unpriced count and the credit, and escapes guide text', () => {
+  const view = (cofl) => progressView({ guides: [priced], current: 'p', checked: new Set(), products, prices: { cofl }, name: (id) => id });
+  const html = view({ B: 500 });
+  assert.match(html, /0 \/ 4/);
   assert.match(html, /Next step/);
-  assert.match(html, /A × 3 · <strong>300<\/strong>/);
-  assert.match(html, /B × 1 · AH – not priced/);
-  assert.match(html, /Left 400 \+ AH items \+ no offer/);
+  assert.match(html, /A × 3 · <strong>350<\/strong> <span class="guide-src" data-src="bazaar">Bazaar/);
+  assert.match(html, /data-src="ah">AH/);
+  assert.match(html, /data-src="nt">not tradeable/);
+  assert.match(html, /Left 950 \+ 1 unpriced/);
+  assert.match(html, /Prices: <a [^>]*>SkyCofl/);
+  assert.doesNotMatch(view({}), /SkyCofl/);
   assert.match(html, /Only a goal/);
   const evil = { ...priced, sections: [{ name: 'S', steps: [{ text: '<img src=x>' }] }] };
   assert.doesNotMatch(progressView({ guides: [evil], current: 'p', checked: new Set(), products, name: String }), /<img/);

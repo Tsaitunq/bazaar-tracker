@@ -507,3 +507,7 @@ html.sheet-open, html.sheet-open body, html:has(dialog:modal), html:has(dialog:m
 .effects li.group-head[hidden] { display: none; }
 .effects h4 { margin: 0; font-size: 15px; color: var(--accent); }
 .badge.role { margin-left: 2px; }
+.guide-src { display: inline-block; margin-left: 4px; padding: 0 6px; border: 1px solid var(--line); border-radius: 999px; font-size: 11px; color: var(--muted); }
+.guide-src[data-src="nt"] { border-style: dashed; }
+.guide-way { display: block; color: var(--muted); }
+.guide-credit { margin: 8px 0 0; }

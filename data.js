@@ -26,6 +26,35 @@ export const loadTiming = () => fetchJson('timing.json').then((d) => d.r ?? {}, 
 // the buy and sell windows as concrete times (timing.js timingWindows); null until the snapshot run has written them
 export const loadWindows = () => fetchJson('timing-windows.json').catch(() => null);
 
+// Lowest BIN of single items, asked on the device only when the Progress page needs them.
+// A cache entry is { p: price or 0 for no auction, t: when }.
+const COFL = 'https://sky.coflnet.com/api/item/price/';
+export const BIN_MAX_AGE = 3600e3;
+const BIN_GAP = 1300; // the service allows 50 requests a minute
+
+export function freshBins(cache, now = Date.now()) {
+  const out = {};
+  for (const [id, e] of Object.entries(cache)) if (now - e?.t < BIN_MAX_AGE) out[id] = e.p;
+  return out;
+}
+
+// Asks one by one and reports after each answer; false as soon as the service fails, which is not cached.
+export async function fetchBins(ids, cache, onAnswer, { get = fetch, wait = (ms) => new Promise((r) => setTimeout(r, ms)), now = Date.now } = {}) {
+  for (const [n, id] of ids.entries()) {
+    if (n) await wait(BIN_GAP);
+    try {
+      const res = await get(`${COFL}${encodeURIComponent(id)}/bin`);
+      if (!res.ok && res.status !== 404) return false;
+      const lowest = res.ok && res.status !== 204 ? (await res.json())?.lowest : 0;
+      cache[id] = { p: lowest > 0 ? lowest : 0, t: now() };
+    } catch {
+      return false;
+    }
+    onAnswer(n + 1 === ids.length);
+  }
+  return true;
+}
+
 export async function loadHistory(id, days, nowMs = Date.now()) {
   const chunks = await Promise.all(dayKeys(nowMs, days + 1).map((d) => fetchJson(`h/${d}/${shardOf(id)}.json`).catch(() => null)));
   return seriesFor(chunks, id);

@@ -4,7 +4,7 @@ import { craftFlips, craftHints, CRAFT_RUNS } from './craft.js';
 import { forgeFlips, forgeFlip } from './forge.js';
 import { minionRows, minionDetail, FUELS, UPGRADES, MAX_TIER } from './minions.js';
 import { loadItems, fallbackName } from './names.js';
-import { loadStats, loadRecipes, loadForge, loadAh, loadElection, loadTiming, loadWindows, loadHistory } from './data.js';
+import { loadStats, loadRecipes, loadForge, loadAh, loadElection, loadTiming, loadWindows, loadHistory, freshBins, fetchBins } from './data.js';
 import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission, loadHeld, storeHeld } from './native.js';
 import { PERSONAL, flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, trendsView, todayView, windowBanners, minionCard, minionSheet, parseRoute, detailView, portfolioView, warningsView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, viewsFor, areaOf, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
@@ -659,10 +659,30 @@ function currentGuide() {
   return all.find((g) => g.id === guideId) ?? all[0];
 }
 const checksOf = (id) => new Set(Array.isArray(guideChecks[id]) ? guideChecks[id] : []);
+// Lowest BINs missing from ah.json come from SkyCofl, only for the open steps of the guide on screen.
+const bins = load('bt.bins', {});
+let binsBusy = false;
+let binsFailed = 0;
+const BIN_RETRY = 600e3;
+async function askBins(wants) {
+  if (binsBusy || !wants.size || Date.now() - binsFailed < BIN_RETRY) return;
+  binsBusy = true;
+  let answers = 0;
+  const ok = await fetchBins([...wants], bins, (last) => {
+    if (!last && ++answers % 20) return;
+    const fresh = freshBins(bins);
+    save('bt.bins', Object.fromEntries(Object.entries(bins).filter(([id]) => id in fresh)));
+    if (area() === PERSONAL) renderProgress();
+  });
+  binsBusy = false;
+  if (!ok) binsFailed = Date.now();
+}
 function renderProgress() {
   const guide = currentGuide();
   if (!guide) { $('progress').innerHTML = '<p class="count muted">Loading…</p>'; return; }
-  $('progress').innerHTML = progressView({ guides: guides(), current: guide.id, checked: checksOf(guide.id), products, name: nameOf, open: guideOpen[guide.id] ?? null, armed: resetArmed, removable: imported.some((g) => g.id === guide.id) });
+  const wants = new Set();
+  $('progress').innerHTML = progressView({ guides: guides(), current: guide.id, checked: checksOf(guide.id), products, prices: { forge, ah, cofl: freshBins(bins), wants }, name: nameOf, open: guideOpen[guide.id] ?? null, armed: resetArmed, removable: imported.some((g) => g.id === guide.id) });
+  askBins(wants);
 }
 $('progress').addEventListener('change', (e) => {
   const key = e.target.dataset?.step;
