@@ -2,7 +2,7 @@ import { lineChart } from './chart.js';
 import { marginSeries } from './history.js';
 import { direction } from './trends.js';
 import { skyDate, MONTHS, PERK_ITEMS, PERK_EXPECT, PERKS, YEAR_EVENTS, EVENTS, DRIVERS, expectedRole, DAY_MS } from './events.js';
-import { itemPattern, patternText, allWindows, itemRole, driverTitle, isLowVolume } from './timing.js';
+import { itemPattern, patternText, allWindows, itemRole, driverTitle, isLowVolume, windowText, MIN_ALERT_RUNS } from './timing.js';
 
 export const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
@@ -219,6 +219,19 @@ export function warningsView(alerts, { dismiss = false, more = false } = {}) {
 </section>`;
 }
 
+// The browser's stand-in for the Android notifications, on Today. notices: what windowAlerts says is due; limit: the
+// daily maximum from the settings. A buy can be marked as bought right here; "Got it" hides that notice for good.
+export function windowBanners(notices, { limit, name }) {
+  if (!notices.length) return '';
+  const rest = notices.length - limit;
+  return `<section class="alerts window-alerts" role="status">
+  <h2>${ICONS.warn}Buy and sell windows</h2>
+  <ul>${notices.slice(0, limit).map((a) => `<li><a href="${esc(itemHref(a.id))}">${esc(windowText(a, name(a.id)))}</a>
+    <div class="actions">${a.kind === 'buy' ? `<button type="button" data-held="${esc(a.id)}">Bought</button>` : ''}<button type="button" data-seen="${esc(a.k)}">Got it</button></div></li>`).join('')}</ul>${rest > 0 ? `
+  <p class="muted">+${rest} more</p>` : ''}
+</section>`;
+}
+
 // Why a plan leaves capital unused (plan.limit) and what would change it. Simple mode hides the settings
 // the advice names, so there it sends the player to Pro instead.
 function limitNote(plan, { capital, slots, simple }) {
@@ -267,7 +280,7 @@ const HISTORY_CREDIT = 'Historical prices provided by <a href="https://sky.cofln
 // election and the events, each of which unfolds to its details.
 // perks: activePerks(); events: upcoming(); vote: electionWindow(); name(id): an item's name;
 // open: keys of the parts that are unfolded; timing: past runs per event and perk (timing.js).
-export function radarView({ election, perks, events, vote, now, name, open = new Set(), timing = {}, query = '', tax = 0.0125, volume = () => null }) {
+export function radarView({ election, perks, events, vote, now, name, open = new Set(), timing = {}, query = '', tax = 0.0125, volume = () => null, minRuns = MIN_ALERT_RUNS }) {
   const until = (t) => duration(Math.ceil(Math.max(0, t - now) / 60000) * 60);
   const affected = (ids) => (ids?.length
     ? `<p class="affected"><span class="muted">Typically affected:</span> ${ids.map((id) => `<a href="${esc(itemHref(id))}">${esc(name(id))}</a>`).join(', ')}</p>` : '');
@@ -325,7 +338,7 @@ export function radarView({ election, perks, events, vote, now, name, open = new
   <h3>Events</h3>
   <ul>${list}</ul>
   <p class="muted">Based on past events, not a guarantee. Patterns marked "historical data" use runs from SkyCofl's price history, back to 2020. ${HISTORY_CREDIT}</p>
-  ${windowsView(timing, tax, name, volume)}
+  ${windowsView(timing, tax, name, volume, minRuns)}
   ${effectsView({ perks, events, now, name, query, timing })}
 </section>`;
 }
@@ -352,12 +365,13 @@ export const volumeNote = (v) => (v == null ? '' : ` · Vol./week ${num(v)}${isL
 // "Buy and sell windows" of the radar: the items with the best typical gain after tax, from the price curves of past
 // runs (timing.js tradeWindow). timing: timing.json's r.
 const WINDOW_ROWS = 12;
-export function windowsView(timing, tax, name, volume = () => null) {
+const fewData = (w, minRuns) => (w.n < minRuns ? ' <span class="badge badge-prov">few data</span>' : '');
+export function windowsView(timing, tax, name, volume = () => null, minRuns = MIN_ALERT_RUNS) {
   const all = allWindows(timing, tax);
   if (!all.length) return '';
   return `<h3>Buy and sell windows</h3>
   <p class="muted">When the price was lowest and highest around a term or event, after the ${percent.format(tax)} tax. Shown above 3% and when it paid in two thirds of the runs.</p>
-  <ul class="timing windows">${all.slice(0, WINDOW_ROWS).map((x) => `<li><a href="${esc(itemHref(x.id))}">${esc(name(x.id))}</a> <small>${esc(keyTitle(x.key))}: ${esc(x.text)}${volumeNote(volume(x.id))}</small></li>`).join('')}</ul>`;
+  <ul class="timing windows">${all.slice(0, WINDOW_ROWS).map((x) => `<li><a href="${esc(itemHref(x.id))}">${esc(name(x.id))}</a>${fewData(x.w, minRuns)} <small>${esc(keyTitle(x.key))}: ${esc(x.text)}${volumeNote(volume(x.id))}</small></li>`).join('')}</ul>`;
 }
 
 // "Mayor & event effects": every perk of every mayor and every event with what it does, the items it is
@@ -435,7 +449,7 @@ export function trendsView(flips) {
 // fresh: up to three opportunities, best first, with a name; firstVisit: there is no last visit to compare with.
 const TODAY_EVENTS = 3;
 const TODAY_ITEMS = 3;
-export function todayView({ plan, capital, slots, alerts = [], dismiss = false, events = [], vote, election = null, voteItems = [], fresh = [], firstVisit = false, now, name, buying = [], volume = () => null }) {
+export function todayView({ plan, capital, slots, alerts = [], dismiss = false, events = [], vote, election = null, voteItems = [], fresh = [], firstVisit = false, now, name, buying = [], volume = () => null, banners = '', minRuns = MIN_ALERT_RUNS }) {
   const until = (t) => duration(Math.ceil(Math.max(0, t - now) / 60000) * 60);
   const items = (ids) => (ids.length ? `<small>Affected: ${ids.slice(0, TODAY_ITEMS).map((id) => esc(name(id))).join(', ')}${
     ids.length > TODAY_ITEMS ? ` +${ids.length - TODAY_ITEMS} more` : ''}</small>` : '');
@@ -466,11 +480,11 @@ export function todayView({ plan, capital, slots, alerts = [], dismiss = false, 
   // items whose buy phase is on or starts within a day (timing.js buyNow)
   const buy = buying.length ? `<section class="radar">
   <h2><span class="radar-title">${ICONS.event}Buying window</span></h2>
-  <ul class="coming">${buying.slice(0, TODAY_ITEMS).map((b) => `<li><a href="${esc(itemHref(b.id))}">${esc(name(b.id))}</a> <span class="side">${b.state === 'now' ? `now · ${until(b.to)} left` : `in ${until(b.from)}`}</span><small>${esc(keyTitle(b.key))}: ${esc(b.text)}${volumeNote(volume(b.id))}</small></li>`).join('')}</ul>
+  <ul class="coming">${buying.slice(0, TODAY_ITEMS).map((b) => `<li><a href="${esc(itemHref(b.id))}">${esc(name(b.id))}</a>${fewData(b.w, minRuns)} <span class="side">${b.state === 'now' ? `now · ${until(b.to)} left` : `in ${until(b.from)}`}</span><small>${esc(keyTitle(b.key))}: ${esc(b.text)}${volumeNote(volume(b.id))}</small></li>`).join('')}</ul>
   ${moreLink('#/market', 'Open the Market')}
 </section>` : '';
 
-  return portfolio + warningsView(alerts, { dismiss, more: true }) + buy + coming + news;
+  return banners + portfolio + warningsView(alerts, { dismiss, more: true }) + buy + coming + news;
 }
 
 // One minion of the Minions area. row comes from minionRows; all coins are per day and for every minion placed.
@@ -591,7 +605,7 @@ const RANGES = [['24h', '24 h'], ['7d', '7 days']];
 
 // flip is the item's bazaar flip or null while prices are unknown; points are already cut to the range.
 // forge is the item's forge recipe as a flip (forgeFlip, with names on the ingredients), or null.
-export function detailView({ id, name, tier, flip, forge = null, score, median, provisional, trend, level, event, back = 'flips', isFav, range, points, tax, windows = [], volume = null }) {
+export function detailView({ id, name, tier, flip, forge = null, score, median, provisional, trend, level, event, back = 'flips', isFav, range, points, tax, windows = [], volume = null, held = false, minRuns = MIN_ALERT_RUNS }) {
   const stat = { score, provisional, median, trend, level, event, ah: forge?.ah };
   const forged = forge ? `<section class="forged pro"><h3>Forge</h3>${forge.ah ? `<p class="why">${esc(forgeNotes(forge).join(' · '))}</p>` : ''}
 <div class="summary">${keyStats(forge, 'Profit/forge hour')}<dl class="facts">${forgeFacts(forge).join('')}</dl></div>
@@ -614,5 +628,6 @@ ${ingredientList(forge)}</section>` : '';
 <div class="detail-head" data-rarity="${rarity(tier)}">${star(id, name, isFav)}
 ${tile(id, 48)}<h2 class="name">${esc(name)}</h2></div>
 ${badges(stat, flip?.suspicious)}
-${current}${forged}${windows.length ? `<section class="windows-item"><h3>Event timing</h3><ul class="timing">${windows.map((x) => `<li><small>${esc(keyTitle(x.key))}: ${esc(x.text)}${volumeNote(volume)}</small></li>`).join('')}</ul></section>` : ''}${forge?.ah ? '' : `<div class="bar ranges">${buttons}</div>${charts}`}`;
+${flip ? `<div class="bar held pro"><button type="button" data-held="${esc(id)}" aria-pressed="${held}">${held ? 'Bought – remove mark' : 'Mark as bought'}</button></div>` : ''}
+${current}${forged}${windows.length ? `<section class="windows-item"><h3>Event timing</h3><ul class="timing">${windows.map((x) => `<li><small>${esc(keyTitle(x.key))}: ${esc(x.text)}${volumeNote(volume)}${fewData(x.w, minRuns)}</small></li>`).join('')}</ul></section>` : ''}${forge?.ah ? '' : `<div class="bar ranges">${buttons}</div>${charts}`}`;
 }

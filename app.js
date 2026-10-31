@@ -4,13 +4,13 @@ import { craftFlips, craftHints, CRAFT_RUNS } from './craft.js';
 import { forgeFlips, forgeFlip } from './forge.js';
 import { minionRows, minionDetail, FUELS, UPGRADES, MAX_TIER } from './minions.js';
 import { loadItems, fallbackName } from './names.js';
-import { loadStats, loadRecipes, loadForge, loadAh, loadElection, loadTiming, loadHistory } from './data.js';
-import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission } from './native.js';
-import { PERSONAL, flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, trendsView, todayView, minionCard, minionSheet, parseRoute, detailView, portfolioView, warningsView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, viewsFor, areaOf, coins, percent, PLACEHOLDER_ICON } from './render.js';
+import { loadStats, loadRecipes, loadForge, loadAh, loadElection, loadTiming, loadWindows, loadHistory } from './data.js';
+import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission, loadHeld, storeHeld } from './native.js';
+import { PERSONAL, flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, trendsView, todayView, windowBanners, minionCard, minionSheet, parseRoute, detailView, portfolioView, warningsView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, viewsFor, areaOf, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
 import { level } from './trends.js';
 import { activePerks, upcoming, electionWindow, eventItems, flipRisks, planElection, taxAdvice } from './events.js';
-import { buyNow, itemWindows } from './timing.js';
+import { buyNow, itemWindows, readWindowAlerts, windowAlerts, MIN_ALERT_RUNS } from './timing.js';
 import { bindSheet, openSheet } from './sheet.js';
 import { loadBundled, mergeGuides, exportData, importData, progressView } from './progress.js';
 import { initOnboarding, refreshHints, offerAdvanced, returning } from './tour.js';
@@ -23,7 +23,9 @@ const CARDS = { flips: flipCard, opps: flipCard, npc: npcCard, craft: craftCard,
 const DEFAULTS = { tax: 1.25, minVolume: 100000, maxCapital: 5000000, interval: 2, share: 5, sort: 'profitHour', favOnly: false, alerts: false, alertMargin: 5,
   marketAlerts: false, marketMargin: 10, marketMinVolume: 100000, marketMinProfit: 100000, marketCooldown: 6, eventAlerts: false, mayorAlerts: false,
   portfolioCapital: 50000000, portfolioSlots: MAX_SLOTS, portfolioMargin: 3, portfolioTurnover: 1000000000, hotm: 10, forgeAh: true, craftMode: 0, craftRuns: CRAFT_RUNS,
-  portfolioDrop: 5, portfolioCooldown: 6, personalTab: false, planPriceAlerts: false, planSuspiciousAlerts: false, planElectionAlerts: false, planLeavingAlerts: false };
+  portfolioDrop: 5, portfolioCooldown: 6, personalTab: false, planPriceAlerts: false, planSuspiciousAlerts: false, planElectionAlerts: false, planLeavingAlerts: false,
+  windowBuy: false, windowSell: false, windowAvoid: false, windowFavOnly: false, windowMinSpread: 5, windowMinRuns: MIN_ALERT_RUNS, windowMaxPerDay: 5, quietStart: 23, quietEnd: 8 };
+const WINDOW_ALERTS = ['windowBuy', 'windowSell', 'windowAvoid'];
 const PLAN_ALERTS = ['planPriceAlerts', 'planSuspiciousAlerts', 'planElectionAlerts', 'planLeavingAlerts'];
 
 const $ = (id) => document.getElementById(id);
@@ -31,7 +33,7 @@ const load = (key, fallback) => { try { return JSON.parse(localStorage.getItem(k
 const save = (key, value) => { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} };
 
 // the fields of the panel; they take effect together, on Apply
-const FIELDS = ['tax', 'interval', 'share', 'minVolume', 'maxCapital', 'alertMargin', 'marketMargin', 'marketMinVolume', 'marketMinProfit', 'marketCooldown', 'portfolioCapital', 'portfolioSlots', 'portfolioMargin', 'portfolioTurnover', 'hotm', 'portfolioDrop', 'portfolioCooldown', 'craftMode', 'craftRuns'];
+const FIELDS = ['tax', 'interval', 'share', 'minVolume', 'maxCapital', 'alertMargin', 'marketMargin', 'marketMinVolume', 'marketMinProfit', 'marketCooldown', 'portfolioCapital', 'portfolioSlots', 'portfolioMargin', 'portfolioTurnover', 'hotm', 'portfolioDrop', 'portfolioCooldown', 'craftMode', 'craftRuns', 'windowMinSpread', 'windowMinRuns', 'windowMaxPerDay', 'quietStart', 'quietEnd'];
 const settings = { ...DEFAULTS, ...load('bt.settings', {}) };
 // A stored interval of 0 would refresh in a tight loop, so bad values fall back to defaults.
 function sanitize() {
@@ -63,6 +65,16 @@ function sanitize() {
   if (!(settings.portfolioCooldown > 0 && settings.portfolioCooldown <= 168)) settings.portfolioCooldown = DEFAULTS.portfolioCooldown;
   for (const key of PLAN_ALERTS) settings[key] = settings[key] === true;
   settings.personalTab = settings.personalTab === true;
+  for (const key of [...WINDOW_ALERTS, 'windowFavOnly']) settings[key] = settings[key] === true;
+  if (!(settings.windowMinSpread >= 0 && settings.windowMinSpread <= 1000)) settings.windowMinSpread = DEFAULTS.windowMinSpread;
+  settings.windowMinRuns = Math.floor(settings.windowMinRuns);
+  if (!(settings.windowMinRuns >= 1 && settings.windowMinRuns <= 100)) settings.windowMinRuns = DEFAULTS.windowMinRuns;
+  settings.windowMaxPerDay = Math.floor(settings.windowMaxPerDay);
+  if (!(settings.windowMaxPerDay >= 1 && settings.windowMaxPerDay <= 50)) settings.windowMaxPerDay = DEFAULTS.windowMaxPerDay;
+  for (const key of ['quietStart', 'quietEnd']) {
+    settings[key] = Math.floor(settings[key]);
+    if (!(settings[key] >= 0 && settings[key] <= 23)) settings[key] = DEFAULTS[key];
+  }
 }
 sanitize();
 // A new user starts in Simple mode; whoever used the app before keeps everything (Pro). Stored at once,
@@ -92,6 +104,19 @@ function readRoute() {
 if (!location.hash) history.replaceState(null, '', String(load('bt.route', '#/today')));
 const storedFavs = load('bt.favs', []);
 const favs = new Set(Array.isArray(storedFavs) ? storedFavs : []);
+// Items marked as bought: { id: when }. The Android app asks its native store (native.js), which also holds the
+// marks made from a notification; the browser has only this one.
+const storedHeld = load('bt.held', {});
+let held = storedHeld && typeof storedHeld === 'object' ? storedHeld : {};
+async function setHeld(id, on) {
+  const next = plugin() ? await storeHeld(id, on) : null;
+  if (next) held = next;
+  else if (on) held = { ...held, [id]: Date.now() };
+  else { held = { ...held }; delete held[id]; }
+  save('bt.held', held);
+  render();
+}
+const refreshHeld = () => loadHeld().then((h) => { if (h) { held = h; save('bt.held', held); render(); } });
 
 let products = null;
 let names = {};
@@ -103,6 +128,9 @@ let forge;   // forge recipes; undefined while loading, null when there are none
 let ah = {}; // lowest BIN of forge results that are not on the bazaar
 let election = null; // mayor, perks and a running election; null when unknown
 let timing = {};     // past runs per event and perk, for the radar's price patterns
+let windowFile = null; // timing-windows.json, for the banners in the browser
+const storedSeen = load('bt.windowsSeen', []);
+let windowsSeen = new Set(Array.isArray(storedSeen) ? storedSeen : []); // the banners dismissed, one per item and window
 let marked = {};     // item id -> event or perk it belongs to right now
 let lastStats = 0;
 let route = readRoute();
@@ -296,7 +324,7 @@ function flashChanges() {
 let radarShown = '';
 function renderRadar() {
   const now = Date.now();
-  const data = { election, perks: activePerks(election), events: upcoming(now, election), vote: electionWindow(now), now, name: nameOf, timing, query: effectsQuery, tax: settings.tax / 100, volume: weekVolume };
+  const data = { election, perks: activePerks(election), events: upcoming(now, election), vote: electionWindow(now), now, name: nameOf, timing, query: effectsQuery, tax: settings.tax / 100, volume: weekVolume, minRuns: settings.windowMinRuns };
   const plain = radarView(data);
   if (plain === radarShown) return;
   const box = $('radar');
@@ -412,12 +440,17 @@ function renderArea() {
   if (area() === 'today') {
     const now = Date.now();
     const risks = flipRisks(election, now);
+    // the Android app says this with notifications, so only the browser gets the banners
+    const notices = plugin() ? [] : windowAlerts(readWindowAlerts(windowFile), { buy: settings.windowBuy, sell: settings.windowSell, avoid: settings.windowAvoid,
+      minSpread: settings.windowMinSpread / 100, favOnly: settings.windowFavOnly, minRuns: settings.windowMinRuns }, favs, held, windowsSeen, now);
+    const bannerBuys = new Set(notices.filter((a) => a.kind === 'buy').slice(0, settings.windowMaxPerDay).map((a) => a.id));
     $('today').innerHTML = products ? todayView({
       plan, capital: settings.portfolioCapital, slots: settings.portfolioSlots, alerts, dismiss: marketWarned(),
       events: upcoming(now, election), vote: electionWindow(now), election,
       voteItems: Object.keys(risks).filter((id) => risks[id].kind === 'election'),
       fresh: (lastVisit ? opps.filter((f) => !lastVisit.has(f.id)) : opps).slice(0, 3), firstVisit: !lastVisit, now, name: nameOf,
-      buying: buyNow(now, election, timing, settings.tax / 100), volume: weekVolume,
+      buying: buyNow(now, election, timing, settings.tax / 100).filter((b) => !bannerBuys.has(b.id)), volume: weekVolume, minRuns: settings.windowMinRuns,
+      banners: windowBanners(notices, { limit: settings.windowMaxPerDay, name: nameOf }),
     }) : '<p class="count muted">Loading…</p>';
   }
   if (area() === 'market') {
@@ -442,7 +475,7 @@ function renderDetail() {
   const forged = products && forge?.[id] ? forgeFlip(id, forge[id], products, ah, baseOpts()) : null;
   detailSuspicious = !!flip?.suspicious;
   for (const i of forged?.ingredients ?? []) i.name = nameOf(i.id);
-  $('detail').innerHTML = detailView({ ...decorate({ id, sell: flip?.sell }), flip, forge: forged, ...stat, back: lastList, isFav: favs.has(id), range, points, tax: settings.tax / 100, windows: itemWindows(timing, id, settings.tax / 100), volume: weekVolume(id) });
+  $('detail').innerHTML = detailView({ ...decorate({ id, sell: flip?.sell }), flip, forge: forged, ...stat, back: lastList, isFav: favs.has(id), range, points, tax: settings.tax / 100, windows: itemWindows(timing, id, settings.tax / 100), volume: weekVolume(id), held: id in held, minRuns: settings.windowMinRuns });
   flashChanges();
 }
 
@@ -544,7 +577,7 @@ async function refresh() {
 
 async function refreshStats() {
   lastStats = Date.now();
-  [stats, ah, election, timing] = await Promise.all([loadStats(), loadAh(), loadElection(), loadTiming()]);
+  [stats, ah, election, timing, windowFile] = await Promise.all([loadStats(), loadAh(), loadElection(), loadTiming(), loadWindows()]);
   recompute();
   render();
 }
@@ -748,7 +781,7 @@ document.addEventListener('error', (e) => {
   if (img.matches?.('img.icon') && img.src !== PLACEHOLDER_ICON) img.src = PLACEHOLDER_ICON;
 }, true);
 $('detail').addEventListener('click', (e) => {
-  const r = e.target.closest('[data-range]')?.dataset.range;
+  const r =e.target.closest('[data-range]')?.dataset.range;
   if (!r) return;
   range = r;
   render();
@@ -771,6 +804,17 @@ function chartPointer(e) {
 $('detail').addEventListener('pointermove', chartPointer);
 $('detail').addEventListener('pointerdown', chartPointer);
 document.querySelector('main').addEventListener('click', (e) => {
+  const bought = e.target.closest('[data-held]');
+  if (bought) return setHeld(bought.dataset.held, !(bought.dataset.held in held));
+  const seen = e.target.closest('[data-seen]')?.dataset.seen;
+  if (seen) {
+    windowsSeen.add(seen);
+    // only what is still in the file is kept, so the list stays small
+    const inFile = new Set(readWindowAlerts(windowFile).map((a) => a.k));
+    windowsSeen = new Set([...windowsSeen].filter((k) => inFile.has(k)));
+    save('bt.windowsSeen', [...windowsSeen]);
+    return render();
+  }
   const withAh = e.target.closest('[data-forge-ah]')?.dataset.forgeAh;
   if (withAh) {
     settings.forgeAh = withAh === '1';
@@ -812,6 +856,7 @@ document.addEventListener('visibilitychange', () => {
   // the app often stays open in the background for days: coming back after a while is a new visit
   if (document.hidden) hiddenAt = Date.now();
   else if (hiddenAt && Date.now() - hiddenAt > AWAY_MS && stats) lastVisit = new Set(opps.map((f) => f.id));
+  if (!document.hidden) refreshHeld(); // "Bought" may have been tapped on a notification
   if (document.hidden) clearTimeout(timer);
   else if (Date.now() - lastFetch >= settings.interval * 60000) refresh();
   else schedule();
@@ -959,8 +1004,27 @@ if (plugin()) {
   bindAlertToggle('marketAlerts', 'market-hint');
   bindAlertToggle('eventAlerts', 'timing-hint');
   bindAlertToggle('mayorAlerts', 'timing-hint');
+  $('window-alert-settings').hidden = false;
+  for (const key of WINDOW_ALERTS) bindAlertToggle(key, 'window-hint');
   onRoute((hash) => { location.hash = hash; });
+  refreshHeld();
+} else {
+  // the same settings in the browser, for the banners on Today; there is no permission to ask for
+  $('window-alert-settings').hidden = false;
+  $('window-intro').textContent = 'In the browser these appear as banners on Today, since a web page cannot notify you here. Quiet hours only matter in the Android app. Based on past runs, not a guarantee.';
+  for (const key of WINDOW_ALERTS) {
+    $(key).checked = settings[key];
+    $(key).addEventListener('change', (e) => {
+      settings[key] = e.target.checked;
+      applySettings();
+    });
+  }
 }
+$('windowFavOnly').checked = settings.windowFavOnly;
+$('windowFavOnly').addEventListener('change', (e) => {
+  settings.windowFavOnly = e.target.checked;
+  applySettings();
+});
 
 // The worker needs a name for every product; send them once both lists are there.
 let itemsLoaded = false;

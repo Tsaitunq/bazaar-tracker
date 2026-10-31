@@ -237,6 +237,10 @@ body:not([data-area="today"]) #today, body:not([data-area="minions"]) #minions, 
 .alerts li small { display: block; font-size: 12px; color: var(--warn); }
 .alerts .muted { margin: 8px 0; }
 .alerts button { min-height: 36px; }
+.window-alerts .actions { display: flex; gap: 8px; margin-top: 6px; }
+.window-alerts button { min-height: 44px; }
+.bar.held { margin: 8px 0; }
+.bar.held button { min-height: 44px; }
 
 /* Minions: the setup in one row of fields above the list; two columns on a phone */
 .setup { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 4px 0 12px; max-width: 900px; }

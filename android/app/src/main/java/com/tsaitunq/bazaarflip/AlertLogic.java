@@ -527,6 +527,149 @@ final class AlertLogic {
         return out;
     }
 
+    /** One notification timing-windows.json can give, due from {@code from} until {@code to}. Same as windowAlerts in timing.js. */
+    static final class WindowAlert {
+        final String key;
+        final String kind; // "buy", "sell" or "avoid"
+        final String id;
+        final String driver;
+        final long from;
+        final long to;
+        final double size; // typical gain (buy, sell) or drop (avoid), as a fraction
+        final int hits;
+        final int n;
+
+        WindowAlert(String key, String kind, String id, String driver, long from, long to, double size, int hits, int n) {
+            this.key = key;
+            this.kind = kind;
+            this.id = id;
+            this.driver = driver;
+            this.from = from;
+            this.to = to;
+            this.size = size;
+            this.hits = hits;
+            this.n = n;
+        }
+    }
+
+    /** The user's switches for these notifications. */
+    static final class WindowPrefs {
+        final boolean buy;
+        final boolean sell;
+        final boolean avoid;
+        final double minSpread;
+        final boolean favOnly;
+        final int minRuns;
+
+        WindowPrefs(boolean buy, boolean sell, boolean avoid, double minSpread, boolean favOnly, int minRuns) {
+            this.minRuns = minRuns;
+            this.buy = buy;
+            this.sell = sell;
+            this.avoid = avoid;
+            this.minSpread = minSpread;
+            this.favOnly = favOnly;
+        }
+    }
+
+    /** Everything in timing-windows.json as alerts: a buy and a sell per window, an avoid per warning. */
+    static List<WindowAlert> readWindows(Reader json) throws IOException {
+        List<WindowAlert> out = new ArrayList<>();
+        try {
+            JsonObject root = JsonParser.parseReader(json).getAsJsonObject();
+            for (JsonElement e : root.getAsJsonArray("w")) {
+                JsonObject o = e.getAsJsonObject();
+                out.add(windowAlert(o, "buy", o.get("buyStart").getAsLong(), o.get("buyEnd").getAsLong(), o.get("spread").getAsDouble()));
+                out.add(windowAlert(o, "sell", o.get("sellStart").getAsLong(), o.get("sellEnd").getAsLong(), o.get("spread").getAsDouble()));
+            }
+            for (JsonElement e : root.getAsJsonArray("a")) {
+                JsonObject o = e.getAsJsonObject();
+                out.add(windowAlert(o, "avoid", o.get("notifyAt").getAsLong(), o.get("at").getAsLong(), o.get("drop").getAsDouble()));
+            }
+        } catch (RuntimeException e) {
+            throw new IOException("unexpected timing windows file", e);
+        }
+        return out;
+    }
+
+    private static WindowAlert windowAlert(JsonObject o, String kind, long from, long to, double size) {
+        String id = o.get("id").getAsString();
+        String key = kind + "|" + id + "|" + o.get("key").getAsString() + "|" + o.get("s").getAsLong();
+        return new WindowAlert(key, kind, id, o.get("driver").getAsString(), from, to, size, o.get("hits").getAsInt(), o.get("n").getAsInt());
+    }
+
+    /**
+     * The alerts due now that were not shown yet, sells first, then warnings about held items, other warnings and buys,
+     * biggest first. Same rules as windowAlerts in timing.js. held: item id to when it was marked. Nothing from fewer
+     * than minRuns runs. A sell only counts for a window that starts after the item was bought. A warning only for an
+     * item held or a favorite. Min. margin and "favorites only" never hide a held item.
+     */
+    static List<WindowAlert> dueWindows(List<WindowAlert> all, WindowPrefs prefs, Set<String> favs, Map<String, Long> held,
+            Set<String> shown, long now) {
+        List<WindowAlert> wanted = new ArrayList<>();
+        List<WindowAlert> buys = new ArrayList<>();
+        for (WindowAlert a : all) {
+            if (a.n < prefs.minRuns) continue;
+            boolean mine = held.containsKey(a.id);
+            if (a.kind.equals("sell")) {
+                if (prefs.sell && mine && a.from >= held.get(a.id)) wanted.add(a);
+            } else if (a.kind.equals("avoid")) {
+                if (prefs.avoid && (mine || (favs.contains(a.id) && a.size >= prefs.minSpread))) wanted.add(a);
+            } else if (prefs.buy && !mine && (!prefs.favOnly || favs.contains(a.id)) && a.size >= prefs.minSpread) {
+                buys.add(a);
+            }
+        }
+        wanted.addAll(onePerPeriod(buys, shown));
+        List<WindowAlert> out = new ArrayList<>();
+        for (WindowAlert a : wanted) {
+            if (now >= a.from && now < a.to && !shown.contains(a.key)) out.add(a);
+        }
+        out.sort((a, b) -> rank(a, held) != rank(b, held) ? rank(a, held) - rank(b, held) : Double.compare(b.size, a.size));
+        return out;
+    }
+
+    /** One buy per item for a stretch of time: one already shown stands, then the most runs, best hit rate, biggest gain. */
+    private static List<WindowAlert> onePerPeriod(List<WindowAlert> buys, Set<String> shown) {
+        List<WindowAlert> order = new ArrayList<>(buys);
+        order.sort((a, b) -> {
+            if (shown.contains(a.key) != shown.contains(b.key)) return shown.contains(a.key) ? -1 : 1;
+            if (a.n != b.n) return b.n - a.n;
+            int rate = Double.compare((double) b.hits / b.n, (double) a.hits / a.n);
+            return rate != 0 ? rate : Double.compare(b.size, a.size);
+        });
+        List<WindowAlert> kept = new ArrayList<>();
+        for (WindowAlert a : order) {
+            boolean free = true;
+            for (WindowAlert x : kept) free &= !(x.id.equals(a.id) && x.from < a.to && a.from < x.to);
+            if (free) kept.add(a);
+        }
+        return kept;
+    }
+
+    private static int rank(WindowAlert a, Map<String, Long> held) {
+        if (a.kind.equals("sell")) return 0;
+        if (a.kind.equals("avoid")) return held.containsKey(a.id) ? 1 : 2;
+        return 3;
+    }
+
+    /** The words of windowText in timing.js. */
+    static String windowText(WindowAlert a, Map<String, String> names) {
+        String item = name(names, a.id);
+        int pct = (int) Math.round(a.size * 100);
+        if (a.kind.equals("sell")) return "Sell now: " + item + " – selling window started";
+        if (a.kind.equals("avoid")) return "Sell before " + a.driver + ": " + item + " usually drops " + pct + "%";
+        return "Buying window open: " + item + " (" + a.driver + ", typical +" + pct + "%, " + a.hits + "/" + a.n + ")";
+    }
+
+    /** Whether an hour of the day lies in the quiet hours; they may run over midnight, equal hours mean none. */
+    static boolean quiet(int hour, int start, int end) {
+        if (start == end) return false;
+        return start < end ? hour >= start && hour < end : hour >= start || hour < end;
+    }
+
+    static String displayName(Map<String, String> names, String id) {
+        return name(names, id);
+    }
+
     private static String name(Map<String, String> names, String id) {
         String name = names.get(id);
         return name == null || name.isEmpty() ? id : name;
