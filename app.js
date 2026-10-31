@@ -676,6 +676,8 @@ async function askBins(wants) {
   });
   binsBusy = false;
   if (!ok) binsFailed = Date.now();
+  // the guide on screen can have changed during the run, and what it still wants is asked now
+  else if (area() === PERSONAL) renderProgress();
 }
 function renderProgress() {
   const guide = currentGuide();
