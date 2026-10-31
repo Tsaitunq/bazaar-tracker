@@ -27,6 +27,10 @@ export function migrateState(state) {
 // changelog.json lists the newest version first; that one is the app version
 export const currentVersion = (log) => log.versions[0].version;
 export const newsSince = (log, version) => log.versions.filter((v) => compareVersions(v.version, version) > 0);
+// Without a guide the entries about the private area stay out, and a version left empty goes with them.
+export const visibleNews = (versions, hasGuides) => versions
+  .map((v) => ({ ...v, entries: v.entries.filter((e) => hasGuides || !e.personal) }))
+  .filter((v) => v.entries.length);
 
 export const ADVANCED_SINCE = '0.5.0'; // the version that brought the advanced tour
 

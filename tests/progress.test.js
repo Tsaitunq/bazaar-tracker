@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validGuide, loadBundled, mergeGuides, exportData, importData, stepKey, stepCost, guideStats, progressView } from '../progress.js';
+import { validGuide, loadBundled, mergeGuides, exportData, importData, stepKey, stepCost, guideStats, progressView, personalVisibility, secretTap } from '../progress.js';
 
 const guide = { title: 'Test guide', source: 'https://example.com/x', sections: [
   { name: 'First', goal: 'Goal', steps: [
@@ -89,4 +89,23 @@ test('progressView asks before a reset and unfolds the first open section by def
   assert.match(html, /data-section="S1" open/);
   assert.match(html, /data-guide-act="reset"/);
   assert.match(progressView({ guides: [priced], current: 'p', checked: new Set(), products, name: String, armed: true }), /data-guide-act="reset-yes"/);
+});
+
+test('without a guide only the hidden unlock shows the import, and never the switch', () => {
+  assert.deepEqual(personalVisibility(0, false), { section: false, toggle: false });
+  assert.deepEqual(personalVisibility(0, true), { section: true, toggle: false });
+  assert.deepEqual(personalVisibility(2, false), { section: true, toggle: true });
+});
+
+test('secretTap opens on the fifth quick tap only', () => {
+  let taps = [];
+  for (let i = 0; i < 4; i++) {
+    const r = secretTap(taps, 1000 + i * 500);
+    assert.equal(r.open, false);
+    taps = r.taps;
+  }
+  assert.equal(secretTap(taps, 3000).open, true);
+  assert.deepEqual(secretTap(taps, 3000).taps, []);
+  // a pause starts the count again
+  assert.deepEqual(secretTap(taps, 9000), { taps: [9000], open: false });
 });

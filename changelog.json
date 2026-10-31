@@ -1,10 +1,17 @@
 {
   "versions": [
     {
+      "version": "0.9.1",
+      "date": "2026-10-31",
+      "entries": [
+        { "title": "Small maintenance update", "text": "A few small improvements behind the scenes." }
+      ]
+    },
+    {
       "version": "0.9.0",
       "date": "2026-10-31",
       "entries": [
-        { "title": "Personal progress tab", "text": "An optional tab for your own checklists with live Bazaar costs, switched on in the settings." }
+        { "title": "Personal progress tab", "personal": true, "text": "An optional tab for your own checklists with live Bazaar costs, switched on in the settings." }
       ]
     },
     {
