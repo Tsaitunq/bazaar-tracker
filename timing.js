@@ -5,7 +5,7 @@
 // curve: the median of each phase (phaseSpans) from two days before to three days after, by phase name.
 // src is "backfill" for a run filled in afterwards from SkyCofl's price history (scripts/timing-backfill.mjs);
 // a run the snapshot run recorded itself has no src and counts as "own".
-import { PERK_EXPECT, PERKS, DRIVERS, expectedRole, DAY_MS, YEAR_DAYS, EVENTS, skyDate, skyTime, activePerks, upcoming, termStart } from './events.js';
+import { PERK_EXPECT, PERKS, DRIVERS, DERPY_TAX, expectedRole, DAY_MS, YEAR_DAYS, EVENTS, skyDate, skyTime, activePerks, comingPerks, upcoming, termStart } from './events.js';
 import { median } from './history.js';
 
 export const CONFIRM = 3;                // runs in the same direction before a pattern counts
@@ -293,6 +293,85 @@ export function buyNow(nowMs, election, timing, tax, soon = 24 * 3600000) {
   }
   return out.sort((a, b) => b.w.spread - a.w.spread);
 }
+
+// ---- timing-windows.json: the same windows as concrete times, for the notifications ------------------------------
+export const WINDOW_HORIZON_MS = 8 * 24 * 3600000; // the file reaches this far ahead
+export const AVOID_LEAD_MS = 12 * 3600000;         // "sell before" comes this long before the driver starts
+
+// "Drops and does not recover": confirmed fall into the driver by more than TRADE_MIN_SPREAD in TRADE_MIN_HIT of the
+// runs, with less than half of it won back in the 24 hours after, measured in at least CONFIRM runs. Stricter than
+// itemRole's recovers, which counts any rise (Great White Shark Tooth: -12.6%, then +1.5%, and it stays down).
+// { drop, hits, n, own, backfill } or null.
+export function avoidPattern(runs = [], id) {
+  const { into, out } = itemPattern(runs, id);
+  const n = runs.filter((run) => run.p[id]?.[0] > 0 && run.p[id][1] != null).length;
+  const after = runs.filter((run) => run.p[id]?.[1] > 0 && run.p[id][2] != null).length;
+  if (!into.confirmed || into.dir >= 0 || -into.pct <= TRADE_MIN_SPREAD || into.n / n < TRADE_MIN_HIT) return null;
+  if (after < CONFIRM || out.pct >= -into.pct / 2) return null;
+  return { drop: -into.pct, hits: into.n, n, own: into.nOwn, backfill: into.nBackfill };
+}
+
+// Every term and event whose phases can still matter: { key, s, e (ms), leader }. The term before counts too, because
+// many sell phases are days after it ends; election.json no longer names that mayor, the runs in timing.json do.
+function drivers(nowMs, election, timing) {
+  const out = [];
+  const s = termStart(nowMs);
+  for (const key of Object.keys(timing)) {
+    if (key.startsWith('perk:') && timing[key].some((run) => run.s === (s - YEAR_MS) / 60000)) out.push({ key, s: s - YEAR_MS, e: s });
+  }
+  // the election file lags behind the calendar: only a mayor elected for this term counts
+  if (election?.mayor?.year === skyDate(s).year - 1) {
+    for (const p of activePerks(election)) out.push({ key: `perk:${p.name}`, s, e: s + YEAR_MS });
+  }
+  if (election?.vote) {
+    const next = skyTime(election.vote.year + 1, 2, 27);
+    for (const { perk } of comingPerks(election)) out.push({ key: `perk:${perk}`, s: next, e: next + YEAR_MS, leader: true });
+  }
+  const perks = activePerks(election);
+  const { year } = skyDate(nowMs);
+  for (const e of EVENTS) {
+    if (!e.items.length || (e.perk && !perks.some((p) => p.name === e.perk))) continue;
+    for (const start of [year - 1, year, year + 1, year + 2].flatMap((y) => e.starts.map(([month, day]) => skyTime(y, month, day)))) {
+      out.push({ key: `event:${e.key}`, s: start, e: start + e.days * DAY_MS });
+    }
+  }
+  return out;
+}
+
+// The content of timing-windows.json. timing is timing.json's r, all times are ms since the epoch, so UTC.
+// w: one entry per item and term or event with a window (tradeWindow) that has not ended and starts within the horizon.
+// a: the same for items that drop and do not recover (avoidPattern), with `at` as the time to have sold by and
+// `notifyAt` as when to say so. own/backfill: how many of the n runs came from where.
+export function timingWindows(nowMs, election, timing, tax) {
+  const w = [];
+  const a = [];
+  const last = nowMs + WINDOW_HORIZON_MS;
+  for (const { key, s, e, leader } of drivers(nowMs, election, timing)) {
+    const runs = timing[key];
+    if (!runs) continue;
+    const phases = Object.fromEntries(phaseSpans({ s: s / 60000, e: e / 60000 }).map(([name, from, to]) => [name, [from * 60000, to * 60000]]));
+    const base = { key, driver: driverTitle(key) + (leader ? ' (if elected)' : ''), s };
+    for (const id of new Set(runs.flatMap((run) => [...Object.keys(run.c ?? {}), ...Object.keys(run.p ?? {})]))) {
+      const t = tradeWindow(runs, id, tax);
+      if (t) {
+        const buy = phases[t.buy];
+        const sell = phases[t.sell];
+        if (!buy || !sell || sell[1] <= nowMs || buy[0] > last) continue;
+        const backfill = t.src.filter((x) => x === BACKFILL).length;
+        w.push({ id, ...base, buyStart: buy[0], buyEnd: buy[1], sellStart: sell[0], sellEnd: sell[1], spread: Math.round(t.spread * 10000) / 10000, hits: t.hits, n: t.n, own: t.n - backfill, backfill });
+      } else if (s > nowMs && s <= last) {
+        const p = avoidPattern(runs, id);
+        if (p) a.push({ id, ...base, at: s, notifyAt: s - AVOID_LEAD_MS, ...p, drop: Math.round(p.drop * 10000) / 10000 });
+      }
+    }
+  }
+  w.sort((x, y) => x.buyStart - y.buyStart || y.spread - x.spread);
+  a.sort((x, y) => x.at - y.at || y.drop - x.drop);
+  return { t: nowMs, tax, w, a };
+}
+
+// The tax the snapshot run counts with: the app's default, quadrupled under Derpy.
+export const windowTax = (election) => (election?.mayor?.name === 'Derpy' ? DERPY_TAX[1.25] : 1.25) / 100;
 
 // ---- role of an item ---------------------------------------------------------------------------------------------
 // supply: cheaper while the driver runs, dearer after; demand: dearer while it runs, cheaper after; shop: supply

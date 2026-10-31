@@ -131,6 +131,15 @@ export function taxAdvice(derpy, set) {
 
 export const LEAVING_MS = 24 * 3600000; // a term this close to its end is announced on the items it holds down
 
+// The perks the running election is about to bring: all of the candidate with the most votes, and the minister
+// perk of the runner-up (candidate.minister; absent in files written before it was stored). [{ perk, who }]
+export function comingPerks(election) {
+  const [lead, second] = [...(election?.vote?.candidates ?? [])].sort((a, b) => b.votes - a.votes);
+  if (!(lead?.votes > 0)) return [];
+  return [...lead.perks.map((perk) => ({ perk, who: lead.name })),
+    ...(second?.votes > 0 && second.minister ? [{ perk: second.minister, who: second.name }] : [])];
+}
+
 // { itemId: { kind, text } } for the portfolio: what the election may do to an item's price. Two cases, both from
 // PERK_EXPECT and so an expectation, not a measurement:
 // - a perk that is coming: all perks of the candidate with the most votes, and the minister perk of the
@@ -141,11 +150,7 @@ export function flipRisks(election, nowMs) {
   const out = {};
   let kind = 'election';
   const mark = (perk, text) => { for (const id of PERK_EXPECT[perk]?.items ?? []) out[id] ??= { kind, text }; };
-  const [lead, second] = [...(election?.vote?.candidates ?? [])].sort((a, b) => b.votes - a.votes);
-  if (lead?.votes > 0) {
-    for (const perk of lead.perks) mark(perk, `${lead.name} may lower this price`);
-    if (second?.votes > 0 && second.minister) mark(second.minister, `${second.name} may lower this price`);
-  }
+  for (const { perk, who } of comingPerks(election)) mark(perk, `${who} may lower this price`);
   const start = termStart(nowMs);
   const left = start + YEAR_DAYS * DAY_MS - nowMs;
   const mayor = election?.mayor;

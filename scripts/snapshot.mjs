@@ -5,7 +5,7 @@ import { recipesStale, refreshRecipes } from './recipes.mjs';
 import { fetchLowestBins } from './auctions.mjs';
 import { compactElection } from './election.mjs';
 import { trendSlope } from '../trends.js';
-import { updateTiming, mergeBackfill } from '../timing.js';
+import { updateTiming, mergeBackfill, timingWindows, windowTax } from '../timing.js';
 import { SHARDS, KEEP_DAYS, shardOf, dayKey, dayKeys, compactPrices, appendSnapshot, seriesFor, itemStats } from '../history.js';
 
 const readChunk = (file) => (fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : null);
@@ -57,7 +57,10 @@ export function runSnapshot(dataDir, products, nowMs, { backfillFile = null } = 
   // the runs out of timing.json.
   const known = readChunk(timingFile);
   const timing = backfillFile && fs.existsSync(backfillFile) ? mergeBackfill(known, readChunk(backfillFile)) : known;
-  fs.writeFileSync(timingFile, JSON.stringify(updateTiming(timing, election, (id) => seriesFor(chunks, id), nowMs)));
+  const updated = updateTiming(timing, election, (id) => seriesFor(chunks, id), nowMs);
+  fs.writeFileSync(timingFile, JSON.stringify(updated));
+  // the windows as concrete times, for the notifications and the banners on Today
+  fs.writeFileSync(path.join(dataDir, 'timing-windows.json'), JSON.stringify(timingWindows(nowMs, election, updated.r, windowTax(election))));
   return { day, count: Object.keys(prices).length };
 }
 
