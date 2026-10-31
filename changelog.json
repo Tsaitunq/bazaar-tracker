@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.9.2",
+      "date": "2026-10-31",
+      "entries": [
+        { "title": "Fuller prices in Progress", "text": "Steps now show what they cost and where the price comes from, and each section adds up what is left.", "personal": true }
+      ]
+    },
+    {
       "version": "0.9.1",
       "date": "2026-10-31",
       "entries": [
