@@ -285,7 +285,7 @@ public class AlertWorker extends Worker {
         Map<String, Long> shown = recent(prefs.getString(AlertsPlugin.KEY_WINDOWS_SHOWN, "{}"), now, WINDOW_SHOWN_MS);
         Map<String, Long> held = recent(prefs.getString(AlertsPlugin.KEY_HELD, "{}"), now, Long.MAX_VALUE);
         WindowPrefs wanted = new WindowPrefs(windows.optBoolean("buy"), windows.optBoolean("sell"), windows.optBoolean("avoid"),
-            windows.optDouble("minSpread", 0.05), windows.optBoolean("favOnly"));
+            windows.optDouble("minSpread", 0.05), windows.optBoolean("favOnly"), windows.optInt("minRuns", 6));
         Set<String> favIds = favs == null ? Collections.emptySet() : strings(favs).keySet();
         List<WindowAlert> due = AlertLogic.dueWindows(fetch(WINDOWS, AlertLogic::readWindows), wanted, favIds, held, shown.keySet(), now);
 

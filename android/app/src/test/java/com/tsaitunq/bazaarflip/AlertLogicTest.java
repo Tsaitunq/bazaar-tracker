@@ -50,9 +50,9 @@ public class AlertLogicTest {
     private static final String WINDOWS = "{\"t\":1,\"tax\":0.0125,\"w\":[{\"id\":\"ORB\",\"key\":\"perk:Marauder\",\"driver\":\"Paul\",\"s\":50,"
         + "\"buyStart\":100,\"buyEnd\":200,\"sellStart\":300,\"sellEnd\":400,\"spread\":0.2,\"hits\":9,\"n\":12,\"own\":3,\"backfill\":9},"
         + "{\"id\":\"SMALL\",\"key\":\"event:spooky\",\"driver\":\"Spooky\",\"s\":60,"
-        + "\"buyStart\":100,\"buyEnd\":200,\"sellStart\":300,\"sellEnd\":400,\"spread\":0.04,\"hits\":3,\"n\":3,\"own\":3,\"backfill\":0}],"
+        + "\"buyStart\":100,\"buyEnd\":200,\"sellStart\":300,\"sellEnd\":400,\"spread\":0.04,\"hits\":6,\"n\":6,\"own\":6,\"backfill\":0}],"
         + "\"a\":[{\"id\":\"TOOTH\",\"key\":\"perk:Fishing Festival\",\"driver\":\"Marina\",\"s\":700,\"at\":700,\"notifyAt\":100,\"drop\":0.126,\"hits\":8,\"n\":12,\"own\":0,\"backfill\":8}]}";
-    private static final AlertLogic.WindowPrefs ALL_ON = new AlertLogic.WindowPrefs(true, true, true, 0.05, false);
+    private static final AlertLogic.WindowPrefs ALL_ON = new AlertLogic.WindowPrefs(true, true, true, 0.05, false, 6);
 
     private static List<String> keys(AlertLogic.WindowPrefs prefs, Set<String> favs, Map<String, Long> held, Set<String> shown, long now) throws IOException {
         List<String> out = new ArrayList<>();
@@ -63,21 +63,34 @@ public class AlertLogicTest {
     @Test
     public void windowsAreDueInTheirSpanAboveTheMinimum() throws IOException {
         Map<String, Long> none = new HashMap<>();
-        assertEquals(Collections.emptyList(), keys(ALL_ON, set(), none, set(), 99));
+        assertEquals(Collections.emptyList(), keys(ALL_ON, set("TOOTH"), none, set(), 99));
         // warning first; SMALL is under 5%
-        assertEquals(Arrays.asList("avoid|TOOTH|perk:Fishing Festival|700", "buy|ORB|perk:Marauder|50"), keys(ALL_ON, set(), none, set(), 100));
-        assertEquals(Collections.singletonList("avoid|TOOTH|perk:Fishing Festival|700"), keys(ALL_ON, set(), none, set(), 200));
-        assertEquals(Collections.emptyList(), keys(ALL_ON, set(), none, set(), 700));
+        assertEquals(Arrays.asList("avoid|TOOTH|perk:Fishing Festival|700", "buy|ORB|perk:Marauder|50"), keys(ALL_ON, set("TOOTH"), none, set(), 100));
+        assertEquals(Collections.singletonList("avoid|TOOTH|perk:Fishing Festival|700"), keys(ALL_ON, set("TOOTH"), none, set(), 200));
+        assertEquals(Collections.emptyList(), keys(ALL_ON, set("TOOTH"), none, set(), 700));
         // nothing without the switch
-        assertEquals(Collections.singletonList("avoid|TOOTH|perk:Fishing Festival|700"), keys(new AlertLogic.WindowPrefs(false, true, true, 0.05, false), set(), none, set(), 100));
-        assertEquals(Collections.singletonList("buy|ORB|perk:Marauder|50"), keys(new AlertLogic.WindowPrefs(true, true, false, 0.05, false), set(), none, set(), 100));
+        assertEquals(Collections.singletonList("avoid|TOOTH|perk:Fishing Festival|700"), keys(new AlertLogic.WindowPrefs(false, true, true, 0.05, false, 6), set("TOOTH"), none, set(), 100));
+        assertEquals(Collections.singletonList("buy|ORB|perk:Marauder|50"), keys(new AlertLogic.WindowPrefs(true, true, false, 0.05, false, 6), set("TOOTH"), none, set(), 100));
         // once per item and window
-        assertEquals(Collections.singletonList("avoid|TOOTH|perk:Fishing Festival|700"), keys(ALL_ON, set(), none, set("buy|ORB|perk:Marauder|50"), 100));
+        assertEquals(Collections.singletonList("avoid|TOOTH|perk:Fishing Festival|700"), keys(ALL_ON, set("TOOTH"), none, set("buy|ORB|perk:Marauder|50"), 100));
+    }
+
+    @Test
+    public void aWarningOnlyForAnItemHeldOrAFavorite() throws IOException {
+        Map<String, Long> held = new HashMap<>();
+        assertEquals(Collections.singletonList("buy|ORB|perk:Marauder|50"), keys(ALL_ON, set(), held, set(), 100));
+        assertEquals(Arrays.asList("avoid|TOOTH|perk:Fishing Festival|700", "buy|ORB|perk:Marauder|50"), keys(ALL_ON, set("TOOTH"), held, set(), 100));
+        // a favorite still needs the min. gain, a held item does not
+        AlertLogic.WindowPrefs big = new AlertLogic.WindowPrefs(true, true, true, 0.5, false, 6);
+        assertEquals(Collections.emptyList(), keys(big, set("TOOTH"), held, set(), 100));
+        held.put("TOOTH", 1L);
+        assertEquals(Arrays.asList("avoid|TOOTH|perk:Fishing Festival|700", "buy|ORB|perk:Marauder|50"), keys(ALL_ON, set(), held, set(), 100));
+        assertEquals(Collections.singletonList("avoid|TOOTH|perk:Fishing Festival|700"), keys(big, set(), held, set(), 100));
     }
 
     @Test
     public void windowsFavoritesOnly() throws IOException {
-        AlertLogic.WindowPrefs favOnly = new AlertLogic.WindowPrefs(true, true, true, 0.05, true);
+        AlertLogic.WindowPrefs favOnly = new AlertLogic.WindowPrefs(true, true, true, 0.05, true, 6);
         assertEquals(Collections.singletonList("buy|ORB|perk:Marauder|50"), keys(favOnly, set("ORB"), new HashMap<>(), set(), 100));
         assertEquals(Collections.emptyList(), keys(favOnly, set(), new HashMap<>(), set(), 100));
         // a held item is reported anyway
@@ -87,8 +100,55 @@ public class AlertLogicTest {
     }
 
     @Test
+    public void noWindowAlertFromFewerRunsThanTheMinimum() throws IOException {
+        AlertLogic.WindowPrefs few = new AlertLogic.WindowPrefs(true, true, true, 0.05, false, 13);
+        assertEquals(Collections.emptyList(), keys(few, set("TOOTH"), new HashMap<>(), set(), 100));
+        Map<String, Long> held = new HashMap<>();
+        held.put("ORB", 1L);
+        assertEquals(Collections.emptyList(), keys(few, set(), held, set(), 300));
+        // exactly the minimum counts
+        assertEquals(Collections.singletonList("buy|ORB|perk:Marauder|50"), keys(new AlertLogic.WindowPrefs(true, true, true, 0.05, false, 12), set(), new HashMap<>(), set(), 100));
+    }
+
+    private static String buy(String key, long s, long from, long to, int n, int hits, double spread) {
+        return "{\"id\":\"GIFT\",\"key\":\"" + key + "\",\"driver\":\"" + key + "\",\"s\":" + s + ",\"buyStart\":" + from + ",\"buyEnd\":" + to
+            + ",\"sellStart\":900,\"sellEnd\":950,\"spread\":" + spread + ",\"hits\":" + hits + ",\"n\":" + n + "}";
+    }
+
+    private static List<String> buys(String a, String b, Set<String> shown, long now) throws IOException {
+        AlertLogic.WindowPrefs prefs = new AlertLogic.WindowPrefs(true, false, true, 0.05, false, 6);
+        List<String> out = new ArrayList<>();
+        for (AlertLogic.WindowAlert x : AlertLogic.dueWindows(AlertLogic.readWindows(new StringReader("{\"w\":[" + a + "," + b + "],\"a\":[]}")), prefs, set(), new HashMap<>(), shown, now)) out.add(x.key);
+        return out;
+    }
+
+    @Test
+    public void oneBuyPerItemForOverlappingDrivers() throws IOException {
+        String season = "buy|GIFT|season|1";
+        String shop = "buy|GIFT|shop|2";
+        // more runs wins, even with the worse rate and starting later
+        String a = buy("season", 1, 100, 200, 6, 6, 0.2);
+        String b = buy("shop", 2, 150, 250, 15, 11, 0.2);
+        assertEquals(Collections.emptyList(), buys(a, b, set(), 120));
+        assertEquals(Collections.singletonList(shop), buys(a, b, set(), 160));
+        // equal runs: the better rate, then the bigger gain
+        assertEquals(Collections.singletonList(shop), buys(buy("season", 1, 100, 200, 6, 4, 0.2), buy("shop", 2, 100, 200, 6, 5, 0.2), set(), 100));
+        assertEquals(Collections.singletonList(season), buys(buy("season", 1, 100, 200, 6, 5, 0.3), buy("shop", 2, 100, 200, 6, 5, 0.2), set(), 100));
+        // the winner below the minimum runs does not block the other
+        assertEquals(Collections.singletonList(season), buys(a, buy("shop", 2, 100, 200, 5, 5, 0.2), set(), 100));
+        // one already shown stands, so the better one that came later stays quiet
+        assertEquals(Collections.emptyList(), buys(a, b, set(season), 160));
+        // no overlap: both, each in its time
+        String c = buy("shop", 2, 200, 300, 15, 11, 0.2);
+        assertEquals(Collections.singletonList(season), buys(a, c, set(), 100));
+        assertEquals(Collections.singletonList(shop), buys(a, c, set(), 200));
+        // another item: both
+        assertEquals(2, buys(a, buy("shop", 2, 100, 200, 15, 11, 0.2).replace("GIFT", "OTHER"), set(), 100).size());
+    }
+
+    @Test
     public void sellOnlyForHeldItemsBoughtBeforeTheWindow() throws IOException {
-        AlertLogic.WindowPrefs sells = new AlertLogic.WindowPrefs(true, true, false, 0.05, false);
+        AlertLogic.WindowPrefs sells = new AlertLogic.WindowPrefs(true, true, false, 0.05, false, 6);
         Map<String, Long> held = new HashMap<>();
         assertEquals(Collections.emptyList(), keys(sells, set(), held, set(), 300));
         held.put("ORB", 150L);
@@ -104,19 +164,19 @@ public class AlertLogicTest {
         // a held item needs no buy notice
         held.clear();
         held.put("ORB", 90L);
-        assertEquals(Collections.singletonList("avoid|TOOTH|perk:Fishing Festival|700"), keys(ALL_ON, set(), held, set(), 100));
+        assertEquals(Collections.singletonList("avoid|TOOTH|perk:Fishing Festival|700"), keys(ALL_ON, set("TOOTH"), held, set(), 100));
     }
 
     @Test
     public void windowOrderIsSellThenHeldWarningThenWarningThenBuy() throws IOException {
-        String json = "{\"w\":[{\"id\":\"B\",\"key\":\"k\",\"driver\":\"D\",\"s\":1,\"buyStart\":0,\"buyEnd\":9,\"sellStart\":9,\"sellEnd\":9,\"spread\":0.9,\"hits\":3,\"n\":3},"
-            + "{\"id\":\"H\",\"key\":\"k\",\"driver\":\"D\",\"s\":2,\"buyStart\":0,\"buyEnd\":0,\"sellStart\":0,\"sellEnd\":9,\"spread\":0.1,\"hits\":3,\"n\":3}],"
-            + "\"a\":[{\"id\":\"A\",\"key\":\"k\",\"driver\":\"D\",\"s\":3,\"at\":9,\"notifyAt\":0,\"drop\":0.5,\"hits\":3,\"n\":3},"
-            + "{\"id\":\"H\",\"key\":\"k\",\"driver\":\"D\",\"s\":4,\"at\":9,\"notifyAt\":0,\"drop\":0.1,\"hits\":3,\"n\":3}]}";
+        String json = "{\"w\":[{\"id\":\"B\",\"key\":\"k\",\"driver\":\"D\",\"s\":1,\"buyStart\":0,\"buyEnd\":9,\"sellStart\":9,\"sellEnd\":9,\"spread\":0.9,\"hits\":6,\"n\":6},"
+            + "{\"id\":\"H\",\"key\":\"k\",\"driver\":\"D\",\"s\":2,\"buyStart\":0,\"buyEnd\":0,\"sellStart\":0,\"sellEnd\":9,\"spread\":0.1,\"hits\":6,\"n\":6}],"
+            + "\"a\":[{\"id\":\"A\",\"key\":\"k\",\"driver\":\"D\",\"s\":3,\"at\":9,\"notifyAt\":0,\"drop\":0.5,\"hits\":6,\"n\":6},"
+            + "{\"id\":\"H\",\"key\":\"k\",\"driver\":\"D\",\"s\":4,\"at\":9,\"notifyAt\":0,\"drop\":0.1,\"hits\":6,\"n\":6}]}";
         Map<String, Long> held = new HashMap<>();
         held.put("H", 0L);
         List<String> order = new ArrayList<>();
-        for (AlertLogic.WindowAlert a : AlertLogic.dueWindows(AlertLogic.readWindows(new StringReader(json)), ALL_ON, set(), held, set(), 1)) order.add(a.kind + a.id);
+        for (AlertLogic.WindowAlert a : AlertLogic.dueWindows(AlertLogic.readWindows(new StringReader(json)), ALL_ON, set("A"), held, set(), 1)) order.add(a.kind + a.id);
         assertEquals(Arrays.asList("sellH", "avoidH", "avoidA", "buyB"), order);
     }
 

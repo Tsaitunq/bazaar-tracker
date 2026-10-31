@@ -222,12 +222,16 @@
       <label class="check"><input id="windowSell" type="checkbox"> Selling window starts</label>
       <small>Only for items you marked as bought.</small>
       <label class="check"><input id="windowAvoid" type="checkbox"> Sell before warnings</label>
-      <small>12 hours before a mayor or event after which an item usually drops and does not recover.</small>
+      <small>12 hours before a mayor or event after which an item usually drops and does not recover. Only for items you marked as bought and favorites.</small>
       <label class="check"><input id="windowFavOnly" type="checkbox"> Only favorites</label>
-      <small>Items you marked as bought are always included.</small>
+      <small>Buying windows only for favorites.</small>
       <label>Min. gain %
         <input id="windowMinSpread" type="number" min="0" max="1000" step="0.5" inputmode="decimal">
         <small>Typical gain after tax, or drop, a buy or warning needs.</small>
+      </label>
+      <label>Min. past runs
+        <input id="windowMinRuns" type="number" min="1" max="100" step="1" inputmode="numeric">
+        <small>A window from fewer runs stays visible in the app, marked "few data", but sends no alert.</small>
       </label>
       <label>Max. per day
         <input id="windowMaxPerDay" type="number" min="1" max="50" step="1" inputmode="numeric">

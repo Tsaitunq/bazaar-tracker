@@ -196,6 +196,7 @@ function notices(r, election, nowMs) {
 // ---- when to buy and when to sell ----------------------------------------------------------------------------
 export const TRADE_MIN_SPREAD = 0.03; // after the Bazaar tax
 export const TRADE_MIN_HIT = 2 / 3;   // of the runs that have both phases
+export const MIN_ALERT_RUNS = 6;      // default: a window from fewer runs is shown as "few data" and sends no alert
 
 const phaseLabels = { pre2: 2, pre1: 1, a1: 1, a2: 2, a3: 3 };
 // Who a key belongs to ("Marina" for perk:Fishing Festival), or null.
@@ -273,22 +274,24 @@ export function allWindows(timing, tax) {
 // [{ id, key, state: 'now' | 'soon', from, to (ms), text }]. timing is timing.json's r.
 export function buyNow(nowMs, election, timing, tax, soon = 24 * 3600000) {
   const out = [];
-  const spans = [];
-  const s = termStart(nowMs);
-  if (election?.mayor?.year === skyDate(s).year - 1) {
-    for (const p of activePerks(election)) spans.push({ key: `perk:${p.name}`, run: { s: s / 60000, e: (s + YEAR_MS) / 60000 } });
-  }
-  for (const e of upcoming(nowMs, election)) spans.push({ key: `event:${e.key}`, run: { s: e.start / 60000, e: e.end / 60000 } });
-  for (const { key, run } of spans) {
-    const phases = Object.fromEntries(phaseSpans(run).map(([name, from, to]) => [name, [from * 60000, to * 60000]]));
+  const listed = new Set();
+  // drivers(), not upcoming(): a buy phase can lie days after the event or term that has already ended. No leader:
+  // this list says what is, not what an election may bring. The phases reach 48 hours before and 72 hours after.
+  const near = drivers(nowMs, election, timing).filter((d) => !d.leader && d.s - 48 * 3600000 - soon <= nowMs && d.e + 72 * 3600000 > nowMs)
+    .sort((a, b) => a.s - b.s);
+  for (const { key, s, e } of near) {
+    const phases = Object.fromEntries(phaseSpans({ s: s / 60000, e: e / 60000 }).map(([name, from, to]) => [name, [from * 60000, to * 60000]]));
     for (const id of new Set((timing[key] ?? []).flatMap((r) => Object.keys(r.c ?? {})))) {
       const w = tradeWindow(timing[key], id, tax);
-      if (!w) continue;
+      // the earlier of two occurrences stands for the item
+      if (!w || listed.has(`${key}|${id}`)) continue;
       const [from, to] = phases[w.buy] ?? [];
       const sellEnd = phases[w.sell]?.[1];
       if (from == null || nowMs >= sellEnd) continue;
       if (nowMs >= from && nowMs < to) out.push({ id, key, state: 'now', from, to, text: tradeText(w, key), w });
       else if (from > nowMs && from - nowMs <= soon) out.push({ id, key, state: 'soon', from, to, text: tradeText(w, key), w });
+      else continue;
+      listed.add(`${key}|${id}`);
     }
   }
   return out.sort((a, b) => b.w.spread - a.w.spread);
@@ -380,19 +383,33 @@ export function readWindowAlerts(file) {
   ];
 }
 
+// One buy per item for a stretch of time, however many drivers overlap: one already shown stands, then the most
+// runs, the best hit rate, the biggest gain. Only overlapping buys of the same item exclude each other.
+function onePerPeriod(buys, shown) {
+  const order = [...buys].sort((a, b) => shown.has(b.k) - shown.has(a.k) || b.n - a.n || b.hits / b.n - a.hits / a.n || b.size - a.size);
+  const kept = [];
+  for (const a of order) {
+    if (!kept.some((x) => x.id === a.id && x.from < a.to && a.from < x.to)) kept.push(a);
+  }
+  return new Set(kept);
+}
+
 // The alerts due now that were not shown yet: sells first, then warnings about held items, other warnings and buys,
-// biggest first. held: { itemId: when it was marked }. A sell only counts for a window that starts after the item was
-// bought. The min. margin and "favorites only" never hide a held item.
-export function windowAlerts(all, { buy, sell, avoid, minSpread, favOnly }, favs, held, shown, nowMs) {
+// biggest first. held: { itemId: when it was marked }. Nothing from fewer than minRuns runs. A sell only counts for a
+// window that starts after the item was bought. A warning only for an item held or a favorite. The min. margin and
+// "favorites only" never hide a held item.
+export function windowAlerts(all, { buy, sell, avoid, minSpread, favOnly, minRuns }, favs, held, shown, nowMs) {
   const rank = (a) => (a.kind === 'sell' ? 0 : a.kind === 'buy' ? 3 : a.id in held ? 1 : 2);
-  return all.filter((a) => {
-    if (nowMs < a.from || nowMs >= a.to || shown.has(a.k)) return false;
+  const wanted = all.filter((a) => {
+    if (a.n < minRuns) return false;
     const mine = a.id in held;
-    const wanted = !favOnly || favs.has(a.id);
     if (a.kind === 'sell') return sell && mine && a.from >= held[a.id];
-    if (a.kind === 'avoid') return avoid && (mine || (wanted && a.size >= minSpread));
-    return buy && !mine && wanted && a.size >= minSpread;
-  }).sort((a, b) => rank(a) - rank(b) || b.size - a.size);
+    if (a.kind === 'avoid') return avoid && (mine || (favs.has(a.id) && a.size >= minSpread));
+    return buy && !mine && (!favOnly || favs.has(a.id)) && a.size >= minSpread;
+  });
+  const buys = onePerPeriod(wanted.filter((a) => a.kind === 'buy'), shown);
+  return wanted.filter((a) => (a.kind !== 'buy' || buys.has(a)) && nowMs >= a.from && nowMs < a.to && !shown.has(a.k))
+    .sort((a, b) => rank(a) - rank(b) || b.size - a.size);
 }
 
 export function windowText(a, name) {

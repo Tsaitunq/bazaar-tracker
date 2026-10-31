@@ -10,7 +10,7 @@ import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radar
 import { chartHit, when } from './chart.js';
 import { level } from './trends.js';
 import { activePerks, upcoming, electionWindow, eventItems, flipRisks, planElection, taxAdvice } from './events.js';
-import { buyNow, itemWindows, readWindowAlerts, windowAlerts } from './timing.js';
+import { buyNow, itemWindows, readWindowAlerts, windowAlerts, MIN_ALERT_RUNS } from './timing.js';
 import { bindSheet, openSheet } from './sheet.js';
 import { initOnboarding, refreshHints, offerAdvanced, returning } from './tour.js';
 
@@ -23,7 +23,7 @@ const DEFAULTS = { tax: 1.25, minVolume: 100000, maxCapital: 5000000, interval: 
   marketAlerts: false, marketMargin: 10, marketMinVolume: 100000, marketMinProfit: 100000, marketCooldown: 6, eventAlerts: false, mayorAlerts: false,
   portfolioCapital: 50000000, portfolioSlots: MAX_SLOTS, portfolioMargin: 3, portfolioTurnover: 1000000000, hotm: 10, forgeAh: true, craftMode: 0, craftRuns: CRAFT_RUNS,
   portfolioDrop: 5, portfolioCooldown: 6, planPriceAlerts: false, planSuspiciousAlerts: false, planElectionAlerts: false, planLeavingAlerts: false,
-  windowBuy: false, windowSell: false, windowAvoid: false, windowFavOnly: false, windowMinSpread: 5, windowMaxPerDay: 5, quietStart: 23, quietEnd: 8 };
+  windowBuy: false, windowSell: false, windowAvoid: false, windowFavOnly: false, windowMinSpread: 5, windowMinRuns: MIN_ALERT_RUNS, windowMaxPerDay: 5, quietStart: 23, quietEnd: 8 };
 const WINDOW_ALERTS = ['windowBuy', 'windowSell', 'windowAvoid'];
 const PLAN_ALERTS = ['planPriceAlerts', 'planSuspiciousAlerts', 'planElectionAlerts', 'planLeavingAlerts'];
 
@@ -32,7 +32,7 @@ const load = (key, fallback) => { try { return JSON.parse(localStorage.getItem(k
 const save = (key, value) => { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} };
 
 // the fields of the panel; they take effect together, on Apply
-const FIELDS = ['tax', 'interval', 'share', 'minVolume', 'maxCapital', 'alertMargin', 'marketMargin', 'marketMinVolume', 'marketMinProfit', 'marketCooldown', 'portfolioCapital', 'portfolioSlots', 'portfolioMargin', 'portfolioTurnover', 'hotm', 'portfolioDrop', 'portfolioCooldown', 'craftMode', 'craftRuns', 'windowMinSpread', 'windowMaxPerDay', 'quietStart', 'quietEnd'];
+const FIELDS = ['tax', 'interval', 'share', 'minVolume', 'maxCapital', 'alertMargin', 'marketMargin', 'marketMinVolume', 'marketMinProfit', 'marketCooldown', 'portfolioCapital', 'portfolioSlots', 'portfolioMargin', 'portfolioTurnover', 'hotm', 'portfolioDrop', 'portfolioCooldown', 'craftMode', 'craftRuns', 'windowMinSpread', 'windowMinRuns', 'windowMaxPerDay', 'quietStart', 'quietEnd'];
 const settings = { ...DEFAULTS, ...load('bt.settings', {}) };
 // A stored interval of 0 would refresh in a tight loop, so bad values fall back to defaults.
 function sanitize() {
@@ -65,6 +65,8 @@ function sanitize() {
   for (const key of PLAN_ALERTS) settings[key] = settings[key] === true;
   for (const key of [...WINDOW_ALERTS, 'windowFavOnly']) settings[key] = settings[key] === true;
   if (!(settings.windowMinSpread >= 0 && settings.windowMinSpread <= 1000)) settings.windowMinSpread = DEFAULTS.windowMinSpread;
+  settings.windowMinRuns = Math.floor(settings.windowMinRuns);
+  if (!(settings.windowMinRuns >= 1 && settings.windowMinRuns <= 100)) settings.windowMinRuns = DEFAULTS.windowMinRuns;
   settings.windowMaxPerDay = Math.floor(settings.windowMaxPerDay);
   if (!(settings.windowMaxPerDay >= 1 && settings.windowMaxPerDay <= 50)) settings.windowMaxPerDay = DEFAULTS.windowMaxPerDay;
   for (const key of ['quietStart', 'quietEnd']) {
@@ -310,7 +312,7 @@ function flashChanges() {
 let radarShown = '';
 function renderRadar() {
   const now = Date.now();
-  const data = { election, perks: activePerks(election), events: upcoming(now, election), vote: electionWindow(now), now, name: nameOf, timing, query: effectsQuery, tax: settings.tax / 100, volume: weekVolume };
+  const data = { election, perks: activePerks(election), events: upcoming(now, election), vote: electionWindow(now), now, name: nameOf, timing, query: effectsQuery, tax: settings.tax / 100, volume: weekVolume, minRuns: settings.windowMinRuns };
   const plain = radarView(data);
   if (plain === radarShown) return;
   const box = $('radar');
@@ -427,14 +429,14 @@ function renderArea() {
     const risks = flipRisks(election, now);
     // the Android app says this with notifications, so only the browser gets the banners
     const notices = plugin() ? [] : windowAlerts(readWindowAlerts(windowFile), { buy: settings.windowBuy, sell: settings.windowSell, avoid: settings.windowAvoid,
-      minSpread: settings.windowMinSpread / 100, favOnly: settings.windowFavOnly }, favs, held, windowsSeen, now);
+      minSpread: settings.windowMinSpread / 100, favOnly: settings.windowFavOnly, minRuns: settings.windowMinRuns }, favs, held, windowsSeen, now);
     const bannerBuys = new Set(notices.filter((a) => a.kind === 'buy').slice(0, settings.windowMaxPerDay).map((a) => a.id));
     $('today').innerHTML = products ? todayView({
       plan, capital: settings.portfolioCapital, slots: settings.portfolioSlots, alerts, dismiss: marketWarned(),
       events: upcoming(now, election), vote: electionWindow(now), election,
       voteItems: Object.keys(risks).filter((id) => risks[id].kind === 'election'),
       fresh: (lastVisit ? opps.filter((f) => !lastVisit.has(f.id)) : opps).slice(0, 3), firstVisit: !lastVisit, now, name: nameOf,
-      buying: buyNow(now, election, timing, settings.tax / 100).filter((b) => !bannerBuys.has(b.id)), volume: weekVolume,
+      buying: buyNow(now, election, timing, settings.tax / 100).filter((b) => !bannerBuys.has(b.id)), volume: weekVolume, minRuns: settings.windowMinRuns,
       banners: windowBanners(notices, { limit: settings.windowMaxPerDay, name: nameOf }),
     }) : '<p class="count muted">Loading…</p>';
   }
@@ -460,7 +462,7 @@ function renderDetail() {
   const forged = products && forge?.[id] ? forgeFlip(id, forge[id], products, ah, baseOpts()) : null;
   detailSuspicious = !!flip?.suspicious;
   for (const i of forged?.ingredients ?? []) i.name = nameOf(i.id);
-  $('detail').innerHTML = detailView({ ...decorate({ id, sell: flip?.sell }), flip, forge: forged, ...stat, back: lastList, isFav: favs.has(id), range, points, tax: settings.tax / 100, windows: itemWindows(timing, id, settings.tax / 100), volume: weekVolume(id), held: id in held });
+  $('detail').innerHTML = detailView({ ...decorate({ id, sell: flip?.sell }), flip, forge: forged, ...stat, back: lastList, isFav: favs.has(id), range, points, tax: settings.tax / 100, windows: itemWindows(timing, id, settings.tax / 100), volume: weekVolume(id), held: id in held, minRuns: settings.windowMinRuns });
   flashChanges();
 }
 

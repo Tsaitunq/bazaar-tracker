@@ -7,7 +7,7 @@ afterEach(() => { delete globalThis.Capacitor; });
 const settings = {
   alerts: true, alertMargin: 5, tax: 1.25, maxCapital: 5000000, share: 5,
   marketAlerts: true, marketMargin: 10, marketMinVolume: 100000, marketMinProfit: 250000, marketCooldown: 6,
-  portfolioDrop: 5, portfolioCooldown: 6, windowMinSpread: 5, windowMaxPerDay: 5, quietStart: 23, quietEnd: 8,
+  portfolioDrop: 5, portfolioCooldown: 6, windowMinSpread: 5, windowMinRuns: 6, windowMaxPerDay: 5, quietStart: 23, quietEnd: 8,
 };
 
 test('alertConfig converts percent to fractions and resolves names', () => {
@@ -19,10 +19,10 @@ test('alertConfig converts percent to fractions and resolves names', () => {
     market: { enabled: true, minMargin: 0.1, minVolume: 100000, minProfitHour: 250000, cooldownHours: 6, maxCapital: 5000000, share: 0.05 },
     timing: { events: false, mayor: false },
     portfolio: { price: false, suspicious: false, election: false, leaving: false, drop: 0.05, cooldownHours: 6, items: [], perks: {}, term: null },
-    windows: { buy: false, sell: false, avoid: false, minSpread: 0.05, favOnly: false, maxPerDay: 5, quietStart: 23, quietEnd: 8 },
+    windows: { buy: false, sell: false, avoid: false, minSpread: 0.05, favOnly: false, minRuns: 6, maxPerDay: 5, quietStart: 23, quietEnd: 8 },
   });
   assert.deepEqual(alertConfig({ ...settings, windowBuy: true, windowSell: true, windowAvoid: true, windowFavOnly: true, windowMinSpread: 10, windowMaxPerDay: 2, quietStart: 22, quietEnd: 6 }, new Set(), {}).windows,
-    { buy: true, sell: true, avoid: true, minSpread: 0.1, favOnly: true, maxPerDay: 2, quietStart: 22, quietEnd: 6 });
+    { buy: true, sell: true, avoid: true, minSpread: 0.1, favOnly: true, minRuns: 6, maxPerDay: 2, quietStart: 22, quietEnd: 6 });
   // the stored plan and what the election means for it go along, each kind of warning with its own switch
   const plan = { items: [{ id: 'A', buy: 10 }], perks: { A: ['Marauder'] }, term: { end: 5, perks: { Marauder: 'Paul' } } };
   assert.deepEqual(alertConfig({ ...settings, planPriceAlerts: true, planLeavingAlerts: true, portfolioDrop: 7.5, portfolioCooldown: 2 }, new Set(), {}, plan).portfolio,

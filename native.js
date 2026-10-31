@@ -38,6 +38,7 @@ export const alertConfig = (settings, favs, names, plan = {}) => ({
     avoid: settings.windowAvoid === true,
     minSpread: settings.windowMinSpread / 100,
     favOnly: settings.windowFavOnly === true,
+    minRuns: settings.windowMinRuns,
     maxPerDay: settings.windowMaxPerDay,
     quietStart: settings.quietStart,
     quietEnd: settings.quietEnd,

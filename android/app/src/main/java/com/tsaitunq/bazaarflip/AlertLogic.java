@@ -559,8 +559,10 @@ final class AlertLogic {
         final boolean avoid;
         final double minSpread;
         final boolean favOnly;
+        final int minRuns;
 
-        WindowPrefs(boolean buy, boolean sell, boolean avoid, double minSpread, boolean favOnly) {
+        WindowPrefs(boolean buy, boolean sell, boolean avoid, double minSpread, boolean favOnly, int minRuns) {
+            this.minRuns = minRuns;
             this.buy = buy;
             this.sell = sell;
             this.avoid = avoid;
@@ -597,24 +599,50 @@ final class AlertLogic {
 
     /**
      * The alerts due now that were not shown yet, sells first, then warnings about held items, other warnings and buys,
-     * biggest first. Same rules as windowAlerts in timing.js. held: item id to when it was marked. A sell only
-     * counts for a window that starts after the item was bought. Min. margin and "favorites only" never hide a held item.
+     * biggest first. Same rules as windowAlerts in timing.js. held: item id to when it was marked. Nothing from fewer
+     * than minRuns runs. A sell only counts for a window that starts after the item was bought. A warning only for an
+     * item held or a favorite. Min. margin and "favorites only" never hide a held item.
      */
     static List<WindowAlert> dueWindows(List<WindowAlert> all, WindowPrefs prefs, Set<String> favs, Map<String, Long> held,
             Set<String> shown, long now) {
-        List<WindowAlert> out = new ArrayList<>();
+        List<WindowAlert> wanted = new ArrayList<>();
+        List<WindowAlert> buys = new ArrayList<>();
         for (WindowAlert a : all) {
-            if (now < a.from || now >= a.to || shown.contains(a.key)) continue;
+            if (a.n < prefs.minRuns) continue;
             boolean mine = held.containsKey(a.id);
-            boolean wanted = !prefs.favOnly || favs.contains(a.id);
-            boolean due;
-            if (a.kind.equals("sell")) due = prefs.sell && mine && a.from >= held.get(a.id);
-            else if (a.kind.equals("avoid")) due = prefs.avoid && (mine || (wanted && a.size >= prefs.minSpread));
-            else due = prefs.buy && !mine && wanted && a.size >= prefs.minSpread;
-            if (due) out.add(a);
+            if (a.kind.equals("sell")) {
+                if (prefs.sell && mine && a.from >= held.get(a.id)) wanted.add(a);
+            } else if (a.kind.equals("avoid")) {
+                if (prefs.avoid && (mine || (favs.contains(a.id) && a.size >= prefs.minSpread))) wanted.add(a);
+            } else if (prefs.buy && !mine && (!prefs.favOnly || favs.contains(a.id)) && a.size >= prefs.minSpread) {
+                buys.add(a);
+            }
+        }
+        wanted.addAll(onePerPeriod(buys, shown));
+        List<WindowAlert> out = new ArrayList<>();
+        for (WindowAlert a : wanted) {
+            if (now >= a.from && now < a.to && !shown.contains(a.key)) out.add(a);
         }
         out.sort((a, b) -> rank(a, held) != rank(b, held) ? rank(a, held) - rank(b, held) : Double.compare(b.size, a.size));
         return out;
+    }
+
+    /** One buy per item for a stretch of time: one already shown stands, then the most runs, best hit rate, biggest gain. */
+    private static List<WindowAlert> onePerPeriod(List<WindowAlert> buys, Set<String> shown) {
+        List<WindowAlert> order = new ArrayList<>(buys);
+        order.sort((a, b) -> {
+            if (shown.contains(a.key) != shown.contains(b.key)) return shown.contains(a.key) ? -1 : 1;
+            if (a.n != b.n) return b.n - a.n;
+            int rate = Double.compare((double) b.hits / b.n, (double) a.hits / a.n);
+            return rate != 0 ? rate : Double.compare(b.size, a.size);
+        });
+        List<WindowAlert> kept = new ArrayList<>();
+        for (WindowAlert a : order) {
+            boolean free = true;
+            for (WindowAlert x : kept) free &= !(x.id.equals(a.id) && x.from < a.to && a.from < x.to);
+            if (free) kept.add(a);
+        }
+        return kept;
     }
 
     private static int rank(WindowAlert a, Map<String, Long> held) {
