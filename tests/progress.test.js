@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validGuide, loadBundled, mergeGuides, exportData, importData, stepKey, stepCost, priceItem, guideStats, progressView, personalVisibility, secretTap } from '../progress.js';
+import { validGuide, loadBundled, mergeGuides, exportData, importData, stepKey, stepCost, priceItem, guideStats, nextUpgrades, progressView, personalVisibility, secretTap } from '../progress.js';
 
 const guide = { title: 'Test guide', source: 'https://example.com/x', sections: [
   { name: 'First', goal: 'Goal', steps: [
@@ -208,4 +208,41 @@ test('validGuide keeps an open choice only with a name', () => {
   const one = (i) => validGuide({ title: 't', sections: [{ name: 'S', steps: [{ text: 'a', items: [i] }] }] });
   assert.deepEqual(one(pieces({ skip: 1 })).sections[0].steps[0].items[0], pieces({ skip: 1 }));
   assert.equal(one({ qty: 1, anyOf: ['H'] }), null);
+});
+
+const lines = { id: 'n', title: 'N', sections: [
+  { name: 'Gear', steps: [
+    { text: 'Big', line: 'L', items: [{ id: 'X', qty: 3 }] },
+    { text: 'Bigger', line: 'L', items: [{ id: 'X', qty: 1 }] },
+    { text: 'Solo', items: [{ id: 'X', qty: 2 }] },
+    { text: 'Table', table: true },
+    { text: 'Missing', items: [{ id: 'X', qty: 1 }, { id: 'NOPE', qty: 1 }] },
+  ] },
+  { name: 'Must', steps: [{ text: 'Pinned', priority: 1, items: [{ id: 'X', qty: 9 }] }, { text: 'Top', priority: 2 }] },
+] };
+const flat = { products: { X: { buy_summary: [{ amount: 99, pricePerUnit: 10 }] } } };
+const order = (checked) => nextUpgrades(lines, new Set(checked), flat).map((r) => r.step.text);
+
+test('next upgrades: one step per line, pinned first, then by price, without a price last', () => {
+  assert.deepEqual(order([]), ['Top', 'Pinned', 'Solo', 'Big', 'Table', 'Missing']);
+});
+
+test('next upgrades: checking a step moves its line up and sorts again', () => {
+  assert.deepEqual(order(['Gear|Big']), ['Top', 'Pinned', 'Bigger', 'Solo', 'Table', 'Missing']);
+  assert.deepEqual(order(['Gear|Big', 'Gear|Bigger', 'Must|Top', 'Must|Pinned', 'Gear|Solo', 'Gear|Table', 'Gear|Missing']), []);
+});
+
+test('next upgrades view totals the first five and notes what has no price', () => {
+  const html = progressView({ guides: [lines], current: 'n', checked: new Set(), products: flat.products, name: (id) => id, mode: 'next' });
+  assert.match(html, /Next 5 upgrades cost 140</);
+  assert.match(html, /No coins: enchanting table/);
+  assert.match(html, /aria-pressed="true">Next upgrades/);
+  assert.doesNotMatch(html, /<details/);
+  assert.match(progressView({ guides: [lines], current: 'n', checked: new Set(), products: flat.products, name: (id) => id }), /<details/);
+});
+
+test('validGuide keeps line and a positive priority', () => {
+  const step = (s) => validGuide({ title: 't', sections: [{ name: 'S', steps: [s] }] }).sections[0].steps[0];
+  assert.deepEqual(step({ text: 'a', line: 'L', priority: 2 }), { text: 'a', line: 'L', priority: 2 });
+  assert.deepEqual(step({ text: 'a', line: 3, priority: 0 }), { text: 'a' });
 });

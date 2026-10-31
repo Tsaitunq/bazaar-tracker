@@ -652,6 +652,7 @@ $('settings').addEventListener('click', (e) => {
 });
 // The Progress page. What is unfolded is kept per guide while the app runs.
 let guideId = load('bt.guide', null);
+let guideMode = load('bt.guideMode', 'slot');
 let resetArmed = false;
 const guideOpen = {};
 function currentGuide() {
@@ -683,7 +684,7 @@ function renderProgress() {
   const guide = currentGuide();
   if (!guide) { $('progress').innerHTML = '<p class="count muted">Loading…</p>'; return; }
   const wants = new Set();
-  $('progress').innerHTML = progressView({ guides: guides(), current: guide.id, checked: checksOf(guide.id), products, prices: { forge, ah, cofl: freshBins(bins), wants }, name: nameOf, open: guideOpen[guide.id] ?? null, armed: resetArmed, removable: imported.some((g) => g.id === guide.id) });
+  $('progress').innerHTML = progressView({ guides: guides(), current: guide.id, checked: checksOf(guide.id), products, prices: { forge, ah, cofl: freshBins(bins), wants }, name: nameOf, open: guideOpen[guide.id] ?? null, armed: resetArmed, removable: imported.some((g) => g.id === guide.id), mode: guideMode });
   askBins(wants);
 }
 $('progress').addEventListener('change', (e) => {
@@ -697,7 +698,9 @@ $('progress').addEventListener('change', (e) => {
   save('bt.guideChecks', guideChecks);
   renderProgress();
   // the page was redrawn: the keyboard stays on the same step
-  [...$('progress').querySelectorAll('[data-step]')].find((b) => b.dataset.step === key)?.focus({ preventScroll: true });
+  const boxes = [...$('progress').querySelectorAll('[data-step]')];
+  // in Next upgrades the checked step is gone: the first row takes over
+  (boxes.find((b) => b.dataset.step === key) ?? boxes[0])?.focus({ preventScroll: true });
 });
 $('progress').addEventListener('click', (e) => {
   const pick = e.target.closest('[data-guide]')?.dataset.guide;
@@ -705,6 +708,12 @@ $('progress').addEventListener('click', (e) => {
     guideId = pick;
     resetArmed = false;
     save('bt.guide', guideId);
+    return renderProgress();
+  }
+  const mode = e.target.closest('[data-guide-mode]')?.dataset.guideMode;
+  if (mode) {
+    guideMode = mode;
+    save('bt.guideMode', guideMode);
     return renderProgress();
   }
   const act = e.target.closest('[data-guide-act]')?.dataset.guideAct;
