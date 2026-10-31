@@ -127,7 +127,7 @@ test('coop mates never reach summarize or storage', async () => { /* summarize b
 - [ ] **Step 2: `node --test tests/sync.test.js`.** Erwartet: FAIL.
 - [ ] **Step 3: `sync.js` schreiben.** Meldungstexte wörtlich aus Spec 1.7. `anonymize`: nur `members[uuid]` unter Schlüssel `self`; entfernt `profile_id`, `cute_name`, `banking`, `community_upgrades`, `member.profile.coop_invitation`; ersetzt die UUID im serialisierten JSON. Kein `console.*`. In dieser Task übergibt `app.js` als `summarize` nur `(member) => ({})`.
 - [ ] **Step 4: Settings-UI ergänzen.** Felder UUID und Key (`type="password"`, `autocomplete="off"`), Buttons Save und "Remove key and profile data"; nach dem Speichern nur "Key saved". UUID im Profilstand. Der Block ist versteckt, solange `!canSync()`. Knopf **Sync profile** mit Statuszeile `role="status"`. Bei `choose` Auswahl nach `cute_name` mit Mitgliederzahl.
-- [ ] **Step 5: Temporär: `saveFixture({json})` in Plugin/Store** schreibt `no_backup/profile-fixture.json`; Knopf "Save test copy" ruft `anonymize` auf der letzten Antwort auf. Beides trägt den Kommentar `shortcut: temporary for field check, removed in Task 6`.
+- [ ] **Step 5: Temporär: `shareFixture({json})` in Plugin/Store** schreibt `cacheDir/profile-fixture.json` und öffnet das Android-Teilen-Menü (`ACTION_SEND`, `application/json`, vorhandener FileProvider `${applicationId}.fileprovider`, `FLAG_GRANT_READ_URI_PERMISSION`). Knopf "Share test copy" übergibt nur die Kopie, die `createSync` direkt nach dem Abruf per `anonymize` erzeugt hat (`Result.fixture`); die Roh-Antwort wird nie gespeichert oder weitergereicht. `clearProfile` löscht auch diese Datei. Alles trägt den Kommentar `shortcut: temporary for field check, removed in Task 6`.
 - [ ] **Step 6: `npm test`, `npm run android:build`.** Erwartet: PASS, `BUILD SUCCESSFUL`.
 - [ ] **Step 7: Commit** `feat: fetch the SkyBlock profile on demand with clear errors`
 
@@ -140,19 +140,19 @@ test('coop mates never reach summarize or storage', async () => { /* summarize b
 Voraussetzung: Handy mit USB-Debugging oder Emulator, API-Settings im Profil an.
 
 - [ ] **Step 1: `scripts/check-fixture.mjs <file>` schreiben.** Gibt nur Struktur aus: vorhandene Schlüssel und Typen, Anzahl Slots je Inventar, Stichprobe der Schlüssel in `ExtraAttributes` und `skill_tree`, Lore-Zeilen nur mit durch `N` ersetzten Zahlen und nur für bekannte Stat-Namen. **Keine Werte, Namen, UUIDs.** Bricht ab, wenn die Ausgabe ein UUID-Muster enthält.
-- [ ] **Step 2: Du installierst das APK, trägst Key und UUID ein, tippst Sync und "Save test copy".** Der Key taucht in diesem Ablauf nirgends am Rechner auf.
-- [ ] **Step 3: Datei holen, in Git Bash, damit `>` nicht UTF-16 schreibt:**
+- [ ] **Step 2: Du installierst das APK, trägst Key und UUID ein, tippst Sync und "Share test copy".** Der Key taucht in diesem Ablauf nirgends am Rechner auf.
+- [ ] **Step 3: Datei holen.** Weg A: über das Teilen-Menü auf den PC und als `personal/fixtures/profile.json` ablegen. Weg B, in Git Bash, damit `>` nicht UTF-16 schreibt:
 
 ```bash
 mkdir -p personal/fixtures
-adb exec-out run-as com.tsaitunq.bazaarflip cat no_backup/profile-fixture.json > personal/fixtures/profile.json
+adb exec-out run-as com.tsaitunq.bazaarflip cat cache/profile-fixture.json > personal/fixtures/profile.json
 git check-ignore personal/fixtures/profile.json
 ```
 Erwartet: Pfad wird ausgegeben (ignoriert).
 
 - [ ] **Step 4: Backup-Ausnahme prüfen:** `adb exec-out run-as com.tsaitunq.bazaarflip ls no_backup` zeigt `hypixel.key`, `profile.json`. `adb exec-out run-as com.tsaitunq.bazaarflip cat no_backup/hypixel.key` ist kein Klartext (nur Länge und Stichprobe auf Hex/UUID-Muster prüfen, nicht ausgeben).
 - [ ] **Step 5: `node scripts/check-fixture.mjs personal/fixtures/profile.json` auswerten.** Zu klären: alle Pfade aus Spec 2.2, `wardrobe_contents`, Form von `skill_tree`, `gems`, Lore-Format mit Klammern, leere Slots, `selected` im Coop. Fehlt die Wardrobe, greift die Gegenmaßnahme aus Spec 9.
-- [ ] **Step 6: Spec korrigieren:** geprüfte Punkte auf `[geprüft]` setzen, falsche Pfade ersetzen, Abholweg in Abschnitt 7 von `adb pull` auf `run-as` ändern. Abweichungen, die Tasks 5 oder 6 ändern, dort eintragen.
+- [ ] **Step 6: Spec korrigieren:** geprüfte Punkte auf `[geprüft]` setzen, falsche Pfade ersetzen, Abholweg in Abschnitt 7 von `adb pull` auf Teilen-Menü oder `run-as` ändern. Abweichungen, die Tasks 5 oder 6 ändern, dort eintragen.
 - [ ] **Step 7: Commit** nur Spec und Skript, `docs: confirm profile field paths against a real response`. Vorher `git diff --cached` auf UUID-Muster prüfen.
 
 ### Task 5: Member zu gespeichertem Stand
@@ -215,7 +215,7 @@ test('the key header exists only in sync.js and nothing logs or stores there', (
 
 - [ ] **Step 2: `npm test`.** Erwartet: die neuen schlagen fehl.
 - [ ] **Step 3: `syncView` schreiben, `syncBar` einhängen, Klick `data-sync="run"` an `createSync` binden.** Nur bei `canSync()` sichtbar. "Remove key and profile data" löscht Key und Stand und braucht eine zweite Bestätigung wie `reset-yes`. Manuelle Haken bleiben.
-- [ ] **Step 4: Temporäres entfernen.** Danach `git grep -n "saveFixture\|check-fixture\|Save test copy"`: keine Treffer.
+- [ ] **Step 4: Temporäres entfernen.** Danach darf außerhalb von `docs/` kein `shareFixture`, `check-fixture` oder `Share test copy` mehr vorkommen (`git grep`). Plugin-`load()` löscht einmalig `cacheDir/profile-fixture.json`; diese Aufräumzeile bleibt, damit die Kopie nach dem Update vom Gerät verschwindet.
 - [ ] **Step 5: `changelog.json`:** neu oben `0.10.0`, Datum des Releases, ein Eintrag `{ "title": "Sync your profile", "text": "Progress can now read your own SkyBlock profile with your personal API key, stored only on this phone.", "personal": true }`.
 - [ ] **Step 6: `npm test`, `npm run android:build`.** Erwartet: PASS, `BUILD SUCCESSFUL`.
 - [ ] **Step 7: Am Gerät prüfen:** falscher Key zeigt die 403-Meldung und lässt den Stand; Flugmodus zeigt "No connection to Hypixel."; Inventory-API aus zeigt den Hinweis; Remove leert `no_backup`; App-Neustart behält Key und Stand. Export-Text enthält keinen Key.
