@@ -104,6 +104,10 @@ A minion needs two actions per harvest (the Fishing Minion one). With a Super Co
 
 Bazaar Flip Helper is an unofficial fan-made tool. It is not affiliated with, endorsed by or connected to Hypixel or Mojang. All numbers are estimates based on public data; prices move, and you flip at your own risk.
 
+## License
+
+Copyright (c) 2026 Tsaitunq. All rights reserved. The code is public so you can read it. It may not be copied, changed, reused or redistributed without permission. See [LICENSE](LICENSE).
+
 ## Development
 
 Plain HTML, CSS and JavaScript modules. There is no build step for the web app.
