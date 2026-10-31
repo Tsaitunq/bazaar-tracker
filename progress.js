@@ -21,14 +21,14 @@ function validItem(i) {
   const forge = validRecipe(i?.forge);
   if (i?.forge !== undefined && !forge) return null;
   const without = Array.isArray(i?.without) ? i.without.filter(text) : [];
-  return { ...(id && { id }), ...(name && { name }), qty, ...(i.ah === true && { ah: true }), ...(i.nt === true && { nt: true }), ...(forge && { forge }), ...(without.length && { without }) };
+  return { ...(id && { id }), ...(name && { name }), qty, ...(i.ah === true && { ah: true }), ...(i.nt === true && { nt: true }), ...(forge && { forge }), ...(without.length && { without }), ...(Number.isInteger(i?.combine) && i.combine >= 0 && { combine: i.combine }) };
 }
 
 function validStep(s) {
   if (!text(s?.text)) return null;
   const items = s.items === undefined ? [] : Array.isArray(s.items) ? s.items.map(validItem) : [null];
   if (items.includes(null)) return null;
-  return { text: s.text, ...(items.length && { items }), ...(text(s.hint) && { hint: s.hint }) };
+  return { text: s.text, ...(items.length && { items }), ...(text(s.hint) && { hint: s.hint }), ...(s.table === true && { table: true }) };
 }
 
 // A guide from a file is outside data: only the known fields come through, and a link only as http(s).
@@ -131,8 +131,7 @@ function forgeCost(id, qty, opts, ctx, seen) {
 
 // null when no source has a price. The bazaar goes first; only what is not on it compares forge and auction.
 function cheapest(id, qty, opts, ctx, seen = []) {
-  const book = ctx.products?.[id]?.buy_summary;
-  const onBazaar = book?.length ? walkBook(book, qty, true) : null;
+  const onBazaar = bazaarCost(id, qty, ctx.products);
   if (onBazaar !== null) return { source: 'bazaar', coins: onBazaar };
   const forged = forgeCost(id, qty, opts, ctx, seen);
   const auction = opts.noAh ? null : bin(id, ctx);
@@ -144,8 +143,33 @@ function cheapest(id, qty, opts, ctx, seen = []) {
 
 const span = (secs) => (secs >= 3600 ? `${Math.round(secs / 3600)}h` : secs >= 60 ? `${Math.round(secs / 60)}m` : `${secs}s`);
 
+const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+const bazaarCost = (id, qty, products) => {
+  const book = products?.[id]?.buy_summary;
+  return book?.length ? walkBook(book, qty, true) : null;
+};
+
+// A book of level L: bought as it is, or made from two of L-1 where combine (the wiki's limit) allows that.
+function bookCost(id, qty, combine, products) {
+  const [, base, lvl] = id.match(/^(.+)_(\d+)$/) ?? [];
+  const level = Number(lvl);
+  const direct = bazaarCost(id, qty, products);
+  const lower = level > 1 && level <= combine ? bookCost(`${base}_${level - 1}`, qty * 2, combine, products) : null;
+  if (lower && (direct === null || lower.coins < direct)) return { coins: lower.coins, made: true, direct, lower: lower.coins, level };
+  return direct === null ? null : { coins: direct, made: false, direct, lower: lower?.coins ?? null, level };
+}
+
+function bookPrice(item, ctx) {
+  const b = bookCost(item.id, item.qty, item.combine, ctx.products);
+  if (!b) return { source: null, coins: 0 };
+  const made = b.lower !== null && `combine 2× ${ROMAN[b.level - 1]}: ${coins(b.lower)}`;
+  const bought = b.direct !== null && `book: ${coins(b.direct)}`;
+  return { source: 'bazaar', coins: b.coins, nt: false, note: (b.made ? [made, bought] : [bought, made]).filter(Boolean).join(' · ') };
+}
+
 // What one guide item costs: source is bazaar, forge, ah, nt (not tradeable) or null when nothing has a price.
 export function priceItem(item, ctx) {
+  if (item.id && item.combine !== undefined) return bookPrice(item, ctx);
   const tradeable = !item.nt;
   if (!item.id || (!tradeable && !item.forge && !ctx.forge?.[item.id])) return { source: item.nt ? 'nt' : null, coins: 0 };
   const found = cheapest(item.id, item.qty, { forge: item.forge, without: item.without, noAh: !tradeable }, ctx);
@@ -198,7 +222,7 @@ const stepRow = (section, step, checked, ctx, name) => {
   const itemCtx = checked.has(key) ? { ...ctx, wants: null } : ctx;
   return `<li class="guide-step"><label>
     <input type="checkbox" data-step="${esc(key)}"${checked.has(key) ? ' checked' : ''}>
-    <span><span class="guide-text">${esc(step.text)}</span>${(step.items ?? []).map((i) => itemLine(i, itemCtx, name)).join('')}${step.hint ? `<small class="guide-hint">${esc(step.hint)}</small>` : ''}</span>
+    <span><span class="guide-text">${esc(step.text)}</span>${step.table ? '<span class="guide-src" data-src="table">table</span>' : ''}${(step.items ?? []).map((i) => itemLine(i, itemCtx, name)).join('')}${step.hint ? `<small class="guide-hint">${esc(step.hint)}</small>` : ''}</span>
   </label></li>`;
 };
 

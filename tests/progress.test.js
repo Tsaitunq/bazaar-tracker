@@ -108,6 +108,24 @@ test('only what bazaar and ah.json lack is wanted from the service, never books 
   assert.deepEqual([...wants], ['B']);
 });
 
+test('a book takes the cheaper of buying it and combining two of the level below, within the limit', () => {
+  const book = (price) => ({ buy_summary: [{ amount: 9, pricePerUnit: price }] });
+  const products = { E_3: book(10), E_4: book(50), E_5: book(70), F_5: book(5), F_6: book(90) };
+  assert.deepEqual(priceItem({ id: 'E_4', qty: 1, combine: 5 }, { products }), { source: 'bazaar', coins: 20, nt: false, note: 'combine 2× III: 20 · book: 50' });
+  // two of level 4 come cheapest from four of level 3
+  assert.equal(priceItem({ id: 'E_5', qty: 1, combine: 5 }, { products }).coins, 40);
+  assert.equal(priceItem({ id: 'E_5', qty: 1, combine: 5 }, { products }).note, 'combine 2× IV: 40 · book: 70');
+  // above the limit only the book counts, however cheap the level below is
+  assert.deepEqual(priceItem({ id: 'F_6', qty: 1, combine: 5 }, { products }), { source: 'bazaar', coins: 90, nt: false, note: 'book: 90' });
+  assert.equal(priceItem({ id: 'G_6', qty: 1, combine: 5 }, { products }).source, null);
+});
+
+test('a table step has its mark and no price', () => {
+  const g = { id: 't', title: 'T', sections: [{ name: 'S', steps: [{ text: 'Sharpness I-V', table: true }] }] };
+  assert.equal(validGuide(g).sections[0].steps[0].table, true);
+  assert.match(progressView({ guides: [g], current: 't', checked: new Set(), products: {}, name: String }), /data-src="table">table/);
+});
+
 test('guideStats counts only open steps towards what is left', () => {
   const done = new Set([stepKey(priced.sections[0], priced.sections[0].steps[0])]);
   const stats = guideStats(priced, done, { products, ah: { B: 500 } });
