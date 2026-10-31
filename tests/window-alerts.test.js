@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readWindowAlerts, windowAlerts, windowText } from '../timing.js';
+import { windowBanners, detailView } from '../render.js';
 
 const FILE = { t: 1, tax: 0.0125,
   w: [
@@ -63,6 +64,29 @@ test('the words of the notifications', () => {
   assert.equal(windowText(buy, 'Dark Orb'), 'Buying window open: Dark Orb (Paul, typical +20%, 9/12)');
   assert.equal(windowText(sell, 'Dark Orb'), 'Sell now: Dark Orb – selling window started');
   assert.equal(windowText(avoid, 'TOOTH'), 'Sell before Marina: TOOTH usually drops 13%');
+});
+
+test('banners: the same words, a Bought button on a buy only, cut at the daily limit', () => {
+  const notices = windowAlerts(readWindowAlerts(FILE), ALL_ON, new Set(), {}, new Set(), 100);
+  const html = windowBanners(notices, { limit: 5, name: (id) => (id === 'ORB' ? 'Dark <Orb>' : id) });
+  assert.match(html, /Buying window open: Dark &#60;Orb&#62; \(Paul, typical \+20%, 9\/12\)/);
+  assert.match(html, /Sell before Marina: TOOTH usually drops 13%/);
+  assert.equal((html.match(/data-held=/g) ?? []).length, 1);
+  assert.match(html, /data-held="ORB"/);
+  assert.equal((html.match(/data-seen=/g) ?? []).length, 2);
+  assert.match(html, /href="#\/item\/ORB"/);
+  const cut = windowBanners(notices, { limit: 1, name: (id) => id });
+  assert.equal((cut.match(/data-seen=/g) ?? []).length, 1);
+  assert.match(cut, /\+1 more/);
+  assert.equal(windowBanners([], { limit: 5, name: (id) => id }), '');
+});
+
+test('the item page: mark as bought, and remove it again', () => {
+  const page = (held) => detailView({ id: 'ORB', name: 'Dark Orb', flip: { buy: 1, sell: 2, profit: 1, margin: 1, profitHour: 1, weekVol: 1 }, points: [], range: '24h', tax: 0.0125, held });
+  assert.match(page(false), /data-held="ORB" aria-pressed="false">Mark as bought/);
+  assert.match(page(true), /data-held="ORB" aria-pressed="true">Bought – remove mark/);
+  // a forge result that is not on the bazaar has nothing to mark
+  assert.doesNotMatch(detailView({ id: 'ORB', name: 'Dark Orb', flip: null, points: [], range: '24h', tax: 0.0125 }), /data-held/);
 });
 
 test('no file, no alerts', () => {

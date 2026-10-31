@@ -4,13 +4,13 @@ import { craftFlips, craftHints, CRAFT_RUNS } from './craft.js';
 import { forgeFlips, forgeFlip } from './forge.js';
 import { minionRows, minionDetail, FUELS, UPGRADES, MAX_TIER } from './minions.js';
 import { loadItems, fallbackName } from './names.js';
-import { loadStats, loadRecipes, loadForge, loadAh, loadElection, loadTiming, loadHistory } from './data.js';
+import { loadStats, loadRecipes, loadForge, loadAh, loadElection, loadTiming, loadWindows, loadHistory } from './data.js';
 import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission, loadHeld, storeHeld } from './native.js';
-import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, trendsView, todayView, minionCard, minionSheet, parseRoute, detailView, portfolioView, warningsView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, viewsFor, areaOf, coins, percent, PLACEHOLDER_ICON } from './render.js';
+import { flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, trendsView, todayView, windowBanners, minionCard, minionSheet, parseRoute, detailView, portfolioView, warningsView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, viewsFor, areaOf, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
 import { level } from './trends.js';
 import { activePerks, upcoming, electionWindow, eventItems, flipRisks, planElection, taxAdvice } from './events.js';
-import { buyNow, itemWindows } from './timing.js';
+import { buyNow, itemWindows, readWindowAlerts, windowAlerts } from './timing.js';
 import { bindSheet, openSheet } from './sheet.js';
 import { initOnboarding, refreshHints, offerAdvanced, returning } from './tour.js';
 
@@ -114,6 +114,9 @@ let forge;   // forge recipes; undefined while loading, null when there are none
 let ah = {}; // lowest BIN of forge results that are not on the bazaar
 let election = null; // mayor, perks and a running election; null when unknown
 let timing = {};     // past runs per event and perk, for the radar's price patterns
+let windowFile = null; // timing-windows.json, for the banners in the browser
+const storedSeen = load('bt.windowsSeen', []);
+let windowsSeen = new Set(Array.isArray(storedSeen) ? storedSeen : []); // the banners dismissed, one per item and window
 let marked = {};     // item id -> event or perk it belongs to right now
 let lastStats = 0;
 let route = readRoute();
@@ -422,12 +425,17 @@ function renderArea() {
   if (area() === 'today') {
     const now = Date.now();
     const risks = flipRisks(election, now);
+    // the Android app says this with notifications, so only the browser gets the banners
+    const notices = plugin() ? [] : windowAlerts(readWindowAlerts(windowFile), { buy: settings.windowBuy, sell: settings.windowSell, avoid: settings.windowAvoid,
+      minSpread: settings.windowMinSpread / 100, favOnly: settings.windowFavOnly }, favs, held, windowsSeen, now);
+    const bannerBuys = new Set(notices.filter((a) => a.kind === 'buy').slice(0, settings.windowMaxPerDay).map((a) => a.id));
     $('today').innerHTML = products ? todayView({
       plan, capital: settings.portfolioCapital, slots: settings.portfolioSlots, alerts, dismiss: marketWarned(),
       events: upcoming(now, election), vote: electionWindow(now), election,
       voteItems: Object.keys(risks).filter((id) => risks[id].kind === 'election'),
       fresh: (lastVisit ? opps.filter((f) => !lastVisit.has(f.id)) : opps).slice(0, 3), firstVisit: !lastVisit, now, name: nameOf,
-      buying: buyNow(now, election, timing, settings.tax / 100), volume: weekVolume,
+      buying: buyNow(now, election, timing, settings.tax / 100).filter((b) => !bannerBuys.has(b.id)), volume: weekVolume,
+      banners: windowBanners(notices, { limit: settings.windowMaxPerDay, name: nameOf }),
     }) : '<p class="count muted">Loading…</p>';
   }
   if (area() === 'market') {
@@ -553,7 +561,7 @@ async function refresh() {
 
 async function refreshStats() {
   lastStats = Date.now();
-  [stats, ah, election, timing] = await Promise.all([loadStats(), loadAh(), loadElection(), loadTiming()]);
+  [stats, ah, election, timing, windowFile] = await Promise.all([loadStats(), loadAh(), loadElection(), loadTiming(), loadWindows()]);
   recompute();
   render();
 }
@@ -664,7 +672,16 @@ $('detail').addEventListener('pointerdown', chartPointer);
 document.querySelector('main').addEventListener('click', (e) => {
   const bought = e.target.closest('[data-held]');
   if (bought) return setHeld(bought.dataset.held, !(bought.dataset.held in held));
-  const withAh =e.target.closest('[data-forge-ah]')?.dataset.forgeAh;
+  const seen = e.target.closest('[data-seen]')?.dataset.seen;
+  if (seen) {
+    windowsSeen.add(seen);
+    // only what is still in the file is kept, so the list stays small
+    const inFile = new Set(readWindowAlerts(windowFile).map((a) => a.k));
+    windowsSeen = new Set([...windowsSeen].filter((k) => inFile.has(k)));
+    save('bt.windowsSeen', [...windowsSeen]);
+    return render();
+  }
+  const withAh = e.target.closest('[data-forge-ah]')?.dataset.forgeAh;
   if (withAh) {
     settings.forgeAh = withAh === '1';
     return applySettings();
@@ -857,6 +874,17 @@ if (plugin()) {
   for (const key of WINDOW_ALERTS) bindAlertToggle(key, 'window-hint');
   onRoute((hash) => { location.hash = hash; });
   refreshHeld();
+} else {
+  // the same settings in the browser, for the banners on Today; there is no permission to ask for
+  $('window-alert-settings').hidden = false;
+  $('window-intro').textContent = 'In the browser these appear as banners on Today, since a web page cannot notify you here. Quiet hours only matter in the Android app. Based on past runs, not a guarantee.';
+  for (const key of WINDOW_ALERTS) {
+    $(key).checked = settings[key];
+    $(key).addEventListener('change', (e) => {
+      settings[key] = e.target.checked;
+      applySettings();
+    });
+  }
 }
 $('windowFavOnly').checked = settings.windowFavOnly;
 $('windowFavOnly').addEventListener('change', (e) => {

@@ -23,6 +23,9 @@ export const loadElection = () => fetchJson('election.json').then((d) => (d?.may
 // runs per event and perk (timing.js); empty until the first one is recorded
 export const loadTiming = () => fetchJson('timing.json').then((d) => d.r ?? {}, () => ({}));
 
+// the buy and sell windows as concrete times (timing.js timingWindows); null until the snapshot run has written them
+export const loadWindows = () => fetchJson('timing-windows.json').catch(() => null);
+
 export async function loadHistory(id, days, nowMs = Date.now()) {
   const chunks = await Promise.all(dayKeys(nowMs, days + 1).map((d) => fetchJson(`h/${d}/${shardOf(id)}.json`).catch(() => null)));
   return seriesFor(chunks, id);

@@ -2,7 +2,7 @@ import { lineChart } from './chart.js';
 import { marginSeries } from './history.js';
 import { direction } from './trends.js';
 import { skyDate, MONTHS, PERK_ITEMS, PERK_EXPECT, PERKS, YEAR_EVENTS, EVENTS, DRIVERS, expectedRole, DAY_MS } from './events.js';
-import { itemPattern, patternText, allWindows, itemRole, driverTitle, isLowVolume } from './timing.js';
+import { itemPattern, patternText, allWindows, itemRole, driverTitle, isLowVolume, windowText } from './timing.js';
 
 export const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
@@ -216,6 +216,19 @@ export function warningsView(alerts, { dismiss = false, more = false } = {}) {
   <ul>${alerts.map((w) => `<li><a href="${esc(itemHref(w.id))}">${esc(w.name)}</a> <small>${esc(warningText(w))}</small></li>`).join('')}</ul>${dismiss ? `
   <p class="muted">Compared with the plan you last saw. The portfolio already shows the new one.</p>
   <div class="actions"><button type="button" data-act="plan-seen">Got it</button></div>` : ''}${more ? moreLink('#/opps', 'Open the portfolio') : ''}
+</section>`;
+}
+
+// The browser's stand-in for the Android notifications, on Today. notices: what windowAlerts says is due; limit: the
+// daily maximum from the settings. A buy can be marked as bought right here; "Got it" hides that notice for good.
+export function windowBanners(notices, { limit, name }) {
+  if (!notices.length) return '';
+  const rest = notices.length - limit;
+  return `<section class="alerts window-alerts" role="status">
+  <h2>${ICONS.warn}Buy and sell windows</h2>
+  <ul>${notices.slice(0, limit).map((a) => `<li><a href="${esc(itemHref(a.id))}">${esc(windowText(a, name(a.id)))}</a>
+    <div class="actions">${a.kind === 'buy' ? `<button type="button" data-held="${esc(a.id)}">Bought</button>` : ''}<button type="button" data-seen="${esc(a.k)}">Got it</button></div></li>`).join('')}</ul>${rest > 0 ? `
+  <p class="muted">+${rest} more</p>` : ''}
 </section>`;
 }
 
@@ -435,7 +448,7 @@ export function trendsView(flips) {
 // fresh: up to three opportunities, best first, with a name; firstVisit: there is no last visit to compare with.
 const TODAY_EVENTS = 3;
 const TODAY_ITEMS = 3;
-export function todayView({ plan, capital, slots, alerts = [], dismiss = false, events = [], vote, election = null, voteItems = [], fresh = [], firstVisit = false, now, name, buying = [], volume = () => null }) {
+export function todayView({ plan, capital, slots, alerts = [], dismiss = false, events = [], vote, election = null, voteItems = [], fresh = [], firstVisit = false, now, name, buying = [], volume = () => null, banners = '' }) {
   const until = (t) => duration(Math.ceil(Math.max(0, t - now) / 60000) * 60);
   const items = (ids) => (ids.length ? `<small>Affected: ${ids.slice(0, TODAY_ITEMS).map((id) => esc(name(id))).join(', ')}${
     ids.length > TODAY_ITEMS ? ` +${ids.length - TODAY_ITEMS} more` : ''}</small>` : '');
@@ -470,7 +483,7 @@ export function todayView({ plan, capital, slots, alerts = [], dismiss = false, 
   ${moreLink('#/market', 'Open the Market')}
 </section>` : '';
 
-  return portfolio + warningsView(alerts, { dismiss, more: true }) + buy + coming + news;
+  return banners + portfolio + warningsView(alerts, { dismiss, more: true }) + buy + coming + news;
 }
 
 // One minion of the Minions area. row comes from minionRows; all coins are per day and for every minion placed.
