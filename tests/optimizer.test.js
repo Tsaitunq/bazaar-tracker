@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { blazeOutput, blazeState, OFA } from '../blaze.js';
-import { bestBlaze, blazeDelta, applyBlaze, accessoryPower, stepDelta, PRESETS, miningSettings, rankUpgrades, netCost, bestLoadout, bestValueView } from '../optimizer.js';
+import { SCORES, rankArea, bestBlaze, blazeDelta, applyBlaze, accessoryPower, stepDelta, PRESETS, miningSettings, rankUpgrades, netCost, bestLoadout, bestValueView } from '../optimizer.js';
 import { summarize } from '../profile.js';
 import { GEMSTONE, miningScore, loadoutOf } from '../stats.js';
 import { guideStats, progressView, validGuide, exportData } from '../progress.js';
@@ -941,4 +941,41 @@ test('the real blaze guide ranks without error', { skip: !(existsSync(FIXTURE) &
   const html = bestValueView({ guide: realGuide, checked: new Set(), ctx: { products: {}, profile: summary, items: data, have: new Map() }, name: String, state: { summary, syncedAt: 1 }, settings: miningSettings(null) });
   assert.match(html, /Estimate/);
   assert.doesNotMatch(html, /NaN/);
+});
+
+const rankArgs = (g, state, data, products = { A: sold(5e6) }) => ({ guide: g, checked: new Set(), ctx: { products, profile: state?.summary ?? null, items: data }, name: String, state, settings: miningSettings(null) });
+
+test('rankArea gives the same groups as the view for mining and blaze', () => {
+  const m = rankArea(rankArgs(mineGuide(), { summary: summary(), syncedAt: 1 }, items));
+  assert.equal(m.area, 'mining');
+  assert.deepEqual(m.groups.ranked.map((r) => r.step.text), ['cheap']);
+  const b = rankArea(rankArgs(blazeG([sharpStep]), { summary: blazeProfile(), syncedAt: 1 }, blazeItems));
+  assert.equal(b.area, 'blaze');
+  assert.deepEqual(b.groups.ranked.map((r) => r.step.text), ['sharp']);
+});
+
+test('rankArea says what is missing without profile or item data', () => {
+  assert.deepEqual(rankArea(rankArgs(mineGuide(), null, items)), { missing: 'profile' });
+  assert.deepEqual(rankArea(rankArgs(mineGuide(), { summary: summary() }, null)), { missing: 'items' });
+  assert.deepEqual(rankArea(rankArgs(mineGuide({ area: 'farming' }), { summary: summary() }, items)), { missing: 'score' });
+});
+
+test('limits and paths are data', () => {
+  const { limits, paths } = rankArea(rankArgs(blazeG([sharpStep]), { summary: blazeProfile({ mp: 900 }), syncedAt: 1 }, blazeItems));
+  assert.equal(limits.mp, 900);
+  assert.equal(limits.underTarget, true);
+  assert.equal(limits.lowTrueDefense, false);
+  assert.equal(paths.leader, 'One For All');
+  assert.equal(paths.ofa, 6);
+  assert.equal(paths.inUse, 'Enchants');
+});
+
+test('each area has its score texts, and a swapped score changes the unit in the result', () => {
+  assert.equal(SCORES.mining.gainText(0.024), '+2.4 % yield');
+  assert.equal(SCORES.mining.rateText(0.0033), '0.3 % / 1M');
+  assert.equal(SCORES.mining.rateLong(0.0061), '0.6 % per 1M');
+  assert.equal(SCORES.blaze.gainText(0.034), '+3.4 % damage');
+  assert.equal(SCORES.blaze.rateLong(0.0009), '0.09 % dmg per 1M');
+  const coinsPerHour = { mining: { gainText: () => 'x coins/h', rateText: () => 'y', rateLong: () => 'z' } };
+  assert.equal(rankArea(rankArgs(mineGuide(), { summary: summary(), syncedAt: 1 }, items), coinsPerHour).score.gainText(1), 'x coins/h');
 });
