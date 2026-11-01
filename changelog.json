@@ -1,6 +1,15 @@
 {
   "versions": [
     {
+      "version": "0.13.0",
+      "date": "2026-11-01",
+      "entries": [
+        { "title": "Best value for Mining", "text": "A new view in the Mining guide ranks your open steps by how much yield they add per million coins, after what you get for selling the old piece. Pick Gemstone, Mithril or Glacite and set your own weights in Settings.", "personal": true },
+        { "title": "Best possible from what you own", "text": "The same view shows what you could swap per slot from your chests and backpacks, compared with the wardrobe slot you picked.", "personal": true },
+        { "title": "Your /stats count too", "text": "Saving your /stats now also keeps what the app cannot read, like mayor and other potions, so the ranking stays right when your gear changes. It tells you when to measure again.", "personal": true }
+      ]
+    },
+    {
       "version": "0.12.0",
       "date": "2026-11-01",
       "entries": [

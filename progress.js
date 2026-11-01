@@ -28,12 +28,20 @@ function validItem(i) {
   return { ...(id && { id }), ...(name && { name }), qty, ...(i.ah === true && { ah: true }), ...(i.nt === true && { nt: true }), ...(forge && { forge }), ...(without.length && { without }), ...(anyOf.length && { anyOf }), ...(Number.isInteger(i?.skip) && i.skip > 0 && { skip: i.skip }), ...(Number.isInteger(i?.combine) && i.combine >= 0 && { combine: i.combine }) };
 }
 
+// What a step adds where the data has no value for it; only real numbers come through.
+function validGain(g) {
+  if (!g || typeof g !== 'object' || Array.isArray(g)) return null;
+  const kept = Object.entries(g).filter(([, v]) => Number.isFinite(v));
+  return kept.length ? Object.fromEntries(kept) : null;
+}
+
 function validStep(s) {
   if (!text(s?.text)) return null;
   const items = s.items === undefined ? [] : Array.isArray(s.items) ? s.items.map(validItem) : [null];
   if (items.includes(null)) return null;
   const detect = validDetect(s.detect);
-  return { text: s.text, ...(detect && { detect }), ...(items.length && { items }), ...(text(s.hint) && { hint: s.hint }), ...(s.table === true && { table: true }), ...(text(s.line) && { line: s.line }), ...(Number.isInteger(s.priority) && s.priority > 0 && { priority: s.priority }) };
+  const gain = validGain(s.gain);
+  return { text: s.text, ...(detect && { detect }), ...(gain && { gain }), ...(items.length && { items }), ...(text(s.hint) && { hint: s.hint }), ...(s.table === true && { table: true }), ...(text(s.line) && { line: s.line }), ...(Number.isInteger(s.priority) && s.priority > 0 && { priority: s.priority }) };
 }
 
 // A guide from a file is outside data: only the known fields come through, and a link only as http(s).
@@ -47,7 +55,7 @@ export function validGuide(g) {
   });
   if (sections.includes(null)) return null;
   const groups = validGroups(g.groups);
-  return { title: g.title, ...(/^https?:\/\//i.test(g.source ?? '') && { source: g.source }), ...(groups && { groups }), sections };
+  return { title: g.title, ...(/^https?:\/\//i.test(g.source ?? '') && { source: g.source }), ...(['mining', 'blaze'].includes(g.area) && { area: g.area }), ...(groups && { groups }), sections };
 }
 
 const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'guide';
@@ -242,7 +250,7 @@ export function stepCost(step, ctx) {
 
 // What is still open of a step the sync found partly done. Pieces owned drop out, the rest shrinks with what is
 // left, rounded up. shortcut: anyOf stays at its own qty and skip, a partly owned choice can read a bit high; split it if that misleads.
-function openStep(section, step, ctx) {
+export function openStep(section, step, ctx) {
   const found = ctx.auto?.get(stepKey(section, step));
   if (!found?.have || !step.items || met(found)) return step;
   const owned = [step.detect].flat().some((d) => d.kind === 'owned') ? new Set(ctx.profile?.items.map((i) => i.id)) : new Set();
@@ -256,7 +264,7 @@ function openStep(section, step, ctx) {
   return { ...step, items };
 }
 
-const bookOf = (step) => (step.items?.length === 1 && step.items[0].combine !== undefined ? step.items[0] : null);
+export const bookOf = (step) => (step.items?.length === 1 && step.items[0].combine !== undefined ? step.items[0] : null);
 const bookLevel = (item) => item.id.match(/^(.+)_(\d+)$/) ?? [];
 
 // Per book of a guide the highest level of the same enchant already checked below it.
@@ -337,7 +345,7 @@ function lockBadge(step, ctx) {
   return status === 'locked' ? `<span class="guide-src" data-src="locked">locked</span><small class="guide-hint">${esc(reasons.join(' · '))}</small>` : '';
 }
 
-const stepRow = (section, step, checked, ctx, name, extra = '') => {
+export const stepRow = (section, step, checked, ctx, name, extra = '') => {
   const key = stepKey(section, step);
   const shown = checked.has(key) ? step : openStep(section, step, ctx);
   // a finished step needs no price from the network
@@ -394,17 +402,19 @@ function nextView(guide, checked, ctx, name, products, recent, undo, autoOpen) {
 }
 
 // open: the unfolded sections' names, or null at first, when the first one with open steps unfolds.
-export function progressView({ guides, current, checked: marks, products, prices = {}, name, open = null, armed = false, removable = false, mode = 'slot', recent = [], undo = null, syncBar = '', profile = null, autoOpen = false }) {
+export function progressView({ guides, current, checked: marks, products, prices = {}, name, open = null, armed = false, removable = false, mode = 'slot', recent = [], undo = null, syncBar = '', profile = null, autoOpen = false, bestValue = null }) {
   const guide = guides.find((g) => g.id === current) ?? guides[0];
   const auto = detectGuide(guide, profile, stepKey);
   const ctx = { ...prices, products, auto, profile, marks };
   const checked = doneSet(guide, marks, auto);
   const stats = guideStats(guide, checked, ctx);
+  const ranks = guide.area === 'mining' && !!bestValue;
+  const shown = mode === 'best' && !ranks ? 'slot' : mode;
   const first = open ? null : guide.sections.find((_, i) => stats.sections[i].done < stats.sections[i].total)?.name;
   const page = `${syncBar}<div class="bar ranges guide-switch" role="group" aria-label="Guide">${guides.map((g) => `<button type="button" data-guide="${esc(g.id)}" aria-pressed="${g.id === guide.id}">${esc(g.title)}</button>`).join('')}</div>
   <p class="guide-count"><strong>${stats.done} / ${stats.total}</strong>${guide.source ? ` <a class="muted" href="${esc(guide.source)}" rel="noopener">Source</a>` : ''}</p>
-  <div class="bar ranges guide-switch" role="group" aria-label="View">${[['slot', 'By slot'], ['next', 'Next upgrades']].map(([m, label]) => `<button type="button" data-guide-mode="${m}" aria-pressed="${m === mode}">${label}</button>`).join('')}</div>
-  ${mode === 'next' ? nextView(guide, checked, ctx, name, products, recent, undo, autoOpen) : `<section class="guide-next" aria-label="Next step"><h2>Next step</h2>${stats.next
+  <div class="bar ranges guide-switch" role="group" aria-label="View">${[['slot', 'By slot'], ['next', 'Next upgrades'], ...(ranks ? [['best', 'Best value']] : [])].map(([m, label]) => `<button type="button" data-guide-mode="${m}" aria-pressed="${m === shown}">${label}</button>`).join('')}</div>
+  ${shown === 'next' ? nextView(guide, checked, ctx, name, products, recent, undo, autoOpen) : shown === 'best' ? bestValue({ guide, checked, ctx, name, products }) + recentView(guide, recent, undo) + autoView(guide, checked, ctx, autoOpen) : `<section class="guide-next" aria-label="Next step"><h2>Next step</h2>${stats.next
     ? `<small class="guide-hint">${esc(stats.next.section.name)}</small><ul class="guide-steps">${stepRow(stats.next.section, stats.next.step, checked, ctx, name)}</ul>`
     : '<p class="muted">All steps are done.</p>'}</section>
   ${guide.sections.map((section, i) => {

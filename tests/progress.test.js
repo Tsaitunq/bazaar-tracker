@@ -474,3 +474,11 @@ test('a reason with HTML is escaped', () => {
   const html = lockView({ prices: { items } });
   assert.ok(!html.includes('<b>'));
 });
+
+test('validGuide keeps area and numeric gain and drops anything else', () => {
+  const g = validGuide({ title: 't', area: 'mining', sections: [{ name: 's', steps: [{ text: 'a', gain: { MINING_SPEED: 5, PRISTINE: 'x' } }, { text: 'b', gain: [1] }] }] });
+  assert.equal(g.area, 'mining');
+  assert.deepEqual(g.sections[0].steps[0].gain, { MINING_SPEED: 5 });
+  assert.equal(g.sections[0].steps[1].gain, undefined);
+  assert.equal(validGuide({ title: 't', area: 'nether', sections: [{ name: 's', steps: [] }] }).area, undefined);
+});

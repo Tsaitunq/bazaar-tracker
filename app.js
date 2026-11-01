@@ -15,7 +15,8 @@ import { bindSheet, openSheet } from './sheet.js';
 import { loadBundled, mergeGuides, exportData, importData, progressView, personalVisibility, secretTap, setMark, pushRecent, stepKey } from './progress.js';
 import { createSync, syncMessage, syncView, normalizeUuid, cleanKey } from './sync.js';
 import { summarize } from './profile.js';
-import { statsView, statsEntry } from './stats.js';
+import { statsView, statsEntry, loadoutOf, computeStats, offsetStale } from './stats.js';
+import { PRESETS, miningSettings, bestValueView } from './optimizer.js';
 import { detectGuide } from './detect.js';
 import { initOnboarding, refreshHints, offerAdvanced, returning } from './tour.js';
 
@@ -703,10 +704,10 @@ function markStep(guide, key, on) {
   guideChecks[guide.id] = [...marks];
   save('bt.guideChecks', guideChecks);
   const recent = (guideRecent[guide.id] ?? []).filter((k) => k !== key);
-  guideRecent[guide.id] = on && guideMode === 'next' ? pushRecent(recent, key) : recent;
+  guideRecent[guide.id] = on && guideMode !== 'slot' ? pushRecent(recent, key) : recent;
   save('bt.guideRecent', guideRecent);
   clearTimeout(undoTimer);
-  undoKey = on && guideMode === 'next' ? key : null;
+  undoKey = on && guideMode !== 'slot' ? key : null;
   if (undoKey) undoTimer = setTimeout(() => { undoKey = null; if (area() === PERSONAL) renderProgress(); }, UNDO_MS);
 }
 // Game data of all items, large, so only asked once a guide is on screen. Until then requirements are unknown.
@@ -722,7 +723,7 @@ function renderProgress() {
   if (!guide) { $('progress').innerHTML = '<p class="count muted">Loading…</p>'; return; }
   askItemData();
   const wants = new Set();
-  $('progress').innerHTML = progressView({ guides: guides(), current: guide.id, checked: checksOf(guide.id), products, prices: { forge, ah, cofl: freshBins(bins), wants, items: itemData }, name: nameOf, open: guideOpen[guide.id] ?? null, armed: resetArmed, removable: imported.some((g) => g.id === guide.id), mode: guideMode, recent: guideRecent[guide.id] ?? [], undo: undoKey, syncBar: canSync() ? syncView(profileState, Date.now(), esc, syncNote) : '', profile: profileState?.summary ?? null, autoOpen: guideAutoOpen });
+  $('progress').innerHTML = progressView({ guides: guides(), current: guide.id, checked: checksOf(guide.id), products, prices: { forge, ah, cofl: freshBins(bins), wants, items: itemData, tax: settings.tax / 100, derpy: election?.mayor?.name === 'Derpy' }, name: nameOf, open: guideOpen[guide.id] ?? null, armed: resetArmed, removable: imported.some((g) => g.id === guide.id), mode: guideMode, recent: guideRecent[guide.id] ?? [], undo: undoKey, syncBar: canSync() ? syncView(profileState, Date.now(), esc, syncNote) : '', profile: profileState?.summary ?? null, autoOpen: guideAutoOpen, bestValue: (view) => bestValueView({ ...view, state: profileState, settings: miningSettings(settings.mining), keepOldGear: settings.keepOldGear === true, boosts: boostsNow(), preset: statsPreset }) });
   askBins(wants);
 }
 $('progress').addEventListener('change', (e) => {
@@ -737,6 +738,10 @@ $('progress').addEventListener('change', (e) => {
 });
 $('progress').addEventListener('click', (e) => {
   if (e.target.closest('[data-sync="run"]')) return runProfileSync();
+  if (e.target.closest('[data-open-settings]')) {
+    openPanel();
+    return $('hypixel-profile').scrollIntoView({ block: 'center' });
+  }
   const syncPick = e.target.closest('[data-sync-pick]')?.dataset.syncPick;
   if (syncPick) return runProfileSync(syncPick);
   const pick = e.target.closest('[data-guide]')?.dataset.guide;
@@ -947,13 +952,52 @@ $('hp-stats').addEventListener('click', async (e) => {
   const { statsArea } = box.dataset;
   const values = Object.fromEntries([...box.querySelectorAll('[data-stats-stat]')].map((input) => [input.dataset.statsStat, input.value]));
   const pick = (kind) => box.querySelector(`[data-stats-set="${kind}"]`).value;
-  const entry = statsEntry(statsArea, { armor: pick('armor'), equipment: pick('equipment'), pet: pick('pet'), emptyHand: box.querySelector('[data-stats-empty-hand]').checked, boost: box.querySelector('[data-stats-boost]').checked, values }, Date.now());
+  const form = { armor: pick('armor'), equipment: pick('equipment'), pet: pick('pet'), emptyHand: box.querySelector('[data-stats-empty-hand]').checked, boost: box.querySelector('[data-stats-boost]').checked, values };
   const state = await loadProfile();
   if (!state) return;
+  const { choice } = statsEntry(statsArea, form, 0);
+  const boosts = boostsNow();
+  const measured = itemData && state.summary ? { total: computeStats(state.summary, itemData, loadoutOf(state.summary, itemData, statsArea, choice, miningSettings(settings.mining)), statsArea, boosts).total, boosts } : null;
+  const entry = statsEntry(statsArea, form, Date.now(), measured, state.statsInput?.[statsArea] ?? null);
   const next = { ...state, statsInput: { ...state.statsInput, [statsArea]: entry } };
   if (!await saveProfile(next)) return hpStatus(syncMessage('store'));
   profileState = next;
   renderStats();
+});
+const MINING_FIELDS = ['wF', 'wS', 'wP', 'blockStrength'];
+function showMining() {
+  const now = miningSettings(settings.mining);
+  $('hp-preset').value = now.preset;
+  for (const key of MINING_FIELDS) $(`hp-${key}`).value = now[key];
+  $('hp-keep-gear').checked = settings.keepOldGear === true;
+}
+function saveMining(mining) {
+  settings.mining = mining;
+  save('bt.settings', settings);
+  showMining();
+  renderStats();
+  if (area() === PERSONAL) renderProgress();
+}
+$('hp-preset').addEventListener('change', (e) => {
+  const { gemFortune, ...values } = PRESETS[e.target.value];
+  saveMining({ preset: e.target.value, ...values });
+});
+for (const key of MINING_FIELDS) $(`hp-${key}`).addEventListener('change', (e) => saveMining({ ...miningSettings(settings.mining), [key]: e.target.value }));
+$('hp-mining-reset').addEventListener('click', () => saveMining(null));
+$('hp-keep-gear').addEventListener('change', (e) => {
+  settings.keepOldGear = e.target.checked;
+  save('bt.settings', settings);
+  if (area() === PERSONAL) renderProgress();
+});
+showMining();
+// A picker that moves away from the measured setup says so before anything is saved.
+$('hp-stats').addEventListener('change', (e) => {
+  if (!e.target.matches('[data-stats-set]')) return;
+  const box = e.target.closest('[data-stats-area]');
+  if (!box.dataset.offsetFor) return;
+  const was = JSON.parse(box.dataset.offsetFor);
+  const picked = (kind) => (was[kind] === null ? null : box.querySelector(`[data-stats-set="${kind}"]`).value);
+  box.querySelector('[data-stats-setup-hint]').hidden = !offsetStale({ offsetFor: was }, { armor: was.armor === null ? null : Number(picked('armor')), equipment: was.equipment === null ? null : Number(picked('equipment')), pet: picked('pet') });
 });
 showProfile();
 $('search').addEventListener('input', render);

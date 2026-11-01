@@ -12,7 +12,8 @@ const WEAPONS = new Set(['SWORD', 'LONGSWORD']);
 const MIN_TRUE_DEFENSE = 140;
 const MIN_MP = 800;
 
-const fortune = (s) => (s.MINING_FORTUNE ?? 0) + (s.GEMSTONE_FORTUNE ?? 0);
+// wiki Pristine: Gemstone Fortune counts on gemstones only, so the other presets leave it out.
+const fortune = (s, settings) => (s.MINING_FORTUNE ?? 0) + (settings.gemFortune === false ? 0 : s.GEMSTONE_FORTUNE ?? 0);
 
 // Spec 4.1, the derivative of the yield. wiki Pristine: Base Drop × (1 + Pristine × 79/100) × (1 + (Mining Fortune + Gemstone Fortune) / 100).
 export function miningScore(stats, delta, settings = GEMSTONE) {
@@ -20,7 +21,7 @@ export function miningScore(stats, delta, settings = GEMSTONE) {
   const cap = Math.ceil((20 * blockStrength) / 3);
   const speed = Math.min(stats.MINING_SPEED ?? 0, cap);
   const nextSpeed = Math.min((stats.MINING_SPEED ?? 0) + (delta.MINING_SPEED ?? 0), cap);
-  return wF * fortune(delta) / (100 + fortune(stats))
+  return wF * fortune(delta, settings) / (100 + fortune(stats, settings))
     + wS * (nextSpeed - speed) / Math.max(speed, 1)
     + wP * 0.79 * (delta.PRISTINE ?? 0) / (1 + 0.79 * (stats.PRISTINE ?? 0));
 }
@@ -52,9 +53,9 @@ function accessoriesOf(profile, items) {
 }
 
 // A wardrobe slot holds no tool or weapon, so the strongest owned one is taken and shown.
-function heldOf(profile, items, area, gear) {
+function heldOf(profile, items, area, gear, settings) {
   const of = (group) => profile.items.filter((i) => group.has(items?.[i.id]?.category) && i.where !== 'accessory');
-  const rate = area === 'mining' ? (i) => miningScore(gear, i.lore) : (i) => i.lore.DAMAGE ?? 0;
+  const rate = area === 'mining' ? (i) => miningScore(gear, i.lore, settings) : (i) => i.lore.DAMAGE ?? 0;
   return of(area === 'mining' ? TOOLS : WEAPONS).reduce((best, i) => (!best || rate(i) > rate(best) ? i : best), null);
 }
 
@@ -80,7 +81,7 @@ function petOf(profile, pick, gaps) {
 }
 
 // choice: the wardrobe slot, equipment slot and pet the player picked. Accessories and power are what the sync found.
-export function loadoutOf(profile, items, area, choice) {
+export function loadoutOf(profile, items, area, choice, settings = GEMSTONE) {
   const gaps = [];
   const setOf = (kind) => {
     const known = profile.wardrobe?.[kind];
@@ -93,7 +94,7 @@ export function loadoutOf(profile, items, area, choice) {
   const armor = setOf('armor');
   const equipment = setOf('equipment');
   if (!items) gaps.push('Item data missing: no tool or weapon, and accessory families count twice.');
-  const held = items && !choice?.emptyHand ? heldOf(profile, items, area, gearStats([...armor, ...equipment])) : null;
+  const held = items && !choice?.emptyHand ? heldOf(profile, items, area, gearStats([...armor, ...equipment]), settings) : null;
   if (items && !held && !choice?.emptyHand) gaps.push(area === 'mining' ? 'No mining tool found.' : 'No weapon found.');
   for (const stem of fullSets(armor)) gaps.push(`Full set ${stem}: its bonus is not counted.`);
   return { armor, equipment, held, accessories: accessoriesOf(profile, items), pet: petOf(profile, choice?.pet, gaps), gaps };
@@ -334,20 +335,54 @@ export function compareStats(calculated, inGame) {
 }
 
 // What the form hands in, as it is stored: only known stats with real numbers, and the slots as numbers.
-export function statsEntry(area, { armor, equipment, pet, emptyHand, boost, values }, at) {
+// measured: what the app calculates for this setup and the boost settings at saving, null without item data. Left out: no offset is worked out.
+export function statsEntry(area, { armor, equipment, pet, emptyHand, boost, values }, at, measured, previous = null) {
   const slot = (v) => (Number.isInteger(Number(v)) && Number(v) > 0 ? Number(v) : null);
   const kept = AREA_STATS[area].flatMap((stat) => {
     const raw = values?.[stat];
     const n = raw === '' || raw === null || raw === undefined ? NaN : Number(raw);
     return Number.isFinite(n) ? [[stat, n]] : [];
   });
-  return { choice: { armor: slot(armor), equipment: slot(equipment), pet: /^[A-Z_]+:[A-Z_]+$/.test(pet ?? '') ? pet : null, emptyHand: emptyHand === true }, values: Object.fromEntries(kept), boost: boost === true, at };
+  const entry = { choice: { armor: slot(armor), equipment: slot(equipment), pet: /^[A-Z_]+:[A-Z_]+$/.test(pet ?? '') ? pet : null, emptyHand: emptyHand === true }, values: Object.fromEntries(kept), boost: boost === true, at };
+  return measured === undefined ? entry : { ...entry, ...offsetOf(entry, measured, previous) };
+}
+
+// wiki Stats: a value at the top of a stat says nothing about what is behind it
+const STAT_MAX = { ATTACK_SPEED: 100 };
+
+// Spec 3.4: what the app cannot read, kept apart from the gear so that a later gear change moves the base correctly.
+function offsetOf(entry, measured, previous) {
+  const offsetFor = { armor: entry.choice.armor, equipment: entry.choice.equipment, pet: entry.choice.pet };
+  const none = (offsetNote) => ({ offset: {}, offsetFor, offsetNote });
+  if (!measured) return none('noitems');
+  if (entry.boost !== Boolean(measured.boosts?.godPotion || measured.boosts?.boosterCookie)) return none('boost');
+  // the numbers on the form still belong to the setup they were measured with
+  if (previous && offsetStale(previous, offsetFor) && JSON.stringify(previous.values) === JSON.stringify(entry.values)) return none('setup');
+  const offset = {};
+  for (const [stat, value] of Object.entries(entry.values)) if (!(value >= STAT_MAX[stat])) offset[stat] = value - (measured.total[stat] ?? 0);
+  return { offset, offsetFor, offsetNote: null };
+}
+
+export function withOffset(total, entry) {
+  const out = { ...total };
+  for (const [stat, v] of Object.entries(entry?.offset ?? {})) out[stat] = Math.max((out[stat] ?? 0) + v, 0);
+  return out;
+}
+
+export function offsetStale(entry, setup) {
+  const was = entry?.offsetFor;
+  return !!was && ['armor', 'equipment', 'pet'].some((k) => was[k] !== setup?.[k]);
 }
 
 const AREA_TITLE = { mining: 'Mining', blaze: 'Blaze' };
 const STAT_NAME = { MINING_FORTUNE: 'Mining Fortune', GEMSTONE_FORTUNE: 'Gemstone Fortune', ORE_FORTUNE: 'Ore Fortune', BLOCK_FORTUNE: 'Block Fortune', MINING_SPEED: 'Mining Speed', PRISTINE: 'Pristine', STRENGTH: 'Strength', CRITICAL_DAMAGE: 'Crit Damage', CRITICAL_CHANCE: 'Crit Chance', ATTACK_SPEED: 'Attack Speed', HEALTH: 'Health', DEFENSE: 'Defense', TRUE_DEFENSE: 'True Defense' };
 const num = (v) => String(Math.round(v * 100) / 100);
 const LOW = { ok: 'ok', low: 'too low', unknown: 'unknown' };
+const OFFSET_NOTE = {
+  boost: 'The God Potion / Booster Cookie box does not match the settings above, so these values do not adjust the ranking.',
+  noitems: 'Item data was missing when saving, so these values do not adjust the ranking. Save them again.',
+  setup: 'You changed the slot or pet but kept the old numbers, so they do not adjust the ranking. Measure again.',
+};
 
 function slotPicker(kind, label, known, picked, esc) {
   const options = (known?.sets ?? []).map((n) => `<option value="${esc(n)}"${n === (picked ?? known.equipped) ? ' selected' : ''}>Slot ${esc(n)}${n === known.equipped ? ' (worn)' : ''}</option>`);
@@ -381,7 +416,7 @@ function areaView(area, state, items, esc, boosts, preset) {
   }).join('');
   // no True Defense in any lore is 0, unless the inventory could not be read at all
   const limits = area === 'blaze' ? blazeConstraints(profile.missing?.inventory ? null : { TRUE_DEFENSE: total.TRUE_DEFENSE ?? 0 }, profile.mp) : null;
-  return `<section class="stats-area" data-stats-area="${area}"><strong>${AREA_TITLE[area]}</strong>
+  return `<section class="stats-area" data-stats-area="${area}"${entry.offsetFor ? ` data-offset-for="${esc(JSON.stringify(entry.offsetFor))}"` : ''}><strong>${AREA_TITLE[area]}</strong>
     ${slotPicker('armor', 'Wardrobe slot', profile.wardrobe?.armor, entry.choice?.armor, esc)}
     ${slotPicker('equipment', 'Equipment slot', profile.wardrobe?.equipment, entry.choice?.equipment, esc)}
     ${petPicker(profile.pets, entry.choice?.pet, esc)}
@@ -391,6 +426,8 @@ function areaView(area, state, items, esc, boosts, preset) {
     ${AREA_STATS[area].map((stat) => `<label>${STAT_NAME[stat]} in /stats<input type="number" step="any" inputmode="decimal" data-stats-stat="${stat}" value="${entry.values?.[stat] ?? ''}"></label>`).join('')}
     <div class="actions"><button type="button" data-stats-save>Save ${AREA_TITLE[area]} stats</button></div>
     ${stale ? '<small class="stats-stale">Your /stats values are older than the last sync.</small>' : ''}
+    ${OFFSET_NOTE[entry.offsetNote] ? `<small class="stats-stale">${OFFSET_NOTE[entry.offsetNote]}</small>` : ''}
+    <small class="stats-stale" data-stats-setup-hint${offsetStale(entry, entry.choice) ? '' : ' hidden'}>Measure again: slot or pet changed.</small>
     <table class="stats-table"><thead><tr><th scope="col">Stat</th><th scope="col">Calculated</th><th scope="col">/stats</th><th scope="col">Difference</th></tr></thead><tbody>${table}</tbody></table>
     ${area === 'blaze' ? `<small>Weapon damage from lore: ${esc(num(total.DAMAGE))}</small><small>True Defense 140: ${LOW[limits.trueDefense]} · Magical Power 800: ${LOW[limits.mp]}</small>` : ''}
     ${gaps.length ? `<ul class="stats-gaps">${gaps.map((g) => `<li>${esc(g)}</li>`).join('')}</ul>` : ''}

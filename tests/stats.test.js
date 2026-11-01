@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { miningScore, blazeScore, blazeConstraints, gearStats, loadoutOf, computeStats, powerMultiplier, petLevel, compareStats, statsEntry, statsView, GEMSTONE } from '../stats.js';
+import { miningScore, blazeScore, blazeConstraints, gearStats, loadoutOf, computeStats, powerMultiplier, petLevel, compareStats, statsEntry, statsView, withOffset, offsetStale, GEMSTONE } from '../stats.js';
 
 const near = (a, b, eps = 1e-9) => assert.ok(Math.abs(a - b) < eps, `${a} is not ${b}`);
 const base = { MINING_FORTUNE: 1000, MINING_SPEED: 6000, PRISTINE: 5 };
@@ -444,4 +444,87 @@ test('a preset fills an area until a measurement is saved', () => {
   assert.match(html, /data-stats-boost checked/);
   const saved = areaOf(statsView(state({ statsInput: { mining: { values: { PRISTINE: 9 } } } }), data, escHtml, {}, preset), 'mining');
   assert.match(saved, /data-stats-stat="PRISTINE" value="9"/);
+});
+
+const measuredAt = (total, boosts = {}) => ({ total, boosts });
+
+test('the offset is in-game minus calculated, per typed stat', () => {
+  const e = statsEntry('mining', { armor: 1, equipment: 1, boost: false, values: { MINING_SPEED: 1200, PRISTINE: '' } }, 1, measuredAt({ MINING_SPEED: 1000, PRISTINE: 3 }));
+  assert.deepEqual(e.offset, { MINING_SPEED: 200 });
+  assert.deepEqual(e.offsetFor, { armor: 1, equipment: 1, pet: null });
+  assert.equal(e.offsetNote, null);
+});
+
+test('a value at the game maximum gives no offset', () => {
+  const e = statsEntry('blaze', { boost: false, values: { ATTACK_SPEED: 100, STRENGTH: 50 } }, 1, measuredAt({ ATTACK_SPEED: 90, STRENGTH: 40 }));
+  assert.deepEqual(e.offset, { STRENGTH: 10 });
+});
+
+test('boost box not matching the settings gives no offset and a note', () => {
+  const e = statsEntry('mining', { boost: true, values: { MINING_SPEED: 1200 } }, 1, measuredAt({ MINING_SPEED: 1000 }));
+  assert.deepEqual(e.offset, {});
+  assert.equal(e.offsetNote, 'boost');
+  assert.equal(statsEntry('mining', { boost: false, values: { MINING_SPEED: 1200 } }, 1, measuredAt({ MINING_SPEED: 1000 }, { godPotion: true })).offsetNote, 'boost');
+});
+
+test('the booster cookie setting alone matches the box', () => {
+  const e = statsEntry('mining', { boost: true, values: { MINING_SPEED: 1200 } }, 1, measuredAt({ MINING_SPEED: 1000 }, { boosterCookie: true }));
+  assert.deepEqual(e.offset, { MINING_SPEED: 200 });
+});
+
+test('the boost is not part of the offset', () => {
+  // measured with God Potion: 200 of it is the potion and is in the calculated value, so only the unknown 50 stays
+  const e = statsEntry('mining', { boost: true, values: { MINING_SPEED: 1250 } }, 1, measuredAt({ MINING_SPEED: 1200 }, { godPotion: true }));
+  assert.deepEqual(e.offset, { MINING_SPEED: 50 });
+  assert.equal(withOffset({ MINING_SPEED: 1000 }, e).MINING_SPEED, 1050);
+});
+
+test('no item data gives no offset and a note', () => {
+  const e = statsEntry('mining', { values: { MINING_SPEED: 1200 } }, 1, null);
+  assert.deepEqual(e.offset, {});
+  assert.equal(e.offsetNote, 'noitems');
+});
+
+test('another slot with unchanged numbers gives no offset', () => {
+  const values = { MINING_SPEED: 1200 };
+  const previous = statsEntry('mining', { armor: 1, equipment: 1, values }, 1, measuredAt({ MINING_SPEED: 1000 }));
+  const same = statsEntry('mining', { armor: 1, equipment: 1, values }, 2, measuredAt({ MINING_SPEED: 1000 }), previous);
+  assert.deepEqual(same.offset, { MINING_SPEED: 200 });
+  const moved = statsEntry('mining', { armor: 2, equipment: 1, values }, 2, measuredAt({ MINING_SPEED: 900 }), previous);
+  assert.deepEqual(moved.offset, {});
+  assert.equal(moved.offsetNote, 'setup');
+  const typed = statsEntry('mining', { armor: 2, equipment: 1, values: { MINING_SPEED: 1100 } }, 2, measuredAt({ MINING_SPEED: 900 }), previous);
+  assert.deepEqual(typed.offset, { MINING_SPEED: 200 });
+});
+
+test('withOffset adds, never goes below 0 and leaves stats without offset alone', () => {
+  const out = withOffset({ MINING_SPEED: 100, PRISTINE: 2, MINING_FORTUNE: 5 }, { offset: { MINING_SPEED: 50, MINING_FORTUNE: -9 } });
+  assert.deepEqual(out, { MINING_SPEED: 150, PRISTINE: 2, MINING_FORTUNE: 0 });
+  // a stat calculated as nothing can still have an offset
+  assert.equal(withOffset({}, { offset: { PRISTINE: 1 } }).PRISTINE, 1);
+});
+
+test('offsetStale is true when wardrobe, equipment or pet differ', () => {
+  const entry = { offset: { MINING_SPEED: 1 }, offsetFor: { armor: 1, equipment: 2, pet: 'BAL:LEGENDARY' } };
+  assert.equal(offsetStale(entry, { armor: 1, equipment: 2, pet: 'BAL:LEGENDARY' }), false);
+  assert.equal(offsetStale(entry, { armor: 3, equipment: 2, pet: 'BAL:LEGENDARY' }), true);
+  assert.equal(offsetStale(entry, { armor: 1, equipment: 3, pet: 'BAL:LEGENDARY' }), true);
+  assert.equal(offsetStale(entry, { armor: 1, equipment: 2, pet: null }), true);
+});
+
+test('a saved entry from 0.12 without offset counts as no offset', () => {
+  const old = statsEntry('mining', { armor: 1, values: { MINING_SPEED: 1 } }, 1);
+  assert.equal(old.offset, undefined);
+  assert.deepEqual(withOffset({ MINING_SPEED: 5 }, old), { MINING_SPEED: 5 });
+  assert.equal(offsetStale(old, { armor: 9 }), false);
+});
+
+test('the view shows the hint when the setup changed', () => {
+  const summary = { items: [], wardrobe: { armor: { equipped: 1, sets: [1, 2] }, equipment: { equipped: 1, sets: [1] } }, pets: [], hotm: null, skills: null, collTiers: null, attrs: null, slayer: null };
+  const mining = { choice: { armor: 2, equipment: 1, pet: null }, values: {}, offset: {}, offsetFor: { armor: 1, equipment: 1, pet: null }, offsetNote: null, at: 1 };
+  const html = statsView({ summary, syncedAt: 1, statsInput: { mining } }, null, String);
+  assert.match(html, /<small[^>]*data-stats-setup-hint(?![^>]*hidden)[^>]*>Measure again: slot or pet changed/);
+  const fine = { ...mining, choice: { armor: 1, equipment: 1, pet: null } };
+  assert.match(statsView({ summary, syncedAt: 1, statsInput: { mining: fine } }, null, String), /data-stats-setup-hint hidden/);
+  assert.match(statsView({ summary, syncedAt: 1, statsInput: { mining: { ...fine, offsetNote: 'boost' } } }, null, String), /God Potion/);
 });
