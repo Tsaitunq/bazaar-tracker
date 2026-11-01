@@ -39,3 +39,14 @@ test('the real guides survive validation and draw against the real test copy', {
     assert.ok(detectGuide(guide, profile, stepKey).size > 0);
   }
 });
+
+test('the shards at full level in the real test copy are checked', { skip: !existsSync(FILE) || !existsSync(GUIDES) }, async () => {
+  const profile = await summarize(JSON.parse(readFileSync(FILE, 'utf8')).members.self);
+  const guide = { id: 'b', ...validGuide(JSON.parse(readFileSync(`${GUIDES}/blaze-slayer.json`, 'utf8'))) };
+  const html = progressView({ guides: [guide], current: 'b', checked: new Set(), products: {}, name: (x) => x, profile });
+  const row = (text) => { const at = html.search(new RegExp(`data-step="[^"]*\\|${text}"`)); return html.slice(at, html.indexOf('</li>', at)); };
+  for (const text of ['Blazing Resistance', 'Infernal Ruler', 'Warrior', 'Shell', 'Veil', 'Elite']) {
+    assert.match(row(text), /" checked>/, text);
+    assert.match(row(text), /data-src="api"/, text);
+  }
+});

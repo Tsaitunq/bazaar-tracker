@@ -132,6 +132,8 @@ export function syncView(state, now, esc, { message = '', choices = [] } = {}) {
     : [
       `${esc(state.profileName)} · ${days ? `${days} d ago` : 'today'}`,
       seenLine(state.summary, esc),
+      // a stand saved by an older version has no shards or perks yet
+      ...(state.summary?.attrs === undefined ? ['Sync once more to read your shards and perks.'] : []),
       ...(off.length ? [`Turn on ${off.join(', ')} in SkyBlock Menu → Settings → API Settings.`] : []),
       ...(days >= REMINDER_DAYS ? ['Sync soon: Hypixel can disable an API application after 28 days without a request.'] : []),
     ];

@@ -96,3 +96,13 @@ test('anything found of a later step settles the earlier ones of its slot, acros
   assert.equal(found.get('B|TOP').have, 0);
   assert.equal(found.get('B|OTHER').have, 0);
 });
+
+test('a shard counts by its profile key, at the full amount of its rarity', () => {
+  const rule = (attr, need) => ({ detect: { kind: 'attr', attr, need } });
+  const p = profile([], { attrs: { blazing_resistance: 96, blazing: 32, warrior: 32, shell: 32, veil: 32, elite: 24, undead: 63 } });
+  for (const [attr, need] of [['blazing_resistance', 96], ['blazing', 32], ['warrior', 32], ['shell', 32], ['veil', 32], ['elite', 24]]) {
+    assert.deepEqual(detectStep(rule(attr, need), p, {}), { have: need, need }, attr);
+  }
+  assert.deepEqual(detectStep(rule('undead', 64), p, {}), { have: 63, need: 64 });
+  assert.deepEqual(detectStep(rule('fortitude', 24), p, {}), { have: 0, need: 24 });
+});

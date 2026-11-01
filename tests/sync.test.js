@@ -278,3 +278,11 @@ test('the temporary field-check parts are gone', () => {
   for (const f of files) assert.ok(!/shareFixture|Share test copy|anonymize/.test(readFileSync(f, 'utf8')), f);
   assert.ok(!existsSync('scripts/check-fixture.mjs'));
 });
+
+test('a stand saved before shards were read asks for one more sync', () => {
+  const note = 'Sync once more to read your shards and perks.';
+  const old = { ...synced, summary: { ...synced.summary } };
+  delete old.summary.attrs;
+  assert.ok(syncView(old, 1000 * DAY, esc).includes(note));
+  assert.ok(!syncView({ ...synced, summary: { ...synced.summary, attrs: null } }, 1000 * DAY, esc).includes(note));
+});
