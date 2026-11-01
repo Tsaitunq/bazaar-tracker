@@ -18,6 +18,8 @@ export const loadStats = () => fetchJson('stats.json').then((d) => d.i ?? null, 
 export const loadRecipes = () => fetchJson('recipes.json').then((d) => d.r ?? null, () => null);
 export const loadForge = () => fetchJson('forge.json').then((d) => d.r ?? null, () => null);
 // lowest BIN per forge result that is not on the bazaar; empty when there is none yet
+// game data of all items (scripts/items.mjs); null until the snapshot run has written it
+export const loadItemData = () => fetchJson('items.json').then((d) => d.r ?? null, () => null);
 export const loadAh = () => fetchJson('ah.json').then((d) => d.p ?? {}, () => ({}));
 export const loadElection = () => fetchJson('election.json').then((d) => (d?.mayor ? d : null), () => null);
 // runs per event and perk (timing.js); empty until the first one is recorded
