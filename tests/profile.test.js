@@ -130,3 +130,34 @@ test('nothing readable at all rejects', async () => {
   // an inventory without slots is readable, just empty
   assert.deepEqual((await summarize({ inventory: { inv_armor: { data: gzipBase64(encodeNbt({ i: tag.list([]) })) } } })).items, []);
 });
+
+test('items know their wardrobe set, and what is worn belongs to the equipped one', async () => {
+  const shared = slot('SHARED', { uuid: 'one' });
+  const m = {
+    inventory: { inv_armor: store(slot('WORN')), equipment_contents: store(slot('WORN_NECK')) },
+    loadout: {
+      armor: { 1: { id: 1, HELMET: store(shared), BOOTS: store(slot('ONLY_ONE')) }, 3: { id: 3, HELMET: store(shared) }, 2: { id: 2 }, 5: { id: 5 }, equipped_set: 2 },
+      equipment: { 4: { id: 4, EQUIPMENT_SLOT_1: store(slot('NECK')) }, equipped_set: 7 },
+    },
+  };
+  const out = await summarize(m);
+  const sets = Object.fromEntries(out.items.map((i) => [i.id, i.sets]));
+  assert.deepEqual(sets.WORN, ['armor:2']);
+  assert.deepEqual(sets.WORN_NECK, ['equipment:7']);
+  assert.deepEqual(sets.SHARED, ['armor:1', 'armor:3']);
+  assert.deepEqual(sets.ONLY_ONE, ['armor:1']);
+  assert.deepEqual(sets.NECK, ['equipment:4']);
+  assert.equal(out.items.filter((i) => i.id === 'SHARED').length, 1);
+  assert.deepEqual(out.wardrobe, { armor: { equipped: 2, sets: [1, 2, 3] }, equipment: { equipped: 7, sets: [4, 7] } });
+});
+
+test('no loadout gives no wardrobe, and the farming cap is read', async () => {
+  const out = await summarize({ inventory: {}, jacobs_contest: { perks: { farming_level_cap: 3 } } });
+  assert.equal(out.wardrobe, null);
+  assert.equal(out.farmingCap, 3);
+});
+
+test('inventory off keeps the wardrobe of the last sync', async () => {
+  const out = await summarize({}, { items: [], wardrobe: { armor: { equipped: 1, sets: [1] }, equipment: { equipped: 1, sets: [1] } } });
+  assert.equal(out.wardrobe.armor.equipped, 1);
+});
