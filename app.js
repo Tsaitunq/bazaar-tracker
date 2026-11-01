@@ -5,14 +5,16 @@ import { forgeFlips, forgeFlip } from './forge.js';
 import { minionRows, minionDetail, FUELS, UPGRADES, MAX_TIER } from './minions.js';
 import { loadItems, fallbackName } from './names.js';
 import { loadStats, loadRecipes, loadForge, loadAh, loadElection, loadTiming, loadWindows, loadHistory, freshBins, fetchBins } from './data.js';
-import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission, loadHeld, storeHeld } from './native.js';
-import { PERSONAL, flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, trendsView, todayView, windowBanners, minionCard, minionSheet, parseRoute, detailView, portfolioView, warningsView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, viewsFor, areaOf, coins, percent, PLACEHOLDER_ICON } from './render.js';
+import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission, loadHeld, storeHeld, canSync, getApiKey, setApiKey, loadProfile, saveProfile, clearProfileData } from './native.js';
+import { esc, PERSONAL, flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, trendsView, todayView, windowBanners, minionCard, minionSheet, parseRoute, detailView, portfolioView, warningsView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, viewsFor, areaOf, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
 import { level } from './trends.js';
 import { activePerks, upcoming, electionWindow, eventItems, flipRisks, planElection, taxAdvice } from './events.js';
 import { buyNow, itemWindows, readWindowAlerts, windowAlerts, MIN_ALERT_RUNS } from './timing.js';
 import { bindSheet, openSheet } from './sheet.js';
 import { loadBundled, mergeGuides, exportData, importData, progressView, personalVisibility, secretTap, setMark, pushRecent } from './progress.js';
+import { createSync, syncMessage, syncView, normalizeUuid, cleanKey } from './sync.js';
+import { summarize } from './profile.js';
 import { initOnboarding, refreshHints, offerAdvanced, returning } from './tour.js';
 
 const API = 'https://api.hypixel.net/v2/skyblock/bazaar';
@@ -655,6 +657,8 @@ let guideId = load('bt.guide', null);
 let guideMode = load('bt.guideMode', 'slot');
 const guideRecent = load('bt.guideRecent', {});
 let undoKey = null;
+let profileState = null;
+let syncNote = {};
 let undoTimer = 0;
 const UNDO_MS = 5000;
 let resetArmed = false;
@@ -700,7 +704,7 @@ function renderProgress() {
   const guide = currentGuide();
   if (!guide) { $('progress').innerHTML = '<p class="count muted">Loading…</p>'; return; }
   const wants = new Set();
-  $('progress').innerHTML = progressView({ guides: guides(), current: guide.id, checked: checksOf(guide.id), products, prices: { forge, ah, cofl: freshBins(bins), wants }, name: nameOf, open: guideOpen[guide.id] ?? null, armed: resetArmed, removable: imported.some((g) => g.id === guide.id), mode: guideMode, recent: guideRecent[guide.id] ?? [], undo: undoKey });
+  $('progress').innerHTML = progressView({ guides: guides(), current: guide.id, checked: checksOf(guide.id), products, prices: { forge, ah, cofl: freshBins(bins), wants }, name: nameOf, open: guideOpen[guide.id] ?? null, armed: resetArmed, removable: imported.some((g) => g.id === guide.id), mode: guideMode, recent: guideRecent[guide.id] ?? [], undo: undoKey, syncBar: canSync() ? syncView(profileState, Date.now(), esc, syncNote) : '' });
   askBins(wants);
 }
 $('progress').addEventListener('change', (e) => {
@@ -714,6 +718,9 @@ $('progress').addEventListener('change', (e) => {
   (boxes.find((b) => b.dataset.step === key) ?? boxes[0])?.focus({ preventScroll: true });
 });
 $('progress').addEventListener('click', (e) => {
+  if (e.target.closest('[data-sync="run"]')) return runProfileSync();
+  const syncPick = e.target.closest('[data-sync-pick]')?.dataset.syncPick;
+  if (syncPick) return runProfileSync(syncPick);
   const pick = e.target.closest('[data-guide]')?.dataset.guide;
   if (pick) {
     guideId = pick;
@@ -763,6 +770,7 @@ function refreshProgress() {
   const shown = personalVisibility(guides().length, importUnlocked);
   $('personal-settings').hidden = !shown.section;
   $('personal-switch').hidden = !shown.toggle;
+  $('hypixel-profile').hidden = !shown.toggle || !canSync();
   // the address can already say Progress, so no hashchange comes when the area appears
   if (parseRoute(location.hash).view === PERSONAL) {
     if (!progressOn()) history.replaceState(null, '', '#/flips');
@@ -832,6 +840,66 @@ $('personal-settings').addEventListener('click', async (e) => {
   }
   guideMessage(copied ? 'Copied to the clipboard.' : 'Copy the text above.');
 });
+const profileSync = createSync({ store: { getApiKey, loadProfile, saveProfile }, summarize });
+let removeArmed = false;
+const hpStatus = (text) => { $('hp-status').textContent = text; };
+async function showProfile() {
+  if (!canSync()) return;
+  profileState = await loadProfile();
+  $('hp-uuid').value = profileState?.uuid ?? '';
+  $('hp-key-state').textContent = await getApiKey().then((key) => (key ? 'Key saved.' : 'No key saved.'), () => syncMessage('keyread'));
+  if (area() === PERSONAL) renderProgress();
+}
+async function runProfileSync(pick) {
+  syncNote = { message: 'Syncing…' };
+  renderProgress();
+  const result = await profileSync.run(pick);
+  if (result.status === 'busy') return;
+  syncNote = result.status === 'error' ? { message: syncMessage(result.error, result.retryIn) }
+    : result.status === 'choose' ? { message: 'Pick your profile.', choices: result.choices }
+    : result.status === 'stale' ? {}
+    : { message: 'Synced.' };
+  if (result.status === 'ok') profileState = result.state;
+  if (area() === PERSONAL) renderProgress();
+}
+async function saveProfileFields() {
+  const uuid = normalizeUuid($('hp-uuid').value);
+  if (!uuid) return hpStatus(syncMessage('input'));
+  const state = await loadProfile();
+  // another player's stand must not stay behind under a new UUID
+  if (state?.uuid !== uuid) {
+    profileSync.invalidate();
+    if (!await saveProfile({ uuid })) return hpStatus(syncMessage('store'));
+  }
+  const key = cleanKey($('hp-key').value);
+  $('hp-key').value = '';
+  if (key && !await setApiKey(key)) return hpStatus('Could not save the key on this phone.');
+  await showProfile();
+  hpStatus('Saved.');
+}
+$('hypixel-profile').addEventListener('click', async (e) => {
+  const act = e.target.closest('[data-hp]')?.dataset.hp;
+  if (!act) return;
+  const remove = $('hypixel-profile').querySelector('[data-hp="remove"]');
+  if (act === 'save') {
+    removeArmed = false;
+    remove.textContent = 'Remove key and profile data';
+    return saveProfileFields();
+  }
+  if (!removeArmed) {
+    removeArmed = true;
+    remove.textContent = 'Tap again to remove';
+    return;
+  }
+  removeArmed = false;
+  remove.textContent = 'Remove key and profile data';
+  syncNote = {};
+  $('hp-key').value = '';
+  profileSync.invalidate();
+  hpStatus(await clearProfileData() ? 'Key and profile data removed.' : 'Could not remove them.');
+  await showProfile();
+});
+showProfile();
 $('search').addEventListener('input', render);
 $('refresh').addEventListener('click', refresh);
 $('fav-only').addEventListener('click', () => {

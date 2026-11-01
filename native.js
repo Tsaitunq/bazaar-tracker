@@ -62,6 +62,35 @@ export async function storeHeld(id, held) {
   }
 }
 
+// The API key and the profile stay on the device: natively, encrypted and outside Android's backup, never in localStorage.
+export const canSync = () => plugin() !== null;
+
+// Null means no key. A key that cannot be read right now rejects, so nobody is told to add it again.
+export async function getApiKey() {
+  return (await plugin()?.getApiKey())?.key ?? null;
+}
+
+const done = async (call) => {
+  try {
+    if (!plugin()) return false;
+    await call(plugin());
+    return true;
+  } catch {
+    return false;
+  }
+};
+export const setApiKey = (key) => done((p) => p.setApiKey({ key }));
+export const saveProfile = (profile) => done((p) => p.saveProfile({ json: JSON.stringify(profile) }));
+export const clearProfileData = () => done(async (p) => { await p.clearApiKey(); await p.clearProfile(); });
+
+export async function loadProfile() {
+  try {
+    return JSON.parse((await plugin()?.loadProfile())?.json ?? 'null');
+  } catch {
+    return null;
+  }
+}
+
 export function syncAlerts(settings, favs, names, plan) {
   plugin()?.configure(alertConfig(settings, favs, names, plan)).catch(() => {});
 }
