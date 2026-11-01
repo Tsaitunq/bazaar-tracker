@@ -260,8 +260,14 @@ const marketWarned = () => alerts.some((w) => w.kind === 'price' || w.kind === '
 
 function recompute() {
   if (!products) return;
-  plan = buildPlan();
-  watchPlan();
+  // a failing plan must not stop the prices from being drawn; the list then shows no plan
+  try {
+    plan = buildPlan();
+    watchPlan();
+  } catch (e) {
+    plan = null;
+    console.error(`Plan failed: ${e.message}`);
+  }
   opps = opportunities(products, { ...oppOpts(), sort: 'profitHour' });
   for (const f of opps) f.name = nameOf(f.id);
   // without the stats the list is empty, and an empty list would make everything "new" next time

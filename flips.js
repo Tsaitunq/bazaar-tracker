@@ -115,7 +115,22 @@ export function opportunities(products, { tax, maxCapital, share = 1, sort, stat
 // shortcut: cannot tell steady sales from a few bulk trades; record the weekly volume per snapshot to do that
 export const PLAN_MIN_HOUR_SALES = 10;
 export const MAX_SLOTS = 21; // the bazaar allows 21 open orders, so no plan can hold more flips
-export function portfolio(products, { capital, slots, ...opts }) {
+export function portfolio(products, params) {
+  const base = planFor(products, params);
+  // What more slots would do, worked out once with the most the bazaar allows. If fewer are enough, the
+  // numbers are those of a plan with exactly that many, so the hint holds when the player sets it.
+  // planFor, not portfolio: a hint of a hint would not end
+  let more = null;
+  if (base.limit === 'slots' && Math.floor(params.slots) < MAX_SLOTS) {
+    const plan = (slots) => planFor(products, { ...params, slots });
+    const most = plan(MAX_SLOTS);
+    const { used, profitHour } = most.flips.length < MAX_SLOTS ? plan(most.flips.length) : most;
+    more = { slots: most.flips.length, used, profitHour };
+  }
+  return { ...base, more };
+}
+
+function planFor(products, { capital, slots, ...opts }) {
   const n = Math.floor(slots);
   const cap = opts.maxCapital > 0 ? opts.maxCapital : capital;
   const share = opts.share ?? 1;
@@ -165,19 +180,9 @@ export function portfolio(products, { capital, slots, ...opts }) {
     limit = flips.length >= n && ranked.some(fits) ? 'slots'
       : opts.maxCapital > 0 && flips.some((f) => f.hourVol * share - f.units >= 1) ? 'maxCapital' : 'volume';
   }
-  // What more slots would do, worked out once with the most the bazaar allows. If fewer are enough, the
-  // numbers are those of a plan with exactly that many, so the hint holds when the player sets it.
-  let more = null;
-  if (limit === 'slots' && n < MAX_SLOTS) {
-    const plan = (slots) => portfolio(products, { capital, slots, ...opts });
-    const most = plan(MAX_SLOTS);
-    const { used, profitHour } = most.flips.length < MAX_SLOTS ? plan(most.flips.length) : most;
-    more = { slots: most.flips.length, used, profitHour };
-  }
   return {
     flips,
     limit,
-    more,
     profitHour: flips.reduce((sum, f) => sum + f.profitHour, 0),
     used: flips.reduce((sum, f) => sum + f.stake, 0),
   };

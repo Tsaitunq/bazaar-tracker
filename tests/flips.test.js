@@ -384,3 +384,18 @@ test('search in Opportunities: the Griffin Upgrade Stones stay out, however they
   // an item without orders has no flip at all and is not suspicious: it may be listed with its reason
   assert.equal(outsideOpportunities([searchFlip('X', { sell_summary: [], buy_summary: [] }, opts, oppIssues)]).length, 1);
 });
+
+test('portfolio ends when the slots look like the limit but the leftover coins earn too little', () => {
+  // three flips take 39,000 of 42,000; D "fits" the 3,000 left, but 3 units earn under minProfitHour, so more
+  // slots add nothing. The hint used to ask for a plan with 3 slots again and again (RangeError)
+  const niche = { buyMovingWeek: 1680 }; // 10 an hour: each flip takes 10 units
+  const products = {
+    A: product(1300, 1850, niche), B: product(1300, 1950, niche), C: product(1300, 1900, niche), D: product(1000, 1100, niche),
+  };
+  const opts = { ...planOpts, stats: planStats(products), minMargin: 0.01, minProfitHour: 800, capital: 42000, slots: 3 };
+  const plan = portfolio(products, opts);
+  assert.deepEqual(plan.flips.map((f) => f.id).sort(), ['A', 'B', 'C']);
+  assert.equal(plan.limit, 'slots');
+  assert.equal(plan.more.slots, 3);
+  near(plan.more.profitHour, plan.profitHour);
+});

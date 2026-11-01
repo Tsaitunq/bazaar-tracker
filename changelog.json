@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.10.1",
+      "date": "2026-11-01",
+      "entries": [
+        { "title": "Portfolio no longer freezes", "text": "With few slots and little capital the portfolio could fail to load. It now always shows, and a plan error can no longer stop the prices from updating." }
+      ]
+    },
+    {
       "version": "0.10.0",
       "date": "2026-10-31",
       "entries": [
