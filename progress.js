@@ -345,7 +345,7 @@ function lockBadge(step, ctx) {
   return status === 'locked' ? `<span class="guide-src" data-src="locked">locked</span><small class="guide-hint">${esc(reasons.join(' · '))}</small>` : '';
 }
 
-const stepRow = (section, step, checked, ctx, name, extra = '') => {
+export const stepRow = (section, step, checked, ctx, name, extra = '') => {
   const key = stepKey(section, step);
   const shown = checked.has(key) ? step : openStep(section, step, ctx);
   // a finished step needs no price from the network
@@ -402,17 +402,19 @@ function nextView(guide, checked, ctx, name, products, recent, undo, autoOpen) {
 }
 
 // open: the unfolded sections' names, or null at first, when the first one with open steps unfolds.
-export function progressView({ guides, current, checked: marks, products, prices = {}, name, open = null, armed = false, removable = false, mode = 'slot', recent = [], undo = null, syncBar = '', profile = null, autoOpen = false }) {
+export function progressView({ guides, current, checked: marks, products, prices = {}, name, open = null, armed = false, removable = false, mode = 'slot', recent = [], undo = null, syncBar = '', profile = null, autoOpen = false, bestValue = null }) {
   const guide = guides.find((g) => g.id === current) ?? guides[0];
   const auto = detectGuide(guide, profile, stepKey);
   const ctx = { ...prices, products, auto, profile, marks };
   const checked = doneSet(guide, marks, auto);
   const stats = guideStats(guide, checked, ctx);
+  const ranks = guide.area === 'mining' && !!bestValue;
+  const shown = mode === 'best' && !ranks ? 'slot' : mode;
   const first = open ? null : guide.sections.find((_, i) => stats.sections[i].done < stats.sections[i].total)?.name;
   const page = `${syncBar}<div class="bar ranges guide-switch" role="group" aria-label="Guide">${guides.map((g) => `<button type="button" data-guide="${esc(g.id)}" aria-pressed="${g.id === guide.id}">${esc(g.title)}</button>`).join('')}</div>
   <p class="guide-count"><strong>${stats.done} / ${stats.total}</strong>${guide.source ? ` <a class="muted" href="${esc(guide.source)}" rel="noopener">Source</a>` : ''}</p>
-  <div class="bar ranges guide-switch" role="group" aria-label="View">${[['slot', 'By slot'], ['next', 'Next upgrades']].map(([m, label]) => `<button type="button" data-guide-mode="${m}" aria-pressed="${m === mode}">${label}</button>`).join('')}</div>
-  ${mode === 'next' ? nextView(guide, checked, ctx, name, products, recent, undo, autoOpen) : `<section class="guide-next" aria-label="Next step"><h2>Next step</h2>${stats.next
+  <div class="bar ranges guide-switch" role="group" aria-label="View">${[['slot', 'By slot'], ['next', 'Next upgrades'], ...(ranks ? [['best', 'Best value']] : [])].map(([m, label]) => `<button type="button" data-guide-mode="${m}" aria-pressed="${m === shown}">${label}</button>`).join('')}</div>
+  ${shown === 'next' ? nextView(guide, checked, ctx, name, products, recent, undo, autoOpen) : shown === 'best' ? bestValue({ guide, checked, ctx, name, products }) + recentView(guide, recent, undo) + autoView(guide, checked, ctx, autoOpen) : `<section class="guide-next" aria-label="Next step"><h2>Next step</h2>${stats.next
     ? `<small class="guide-hint">${esc(stats.next.section.name)}</small><ul class="guide-steps">${stepRow(stats.next.section, stats.next.step, checked, ctx, name)}</ul>`
     : '<p class="muted">All steps are done.</p>'}</section>
   ${guide.sections.map((section, i) => {

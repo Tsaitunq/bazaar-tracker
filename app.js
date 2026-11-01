@@ -16,7 +16,7 @@ import { loadBundled, mergeGuides, exportData, importData, progressView, persona
 import { createSync, syncMessage, syncView, normalizeUuid, cleanKey } from './sync.js';
 import { summarize } from './profile.js';
 import { statsView, statsEntry, loadoutOf, computeStats, offsetStale } from './stats.js';
-import { PRESETS, miningSettings } from './optimizer.js';
+import { PRESETS, miningSettings, bestValueView } from './optimizer.js';
 import { detectGuide } from './detect.js';
 import { initOnboarding, refreshHints, offerAdvanced, returning } from './tour.js';
 
@@ -704,10 +704,10 @@ function markStep(guide, key, on) {
   guideChecks[guide.id] = [...marks];
   save('bt.guideChecks', guideChecks);
   const recent = (guideRecent[guide.id] ?? []).filter((k) => k !== key);
-  guideRecent[guide.id] = on && guideMode === 'next' ? pushRecent(recent, key) : recent;
+  guideRecent[guide.id] = on && guideMode !== 'slot' ? pushRecent(recent, key) : recent;
   save('bt.guideRecent', guideRecent);
   clearTimeout(undoTimer);
-  undoKey = on && guideMode === 'next' ? key : null;
+  undoKey = on && guideMode !== 'slot' ? key : null;
   if (undoKey) undoTimer = setTimeout(() => { undoKey = null; if (area() === PERSONAL) renderProgress(); }, UNDO_MS);
 }
 // Game data of all items, large, so only asked once a guide is on screen. Until then requirements are unknown.
@@ -723,7 +723,7 @@ function renderProgress() {
   if (!guide) { $('progress').innerHTML = '<p class="count muted">Loading…</p>'; return; }
   askItemData();
   const wants = new Set();
-  $('progress').innerHTML = progressView({ guides: guides(), current: guide.id, checked: checksOf(guide.id), products, prices: { forge, ah, cofl: freshBins(bins), wants, items: itemData }, name: nameOf, open: guideOpen[guide.id] ?? null, armed: resetArmed, removable: imported.some((g) => g.id === guide.id), mode: guideMode, recent: guideRecent[guide.id] ?? [], undo: undoKey, syncBar: canSync() ? syncView(profileState, Date.now(), esc, syncNote) : '', profile: profileState?.summary ?? null, autoOpen: guideAutoOpen });
+  $('progress').innerHTML = progressView({ guides: guides(), current: guide.id, checked: checksOf(guide.id), products, prices: { forge, ah, cofl: freshBins(bins), wants, items: itemData, tax: settings.tax / 100, derpy: election?.mayor?.name === 'Derpy' }, name: nameOf, open: guideOpen[guide.id] ?? null, armed: resetArmed, removable: imported.some((g) => g.id === guide.id), mode: guideMode, recent: guideRecent[guide.id] ?? [], undo: undoKey, syncBar: canSync() ? syncView(profileState, Date.now(), esc, syncNote) : '', profile: profileState?.summary ?? null, autoOpen: guideAutoOpen, bestValue: (view) => bestValueView({ ...view, state: profileState, settings: miningSettings(settings.mining), keepOldGear: settings.keepOldGear === true, boosts: boostsNow(), preset: statsPreset }) });
   askBins(wants);
 }
 $('progress').addEventListener('change', (e) => {
@@ -738,6 +738,10 @@ $('progress').addEventListener('change', (e) => {
 });
 $('progress').addEventListener('click', (e) => {
   if (e.target.closest('[data-sync="run"]')) return runProfileSync();
+  if (e.target.closest('[data-open-settings]')) {
+    openPanel();
+    return $('hypixel-profile').scrollIntoView({ block: 'center' });
+  }
   const syncPick = e.target.closest('[data-sync-pick]')?.dataset.syncPick;
   if (syncPick) return runProfileSync(syncPick);
   const pick = e.target.closest('[data-guide]')?.dataset.guide;

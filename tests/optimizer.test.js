@@ -1,8 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { stepDelta, PRESETS, miningSettings, rankUpgrades, netCost } from '../optimizer.js';
+import { existsSync, readFileSync } from 'node:fs';
+import { stepDelta, PRESETS, miningSettings, rankUpgrades, netCost, bestLoadout, bestValueView } from '../optimizer.js';
+import { summarize } from '../profile.js';
 import { GEMSTONE, miningScore, loadoutOf } from '../stats.js';
-import { guideStats } from '../progress.js';
+import { guideStats, progressView, validGuide, exportData } from '../progress.js';
 
 const piece = (id, extra = {}) => ({ id, where: 'armor', gems: [], enchants: {}, parts: {}, reforge: null, recomb: false, polarvoid: 0, coating: false, lore: {}, ...extra });
 const DRILL = 'TITANIUM_DRILL_4';
@@ -402,4 +404,143 @@ test('By slot sums stay gross', () => {
   const g = rankGuide({ text: 'x', ...swap });
   const ctx = { products: { NEW_HELMET: sold(5e6), OLD_HELMET: orders(1e6) }, profile: profile(), items };
   assert.equal(guideStats(g, new Set(), ctx).sections[0].coins, 5e6);
+});
+
+const armorItems = { H1: { category: 'HELMET' }, H2: { category: 'HELMET' }, B1: { category: 'BOOTS' }, B2: { category: 'BOOTS' }, RING: { category: 'ACCESSORY' }, HELM_ACC: { category: 'HELMET' } };
+const stat = (id, lore, where = 'armor') => piece(id, { where, lore });
+
+test('bestLoadout picks per slot the owned item with the highest score', () => {
+  const h1 = stat('H1', { MINING_FORTUNE: 10 });
+  const h2 = stat('H2', { MINING_FORTUNE: 40 }, 'ender_chest');
+  const out = bestLoadout({ items: [h1, h2] }, armorItems, setup({ armor: [h1], held: null }), { MINING_FORTUNE: 100, MINING_SPEED: 1000 }, GEMSTONE);
+  assert.deepEqual(out.slots, [{ slot: 'HELMET', current: h1, best: h2 }]);
+  assert.ok(Math.abs(out.gain - 30 / 200) < 1e-9);
+});
+
+test('each pick builds on the ones before it', () => {
+  const h = stat('H2', { MINING_SPEED: 1000 }, 'backpack');
+  const b = stat('B1', { MINING_SPEED: 500 }, 'backpack');
+  const b2 = stat('B2', { MINING_FORTUNE: 5 }, 'backpack');
+  // with 1000 speed from the helmet the softcap makes the boots with speed worth nothing
+  const out = bestLoadout({ items: [h, b, b2] }, armorItems, setup({ armor: [], held: null }), { MINING_SPEED: 19000, MINING_FORTUNE: 0 }, GEMSTONE);
+  assert.equal(out.slots.find((s) => s.slot === 'BOOTS').best.id, 'B2');
+});
+
+test('a slot already best is not listed and the gain is 0', () => {
+  const h1 = stat('H1', { MINING_FORTUNE: 40 });
+  const out = bestLoadout({ items: [h1, stat('H2', { MINING_FORTUNE: 40 }, 'backpack')] }, armorItems, setup({ armor: [h1], held: null }), { MINING_FORTUNE: 40 }, GEMSTONE);
+  assert.deepEqual(out, { slots: [], gain: 0 });
+});
+
+test('an item in the chest or a backpack counts, an accessory does not', () => {
+  const inBag = stat('HELM_ACC', { MINING_FORTUNE: 99 }, 'accessory');
+  assert.equal(bestLoadout({ items: [inBag] }, armorItems, setup({ armor: [], held: null }), {}, GEMSTONE).slots.length, 0);
+  assert.equal(bestLoadout({ items: [stat('H1', { MINING_FORTUNE: 9 }, 'ender_chest')] }, armorItems, setup({ armor: [], held: null }), {}, GEMSTONE).slots.length, 1);
+});
+
+const mineGuide = (over = {}) => ({ id: 'm', title: 'Mine', area: 'mining', groups: guide.groups, sections: [{ name: 'Main', steps: [{ text: 'cheap', gain: { MINING_FORTUNE: 10, MINING_SPEED: 40 }, items: [{ id: 'A', qty: 1 }] }] }], ...over });
+const summary = () => ({ ...profile([piece(DRILL, { where: 'inventory', lore: { MINING_SPEED: 1000 } })]), wardrobe: { armor: { equipped: 1, sets: [1] }, equipment: { equipped: 1, sets: [1] } } });
+const view = (g, { state = { summary: summary(), syncedAt: 1 }, products = { A: sold(5e6) }, data = items } = {}) => progressView({ guides: [g], current: g.id, checked: new Set(), products, prices: { items: data }, name: (id) => id, mode: 'best', profile: state?.summary ?? null,
+  bestValue: (v) => bestValueView({ ...v, state, settings: miningSettings(null) }) });
+
+test('the mode button shows only on a guide with area mining', () => {
+  assert.match(view(mineGuide()), /data-guide-mode="best" aria-pressed="true"/);
+  assert.doesNotMatch(view(mineGuide({ area: undefined })), /data-guide-mode="best"/);
+});
+
+test('a saved best mode on a guide without area shows By slot', () => {
+  const html = view(mineGuide({ area: undefined }));
+  assert.match(html, /data-guide-mode="slot" aria-pressed="true"/);
+  assert.match(html, /Next step/);
+});
+
+test('without a sync the mode says what is missing and links to the settings', () => {
+  const html = view(mineGuide(), { state: null });
+  assert.match(html, /Sync your profile/);
+  assert.match(html, /data-open-settings/);
+});
+
+test('without item data the mode waits and does not throw', () => {
+  assert.match(view(mineGuide(), { data: null }), /Loading item data/);
+});
+
+test('the row shows yield, per million, raw stats and the net line', () => {
+  const html = view(mineGuide({ sections: [{ name: 'Main', steps: [{ text: 's', detect: { kind: 'owned', on: [['NEW_HELMET']] }, items: [{ id: 'NEW_HELMET', qty: 1 }] }] }] }), {
+    products: { NEW_HELMET: sold(20e6), OLD_HELMET: orders(8e6) },
+    state: { summary: { ...profile([piece('OLD_HELMET', { sets: ['armor:1'] })]), wardrobe: { armor: { equipped: 1, sets: [1] }, equipment: { equipped: 1, sets: [1] } } }, syncedAt: 1 },
+  });
+  assert.match(html, /\+\d+(\.\d+)? % yield · \d+(\.\d+)? %\/1M/);
+  assert.match(html, /\+20 Fortune, \+5 Speed/);
+  assert.match(html, /Net .* \(buy .* − resale .*\)/);
+  assert.match(view(mineGuide()), /\+10 Fortune, \+40 Speed/);
+});
+
+test('locked rows stand under the ranking with their reason, no rank', () => {
+  const html = view(mineGuide({ sections: [{ name: 'Main', steps: [{ text: 'open', gain: { MINING_SPEED: 10 }, items: [{ id: 'A', qty: 1 }] }, { text: 'hard', gain: { MINING_SPEED: 10 }, items: [{ id: 'HARD', qty: 1 }] }] }] }), { products: { A: sold(1e6), HARD: sold(1e6) }, data: lockedData });
+  const best = html.indexOf('aria-label="Best value"');
+  const locked = html.indexOf('aria-label="Locked"');
+  assert.ok(best > 0 && locked > best);
+  assert.match(html.slice(locked), /hard/);
+  assert.match(html.slice(locked), /HOTM 7 needed/);
+  assert.doesNotMatch(html.slice(locked), /%\/1M/);
+  assert.doesNotMatch(html.slice(best, locked), /hard/);
+});
+
+test('the best card names the slot of the wardrobe and what stays out', () => {
+  const worn1 = piece('OLD_HELMET', { sets: ['armor:1'], lore: { MINING_FORTUNE: 1 } });
+  const spare = piece('NEW_HELMET', { where: 'ender_chest', lore: { MINING_FORTUNE: 100 } });
+  const state = { summary: { ...profile([worn1, spare]), wardrobe: { armor: { equipped: 1, sets: [1] }, equipment: { equipped: 1, sets: [1] } } }, syncedAt: 1 };
+  const html = view(mineGuide(), { state });
+  assert.match(html, /Best possible/);
+  assert.match(html, /OLD_HELMET → NEW_HELMET/);
+  assert.match(html, /Pet stays as picked/);
+});
+
+test('the notes say when the offset is not in use', () => {
+  const base = { summary: summary(), syncedAt: 5 };
+  assert.match(view(mineGuide(), { state: base }), /Save your \/stats/);
+  const entry = { choice: { armor: 1, equipment: 1, pet: null }, values: {}, offset: {}, offsetFor: { armor: 1, equipment: 1, pet: null }, offsetNote: 'boost', at: 1 };
+  const html = view(mineGuide(), { state: { ...base, statsInput: { mining: entry } } });
+  assert.match(html, /do not match the God Potion/);
+  assert.match(html, /older than the last sync/);
+});
+
+test('the mithril preset warns that fortune reads low', () => {
+  const html = progressView({ guides: [mineGuide()], current: 'm', checked: new Set(), products: {}, prices: { items }, name: String, mode: 'best', profile: summary(),
+    bestValue: (v) => bestValueView({ ...v, state: { summary: summary(), syncedAt: 1 }, settings: miningSettings({ preset: 'mithril' }) }) });
+  assert.match(html, /Target: Mithril/);
+  assert.match(html, /fortune steps read low/);
+});
+
+test('names and reasons are escaped', () => {
+  const data = { ...items, HARD: { requirements: [{ type: 'COLLECTION', collection: '<b>', tier: 1 }] } };
+  const html = view(mineGuide({ sections: [{ name: 'Main', steps: [{ text: '<i>x', line: 'L', gain: { MINING_SPEED: 1 }, items: [{ id: 'HARD', qty: 1 }] }] }] }), { products: { HARD: sold(1) }, data, state: { summary: { ...summary(), collTiers: [] }, syncedAt: 1 } });
+  assert.doesNotMatch(html, /<i>x|<b>/);
+});
+
+test('the export after a sync still holds no offset or in-game value', () => {
+  const text = exportData([mineGuide()], { m: ['Main|cheap'] });
+  assert.doesNotMatch(text, /offset|statsInput|inGame/);
+});
+
+test('a piece in the picked Blaze slot keeps its resale out of the view', () => {
+  const helmet = piece('OLD_HELMET', { sets: ['armor:1'] });
+  const steps = [{ text: 's', detect: { kind: 'owned', on: [['NEW_HELMET']] }, items: [{ id: 'NEW_HELMET', qty: 1 }] }];
+  const state = { summary: { ...profile([helmet]), wardrobe: { armor: { equipped: 1, sets: [1] }, equipment: { equipped: 1, sets: [1] } } }, syncedAt: 1, statsInput: { blaze: { choice: { armor: 1, equipment: 1 } } } };
+  const html = view(mineGuide({ sections: [{ name: 'Main', steps }] }), { state, products: { NEW_HELMET: sold(20e6), OLD_HELMET: orders(8e6) } });
+  assert.doesNotMatch(html, /resale/);
+});
+
+const FIXTURE = 'personal/fixtures/profile-fixture.json';
+const ITEMS = 'personal/items.json';
+const GUIDE = 'personal/guides/mining.json';
+test('the real mining guide ranks without error and every group is an array', { skip: !(existsSync(FIXTURE) && existsSync(ITEMS) && existsSync(GUIDE)) }, async () => {
+  const realGuide = validGuide(JSON.parse(readFileSync(GUIDE, 'utf8')));
+  const prof = await summarize(JSON.parse(readFileSync(FIXTURE, 'utf8')).members.self);
+  const data = JSON.parse(readFileSync(ITEMS, 'utf8')).r;
+  const settings = miningSettings(null);
+  const loadout = loadoutOf(prof, data, 'mining', null, settings);
+  const out = rankUpgrades(realGuide, new Set(), { products: {}, profile: prof, items: data }, loadout, settings, {});
+  for (const rows of Object.values(out)) assert.ok(Array.isArray(rows));
+  assert.equal(realGuide.area, 'mining');
 });

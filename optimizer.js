@@ -1,6 +1,7 @@
 // Which open guide step brings the most per coin (spec 4 and 5). Pure functions over the guide, the prices and the synced profile.
-import { AREA_STATS, computeStats, miningScore } from './stats.js';
-import { nextUpgrades, stepCost, openStep, bookOf, stepKey } from './progress.js';
+import { AREA_STATS, computeStats, miningScore, loadoutOf, withOffset, offsetStale } from './stats.js';
+import { nextUpgrades, stepCost, openStep, bookOf, stepKey, stepRow } from './progress.js';
+import { esc, coins } from './render.js';
 import { checkStep } from './requires.js';
 import { walkBook } from './craft.js';
 import { ahNet } from './forge.js';
@@ -317,4 +318,90 @@ export function rankUpgrades(guide, checked, ctx, loadout, settings, base, { oth
   groups.ranked.sort((a, b) => b.perMillion - a.perMillion);
   groups.free.sort((a, b) => b.gain - a.gain);
   return groups;
+}
+
+const SLOT_GROUPS = [['HELMET'], ['CHESTPLATE'], ['LEGGINGS'], ['BOOTS'], ['NECKLACE'], ['CLOAK'], ['BELT'], ['GLOVES', 'BRACELET'], ['DRILL', 'PICKAXE', 'GAUNTLET']];
+
+// Greedy per slot from everything owned, each pick on top of the ones before. The pet stays as picked: abilities are not in the tables.
+export function bestLoadout(profile, items, loadout, base, settings) {
+  const slots = [];
+  let stats = plus({}, base);
+  for (const group of SLOT_GROUPS) {
+    const of = (i) => group.includes(items[i.id]?.category);
+    const current = worn(loadout).find(of) ?? null;
+    const without = difference(stats, current?.lore);
+    const score = (i) => miningScore(without, i?.lore ?? {}, settings);
+    let best = current;
+    for (const i of profile.items.filter((item) => of(item) && item.where !== 'accessory')) if (score(i) > score(best) + 1e-12) best = i;
+    stats = plus(without, best?.lore);
+    if (best !== current) slots.push({ slot: group[0], current, best });
+  }
+  return { slots, gain: slots.length ? miningScore(base, difference(stats, base), settings) : 0 };
+}
+
+const share = (v) => { const p = v * 100; return Math.abs(p) >= 0.1 ? p.toFixed(1) : p.toPrecision(1); };
+const RAW = { MINING_FORTUNE: 'Fortune', GEMSTONE_FORTUNE: 'Gemstone Fortune', ORE_FORTUNE: 'Ore Fortune', BLOCK_FORTUNE: 'Block Fortune', MINING_SPEED: 'Speed', PRISTINE: 'Pristine' };
+const rawLine = (delta) => Object.entries(delta).filter(([, v]) => v).map(([k, v]) => `${v > 0 ? '+' : ''}${Math.round(v * 100) / 100} ${RAW[k]}`).join(', ');
+const words = (s) => s[0].toUpperCase() + s.slice(1).toLowerCase();
+
+function rowExtra(row, ctx) {
+  const parts = [];
+  if (row.gain !== undefined) {
+    const rate = row.perMillion === undefined ? '' : ` · ${share(row.perMillion)} %/1M`;
+    parts.push(`<small class="guide-hint"><strong>+${share(row.gain)} % yield${rate}</strong></small><small class="guide-hint">${esc(rawLine(row.delta))}</small>`);
+  }
+  if (row.resale > 0) parts.push(`<small class="guide-hint">Net ${coins(row.net)} (buy ${coins(row.coins)} − resale ${coins(row.resale)})</small>`);
+  if (row.ahead) parts.push(`<small class="guide-hint">Counted up to: ${esc(row.ahead.text)}</small>`);
+  if (row.status === 'unknown') parts.push('<small class="guide-hint">Requirements could not be checked.</small>');
+  // stepRow shows the reason of its own step, not one further along the line
+  if (row.status === 'locked' && checkStep(row.step, ctx.items, ctx.profile).status !== 'locked') parts.push(`<small class="guide-hint">${esc(row.reasons.join(' · '))}</small>`);
+  return parts.join('');
+}
+
+const NOTES = {
+  boost: 'Your /stats do not match the God Potion / Booster Cookie settings, so they are left out.',
+  noitems: 'Save your /stats again: item data was missing, so they are left out.',
+  setup: 'Measure /stats again: the slot or pet changed, so they are left out.',
+};
+
+function bestCard(best, name) {
+  const pick = (i) => (i ? esc(name(i.id)) : 'nothing');
+  const body = best.slots.length
+    ? `<strong>+${share(best.gain)} % yield compared with your wardrobe slot</strong><ul class="stats-gaps">${best.slots.map((s) => `<li>${esc(words(s.slot))}: ${pick(s.current)} → ${pick(s.best)}</li>`).join('')}</ul>`
+    : '<small class="guide-hint">Your wardrobe slot already is the best of what you own.</small>';
+  return `<section class="guide-next" aria-label="Best possible"><h2>Best possible from what you own</h2>${body}<small class="guide-hint">Pet stays as picked. Set bonuses are not counted.</small></section>`;
+}
+
+export function bestValueView({ guide, checked, ctx, name, state, settings, keepOldGear, boosts = {}, preset = null }) {
+  const profile = state?.summary;
+  if (!profile) return '<section class="guide-next" aria-label="Best value"><h2>Best value</h2><p class="muted">Sync your profile to rank the upgrades against what you have.</p><div class="actions"><button type="button" data-open-settings>Open settings</button></div></section>';
+  if (!ctx.items) return '<p class="muted">Loading item data…</p>';
+  const entry = state.statsInput?.mining ?? preset?.mining ?? null;
+  const loadout = loadoutOf(profile, ctx.items, 'mining', entry?.choice, settings);
+  // without a picked Blaze slot both areas fall back to what is worn, which says nothing about what Blaze still needs
+  const blazeChoice = state.statsInput?.blaze?.choice ?? preset?.blaze?.choice;
+  const other = blazeChoice ? loadoutOf(profile, ctx.items, 'blaze', blazeChoice) : null;
+  const base = withOffset(computeStats(profile, ctx.items, loadout, 'mining', boosts).total, entry);
+  const groups = rankUpgrades(guide, checked, ctx, loadout, settings, base, { other, keepOldGear });
+  const notes = [
+    ...(settings.gemFortune ? [] : ['Gemstone Fortune does not count here, and Ore, Block and Dwarven Metal Fortune are not counted, so fortune steps read low.']),
+    ...(entry?.offset && NOTES[entry.offsetNote] ? [NOTES[entry.offsetNote]] : []),
+    ...(!entry?.offset ? ['Save your /stats in Settings to include what the app cannot read.'] : []),
+    ...(offsetStale(entry, entry?.choice) ? ['Measure /stats again: the slot or pet changed.'] : []),
+    ...(entry?.at && entry.at < state.syncedAt ? ['Your /stats values are older than the last sync.'] : []),
+    ...loadout.gaps,
+  ];
+  const list = (title, rows, note = '', label = () => '') => (rows.length
+    ? `<section class="guide-next" aria-label="${title}"><h2>${title}</h2>${note ? `<small class="guide-hint">${note}</small>` : ''}<ul class="guide-steps">${rows.map((r) => stepRow(r.section, r.step, checked, ctx, name, label(r) + rowExtra(r, ctx))).join('')}</ul></section>` : '');
+  const free = () => '<span class="guide-src" data-src="free">free</span>';
+  const open = Object.values(groups).reduce((n, rows) => n + rows.length, 0);
+  return `<p class="guide-hint">Target: ${words(settings.preset)}</p>
+  ${notes.length ? `<ul class="stats-gaps">${notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
+  ${bestCard(bestLoadout(profile, ctx.items, loadout, base, settings), name)}
+  ${open ? '' : '<p class="muted">All steps are done.</p>'}
+  ${list('Best value', [...groups.free, ...groups.ranked], '', (r) => (r.perMillion === undefined ? free() : ''))}
+  ${list('Locked', groups.locked)}
+  ${list('No price', groups.noPrice, 'A sum that leaves out an item would look cheaper than it is.')}
+  ${list('No gain data', groups.noGain, 'Nothing known gives this step a fixed value.')}
+  ${list('No mining gain', groups.zero, 'These add none of the stats counted here right now.')}`;
 }
