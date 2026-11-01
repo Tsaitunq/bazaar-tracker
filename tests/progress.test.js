@@ -294,12 +294,12 @@ test('a table step is done by default, can be unticked and ticked again', () => 
   assert.deepEqual([...marks], ['undone:Books|Table']);
   assert.equal(done(), false);
   setMark(ladder, marks, 'Books|Table', true);
-  assert.deepEqual([...marks], []);
+  assert.deepEqual([...marks], ['Books|Table']);
   assert.equal(done(), true);
   setMark(ladder, marks, 'Books|III', true);
-  assert.deepEqual([...marks], ['Books|III']);
+  assert.deepEqual([...marks], ['Books|Table', 'Books|III']);
   setMark(ladder, marks, 'Books|III', false);
-  assert.deepEqual([...marks], []);
+  assert.deepEqual([...marks], ['Books|Table']);
 });
 
 test('recently checked keeps the last ten, newest first, without doubles', () => {
@@ -317,4 +317,125 @@ test('the view shows the undo bar and the recent list only for steps it knows', 
   assert.match(html, /Recently checked/);
   assert.equal(html.match(/data-guide-undo=/g).length, 2);
   assert.doesNotMatch(view(), /data-guide-undo|Recently checked/);
+});
+
+test('a sync refutes the default tick of a table step, but not one the player set', () => {
+  const g = { title: 'T', sections: [{ name: 'S', steps: [{ text: 'Table', table: true }] }] };
+  const key = 'S|Table';
+  const refuted = new Map([[key, { have: 0, need: 1 }]]);
+  const met = new Map([[key, { have: 1, need: 1 }]]);
+  const marks = new Set();
+  assert.equal(doneSet(g, marks).has(key), true);
+  assert.equal(doneSet(g, marks, met).has(key), true);
+  assert.equal(doneSet(g, marks, refuted).has(key), false);
+  setMark(g, marks, key, true);
+  assert.equal(doneSet(g, marks, refuted).has(key), true);
+  setMark(g, marks, key, false);
+  assert.equal(doneSet(g, marks, met).has(key), false);
+});
+
+test('sync: a mark wins, an untick stays open, and a sync never writes marks', () => {
+  const g = { title: 'T', sections: [{ name: 'S', steps: [{ text: 'A' }] }] };
+  const met = new Map([['S|A', { have: 1, need: 1 }]]);
+  const not = new Map([['S|A', { have: 0, need: 1 }]]);
+  const marks = new Set();
+  assert.equal(doneSet(g, marks, met).has('S|A'), true);
+  assert.deepEqual([...marks], []);
+  assert.equal(doneSet(g, marks, not).has('S|A'), false);
+  setMark(g, marks, 'S|A', false, met);
+  assert.deepEqual([...marks], ['undone:S|A']);
+  assert.equal(doneSet(g, marks, met).has('S|A'), false);
+  setMark(g, marks, 'S|A', true, met);
+  assert.equal(doneSet(g, marks, not).has('S|A'), true);
+  setMark(g, marks, 'S|A', false, not);
+  assert.deepEqual([...marks], []);
+});
+
+const synced = { title: 'S', groups: { armor: [['H'], ['C'], ['L'], ['B']] }, sections: [{ name: 'Gear', steps: [
+  { text: 'Set', line: 'g', items: ['H', 'C', 'L', 'B'].map((id) => ({ id, qty: 1 })), detect: { kind: 'owned', on: 'armor' } },
+  { text: 'Better', line: 'g', items: [{ id: 'X', qty: 1 }], detect: { kind: 'owned', on: [['X']] } },
+  { text: 'Book', items: [{ id: 'ENCHANTMENT_A_6', qty: 4 }], detect: { kind: 'enchant', on: 'armor', enchant: 'a', level: 6, need: 4 } },
+  { text: 'Sold', items: [{ id: 'S1', qty: 1 }], detect: { kind: 'owned', on: [['S1']] } },
+] }] };
+const own = (...ids) => ({ items: ids.map((id) => ({ id, enchants: {}, gems: [], parts: {} })), pets: [] });
+const book = (price) => ({ buy_summary: [{ pricePerUnit: price, amount: 100 }] });
+const synProducts = { H: book(10), C: book(20), L: book(40), B: book(80), X: book(5), ENCHANTMENT_A_6: book(1000), S1: book(1) };
+const view = (profile, mode = 'slot', marks = new Set()) => progressView({ guides: [{ id: 's', ...synced }], current: 's', checked: marks, products: synProducts, name: (x) => x, mode, profile });
+
+test('a partly owned step shows how far it is and prices only what is open', () => {
+  const html = view(own('H', 'C'), 'next');
+  assert.match(html, /2 \/ 4<\/span><span class="guide-src" data-src="api">API/);
+  assert.ok(!/1× H /.test(html));
+  assert.match(html, /1× L/);
+  assert.match(html, /1× B/);
+});
+
+test('next upgrades and the total follow the sync', () => {
+  assert.match(view(null, 'next'), /<h2>Next 3 upgrades cost/);
+  const html = view(own('H', 'C', 'L', 'B', 'S1'), 'next');
+  assert.ok(!html.includes('data-step="Gear|Set"'));
+  assert.ok(html.includes('data-step="Gear|Better"'));
+  assert.ok(html.includes('Checked by sync'));
+  assert.ok(html.includes('data-guide-undo="Gear|Set"'));
+});
+
+test('an API check has a badge and undo, a tick of the player has neither', () => {
+  const auto = view(own('S1'));
+  assert.match(auto, /Sold<\/span><span class="guide-src" data-src="api">API<\/span><button type="button" class="guide-auto-undo" data-guide-undo="Gear\|Sold"/);
+  const manual = view(own('S1'), 'slot', new Set(['Gear|Sold']));
+  assert.ok(!manual.includes('data-guide-undo="Gear|Sold"'));
+});
+
+test('a sold item loses the API tick, a manual one stays', () => {
+  assert.ok(!/data-step="Gear\|Sold" checked/.test(view(own('H'))));
+  assert.match(view(own('H'), 'slot', new Set(['Gear|Sold'])), /data-step="Gear\|Sold" checked/);
+});
+
+test('validGuide keeps sound rules and groups and drops broken ones, the step stays', () => {
+  const g = validGuide({ title: 'T', groups: { a: [['X']], bad: 'no' }, sections: [{ name: 'S', steps: [
+    { text: 'ok', detect: { kind: 'owned', on: 'a', soft: 'x', need: 1 } },
+    { text: 'bad kind', detect: { kind: 'constructor' } },
+    { text: 'bad field', detect: { kind: 'reforge', on: 'a', value: 7 } },
+    { text: 'bad part', detect: [{ kind: 'owned', on: 'a' }, { kind: 'held' }] },
+  ] }] });
+  assert.deepEqual(g.groups, { a: [['X']] });
+  assert.deepEqual(g.sections[0].steps[0].detect, { kind: 'owned', on: 'a', need: 1 });
+  for (const s of g.sections[0].steps.slice(1)) assert.equal(s.detect, undefined);
+});
+
+test('the export of a guide carries no profile', () => {
+  const out = exportData([{ id: 's', ...synced }], { s: ['Gear|Set'] });
+  assert.ok(!/summary|profile|uuid|API-Key/i.test(out));
+});
+
+const slotGuide = { title: 'G', sections: [{ name: 'Armor', steps: [
+  { text: 'Necron', line: 'a', detect: { kind: 'owned', on: [['N1'], ['N2'], ['N3'], ['N4']], slot: 'armor' } },
+  { text: 'Frozen Blaze', line: 'a', detect: { kind: 'owned', on: [['F1'], ['F2'], ['F3'], ['F4']], slot: 'armor' } },
+  { text: '3/4 Crimson', line: 'a', detect: { kind: 'owned', on: [['C1'], ['C2'], ['C3'], ['C4']], need: 3, slot: 'armor' } },
+  { text: '4/4 Infernal', line: 'a', detect: { kind: 'owned', on: [['I1'], ['I2'], ['I3'], ['I4']], slot: 'armor' } },
+  { text: 'Sharpness VI', line: 'e', detect: { kind: 'enchant', on: [['C1']], enchant: 'sharpness', level: 6 } },
+] }, { name: 'Drill', steps: [
+  { text: '555', line: 'd', detect: { kind: 'owned', on: [['DRILL_555']], slot: 'drill' } },
+  { text: '655', line: 'd', detect: { kind: 'owned', on: [['DRILL_655']], slot: 'drill' } },
+  { text: 'Divan', line: 'd', detect: { kind: 'owned', on: [['DIVAN']], slot: 'drill' } },
+] }] };
+const drawSlots = (...ids) => progressView({ guides: [{ id: 'g', ...slotGuide }], current: 'g', checked: new Set(), products: {}, name: (x) => x, mode: 'slot', profile: own(...ids) });
+const rowOf = (html, key) => html.slice(html.indexOf(`data-step="${key}"`)).split('</li>')[0];
+
+test('3/4 Crimson checks Frozen Blaze and Necron with the API badge, not the enchants', () => {
+  const html = drawSlots('C1', 'C2', 'C3');
+  for (const key of ['Armor|Necron', 'Armor|Frozen Blaze', 'Armor|3/4 Crimson']) {
+    assert.match(rowOf(html, key), /" checked>/);
+    assert.match(rowOf(html, key), /data-src="api"/);
+    assert.match(rowOf(html, key), /data-guide-undo/);
+  }
+  assert.ok(!/" checked>/.test(rowOf(html, 'Armor|4/4 Infernal')));
+  assert.ok(!/" checked>/.test(rowOf(html, 'Armor|Sharpness VI')));
+});
+
+test('part of a later step is enough for the earlier ones, and Divan checks the earlier drills', () => {
+  assert.match(rowOf(drawSlots('F1'), 'Armor|Necron'), /" checked>/);
+  assert.ok(!/" checked>/.test(rowOf(drawSlots('F1'), 'Armor|Frozen Blaze')));
+  const html = drawSlots('DIVAN');
+  for (const key of ['Drill|555', 'Drill|655', 'Drill|Divan']) assert.match(rowOf(html, key), /" checked>[\s\S]*data-src="api"/);
 });

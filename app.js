@@ -12,9 +12,10 @@ import { level } from './trends.js';
 import { activePerks, upcoming, electionWindow, eventItems, flipRisks, planElection, taxAdvice } from './events.js';
 import { buyNow, itemWindows, readWindowAlerts, windowAlerts, MIN_ALERT_RUNS } from './timing.js';
 import { bindSheet, openSheet } from './sheet.js';
-import { loadBundled, mergeGuides, exportData, importData, progressView, personalVisibility, secretTap, setMark, pushRecent } from './progress.js';
+import { loadBundled, mergeGuides, exportData, importData, progressView, personalVisibility, secretTap, setMark, pushRecent, stepKey } from './progress.js';
 import { createSync, syncMessage, syncView, normalizeUuid, cleanKey } from './sync.js';
 import { summarize } from './profile.js';
+import { detectGuide } from './detect.js';
 import { initOnboarding, refreshHints, offerAdvanced, returning } from './tour.js';
 
 const API = 'https://api.hypixel.net/v2/skyblock/bazaar';
@@ -694,9 +695,10 @@ async function askBins(wants) {
   // the guide on screen can have changed during the run, and what it still wants is asked now
   else if (area() === PERSONAL) renderProgress();
 }
+let guideAutoOpen = false;
 function markStep(guide, key, on) {
   const marks = checksOf(guide.id);
-  setMark(guide, marks, key, on);
+  setMark(guide, marks, key, on, detectGuide(guide, profileState?.summary, stepKey));
   guideChecks[guide.id] = [...marks];
   save('bt.guideChecks', guideChecks);
   const recent = (guideRecent[guide.id] ?? []).filter((k) => k !== key);
@@ -710,7 +712,7 @@ function renderProgress() {
   const guide = currentGuide();
   if (!guide) { $('progress').innerHTML = '<p class="count muted">Loading…</p>'; return; }
   const wants = new Set();
-  $('progress').innerHTML = progressView({ guides: guides(), current: guide.id, checked: checksOf(guide.id), products, prices: { forge, ah, cofl: freshBins(bins), wants }, name: nameOf, open: guideOpen[guide.id] ?? null, armed: resetArmed, removable: imported.some((g) => g.id === guide.id), mode: guideMode, recent: guideRecent[guide.id] ?? [], undo: undoKey, syncBar: canSync() ? syncView(profileState, Date.now(), esc, syncNote) : '' });
+  $('progress').innerHTML = progressView({ guides: guides(), current: guide.id, checked: checksOf(guide.id), products, prices: { forge, ah, cofl: freshBins(bins), wants }, name: nameOf, open: guideOpen[guide.id] ?? null, armed: resetArmed, removable: imported.some((g) => g.id === guide.id), mode: guideMode, recent: guideRecent[guide.id] ?? [], undo: undoKey, syncBar: canSync() ? syncView(profileState, Date.now(), esc, syncNote) : '', profile: profileState?.summary ?? null, autoOpen: guideAutoOpen });
   askBins(wants);
 }
 $('progress').addEventListener('change', (e) => {
@@ -766,7 +768,8 @@ $('progress').addEventListener('click', (e) => {
   renderProgress();
 });
 // toggle does not bubble
-$('progress').addEventListener('toggle', () => {
+$('progress').addEventListener('toggle', (e) => {
+  if (e.target.matches?.('[data-auto-list]')) { guideAutoOpen = e.target.open; return; }
   const guide = currentGuide();
   if (guide) guideOpen[guide.id] = new Set([...$('progress').querySelectorAll('details[open]')].map((d) => d.dataset.section));
 }, true);

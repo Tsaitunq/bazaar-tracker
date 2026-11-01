@@ -23,7 +23,7 @@ test('readItem finds reforge, enchants, gems, recomb, stars and parts', () => {
   assert.deepEqual(item, {
     id: 'DIVAN_DRILL', slot: null, where: 'armor', reforge: 'jaded', enchants: { fortune: 4 },
     gems: [{ slot: 'JADE_0', type: 'JADE', quality: 'FINE' }, { slot: 'AMBER_0', type: 'AMBER', quality: 'FLAWLESS' }, { slot: 'COMBAT_0', type: 'OPAL', quality: 'PERFECT' }, { slot: 'CHISEL_1', type: 'RUBY', quality: 'FINE' }],
-    recomb: true, stars: 5, parts: { engine: 'amber_polished_drill_engine' }, lore: { MINING_SPEED: 1800 },
+    recomb: true, stars: 5, parts: { engine: 'amber_polished_drill_engine' }, polarvoid: 0, coating: false, scrolls: [], lore: { MINING_SPEED: 1800 },
   });
 });
 

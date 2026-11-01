@@ -1,6 +1,14 @@
 {
   "versions": [
     {
+      "version": "0.11.0",
+      "date": "2026-11-01",
+      "entries": [
+        { "title": "Steps check themselves", "text": "After a sync, guide steps your profile already meets are checked with an API badge, and you can undo any of them. Your own checks always win.", "personal": true },
+        { "title": "Only what is left costs", "text": "A partly finished step shows how far you are, and prices and Next upgrades now count only the part still open.", "personal": true }
+      ]
+    },
+    {
       "version": "0.10.1",
       "date": "2026-11-01",
       "entries": [
