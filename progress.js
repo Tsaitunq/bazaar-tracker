@@ -1,7 +1,7 @@
 // The private Progress area: guides with checkboxes. Guides come from personal/guides (copied into the
 // app by scripts/copy-web.mjs, never in git) or from an imported file.
 
-import { esc, coins } from './render.js';
+import { esc, coins } from './format.js';
 import { walkBook } from './craft.js';
 import { detectGuide, validDetect, validGroups } from './detect.js';
 import { checkStep } from './requires.js';

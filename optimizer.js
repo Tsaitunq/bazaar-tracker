@@ -2,7 +2,7 @@
 import { AREA_STATS, computeStats, miningScore, loadoutOf, withOffset, offsetStale, maxPetStats, petStats, MIN_TRUE_DEFENSE, MIN_MP, TARGET_MP } from './stats.js';
 import { DAGGERS, OFA, ADDITIVE_ENCHANTS, blazeOutput, blazeState, daggersOf, additiveOf } from './blaze.js';
 import { nextUpgrades, stepCost, openStep, bookOf, stepKey, stepRow } from './progress.js';
-import { esc, coins } from './render.js';
+import { esc, coins } from './format.js';
 import { checkStep } from './requires.js';
 import { walkBook } from './craft.js';
 import { ahNet } from './forge.js';

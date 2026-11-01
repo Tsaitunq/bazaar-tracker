@@ -2,6 +2,8 @@ data/
 .superpowers/
 node_modules/
 www/
+www-guide/
+guide-shots/
 *.tmp
 timing-backfill.json.partial.json
 personal/
