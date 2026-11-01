@@ -444,7 +444,7 @@ Mögliche Werte von `detect.kind`:
 | `perk` | HOTM-Knoten auf Stufe | HOTM-Schritte |
 | `mp` | Magical Power erreicht | Accessory Power |
 
-**Höherstufen zählen mit:** Infernal Crimson erfüllt alle niedrigeren Stufen über `items.prestige.item_id`, Drill-Stufen über `museum_data.parent` [geprüft: beide Felder vorhanden]. Bei Enchants zählt die Mindeststufe.
+**Höherstufen zählen mit, aber nur, wo das Wiki ein Upgrade belegt.** Was der Guide nur ordnet (etwa Necron vor Crimson), zählt allein für sich. Infernal Crimson erfüllt alle niedrigeren Stufen über `items.prestige.item_id`, Drill-Stufen über `museum_data.parent` [geprüft: beide Felder vorhanden]. Bei Enchants zählt die Mindeststufe.
 
 **Ziel-Items** (`on`): Slot-Gruppe (`armor`, `equipment`, `weapons`, `drill`) oder feste Liste. Geprüft wird im Loadout des Bereichs, bei `owned` im gesamten Besitz.
 
@@ -465,6 +465,7 @@ Berechnung in `doneSet(guide, marks, auto)`:
 | keiner | erfüllt | erledigt, Badge `API` |
 | keiner | nicht erfüllt | offen |
 
+- Table-Schritte gelten als erledigt, solange der Sync sie nicht widerlegt. Ein manueller Haken bleibt auch dann, er wird als Marke gespeichert.
 - Der bestehende Mechanismus `undone:` für Table-Schritte wird dafür verallgemeinert. `setMark` schreibt `undone:` nun auch, wenn `auto` den Schritt erfüllt.
 - Ein Sync schreibt nie in `marks`. Manuelle Haken bleiben also unangetastet. Ein verkauftes Item verliert automatisch den API-Haken, aber keinen manuellen.
 - "Reset guide" löscht wie bisher Marken und `undone:`; `auto` bleibt, weil der Besitz weiter gilt.
