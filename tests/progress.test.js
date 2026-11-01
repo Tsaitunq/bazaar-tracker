@@ -1,5 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+test('validGuide keeps area and numeric gain and drops anything else', () => {
+  const g = validGuide({ title: 't', area: 'mining', sections: [{ name: 's', steps: [{ text: 'a', gain: { MINING_SPEED: 5, PRISTINE: 'x' } }, { text: 'b', gain: [1] }] }] });
+  assert.equal(g.area, 'mining');
+  assert.deepEqual(g.sections[0].steps[0].gain, { MINING_SPEED: 5 });
+  assert.equal(g.sections[0].steps[1].gain, undefined);
+  assert.equal(validGuide({ title: 't', area: 'nether', sections: [{ name: 's', steps: [] }] }).area, undefined);
+});
+
 import { validGuide, loadBundled, mergeGuides, exportData, importData, stepKey, stepCost, priceItem, guideStats, nextUpgrades, doneSet, setMark, pushRecent, progressView, personalVisibility, secretTap } from '../progress.js';
 
 const guide = { title: 'Test guide', source: 'https://example.com/x', sections: [

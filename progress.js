@@ -28,12 +28,20 @@ function validItem(i) {
   return { ...(id && { id }), ...(name && { name }), qty, ...(i.ah === true && { ah: true }), ...(i.nt === true && { nt: true }), ...(forge && { forge }), ...(without.length && { without }), ...(anyOf.length && { anyOf }), ...(Number.isInteger(i?.skip) && i.skip > 0 && { skip: i.skip }), ...(Number.isInteger(i?.combine) && i.combine >= 0 && { combine: i.combine }) };
 }
 
+// What a step adds where the data has no value for it; only real numbers come through.
+function validGain(g) {
+  if (!g || typeof g !== 'object' || Array.isArray(g)) return null;
+  const kept = Object.entries(g).filter(([, v]) => Number.isFinite(v));
+  return kept.length ? Object.fromEntries(kept) : null;
+}
+
 function validStep(s) {
   if (!text(s?.text)) return null;
   const items = s.items === undefined ? [] : Array.isArray(s.items) ? s.items.map(validItem) : [null];
   if (items.includes(null)) return null;
   const detect = validDetect(s.detect);
-  return { text: s.text, ...(detect && { detect }), ...(items.length && { items }), ...(text(s.hint) && { hint: s.hint }), ...(s.table === true && { table: true }), ...(text(s.line) && { line: s.line }), ...(Number.isInteger(s.priority) && s.priority > 0 && { priority: s.priority }) };
+  const gain = validGain(s.gain);
+  return { text: s.text, ...(detect && { detect }), ...(gain && { gain }), ...(items.length && { items }), ...(text(s.hint) && { hint: s.hint }), ...(s.table === true && { table: true }), ...(text(s.line) && { line: s.line }), ...(Number.isInteger(s.priority) && s.priority > 0 && { priority: s.priority }) };
 }
 
 // A guide from a file is outside data: only the known fields come through, and a link only as http(s).
@@ -47,7 +55,7 @@ export function validGuide(g) {
   });
   if (sections.includes(null)) return null;
   const groups = validGroups(g.groups);
-  return { title: g.title, ...(/^https?:\/\//i.test(g.source ?? '') && { source: g.source }), ...(groups && { groups }), sections };
+  return { title: g.title, ...(/^https?:\/\//i.test(g.source ?? '') && { source: g.source }), ...(['mining', 'blaze'].includes(g.area) && { area: g.area }), ...(groups && { groups }), sections };
 }
 
 const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'guide';
