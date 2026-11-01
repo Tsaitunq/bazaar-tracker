@@ -210,3 +210,70 @@ export function computeStats(profile, items, loadout, area) {
   total.DAMAGE = area === 'blaze' ? loadout.held?.lore.DAMAGE ?? 0 : 0;
   return { total, parts, gaps };
 }
+
+const FLAG_PERCENT = 5;
+
+// One row per stat the player typed in; an empty field is no measurement.
+export function compareStats(calculated, inGame) {
+  return Object.entries(inGame ?? {}).filter(([, v]) => Number.isFinite(v)).map(([stat, value]) => {
+    const mine = calculated[stat] ?? 0;
+    const diff = mine - value;
+    const percent = value ? Math.abs(diff / value) * 100 : null;
+    return { stat, calculated: mine, inGame: value, diff, percent, flag: percent === null ? diff !== 0 : percent >= FLAG_PERCENT };
+  });
+}
+
+// What the form hands in, as it is stored: only known stats with real numbers, and the slots as numbers.
+export function statsEntry(area, { armor, equipment, boost, values }, at) {
+  const slot = (v) => (Number.isInteger(Number(v)) && Number(v) > 0 ? Number(v) : null);
+  const kept = AREA_STATS[area].flatMap((stat) => {
+    const raw = values?.[stat];
+    const n = raw === '' || raw === null || raw === undefined ? NaN : Number(raw);
+    return Number.isFinite(n) ? [[stat, n]] : [];
+  });
+  return { choice: { armor: slot(armor), equipment: slot(equipment) }, values: Object.fromEntries(kept), boost: boost === true, at };
+}
+
+const AREA_TITLE = { mining: 'Mining', blaze: 'Blaze' };
+const STAT_NAME = { MINING_FORTUNE: 'Mining Fortune', GEMSTONE_FORTUNE: 'Gemstone Fortune', ORE_FORTUNE: 'Ore Fortune', BLOCK_FORTUNE: 'Block Fortune', MINING_SPEED: 'Mining Speed', PRISTINE: 'Pristine', STRENGTH: 'Strength', CRITICAL_DAMAGE: 'Crit Damage', CRITICAL_CHANCE: 'Crit Chance', ATTACK_SPEED: 'Attack Speed', HEALTH: 'Health', DEFENSE: 'Defense', TRUE_DEFENSE: 'True Defense' };
+const num = (v) => String(Math.round(v * 100) / 100);
+const LOW = { ok: 'ok', low: 'too low', unknown: 'unknown' };
+
+function slotPicker(kind, label, known, picked, esc) {
+  const options = (known?.sets ?? []).map((n) => `<option value="${esc(n)}"${n === (picked ?? known.equipped) ? ' selected' : ''}>Slot ${esc(n)}${n === known.equipped ? ' (worn)' : ''}</option>`);
+  return `<label>${label}<select data-stats-set="${kind}">${options.join('')}</select></label>`;
+}
+
+function areaView(area, state, items, esc) {
+  const profile = state.summary;
+  const entry = state.statsInput?.[area] ?? {};
+  const loadout = loadoutOf(profile, items, area, entry.choice);
+  const { total, gaps } = computeStats(profile, items, loadout, area);
+  const rows = new Map(compareStats(total, entry.values).map((r) => [r.stat, r]));
+  const stale = entry.at && entry.at < state.syncedAt;
+  const boost = entry.boost ? ' · God Potion / Booster Cookie active' : '';
+  const table = AREA_STATS[area].map((stat) => {
+    const r = rows.get(stat);
+    return `<tr${r?.flag ? ' class="stats-flag"' : ''}><th scope="row">${STAT_NAME[stat]}</th><td>${esc(num(total[stat] ?? 0))}</td><td>${r ? esc(num(r.inGame)) : ''}</td><td>${r ? `${esc(num(r.diff))}${r.percent === null ? '' : ` (${esc(num(r.percent))} %)`}${r.flag ? esc(boost) : ''}` : ''}</td></tr>`;
+  }).join('');
+  // no True Defense in any lore is 0, unless the inventory could not be read at all
+  const limits = area === 'blaze' ? blazeConstraints(profile.missing?.inventory ? null : { TRUE_DEFENSE: total.TRUE_DEFENSE ?? 0 }, profile.mp) : null;
+  return `<section class="stats-area" data-stats-area="${area}"><strong>${AREA_TITLE[area]}</strong>
+    ${slotPicker('armor', 'Wardrobe slot', profile.wardrobe?.armor, entry.choice?.armor, esc)}
+    ${slotPicker('equipment', 'Equipment slot', profile.wardrobe?.equipment, entry.choice?.equipment, esc)}
+    <small>Measure with the setup you actually play with. In hand: ${loadout.held ? esc(loadout.held.id) : 'nothing'}.</small>
+    <label class="check"><input type="checkbox" data-stats-boost${entry.boost ? ' checked' : ''}> God Potion / Booster Cookie active</label>
+    ${AREA_STATS[area].map((stat) => `<label>${STAT_NAME[stat]} in /stats<input type="number" step="any" inputmode="decimal" data-stats-stat="${stat}" value="${entry.values?.[stat] ?? ''}"></label>`).join('')}
+    <div class="actions"><button type="button" data-stats-save>Save ${AREA_TITLE[area]} stats</button></div>
+    ${stale ? '<small class="stats-stale">Your /stats values are older than the last sync.</small>' : ''}
+    <table class="stats-table"><thead><tr><th scope="col">Stat</th><th scope="col">Calculated</th><th scope="col">/stats</th><th scope="col">Difference</th></tr></thead><tbody>${table}</tbody></table>
+    ${area === 'blaze' ? `<small>Weapon damage from lore: ${esc(num(total.DAMAGE))}</small><small>True Defense 140: ${LOW[limits.trueDefense]} · Magical Power 800: ${LOW[limits.mp]}</small>` : ''}
+    ${gaps.length ? `<ul class="stats-gaps">${gaps.map((g) => `<li>${esc(g)}</li>`).join('')}</ul>` : ''}
+  </section>`;
+}
+
+// The settings block: pick the slots, type in /stats, read the difference.
+export function statsView(state, items, esc) {
+  if (!state?.summary) return '<small>Sync your profile to see your stats.</small>';
+  return ['mining', 'blaze'].map((area) => areaView(area, state, items, esc)).join('');
+}

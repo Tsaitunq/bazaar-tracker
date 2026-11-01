@@ -81,7 +81,7 @@ Im Code gibt es den Score noch nicht (grep auf `0.79` ohne Treffer). Task 4 legt
 - Test: `tests/snapshot.test.js`
 
 **Interfaces:**
-- Produces: `compactItems(resource, parents) -> { [id]: { name, category, sword_type, tier, stats, tiered_stats, gemstone_slots, requirements, prestige, parent, family } }`, `loadItems() -> Promise<object|null>` in `data.js`.
+- Produces: `compactItems(resource, parents) -> { [id]: { name, category, sword_type, tier, stats, tiered_stats, gemstone_slots, requirements, prestige, parent, family } }`, `loadItemData() -> Promise<object|null>` in `data.js` (`loadItems` gibt es schon in `names.js`).
 
 - [ ] **Step 1: Failing tests schreiben**
 
@@ -141,7 +141,7 @@ test('levelOf stops at the top of the table', () => {});
 - Test: `tests/progress.test.js`, `tests/profile-fixture.test.js`
 
 **Interfaces:**
-- Consumes: `checkStep` aus Task 2, `loadItems` aus Task 1. `ctx.items` kommt neu in den `ctx` von `progressView`.
+- Consumes: `checkStep` aus Task 2, `loadItemData` aus Task 1. `ctx.items` kommt neu in den `ctx` von `progressView`.
 
 - [ ] **Step 1: Failing tests schreiben**
 

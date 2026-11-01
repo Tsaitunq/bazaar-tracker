@@ -15,6 +15,7 @@ import { bindSheet, openSheet } from './sheet.js';
 import { loadBundled, mergeGuides, exportData, importData, progressView, personalVisibility, secretTap, setMark, pushRecent, stepKey } from './progress.js';
 import { createSync, syncMessage, syncView, normalizeUuid, cleanKey } from './sync.js';
 import { summarize } from './profile.js';
+import { statsView, statsEntry } from './stats.js';
 import { detectGuide } from './detect.js';
 import { initOnboarding, refreshHints, offerAdvanced, returning } from './tour.js';
 
@@ -714,7 +715,7 @@ let itemDataAsked = false;
 function askItemData() {
   if (itemDataAsked) return;
   itemDataAsked = true;
-  loadItemData().then((r) => { itemData = r; if (r && area() === PERSONAL) renderProgress(); });
+  loadItemData().then((r) => { itemData = r; if (!r) return; renderStats(); if (area() === PERSONAL) renderProgress(); });
 }
 function renderProgress() {
   const guide = currentGuide();
@@ -861,11 +862,17 @@ $('personal-settings').addEventListener('click', async (e) => {
 const profileSync = createSync({ store: { getApiKey, loadProfile, saveProfile }, summarize });
 let removeArmed = false;
 const hpStatus = (text) => { $('hp-status').textContent = text; };
+function renderStats() {
+  if (!canSync()) return;
+  askItemData();
+  $('hp-stats').innerHTML = statsView(profileState, itemData, esc);
+}
 async function showProfile() {
   if (!canSync()) return;
   profileState = await loadProfile();
   $('hp-uuid').value = profileState?.uuid ?? '';
   $('hp-key-state').textContent = await getApiKey().then((key) => (key ? 'Key saved.' : 'No key saved.'), () => syncMessage('keyread'));
+  renderStats();
   if (area() === PERSONAL) renderProgress();
 }
 async function runProfileSync(pick) {
@@ -877,7 +884,10 @@ async function runProfileSync(pick) {
     : result.status === 'choose' ? { message: 'Pick your profile.', choices: result.choices }
     : result.status === 'stale' ? {}
     : { message: 'Synced.' };
-  if (result.status === 'ok') profileState = result.state;
+  if (result.status === 'ok') {
+    profileState = result.state;
+    renderStats();
+  }
   if (area() === PERSONAL) renderProgress();
 }
 async function saveProfileFields() {
@@ -916,6 +926,20 @@ $('hypixel-profile').addEventListener('click', async (e) => {
   profileSync.invalidate();
   hpStatus(await clearProfileData() ? 'Key and profile data removed.' : 'Could not remove them.');
   await showProfile();
+});
+$('hp-stats').addEventListener('click', async (e) => {
+  if (!e.target.closest('[data-stats-save]')) return;
+  const box = e.target.closest('[data-stats-area]');
+  const { statsArea } = box.dataset;
+  const values = Object.fromEntries([...box.querySelectorAll('[data-stats-stat]')].map((input) => [input.dataset.statsStat, input.value]));
+  const pick = (kind) => box.querySelector(`[data-stats-set="${kind}"]`).value;
+  const entry = statsEntry(statsArea, { armor: pick('armor'), equipment: pick('equipment'), boost: box.querySelector('[data-stats-boost]').checked, values }, Date.now());
+  const state = await loadProfile();
+  if (!state) return;
+  const next = { ...state, statsInput: { ...state.statsInput, [statsArea]: entry } };
+  if (!await saveProfile(next)) return hpStatus(syncMessage('store'));
+  profileState = next;
+  renderStats();
 });
 showProfile();
 $('search').addEventListener('input', render);

@@ -405,7 +405,7 @@ test('validGuide keeps sound rules and groups and drops broken ones, the step st
 
 test('the export of a guide carries no profile', () => {
   const out = exportData([{ id: 's', ...synced }], { s: ['Gear|Set'] });
-  assert.ok(!/summary|profile|uuid|API-Key/i.test(out));
+  assert.ok(!/summary|profile|uuid|API-Key|statsInput/i.test(out));
 });
 
 const slotGuide = { title: 'G', sections: [{ name: 'Armor', steps: [

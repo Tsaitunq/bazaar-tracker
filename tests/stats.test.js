@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { miningScore, blazeScore, blazeConstraints, gearStats, loadoutOf, computeStats, powerMultiplier, petLevel, GEMSTONE } from '../stats.js';
+import { miningScore, blazeScore, blazeConstraints, gearStats, loadoutOf, computeStats, powerMultiplier, petLevel, compareStats, statsEntry, statsView, GEMSTONE } from '../stats.js';
 
 const near = (a, b, eps = 1e-9) => assert.ok(Math.abs(a - b) < eps, `${a} is not ${b}`);
 const base = { MINING_FORTUNE: 1000, MINING_SPEED: 6000, PRISTINE: 5 };
@@ -198,4 +198,88 @@ test('the total adds every part, and DAMAGE comes from the weapon lore only in B
 
 test('a loadout gap carries through', () => {
   assert.ok(computeStats({ items: [] }, {}, { ...empty, gaps: ['Full set X: its bonus is not counted.'] }, 'mining').gaps.includes('Full set X: its bonus is not counted.'));
+});
+
+test('compareStats flags from 5 percent', () => {
+  const row = (calc, game) => compareStats({ X: calc }, { X: game })[0];
+  assert.equal(row(100, 95).flag, true);
+  assert.equal(row(100, 96).flag, false);
+  assert.equal(row(96, 100).flag, false);
+  assert.equal(row(95, 100).flag, true);
+  near(row(110, 100).percent, 10);
+  assert.equal(row(110, 100).diff, 10);
+});
+
+test('an in-game value of 0 gives no division by zero', () => {
+  assert.deepEqual(compareStats({ X: 3 }, { X: 0 })[0], { stat: 'X', calculated: 3, inGame: 0, diff: 3, percent: null, flag: true });
+  assert.equal(compareStats({}, { X: 0 })[0].flag, false);
+});
+
+test('statsEntry keeps real numbers of known stats and leaves empty fields out', () => {
+  const e = statsEntry('mining', { armor: '3', equipment: '', boost: true, values: { MINING_SPEED: '1200.5', PRISTINE: '', MINING_FORTUNE: 'abc', STRENGTH: '9', GEMSTONE_FORTUNE: '0' } }, 7);
+  assert.deepEqual(e, { choice: { armor: 3, equipment: null }, values: { GEMSTONE_FORTUNE: 0, MINING_SPEED: 1200.5 }, boost: true, at: 7 });
+});
+
+test('DAMAGE is not a field of the form', () => {
+  assert.equal(statsEntry('blaze', { values: { DAMAGE: '500' } }, 1).values.DAMAGE, undefined);
+  assert.ok(!view(state()).includes('data-stats-stat="DAMAGE"'));
+});
+
+const escHtml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const view = (s, items = data) => statsView(s, items, escHtml);
+const state = (extra = {}, summary = {}) => ({ syncedAt: 100, summary: prof([it('A_HELMET', 'wardrobe', { HEALTH: 900 }, ['armor:1']), it('SWORD_A', 'inventory', { DAMAGE: 321 })], { mp: 900, ...summary }), ...extra });
+const areaOf = (html, area) => html.slice(html.indexOf(`data-stats-area="${area}"`)).split('</section>')[0];
+
+test('the view lists the slots by index and marks the worn one', () => {
+  const html = areaOf(view(state()), 'mining');
+  assert.match(html, /<option value="1">Slot 1<\/option>/);
+  assert.match(html, /<option value="2" selected>Slot 2 \(worn\)<\/option>/);
+});
+
+test('a picked slot is selected and drives the numbers', () => {
+  const html = areaOf(view(state({ statsInput: { blaze: { choice: { armor: 1, equipment: 1 }, values: {} } } })), 'blaze');
+  assert.match(html, /<option value="1" selected>Slot 1<\/option>/);
+  assert.match(html, /Health<\/th><td>1000</);
+});
+
+test('DAMAGE is shown from the lore and is not compared', () => {
+  const html = areaOf(view(state()), 'blaze');
+  assert.match(html, /Weapon damage from lore: 321/);
+  assert.ok(!/<th scope="row">Damage/.test(html));
+});
+
+test('the constraints show in Blaze only', () => {
+  const html = view(state());
+  assert.match(areaOf(html, 'blaze'), /True Defense 140: too low · Magical Power 800: ok/);
+  assert.ok(!/Magical Power 800/.test(areaOf(html, 'mining')));
+});
+
+test('the boost box is stored per measurement and shown at a flagged stat', () => {
+  const s = state({ statsInput: { blaze: { choice: { armor: 1, equipment: 1 }, boost: true, values: { HEALTH: 2000, STRENGTH: 0 }, at: 200 } } });
+  const html = areaOf(view(s), 'blaze');
+  assert.match(html, /data-stats-boost checked/);
+  assert.match(html.split('stats-flag')[1], /God Potion \/ Booster Cookie active/);
+  assert.ok(!/God Potion/.test(areaOf(view(s), 'mining').split('<table')[1]));
+  assert.equal(statsEntry('blaze', { boost: 'yes' }, 1).boost, false);
+});
+
+test('values older than the last sync are marked, newer ones not', () => {
+  const at = (t) => areaOf(view(state({ statsInput: { mining: { values: {}, at: t } } })), 'mining');
+  assert.match(at(50), /older than the last sync/);
+  assert.ok(!/older than the last sync/.test(at(200)));
+});
+
+test('the view escapes and lists the gaps', () => {
+  const html = view(state({}, { selectedPower: '<img>' }));
+  assert.ok(!html.includes('<img>'));
+  assert.match(html, /Power &lt;img&gt; has no stat table yet/);
+});
+
+test('without a summary the view asks for a sync', () => {
+  assert.match(statsView(null, data, escHtml), /Sync your profile/);
+  assert.match(statsView({ uuid: 'x' }, data, escHtml), /Sync your profile/);
+});
+
+test('a saved profile without a wardrobe still draws', () => {
+  assert.match(view({ syncedAt: 1, summary: { items: [], pets: [] } }), /Sync again to read your wardrobe/);
 });
