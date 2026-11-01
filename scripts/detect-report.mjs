@@ -21,7 +21,7 @@ for (const file of readdirSync(dir).filter((f) => f.endsWith('.json') && f !== '
       else if (!f) lists.unsicher.push(`${label} -- Profildaten fehlen`);
       else if (f.have >= f.need) lists.erkannt.push(`${label} -- ${kinds}`);
       else if (soft && !(parts.length === 1 && f.have)) lists.unsicher.push(`${label} -- ${soft}${f.have ? ' (teilweise erfuellt)' : ''}`);
-      else lists['nicht erkannt'].push(`${label} -- Regel ${kinds}: ${f.have ? 'teilweise erfuellt' : 'nicht erfuellt'}`);
+      else lists['nicht erkannt'].push(`${label} -- Regel ${kinds}: ${f.have ? 'teilweise erfuellt' : 'nicht erfuellt'}${step.table ? ', Standard-Haken entfaellt' : ''}`);
     }
   }
   console.log(`\n=== ${guide.title}: ${Object.entries(lists).map(([k, v]) => `${k} ${v.length}`).join(', ')}`);

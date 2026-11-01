@@ -294,12 +294,12 @@ test('a table step is done by default, can be unticked and ticked again', () => 
   assert.deepEqual([...marks], ['undone:Books|Table']);
   assert.equal(done(), false);
   setMark(ladder, marks, 'Books|Table', true);
-  assert.deepEqual([...marks], []);
+  assert.deepEqual([...marks], ['Books|Table']);
   assert.equal(done(), true);
   setMark(ladder, marks, 'Books|III', true);
-  assert.deepEqual([...marks], ['Books|III']);
+  assert.deepEqual([...marks], ['Books|Table', 'Books|III']);
   setMark(ladder, marks, 'Books|III', false);
-  assert.deepEqual([...marks], []);
+  assert.deepEqual([...marks], ['Books|Table']);
 });
 
 test('recently checked keeps the last ten, newest first, without doubles', () => {
@@ -317,4 +317,19 @@ test('the view shows the undo bar and the recent list only for steps it knows', 
   assert.match(html, /Recently checked/);
   assert.equal(html.match(/data-guide-undo=/g).length, 2);
   assert.doesNotMatch(view(), /data-guide-undo|Recently checked/);
+});
+
+test('a sync refutes the default tick of a table step, but not one the player set', () => {
+  const g = { title: 'T', sections: [{ name: 'S', steps: [{ text: 'Table', table: true }] }] };
+  const key = 'S|Table';
+  const refuted = new Map([[key, { have: 0, need: 1 }]]);
+  const met = new Map([[key, { have: 1, need: 1 }]]);
+  const marks = new Set();
+  assert.equal(doneSet(g, marks).has(key), true);
+  assert.equal(doneSet(g, marks, met).has(key), true);
+  assert.equal(doneSet(g, marks, refuted).has(key), false);
+  setMark(g, marks, key, true);
+  assert.equal(doneSet(g, marks, refuted).has(key), true);
+  setMark(g, marks, key, false);
+  assert.equal(doneSet(g, marks, met).has(key), false);
 });

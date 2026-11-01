@@ -103,14 +103,17 @@ export function importData(raw) {
 // A checkmark belongs to its section and text, so a changed guide keeps the marks of the steps it kept.
 export const stepKey = (section, step) => `${section.name}|${step.text}`;
 
-// A table step needs no coins and counts as done until the player unticks it, which is stored as UNDONE + key.
+// A table step needs no coins and counts as done until the player unticks it (stored as UNDONE + key) or a sync
+// refutes it. Only a tick the player set stays against a sync, so such a tick is stored as a mark.
 const UNDONE = 'undone:';
-export function doneSet(guide, marks) {
+export function doneSet(guide, marks, auto = null) {
   const done = new Set(marks);
   for (const section of guide.sections) {
     for (const step of section.steps) {
       const key = stepKey(section, step);
-      if (step.table && !marks.has(UNDONE + key)) done.add(key);
+      const found = auto?.get(key);
+      const refuted = found && found.have < found.need;
+      if (step.table && !refuted && !marks.has(UNDONE + key)) done.add(key);
     }
   }
   return done;
@@ -120,7 +123,8 @@ export function setMark(guide, marks, key, on) {
   const isTable = guide.sections.some((section) => section.steps.some((step) => step.table && stepKey(section, step) === key));
   marks.delete(key);
   marks.delete(UNDONE + key);
-  if (isTable ? !on : on) marks.add(isTable ? UNDONE + key : key);
+  if (on) marks.add(key);
+  else if (isTable) marks.add(UNDONE + key);
 }
 
 export const pushRecent = (recent, key) => [key, ...recent.filter((k) => k !== key)].slice(0, 10);

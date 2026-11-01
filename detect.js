@@ -37,6 +37,7 @@ function dataPart(d, profile) {
   switch (d.kind) {
     case 'pet': return flag(profile.pets?.some((p) => d.types.includes(p.type) && atLeast(TIER, p.tier, d.tier ?? 'COMMON')));
     case 'held': return flag(profile.pets?.some((p) => p.heldItem === d.item));
+    case 'perk': return profile.perks ? flag((profile.perks[d.perk] ?? 0) >= d.level) : null;
     case 'power': return profile.powers ? flag(profile.powers.includes(d.value)) : null;
     case 'attr': return profile.attrs ? { have: Math.min(profile.attrs[d.attr] ?? 0, d.need), need: d.need } : null;
     case 'coll': return profile.collTiers ? flag(profile.collTiers.includes(`${d.id}_${d.tier}`)) : null;
@@ -53,16 +54,12 @@ export function detectStep(step, profile, groups) {
   return { have: parts.reduce((n, p) => n + p.have, 0), need: parts.reduce((n, p) => n + p.need, 0) };
 }
 
-// All steps of a guide by key. In a line marked ladder, a later rung that is met settles the earlier ones.
+// All steps of a guide by key.
 export function detectGuide(guide, profile, keyOf) {
   const out = new Map();
-  const reached = new Set();
-  for (const section of [...guide.sections].reverse()) {
-    for (const step of [...section.steps].reverse()) {
+  for (const section of guide.sections) {
+    for (const step of section.steps) {
       const found = detectStep(step, profile, guide.groups);
-      const ladder = step.line && [step.detect].flat()[0]?.ladder;
-      if (found && found.have < found.need && ladder && reached.has(step.line)) found.have = found.need;
-      if (found && found.have >= found.need && ladder) reached.add(step.line);
       if (found) out.set(keyOf(section, step), found);
     }
   }

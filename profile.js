@@ -111,6 +111,8 @@ export async function summarize(member, previous = null) {
     kuudra: member.nether_island_player_data?.kuudra_completed_tiers ?? null,
     attrs: member.attributes?.stacks ? numbers(member.attributes.stacks) : null,
     powers: bag.unlocked_powers ?? null,
+    // essence shop perks by level
+    perks: member.player_data?.perks ? numbers(member.player_data.perks) : null,
     // tiers are unlocked for the whole coop, the member's own collection counts are not
     collTiers: member.player_data?.unlocked_coll_tiers ?? null,
     missing,

@@ -62,14 +62,17 @@ test('without a rule or without the data there is no answer', () => {
   assert.equal(detectStep({ detect: { kind: 'unknown' } }, profile([]), {}), null);
 });
 
-test('a later rung settles the earlier ones of a ladder, but not outside it', () => {
-  const rung = (id) => ({ text: id, line: 'L', detect: { kind: 'owned', on: [[id]], ladder: true } });
-  const free = { text: 'free', line: 'M', detect: { kind: 'owned', on: [['F']] } };
-  const free2 = { text: 'free2', line: 'M', detect: { kind: 'owned', on: [['G']] } };
-  const guide = { sections: [{ name: 'S', steps: [rung('A'), rung('B'), rung('C'), free, free2] }] };
-  const found = detectGuide(guide, profile([item('B'), item('G')]), stepKey);
-  assert.equal(found.get('S|A').have, 1);
-  assert.equal(found.get('S|B').have, 1);
-  assert.equal(found.get('S|C').have, 0);
-  assert.equal(found.get('S|free').have, 0);
+test('detectGuide answers per step, and only an item in the rule counts', () => {
+  const guide = { sections: [{ name: 'S', steps: [{ text: 'low', detect: { kind: 'owned', on: [['A', 'B']] } }, { text: 'other', detect: { kind: 'owned', on: [['C']] } }, { text: 'none' }] }] };
+  const found = detectGuide(guide, profile([item('B')]), stepKey);
+  assert.equal(found.get('S|low').have, 1);
+  assert.equal(found.get('S|other').have, 0);
+  assert.equal(found.has('S|none'), false);
+});
+
+test('an essence perk needs its level', () => {
+  const p = profile([], { perks: { eager_miner: 9, high_roller: 1 } });
+  assert.equal(detectStep({ detect: { kind: 'perk', perk: 'eager_miner', level: 10 } }, p, {}).have, 0);
+  assert.equal(detectStep({ detect: { kind: 'perk', perk: 'high_roller', level: 1 } }, p, {}).have, 1);
+  assert.equal(detectStep({ detect: { kind: 'perk', perk: 'eager_miner', level: 1 } }, profile([], { perks: null }), {}), null);
 });
