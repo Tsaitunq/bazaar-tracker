@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { blazeOutput, blazeState, OFA } from '../blaze.js';
-import { blazeDelta, applyBlaze, accessoryPower, stepDelta, PRESETS, miningSettings, rankUpgrades, netCost, bestLoadout, bestValueView } from '../optimizer.js';
+import { bestBlaze, blazeDelta, applyBlaze, accessoryPower, stepDelta, PRESETS, miningSettings, rankUpgrades, netCost, bestLoadout, bestValueView } from '../optimizer.js';
 import { summarize } from '../profile.js';
 import { GEMSTONE, miningScore, loadoutOf } from '../stats.js';
 import { guideStats, progressView, validGuide, exportData } from '../progress.js';
@@ -547,6 +547,7 @@ test('the real mining guide ranks without error and every group is an array', { 
 });
 
 // Blaze
+const DAGGERS_TEST = new Set(['FIREDUST_DAGGER', 'MAWDUST_DAGGER']);
 const FIRE = 'FIREDUST_DAGGER'; const KINDLE = 'BURSTFIRE_DAGGER'; const MAW = 'MAWDUST_DAGGER';
 const blazeItems = {
   [FIRE]: { category: 'SWORD', tier: 'EPIC', stats: { DAMAGE: 90, STRENGTH: 45, CRITICAL_DAMAGE: 15 } },
@@ -814,4 +815,130 @@ test('a step left out by one for all goes to zero with its hint', () => {
   const out = rankBlaze([{ text: 'x', detect: onDaggers('sharpness', 7), ...buy('A') }], { world: w, products: { A: sold(1e6) } });
   assert.deepEqual(texts(out.zero), ['x']);
   assert.ok(out.zero[0].notes.includes('Not used with One For All.'));
+});
+
+const blazeProfile = (over = {}) => ({ ...profile([piece(FIRE, { where: 'inventory', lore: { DAMAGE: 90, STRENGTH: 45 } }), piece(MAW, { where: 'inventory', lore: { DAMAGE: 90, STRENGTH: 45 } }), piece('PLATE', { sets: ['armor:1'], lore: { TRUE_DEFENSE: 200 } })]), wardrobe: { armor: { equipped: 1, sets: [1] }, equipment: { equipped: 1, sets: [1] } }, mp: 1200, attrs: {}, ...over });
+const blazeG = (steps, over = {}) => ({ id: 'b', title: 'Blaze', area: 'blaze', groups: blazeGuide.groups, sections: [{ name: 'Main', steps }], ...over });
+const blazeHtml = (g, { state = { summary: blazeProfile(), syncedAt: 1 }, products = { A: sold(5e6) }, data = blazeItems } = {}) => progressView({ guides: [g], current: g.id, checked: new Set(), products, prices: { items: data }, name: (id) => id, mode: 'best', profile: state?.summary ?? null,
+  bestValue: (v) => bestValueView({ ...v, state, settings: miningSettings(null) }) });
+const sharpStep = { text: 'sharp', detect: onDaggers('sharpness', 7), items: [{ id: 'A', qty: 1 }] };
+
+test('the mode button shows on a guide with area blaze', () => {
+  assert.match(blazeHtml(blazeG([sharpStep])), /data-guide-mode="best" aria-pressed="true"/);
+});
+
+test('the row says damage, marks the estimate and shows the raw stats', () => {
+  const html = blazeHtml(blazeG([{ text: 'x', detect: onDaggers('critical', 7), items: [{ id: 'A', qty: 1 }] }]));
+  assert.match(html, /\+\d+(\.\d+)? % damage · \d+(\.\d+)? %\/1M/);
+  assert.match(html, /Ashen: \+100 Crit Damage/);
+  assert.match(html, /Estimate/);
+});
+
+test('below a limit the page warns and shows both values', () => {
+  const summary = blazeProfile({ mp: 700 });
+  summary.items = summary.items.map((i) => (i.id === 'PLATE' ? { ...i, lore: { TRUE_DEFENSE: 100 } } : i));
+  const html = blazeHtml(blazeG([sharpStep]), { state: { summary, syncedAt: 1 } });
+  assert.match(html, /Below the limit: True Defense 100 \/ 140 · Magical Power 700 \/ 800/);
+  assert.match(html, /role="alert"/);
+});
+
+test('steps that close a gap stand first, the rest keeps its rank', () => {
+  const summary = blazeProfile();
+  summary.items = summary.items.map((i) => (i.id === 'PLATE' ? { ...i, lore: { TRUE_DEFENSE: 100 } } : i));
+  const html = blazeHtml(blazeG([sharpStep, { text: 'gem', detect: { kind: 'gem', on: [['PLATE']], type: 'OPAL', quality: 'PERFECT', need: 1 }, items: [{ id: 'A', qty: 1 }] }]), { state: { summary, syncedAt: 1 } });
+  const req = html.indexOf('aria-label="Requirements first"');
+  const best = html.indexOf('aria-label="Best value"');
+  assert.ok(req > 0 && best > req);
+  assert.match(html.slice(req, best), /gem/);
+  assert.match(html.slice(req, best), /data-src="locked">True Defense/);
+  assert.match(html.slice(best), /sharp/);
+});
+
+test('magical power under the target of 1100 is a note only', () => {
+  const html = blazeHtml(blazeG([sharpStep]), { state: { summary: blazeProfile({ mp: 900 }), syncedAt: 1 } });
+  assert.match(html, /under the target of 1100/);
+  assert.doesNotMatch(html, /Below the limit/);
+});
+
+test('a missing value shows unknown with a warning and ranks on', () => {
+  const html = blazeHtml(blazeG([sharpStep]), { state: { summary: blazeProfile({ mp: null, missing: { inventory: true } }), syncedAt: 1 } });
+  assert.match(html, /True Defense unknown/);
+  assert.match(html, /could not be read/);
+  assert.match(html, /aria-label="Best value"/);
+});
+
+test('the path line compares enchants and one for all', () => {
+  const html = blazeHtml(blazeG([sharpStep]));
+  assert.match(html, /Enchants: ×1\.00 · One For All: ×6\.00 · One For All leads by 500\.0 %/);
+  assert.match(html, /In use: Enchants/);
+});
+
+test('the active path is named and never changes by itself', () => {
+  const summary = blazeProfile();
+  summary.items = summary.items.map((i) => (DAGGERS_TEST.has(i.id) ? { ...i, enchants: { [OFA]: 1 } } : i));
+  const html = blazeHtml(blazeG([sharpStep]), { state: { summary, syncedAt: 1 } });
+  assert.match(html, /In use: One For All/);
+  assert.match(html, /Not used with One For All/);
+  assert.match(html, /aria-label="No damage gain"/);
+});
+
+test('the offset moves the blaze base, also in the limits', () => {
+  const entry = { choice: { armor: 1, equipment: 1, pet: null }, values: {}, offset: { TRUE_DEFENSE: -120 }, offsetFor: { armor: 1, equipment: 1, pet: null }, offsetNote: null, at: 2 };
+  const html = blazeHtml(blazeG([sharpStep]), { state: { summary: blazeProfile(), syncedAt: 1, statsInput: { blaze: entry } } });
+  assert.match(html, /True Defense 80 \/ 140/);
+  assert.match(html, /Below the limit/);
+});
+
+test('best possible keeps true defense at the limit', () => {
+  const armor = piece('PLATE', { lore: { TRUE_DEFENSE: 150 } });
+  const glass = piece('INFERNAL_CRIMSON_CHESTPLATE', { where: 'backpack', lore: { STRENGTH: 500 } });
+  const tank = piece('OTHER_PLATE', { where: 'backpack', lore: { STRENGTH: 200, TRUE_DEFENSE: 150 } });
+  const data = { ...blazeItems, OTHER_PLATE: { category: 'CHESTPLATE' } };
+  const loadout = { armor: [armor], equipment: [], held: null, daggers: { ashen: null, spirit: null } };
+  const s = { common: { TRUE_DEFENSE: 150, STRENGTH: 0 }, daggers: loadout.daggers, armorIds: [armor.id], path: 'guide' };
+  const out = bestBlaze({ items: [armor, glass, tank] }, data, loadout, s);
+  assert.equal(out.slots[0].best.id, 'OTHER_PLATE');
+  assert.ok(out.gain > 0);
+});
+
+test('best possible does not list a dagger swap between the lines', () => {
+  const html = blazeHtml(blazeG([sharpStep]));
+  assert.doesNotMatch(html, /FIREDUST_DAGGER →|MAWDUST_DAGGER →/);
+  assert.match(html, /Pet and daggers stay/);
+});
+
+test('the page names what the model leaves out', () => {
+  assert.match(blazeHtml(blazeG([sharpStep])), /Not modelled: Thunderlord/);
+});
+
+test('the fourth crimson piece says set bonus not fully rated', () => {
+  const crimson = ['HELMET', 'CHESTPLATE', 'LEGGINGS'].map((s) => piece(`INFERNAL_CRIMSON_${s}`, { sets: ['armor:1'], lore: { TRUE_DEFENSE: 100 } }));
+  const data = { ...blazeItems, ...Object.fromEntries(crimson.map((p) => [p.id, { category: p.id.split('_').pop(), tier: 'MYTHIC', stats: {} }])) };
+  const summary = { ...blazeProfile(), items: [...blazeProfile().items.filter((i) => i.id !== 'PLATE'), ...crimson] };
+  const html = blazeHtml(blazeG([{ text: 'x', detect: { kind: 'owned', on: [['INFERNAL_CRIMSON_BOOTS']] }, items: [{ id: 'A', qty: 1 }] }]), { state: { summary, syncedAt: 1 }, data });
+  assert.match(html, /Set bonus not fully rated/);
+});
+
+test('blaze names and reasons are escaped', () => {
+  const data = { ...blazeItems, HARD: { requirements: [{ type: 'COLLECTION', collection: '<b>', tier: 1 }] } };
+  const html = blazeHtml(blazeG([{ text: '<i>x', detect: onDaggers('critical', 1), items: [{ id: 'HARD', qty: 1 }] }]), { data, products: { HARD: sold(1) }, state: { summary: { ...blazeProfile(), collTiers: [] }, syncedAt: 1 } });
+  assert.doesNotMatch(html, /<i>x|<b>/);
+});
+
+test('a guide without any dagger still draws', () => {
+  const summary = { ...blazeProfile(), items: [piece('PLATE', { sets: ['armor:1'], lore: { TRUE_DEFENSE: 200 } })] };
+  const html = blazeHtml(blazeG([{ text: 'maw', detect: { kind: 'owned', on: [[MAW]] }, items: [{ id: 'A', qty: 1 }] }]), { state: { summary, syncedAt: 1 } });
+  assert.match(html, /Dagger pair incomplete/);
+  assert.match(html, /aria-label="Requirements first"/);
+});
+
+const BLAZE = 'personal/guides/blaze-slayer.json';
+test('the real blaze guide ranks without error', { skip: !(existsSync(FIXTURE) && existsSync(ITEMS) && existsSync(BLAZE)) }, async () => {
+  const realGuide = validGuide(JSON.parse(readFileSync(BLAZE, 'utf8')));
+  assert.equal(realGuide.area, 'blaze');
+  const summary = await summarize(JSON.parse(readFileSync(FIXTURE, 'utf8')).members.self);
+  const data = JSON.parse(readFileSync(ITEMS, 'utf8')).r;
+  const html = bestValueView({ guide: realGuide, checked: new Set(), ctx: { products: {}, profile: summary, items: data, have: new Map() }, name: String, state: { summary, syncedAt: 1 }, settings: miningSettings(null) });
+  assert.match(html, /Estimate/);
+  assert.doesNotMatch(html, /NaN/);
 });

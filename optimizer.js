@@ -1,6 +1,6 @@
 // Which open guide step brings the most per coin (spec 4 and 5). Pure functions over the guide, the prices and the synced profile.
-import { AREA_STATS, computeStats, miningScore, loadoutOf, withOffset, offsetStale, maxPetStats, petStats, MIN_TRUE_DEFENSE, MIN_MP } from './stats.js';
-import { DAGGERS, OFA, ADDITIVE_ENCHANTS, blazeOutput } from './blaze.js';
+import { AREA_STATS, computeStats, miningScore, loadoutOf, withOffset, offsetStale, maxPetStats, petStats, MIN_TRUE_DEFENSE, MIN_MP, TARGET_MP } from './stats.js';
+import { DAGGERS, OFA, ADDITIVE_ENCHANTS, blazeOutput, blazeState, daggersOf, additiveOf } from './blaze.js';
 import { nextUpgrades, stepCost, openStep, bookOf, stepKey, stepRow } from './progress.js';
 import { esc, coins } from './render.js';
 import { checkStep } from './requires.js';
@@ -506,16 +506,31 @@ export function bestLoadout(profile, items, loadout, base, settings) {
 }
 
 const share = (v) => { const p = v * 100; return Math.abs(p) >= 0.1 ? p.toFixed(1) : p.toPrecision(1); };
-const RAW = { MINING_FORTUNE: 'Fortune', GEMSTONE_FORTUNE: 'Gemstone Fortune', ORE_FORTUNE: 'Ore Fortune', BLOCK_FORTUNE: 'Block Fortune', MINING_SPEED: 'Speed', PRISTINE: 'Pristine' };
-const rawLine = (delta) => Object.entries(delta).filter(([, v]) => v).map(([k, v]) => `${v > 0 ? '+' : ''}${Math.round(v * 100) / 100} ${RAW[k]}`).join(', ');
+const RAW = { MINING_FORTUNE: 'Fortune', GEMSTONE_FORTUNE: 'Gemstone Fortune', ORE_FORTUNE: 'Ore Fortune', BLOCK_FORTUNE: 'Block Fortune', MINING_SPEED: 'Speed', PRISTINE: 'Pristine',
+  DAMAGE: 'Damage', STRENGTH: 'Strength', CRITICAL_DAMAGE: 'Crit Damage', CRITICAL_CHANCE: 'Crit Chance', ATTACK_SPEED: 'Attack Speed', HEALTH: 'Health', DEFENSE: 'Defense', TRUE_DEFENSE: 'True Defense' };
+const rawLine = (delta) => Object.entries(delta).filter(([k, v]) => v && RAW[k]).map(([k, v]) => `${v > 0 ? '+' : ''}${Math.round(v * 100) / 100} ${RAW[k]}`).join(', ');
 const words = (s) => s[0].toUpperCase() + s.slice(1).toLowerCase();
 
-function rowExtra(row, ctx) {
+// What a Blaze step moves, in the words of the stats: shared, then per dagger line.
+function rawChange(c) {
+  const lines = ['ashen', 'spirit'].map((line) => {
+    const text = rawLine(plus(plus({}, c.swaps[line]?.lore), c.lines[line]));
+    return text && `${words(line)}: ${text}`;
+  });
+  return [rawLine(c.common), ...lines, c.mp ? `${c.mp > 0 ? '+' : ''}${c.mp} Magical Power` : '', c.ofa ? 'One For All' : ''].filter(Boolean).join(' · ');
+}
+
+const HELP = { trueDefense: 'True Defense', mp: 'Magical Power', dagger: 'Dagger pair incomplete' };
+
+function rowExtra(row, ctx, unit = 'yield') {
   const parts = [];
+  if (row.helps?.length) parts.push(row.helps.map((h) => `<span class="guide-src" data-src="locked">${HELP[h]}</span>`).join(''));
   if (row.gain !== undefined) {
     const rate = row.perMillion === undefined ? '' : ` · ${share(row.perMillion)} %/1M`;
-    parts.push(`<small class="guide-hint"><strong>+${share(row.gain)} % yield${rate}</strong></small><small class="guide-hint">${esc(rawLine(row.delta))}</small>`);
+    const raw = unit === 'yield' ? rawLine(row.delta) : rawChange(row.delta);
+    parts.push(`<small class="guide-hint"><strong>+${share(row.gain)} % ${unit}${rate}</strong></small><small class="guide-hint">${esc(raw)}</small>`);
   }
+  for (const note of new Set(row.notes ?? [])) parts.push(`<small class="guide-hint">${esc(note)}</small>`);
   if (row.resale > 0) parts.push(`<small class="guide-hint">Net ${coins(row.net)} (buy ${coins(row.coins)} − resale ${coins(row.resale)})</small>`);
   if (row.ahead) parts.push(`<small class="guide-hint">Counted up to: ${esc(row.ahead.text)}</small>`);
   if (row.status === 'unknown') parts.push('<small class="guide-hint">Requirements could not be checked.</small>');
@@ -530,18 +545,103 @@ const NOTES = {
   setup: 'Measure /stats again: the slot or pet changed, so they are left out.',
 };
 
-function bestCard(best, name) {
+// Spec 2.5 for Blaze: per slot what brings the most damage, and never a swap that drops True Defense under its limit while it is met.
+export function bestBlaze(profile, items, loadout, state) {
+  const slots = [];
+  let now = state;
+  for (const group of SLOT_GROUPS.slice(0, -1)) {
+    const of = (i) => group.includes(items[i.id]?.category);
+    const current = worn(loadout).find(of) ?? null;
+    const without = difference(now.common, current?.lore);
+    const after = (i) => ({ ...now, common: plus({ ...without }, i?.lore), armorIds: [...now.armorIds.filter((id) => id !== current?.id), ...(i && isArmor(items[i.id]?.category) ? [i.id] : [])] });
+    const td = now.common.TRUE_DEFENSE ?? 0;
+    const allowed = (i) => td < MIN_TRUE_DEFENSE || (after(i).common.TRUE_DEFENSE ?? 0) >= MIN_TRUE_DEFENSE;
+    let best = current;
+    for (const i of profile.items.filter((item) => of(item) && item.where !== 'accessory')) {
+      if (allowed(i) && blazeOutput(after(i)) > blazeOutput(after(best)) + 1e-9) best = i;
+    }
+    now = after(best);
+    if (best !== current) slots.push({ slot: group[0], current, best });
+  }
+  return { slots, gain: slots.length ? blazeOutput(now) / blazeOutput(state) - 1 : 0 };
+}
+
+function bestCard(best, name, unit = 'yield', stays = 'Pet stays as picked. Set bonuses are not counted.') {
   const pick = (i) => (i ? esc(name(i.id)) : 'nothing');
   const body = best.slots.length
-    ? `<strong>+${share(best.gain)} % yield compared with your wardrobe slot</strong><ul class="stats-gaps">${best.slots.map((s) => `<li>${esc(words(s.slot))}: ${pick(s.current)} → ${pick(s.best)}</li>`).join('')}</ul>`
+    ? `<strong>+${share(best.gain)} % ${unit} compared with your wardrobe slot</strong><ul class="stats-gaps">${best.slots.map((s) => `<li>${esc(words(s.slot))}: ${pick(s.current)} → ${pick(s.best)}</li>`).join('')}</ul>`
     : '<small class="guide-hint">Your wardrobe slot already is the best of what you own.</small>';
-  return `<section class="guide-next" aria-label="Best possible"><h2>Best possible from what you own</h2>${body}<small class="guide-hint">Pet stays as picked. Set bonuses are not counted.</small></section>`;
+  return `<section class="guide-next" aria-label="Best possible"><h2>Best possible from what you own</h2>${body}<small class="guide-hint">${stays}</small></section>`;
+}
+
+const offsetNotes = (entry, state, loadout) => [
+  ...(entry?.offset && NOTES[entry.offsetNote] ? [NOTES[entry.offsetNote]] : []),
+  ...(!entry?.offset ? ['Save your /stats in Settings to include what the app cannot read.'] : []),
+  ...(offsetStale(entry, entry?.choice) ? ['Measure /stats again: the slot or pet changed.'] : []),
+  ...(entry?.at && entry.at < state.syncedAt ? ['Your /stats values are older than the last sync.'] : []),
+  ...loadout.gaps,
+];
+
+const noSync = '<section class="guide-next" aria-label="Best value"><h2>Best value</h2><p class="muted">Sync your profile to rank the upgrades against what you have.</p><div class="actions"><button type="button" data-open-settings>Open settings</button></div></section>';
+
+const LEFT_OUT = 'Estimate: compares upgrades, says nothing about real kill time. Not modelled: Thunderlord, Fire Aspect, Crimson swipe, Burning Vengeance, Venomous, demon phases, pillars.';
+
+function limitsView(profile, state) {
+  const td = profile.missing?.inventory ? null : state.common.TRUE_DEFENSE ?? 0;
+  const mp = profile.mp ?? null;
+  const fmt = (v) => (v === null ? 'unknown' : String(Math.round(v * 10) / 10));
+  const low = [td !== null && td < MIN_TRUE_DEFENSE && `True Defense ${fmt(td)} / ${MIN_TRUE_DEFENSE}`, mp !== null && mp < MIN_MP && `Magical Power ${fmt(mp)} / ${MIN_MP}`].filter(Boolean);
+  const lines = [`<p class="guide-hint">True Defense ${fmt(td)} / ${MIN_TRUE_DEFENSE} · Magical Power ${fmt(mp)} / ${MIN_MP}</p>`];
+  if (low.length) lines.push(`<p class="guide-limit" role="alert">Below the limit: ${low.join(' · ')}. The damage numbers assume you survive.</p>`);
+  if (mp !== null && mp >= MIN_MP && mp < TARGET_MP) lines.push(`<small class="guide-hint">Magical Power is under the target of ${TARGET_MP}.</small>`);
+  if (td === null || mp === null) lines.push('<p class="guide-limit" role="alert">A limit could not be read. The ranking goes on without it.</p>');
+  return lines.join('');
+}
+
+function pathsView(state) {
+  const lines = Object.values(state.daggers).filter(Boolean);
+  const factor = (path) => (lines.length ? lines.reduce((sum, d) => sum + 1 + additiveOf(d, state.armorIds, path) / 100, 0) / lines.length : 1 + additiveOf(null, state.armorIds, path) / 100);
+  const [guideOut, ofaOut] = [blazeOutput(state, 'guide'), blazeOutput(state, 'ofa')];
+  const leader = ofaOut >= guideOut ? 'One For All' : 'Enchants';
+  const lead = (Math.max(ofaOut, guideOut) / Math.max(Math.min(ofaOut, guideOut), 1e-9) - 1) * 100;
+  return `<p class="guide-hint">Enchants: ×${factor('guide').toFixed(2)} · One For All: ×${factor('ofa').toFixed(2)} · ${leader} leads by ${lead.toFixed(1)} % (estimate). In use: ${state.path === 'ofa' ? 'One For All' : 'Enchants'}.</p>`;
+}
+
+function blazeValueView({ guide, checked, ctx, name, state: synced, settings, keepOldGear, boosts, preset }) {
+  const profile = synced.summary;
+  const entry = synced.statsInput?.blaze ?? preset?.blaze ?? null;
+  const picked = loadoutOf(profile, ctx.items, 'blaze', entry?.choice);
+  const daggers = daggersOf(profile);
+  const loadout = { ...picked, daggers };
+  const base = withOffset(computeStats(profile, ctx.items, picked, 'blaze', boosts).total, entry);
+  const state = blazeState(base, loadout, daggers);
+  const miningChoice = synced.statsInput?.mining?.choice ?? preset?.mining?.choice;
+  const other = miningChoice ? loadoutOf(profile, ctx.items, 'mining', miningChoice, settings) : null;
+  const groups = rankUpgrades(guide, checked, ctx, loadout, settings, base, { area: 'blaze', other, keepOldGear, state });
+  const list = (title, rows, note = '', label = () => '') => (rows.length
+    ? `<section class="guide-next" aria-label="${title}"><h2>${title}</h2>${note ? `<small class="guide-hint">${note}</small>` : ''}<ul class="guide-steps">${rows.map((r) => stepRow(r.section, r.step, checked, ctx, name, label(r) + rowExtra(r, ctx, 'damage'))).join('')}</ul></section>` : '');
+  const notes = offsetNotes(entry, synced, picked);
+  const open = Object.values(groups).reduce((n, rows) => n + rows.length, 0);
+  return `<p class="guide-hint">${LEFT_OUT}</p>
+  ${limitsView(profile, state)}
+  ${pathsView(state)}
+  ${Object.values(daggers).includes(null) ? '<p class="guide-limit" role="alert">Dagger pair incomplete: the Hellion Shield needs one dagger of each line.</p>' : ''}
+  ${notes.length ? `<ul class="stats-gaps">${notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
+  ${bestCard(bestBlaze(profile, ctx.items, loadout, state), name, 'damage', 'Pet and daggers stay as they are. Set bonuses other than Dominus are not counted. True Defense stays at its limit.')}
+  ${open ? '' : '<p class="muted">All steps are done.</p>'}
+  ${list('Requirements first', groups.requirements, 'These close a missed limit. Sorted by how much of the gap they close per coin.')}
+  ${list('Best value', [...groups.free, ...groups.ranked], '', (r) => (r.perMillion === undefined ? '<span class="guide-src" data-src="free">free</span>' : ''))}
+  ${list('Locked', groups.locked)}
+  ${list('No price', groups.noPrice, 'A sum that leaves out an item would look cheaper than it is.')}
+  ${list('No gain data', groups.noGain, 'Nothing known gives this step a fixed value.')}
+  ${list('No damage gain', groups.zero, 'These add no damage in this model right now.')}`;
 }
 
 export function bestValueView({ guide, checked, ctx, name, state, settings, keepOldGear, boosts = {}, preset = null }) {
   const profile = state?.summary;
-  if (!profile) return '<section class="guide-next" aria-label="Best value"><h2>Best value</h2><p class="muted">Sync your profile to rank the upgrades against what you have.</p><div class="actions"><button type="button" data-open-settings>Open settings</button></div></section>';
+  if (!profile) return noSync;
   if (!ctx.items) return '<p class="muted">Loading item data…</p>';
+  if (guide.area === 'blaze') return blazeValueView({ guide, checked, ctx, name, state, settings, keepOldGear, boosts, preset });
   const entry = state.statsInput?.mining ?? preset?.mining ?? null;
   const loadout = loadoutOf(profile, ctx.items, 'mining', entry?.choice, settings);
   // without a picked Blaze slot both areas fall back to what is worn, which says nothing about what Blaze still needs
@@ -551,11 +651,7 @@ export function bestValueView({ guide, checked, ctx, name, state, settings, keep
   const groups = rankUpgrades(guide, checked, ctx, loadout, settings, base, { other, keepOldGear });
   const notes = [
     ...(settings.gemFortune ? [] : ['Gemstone Fortune does not count here, and Ore, Block and Dwarven Metal Fortune are not counted, so fortune steps read low.']),
-    ...(entry?.offset && NOTES[entry.offsetNote] ? [NOTES[entry.offsetNote]] : []),
-    ...(!entry?.offset ? ['Save your /stats in Settings to include what the app cannot read.'] : []),
-    ...(offsetStale(entry, entry?.choice) ? ['Measure /stats again: the slot or pet changed.'] : []),
-    ...(entry?.at && entry.at < state.syncedAt ? ['Your /stats values are older than the last sync.'] : []),
-    ...loadout.gaps,
+    ...offsetNotes(entry, state, loadout),
   ];
   const list = (title, rows, note = '', label = () => '') => (rows.length
     ? `<section class="guide-next" aria-label="${title}"><h2>${title}</h2>${note ? `<small class="guide-hint">${note}</small>` : ''}<ul class="guide-steps">${rows.map((r) => stepRow(r.section, r.step, checked, ctx, name, label(r) + rowExtra(r, ctx))).join('')}</ul></section>` : '');
