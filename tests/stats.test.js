@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { miningScore, blazeScore, blazeConstraints, gearStats, loadoutOf, GEMSTONE } from '../stats.js';
+import { miningScore, blazeScore, blazeConstraints, gearStats, loadoutOf, computeStats, powerMultiplier, petLevel, GEMSTONE } from '../stats.js';
 
 const near = (a, b, eps = 1e-9) => assert.ok(Math.abs(a - b) < eps, `${a} is not ${b}`);
 const base = { MINING_FORTUNE: 1000, MINING_SPEED: 6000, PRISTINE: 5 };
@@ -107,4 +107,95 @@ test('the active pet is the pet of the loadout', () => {
 
 test('gearStats adds lore', () => {
   assert.deepEqual(gearStats([it('A', 'x', { HEALTH: 1 }), it('B', 'x', { HEALTH: 2, DEFENSE: 3 })]), { HEALTH: 3, DEFENSE: 3 });
+});
+
+const empty = { armor: [], equipment: [], held: null, accessories: [], pet: null, gaps: [] };
+const part = (profile, name, loadout = empty) => computeStats({ items: [], ...profile }, {}, loadout, 'mining').parts[name];
+
+test('HOTM adds 20 speed, 2 fortune and 0.1 pristine per level of the matching perk', () => {
+  assert.deepEqual(part({ hotm: { nodes: { mining_speed: 10, mining_fortune: 5, pristine: 3 } } }, 'hotm'), { MINING_SPEED: 200, MINING_FORTUNE: 10, PRISTINE: 0.30000000000000004 });
+});
+
+test('skills follow the wiki totals at the top levels', () => {
+  const top = 111672425;
+  const s = part({ skills: { SKILL_MINING: top, SKILL_FARMING: top, SKILL_FISHING: top, SKILL_FORAGING: top, SKILL_COMBAT: top }, farmingCap: 10 }, 'skills');
+  assert.deepEqual(s, { MINING_FORTUNE: 240, DEFENSE: 106, HEALTH: 242 + 192, STRENGTH: 100, CRITICAL_CHANCE: 30 });
+});
+
+test('farming stops at level 50 without the cap perk', () => {
+  assert.equal(part({ skills: { SKILL_FARMING: 111672425 } }, 'skills').HEALTH, 192);
+});
+
+test('the MP multiplier follows the wiki formula', () => {
+  near(powerMultiplier(250), 9.64, 0.01);
+  const s = part({ selectedPower: 'fortuitous', mp: 250 }, 'power');
+  near(s.HEALTH, 32, 0.5);
+  near(s.STRENGTH, 46, 0.5);
+});
+
+test('a flat power bonus does not scale, and the stone values match the wiki at 250', () => {
+  near(part({ selectedPower: 'silky', mp: 250 }, 'power').CRITICAL_DAMAGE, 219.84, 0.1);
+  assert.equal(part({ selectedPower: 'silky', mp: 250 }, 'power').ATTACK_SPEED, 5);
+  near(part({ selectedPower: 'scorching', mp: 250 }, 'power').ATTACK_SPEED, 17.36, 0.05);
+});
+
+test('an unknown power is named in gaps, not guessed', () => {
+  const out = computeStats({ items: [], selectedPower: 'mystery', mp: 900 }, {}, empty, 'mining');
+  assert.deepEqual(out.parts.power, {});
+  assert.ok(out.gaps.includes('Power mystery has no stat table yet.'));
+});
+
+test('tuning points add their stats, and a second filled slot is named', () => {
+  assert.deepEqual(part({ tuning: { slot_0: { strength: 3, critical_damage: 10 } } }, 'power'), { STRENGTH: 3, CRITICAL_DAMAGE: 10 });
+  const out = computeStats({ items: [], tuning: { slot_0: {}, slot_1: { strength: 1 }, highest_unlocked_slot: 1 } }, {}, empty, 'mining');
+  assert.ok(out.gaps.includes('Tuning: only slot 0 is counted.'));
+});
+
+test('the fortune collections add once per reached tier', () => {
+  assert.deepEqual(part({ collTiers: ['GLACITE_1', 'GLACITE_2', 'GLACITE_6', 'OBSIDIAN_10', 'WHEAT_1'] }, 'collections'), { MINING_FORTUNE: 3 });
+});
+
+test('skills off leaves the part out and names it in gaps', () => {
+  const out = computeStats({ items: [] }, {}, empty, 'mining');
+  assert.deepEqual(out.parts.skills, {});
+  assert.ok(out.gaps.some((g) => /Skills API/.test(g)));
+});
+
+test('petLevel: the rarity offset picks the costs, the top stops it, past 100 the last cost repeats', () => {
+  assert.equal(petLevel({ tier: 'LEGENDARY', exp: 0 }), 1);
+  assert.equal(petLevel({ tier: 'COMMON', exp: 100 }), 2);
+  assert.equal(petLevel({ tier: 'LEGENDARY', exp: 660 }), 2);
+  assert.equal(petLevel({ tier: 'LEGENDARY', exp: 1e12 }), 100);
+  assert.equal(petLevel({ tier: 'LEGENDARY', exp: 1e12 }, 200), 200);
+});
+
+test('a pet in the table adds its stats, one not in the table is named in gaps', () => {
+  const lion = { type: 'LION', tier: 'LEGENDARY', exp: 1e12, heldItem: 'X' };
+  const known = computeStats({ items: [] }, {}, { ...empty, pet: lion }, 'mining');
+  assert.deepEqual(known.parts.pet, { STRENGTH: 50 });
+  assert.ok(known.gaps.includes('The pet item is not counted.'));
+  const other = computeStats({ items: [] }, {}, { ...empty, pet: { type: 'WOLF', tier: 'EPIC', exp: 1 } }, 'mining');
+  assert.deepEqual(other.parts.pet, {});
+  assert.ok(other.gaps.includes('Pet WOLF EPIC has no stat table yet.'));
+});
+
+test('the Golden Dragon has no stats as an egg and full ones at 200', () => {
+  const stats = (exp) => computeStats({ items: [] }, {}, { ...empty, pet: { type: 'GOLDEN_DRAGON', tier: 'LEGENDARY', exp } }, 'blaze').parts.pet;
+  assert.deepEqual(stats(0), {});
+  assert.deepEqual(stats(1e12), { STRENGTH: 50, ATTACK_SPEED: 50 });
+});
+
+test('the total adds every part, and DAMAGE comes from the weapon lore only in Blaze', () => {
+  const held = it('S', 'inventory', { DAMAGE: 200, STRENGTH: 10 });
+  const armor = [it('A', 'wardrobe', { HEALTH: 50, DAMAGE: 5 })];
+  const blaze = computeStats({ items: [] }, {}, { ...empty, held, armor }, 'blaze').total;
+  assert.equal(blaze.HEALTH, 150);
+  assert.equal(blaze.STRENGTH, 10);
+  assert.equal(blaze.DAMAGE, 200);
+  assert.equal(blaze.CRITICAL_CHANCE, 30);
+  assert.equal(computeStats({ items: [] }, {}, empty, 'mining').total.DAMAGE, 0);
+});
+
+test('a loadout gap carries through', () => {
+  assert.ok(computeStats({ items: [] }, {}, { ...empty, gaps: ['Full set X: its bonus is not counted.'] }, 'mining').gaps.includes('Full set X: its bonus is not counted.'));
 });
