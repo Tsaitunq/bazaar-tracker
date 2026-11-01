@@ -352,7 +352,7 @@ test('attack speed stops at 100, and the part stays as it is', () => {
 });
 
 test('what has no table is named in gaps', () => {
-  assert.ok(computeStats({ items: [] }, {}, empty, 'mining').gaps.some((g) => /shards, essence perks/.test(g)));
+  assert.ok(computeStats({ items: [] }, {}, empty, 'mining').gaps.some((g) => /essence perks/.test(g)));
 });
 
 test('nothing in hand counts no tool, without a gap, and the box stays ticked', () => {
@@ -364,4 +364,47 @@ test('nothing in hand counts no tool, without a gap, and the box stays ticked', 
   const html = areaOf(view({ syncedAt: 1, summary: p, statsInput: { mining: { choice: { ...choice, emptyHand: true }, values: {} } } }), 'mining');
   assert.match(html, /data-stats-empty-hand checked/);
   assert.match(html, /In hand: nothing/);
+});
+
+const shards = (attrs) => part({ attrs }, 'shards');
+
+test('the shard count gives the level by rarity, and the wiki range sets the value', () => {
+  assert.deepEqual(shards({ veil: 32 }), { TRUE_DEFENSE: 10 });
+  assert.deepEqual(shards({ veil: 31 }), { TRUE_DEFENSE: 9 });
+  assert.deepEqual(shards({ veil: 1000 }), { TRUE_DEFENSE: 10 });
+  assert.deepEqual(shards({ rotten_pickaxe: 96 }), { MINING_SPEED: 30 });
+  assert.deepEqual(shards({ rotten_pickaxe: 95 }), { MINING_SPEED: 27 });
+  assert.deepEqual(shards({ shadow_elemental: 24, nature_elemental: 1 }), { HEALTH: 22 });
+  assert.deepEqual(shards({ ultimate_dna: 24, fortunate_miner: 96 }), { MINING_FORTUNE: 35 });
+  assert.deepEqual(shards({ attack_speed: 32 }), { ATTACK_SPEED: 10 });
+  assert.deepEqual(shards({ gold_box: 96, mossy_box: 96 }), { ORE_FORTUNE: 50, BLOCK_FORTUNE: 50 });
+});
+
+test('a key we do not know adds nothing', () => {
+  assert.deepEqual(shards({ crop_speed: 96 }), {});
+});
+
+test('a condition keeps a shard out of the numbers and names it in gaps', () => {
+  const out = computeStats({ items: [], attrs: { forest_strength: 96, blazing_resistance: 96, lifeline: 0 } }, {}, empty, 'blaze');
+  assert.deepEqual(out.parts.shards, {});
+  assert.equal(out.total.DEFENSE, undefined);
+  assert.ok(out.gaps.includes('Shards with a condition are not counted: forest_strength, blazing_resistance.'));
+});
+
+test('an Unlimited shard raises the whole stat, and Almighty Echo raises that', () => {
+  const armor = [it('A', 'wardrobe', { STRENGTH: 1000, DEFENSE: 1000 })];
+  const stat = (attrs) => computeStats({ items: [], attrs }, {}, { ...empty, armor }, 'blaze').total;
+  near(stat({ unlimited_power: 24 }).STRENGTH, 1010);
+  near(stat({ unlimited_power: 24, almighty: 24 }).STRENGTH, 1015);
+  near(stat({ fortitude: 24 }).DEFENSE, 1020);
+  near(stat({ unlimited_energy: 24 }).CRITICAL_DAMAGE, 50.5);
+});
+
+test('shards count before the attack speed cap', () => {
+  const held = it('S', 'inventory', { ATTACK_SPEED: 95 });
+  assert.equal(computeStats({ items: [], attrs: { attack_speed: 32 } }, {}, { ...empty, held }, 'blaze').total.ATTACK_SPEED, 100);
+});
+
+test('a saved profile without shards asks for a sync', () => {
+  assert.ok(computeStats({ items: [] }, {}, empty, 'mining').gaps.includes('Sync again to read your shards.'));
 });

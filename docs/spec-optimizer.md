@@ -230,7 +230,8 @@ Nur der Stand aus 2.3 für das eigene Mitglied plus Pets, MP, HOTM-Knoten, Colle
 | SkyBlock-Level | +5 Health je Level, +1 Strength je 5 Level [Doku Wiki] | `leveling.experience` | automatisch |
 | Slayer | Belohnungen je Stufe [Doku Wiki, Seiten der einzelnen Slayer] | `slayer.slayer_bosses` | automatisch |
 | Basiswerte | z. B. Crit Chance 30 [Doku Wiki], Health | Tabelle | automatisch |
-| Shards, Essence-Perks | diverse | `attributes.stacks`, `player_data.perks`; noch keine Tabelle | über Abgleich (3.4) |
+| Shards | nur Attribute ohne Bedingung; Bedingte stehen in `gaps` [Doku Wiki, Attributes; Schlüssel aus NEU nicht bestätigt] | `attributes.stacks`, Stufe aus Anzahl und Rarity | automatisch |
+| Essence-Perks | diverse | `player_data.perks`; noch keine Tabelle | über Abgleich (3.4) |
 | Potions, Mayor, Cake, Events, Booster, Museum | diverse | nicht zuverlässig lesbar | über Abgleich (3.4) |
 | Fairy Souls | keine Stats mehr [Doku Wiki: seit 0.15 nur SkyBlock XP] | entfällt | entfällt |
 
@@ -247,6 +248,10 @@ Nur der Stand aus 2.3 für das eigene Mitglied plus Pets, MP, HOTM-Knoten, Colle
 - Anzeige je Stat: berechnet, in-game, Abweichung absolut und in Prozent. Ab 5 % gelb markiert.
 - **Wenn ein In-Game-Wert eingetragen ist, gilt er als Basis der Bewertung**, weil Potions und Mayor im Spiel enthalten sind. Veraltet er (älter als der letzte Sync), erscheint ein Hinweis.
 - Hinweis im Formular: Messung mit dem Setup, mit dem tatsächlich gespielt wird.
+- **Ausgleichswert (Plan für Paket 5, noch nicht gebaut):** Beim Speichern einer Messung wird je Stat `offset = inGame − berechnet` mit diesem Setup festgehalten, im selben `statsInput`. Er fasst zusammen, was die App nicht lesen kann (Potions, Mayor, Essence-Perks, Set-Boni). Die Bewertung rechnet dann mit `Basis = berechnet(aktuelles Loadout) + offset`, statt den In-Game-Wert fest zu übernehmen. So bleibt die Basis stimmig, wenn sich nach der Messung Gear ändert, und der Fehler landet nicht im Delta.
+  - Ein gemessener Wert am Spielmaximum (Attack Speed 100) gibt keinen Offset, weil der echte Wert darüber liegen kann.
+  - Ein Offset ist nur mit seinem Setup belegt: Wechselt Wardrobe-Slot, Equipment-Slot oder Pet, erscheint der Hinweis, neu zu messen.
+  - Ein aktiver Boost (God Potion, Booster Cookie) bleibt im Offset. Die Anzeige nennt ihn, weil er vergeht.
 
 ## 4. Bewertung
 
@@ -515,7 +520,7 @@ Der erste spürbare Nutzen kommt nach Paket 2: Die Haken pflegen sich selbst. Di
 | 2 | Auto-Abhaken | `detect`, `doneSet`, Badge, Teil-Erfüllung und Preis, `detect` für alle Guide-Schritte | **Erster Nutzen** | M, ca. 300 Zeilen plus Pflege der Guides | Sonnet 5.5 |
 | 3 | Voraussetzungen | `items.json` im Snapshot-Job, HOTM-, Collection-, Slayer- und Skill-Prüfung, Anzeige "locked" | "Geht das schon?" im Guide | S, ca. 150 Zeilen | Sonnet 5.5 |
 | 4 | Stats und Abgleich | Lore-Summe, Loadouts, HOTM, Skills, Pets, MP, `/stats`-Formular | Stats sichtbar, Abweichung prüfbar | L, ca. 500 Zeilen | Opus 5.5 |
-| 5 | Mining-Rangliste | `optimizer.js`, Delta-Arten, `optimizer-data.json`, Modus `Best value`, Gewichte und Presets, Netto-Preis mit "I keep old gear", Pristine-Prüfung | **Rangliste Mining** | M, ca. 450 Zeilen plus Daten | Sonnet 5.5 |
+| 5 | Mining-Rangliste | `optimizer.js`, Delta-Arten, `optimizer-data.json`, Modus `Best value`, Gewichte und Presets, Netto-Preis mit "I keep old gear", Pristine-Prüfung, Ausgleichswert (3.4) | **Rangliste Mining** | M, ca. 450 Zeilen plus Daten | Sonnet 5.5 |
 | 6 | Blaze-Modell | Schadensmodell, beide Enchant-Wege, Constraints mit MP-Zielwert, Enchant-Daten, Estimate-Hinweise | **Rangliste Blaze** | M, ca. 350 Zeilen plus Daten | Opus 5.5 |
 
 Reihenfolge fest: 0, 1, 2. Danach 3 und 4 unabhängig, dann 5, dann 6. Mining kommt vor Blaze, weil die Formeln belegt sind und das Blaze-Modell auf derselben Struktur aufsetzt.

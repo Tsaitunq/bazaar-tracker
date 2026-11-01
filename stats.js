@@ -1,5 +1,5 @@
 // What the player's stats are in a chosen setup, added up from item lore and the synced profile.
-// Potions, mayor, cake and museum are not readable, shards and essence perks have no table yet; the /stats comparison shows them.
+// Potions, mayor, cake and museum are not readable, essence perks have no table yet; the /stats comparison shows them.
 import { levelOf, SKILL_XP, SLAYER_XP } from './requires.js';
 
 export const AREA_STATS = {
@@ -159,6 +159,49 @@ function slayerStats(slayer) {
   return out;
 }
 
+// wiki Attributes, cumulative shards to level 1 to 10. Keys of attributes.stacks are not on the wiki: NEU attribute_shards.json, not confirmed.
+const SHARD_LEVELS = {
+  COMMON: [1, 4, 9, 15, 22, 30, 40, 54, 72, 96],
+  UNCOMMON: [1, 3, 6, 10, 15, 21, 28, 36, 48, 64],
+  RARE: [1, 3, 6, 9, 13, 17, 22, 28, 36, 48],
+  EPIC: [1, 2, 4, 6, 9, 12, 16, 20, 25, 32],
+  LEGENDARY: [1, 2, 3, 5, 7, 9, 12, 15, 19, 24],
+};
+// wiki Attributes: the value at level 1. It gives only the range from 1 to 10, so a straight line between them is assumed.
+const SHARD_FLAT = {
+  nature_elemental: ['COMMON', { HEALTH: 2 }], wood_elemental: ['UNCOMMON', { HEALTH: 2 }], forest_elemental: ['RARE', { HEALTH: 2 }], earth_elemental: ['EPIC', { HEALTH: 2 }], shadow_elemental: ['LEGENDARY', { HEALTH: 2 }],
+  light_elemental: ['COMMON', { STRENGTH: 1 }], stone_elemental: ['UNCOMMON', { STRENGTH: 1 }], lightning_elemental: ['RARE', { STRENGTH: 1 }], wind_elemental: ['EPIC', { STRENGTH: 1 }], storm_elemental: ['LEGENDARY', { STRENGTH: 1 }],
+  veil: ['EPIC', { TRUE_DEFENSE: 1 }], attack_speed: ['EPIC', { ATTACK_SPEED: 1 }],
+  ultimate_dna: ['LEGENDARY', { MINING_FORTUNE: 1 }], fortunate_miner: ['COMMON', { MINING_FORTUNE: 2.5 }], rotten_pickaxe: ['COMMON', { MINING_SPEED: 3 }],
+  gold_box: ['COMMON', { ORE_FORTUNE: 5 }], mossy_box: ['COMMON', { BLOCK_FORTUNE: 5 }],
+};
+// wiki Attributes: "Your Strength is increased by +0.1%–1%": percent of the whole stat at level 1
+const SHARD_PERCENT = { unlimited_power: ['LEGENDARY', 'STRENGTH', 0.1], unlimited_energy: ['LEGENDARY', 'CRITICAL_DAMAGE', 0.1], fortitude: ['LEGENDARY', 'DEFENSE', 0.2] };
+// wiki Attributes: these touch our stats only against a mob, in an area, below a health limit, for one pet or item, or by chance per block
+const SHARD_CONDITIONAL = ['forest_strength', 'royal_riches', 'fiesta_fortune', 'quartz_speed', 'deep_technique', 'lifeline', 'greedy_goblin', 'cloak_improvement', 'battle_frog', 'battle_arachnid', 'animal_resistance', 'aquatic_resistance', 'arachno_resistance', 'undead_resistance', 'ender_resistance', 'blazing_resistance', 'woodland_resistance', 'mythological_resistance', 'frozen_resistance', 'skeletal_resistance', 'subterranean_resistance', 'arcane_resistance', 'airborne_resistance'];
+
+const shardLevel = (attrs, key, rarity) => levelOf(SHARD_LEVELS[rarity], attrs[key] ?? 0);
+
+function shardStats(attrs) {
+  const out = {};
+  for (const [key, [rarity, stats]] of Object.entries(SHARD_FLAT)) {
+    const level = shardLevel(attrs, key, rarity);
+    if (level) add(out, stats, level);
+  }
+  return out;
+}
+
+// Percent per stat. wiki Attributes: Almighty Echo makes the "Unlimited" attributes +5% to 50% stronger.
+function shardPercents(attrs) {
+  const stronger = 1 + shardLevel(attrs, 'almighty', 'LEGENDARY') * 0.05;
+  const out = {};
+  for (const [key, [rarity, stat, perLevel]] of Object.entries(SHARD_PERCENT)) {
+    const level = shardLevel(attrs, key, rarity);
+    if (level) out[stat] = level * perLevel * stronger;
+  }
+  return out;
+}
+
 function hotmStats(profile) {
   const out = {};
   for (const [node, stats] of Object.entries(HOTM_PERKS)) add(out, stats, profile.hotm.nodes?.[node] ?? 0);
@@ -240,7 +283,10 @@ export function computeStats(profile, items, loadout, area) {
   if (!profile.hotm) gaps.push('No Heart of the Mountain data.');
   if (!profile.collTiers) gaps.push('Collections API is off: collection stats are missing.');
   if (profile.skyblockXp === null || profile.skyblockXp === undefined) gaps.push('Sync again to read your SkyBlock level.');
-  gaps.push('Not counted: shards, essence perks, potions, mayor, cake and museum.');
+  gaps.push('Not counted: essence perks, potions, mayor, cake and museum.');
+  if (!profile.attrs) gaps.push('Sync again to read your shards.');
+  const conditional = SHARD_CONDITIONAL.filter((key) => profile.attrs?.[key] > 0);
+  if (conditional.length) gaps.push(`Shards with a condition are not counted: ${conditional.join(', ')}.`);
   const parts = {
     gear: gearStats([...loadout.armor, ...loadout.equipment, ...(loadout.held ? [loadout.held] : [])]),
     accessories: gearStats(loadout.accessories),
@@ -251,9 +297,11 @@ export function computeStats(profile, items, loadout, area) {
     collections: profile.collTiers ? collectionStats(profile) : {},
     level: levelStats(profile.skyblockXp ?? 0),
     slayer: profile.slayer ? slayerStats(profile.slayer) : {},
+    shards: profile.attrs ? shardStats(profile.attrs) : {},
     base: BASE,
   };
   const total = Object.values(parts).reduce((sum, part) => add(sum, part), {});
+  for (const [stat, percent] of Object.entries(shardPercents(profile.attrs ?? {}))) if (total[stat]) total[stat] *= 1 + percent / 100;
   // wiki Stats: Attack Speed stops at 100
   if (total.ATTACK_SPEED > 100) total.ATTACK_SPEED = 100;
   // the damage of a weapon counts only while it is in hand
