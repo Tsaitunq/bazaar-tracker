@@ -1,6 +1,15 @@
 {
   "versions": [
     {
+      "version": "0.14.0",
+      "date": "2026-11-01",
+      "entries": [
+        { "title": "Best value for Blaze", "text": "The Blaze guide now ranks your open steps by how much damage they add per million coins, as an estimate with both daggers counted.", "personal": true },
+        { "title": "True Defense and Magical Power first", "text": "Below 140 True Defense or 800 Magical Power the view warns you and puts the steps that close the gap on top. A step that would drop you below a limit stays locked.", "personal": true },
+        { "title": "One For All or enchants", "text": "The view compares both ways and shows which one leads, along with the best armor you already own and what your /stats add.", "personal": true }
+      ]
+    },
+    {
       "version": "0.13.0",
       "date": "2026-11-01",
       "entries": [
