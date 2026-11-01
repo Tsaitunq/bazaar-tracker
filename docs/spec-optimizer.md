@@ -189,7 +189,7 @@ Normalform in `profile.js`:
 
 ### 2.4 Lore-Parser
 
-Pro Lore-Zeile wird nach Entfernen der `§`-Farbcodes geprüft: `Name: +1,234`, auch mit `%`, dahinter bis zu drei Klammern `(+x)` [geprüft: Format]. Nur die erste Zahl zählt, die Liste bekannter Stat-Namen ist fest, Unbekanntes wird ignoriert. Dass die erste Zahl der Gesamtwert ist, passt zu 103 von 115 geprüften Zeilen (erste Zahl mindestens so groß wie die Summe der Klammern). Die übrigen 12 sind ungeklärt; der `/stats`-Abgleich in Paket 4 muss das zeigen.
+Pro Lore-Zeile wird nach Entfernen der `§`-Farbcodes geprüft: `Name: +1,234`, auch mit `%`, dahinter bis zu drei Klammern `(+x)` [geprüft: Format]. Nur die erste Zahl zählt, die Liste bekannter Stat-Namen ist fest, Unbekanntes wird ignoriert. Dass die erste Zahl der Gesamtwert ist, passt zu 103 von 115 geprüften Zeilen (erste Zahl mindestens so groß wie die Summe der Klammern). Stand Paket 4 (Rüstung und Equipment am Fixture): Bei 46 Zeilen steht am Ende eine viel größere Klammer, vermutlich der Wert im Dungeon [nicht bestätigt]. Bei 70 Zeilen ist die erste Zahl genau Basis plus Klammern, bei 71 geht die Rechnung nicht auf. Die erste Zahl bleibt der Gesamtwert, belegt ist das aber nicht für jede Zeile.
 
 ### 2.5 Loadouts: das Wardrobe-Problem
 
@@ -227,8 +227,12 @@ Nur der Stand aus 2.3 für das eigene Mitglied plus Pets, MP, HOTM-Knoten, Colle
 | HOTM-Perks | Mining Speed `Stufe × 20`, Mining Fortune `Stufe × 2`, Pristine `Stufe × 0,1` [Doku Wiki] | `skill_tree` | automatisch für diese drei; weitere Perks über manuelle Tabelle |
 | Skills | Mining 4 Fortune je Stufe [Doku Wiki], Combat/Foraging etc. | `player_data.experience` plus `/resources/skyblock/skills` | automatisch |
 | Collections | Mining Fortune bei Glacite, Tungsten, Umber, Obsidian [Doku Wiki] | `collection` | automatisch |
+| SkyBlock-Level | +5 Health je Level, +1 Strength je 5 Level [Doku Wiki] | `leveling.experience` | automatisch |
+| Slayer | Belohnungen je Stufe [Doku Wiki, Seiten der einzelnen Slayer] | `slayer.slayer_bosses` | automatisch |
 | Basiswerte | z. B. Crit Chance 30 [Doku Wiki], Health | Tabelle | automatisch |
-| Potions, Mayor, Cake, Events, Booster, Fairy Souls, Museum | diverse | nicht zuverlässig lesbar | über Abgleich (3.4) |
+| Shards, Essence-Perks | diverse | `attributes.stacks`, `player_data.perks`; noch keine Tabelle | über Abgleich (3.4) |
+| Potions, Mayor, Cake, Events, Booster, Museum | diverse | nicht zuverlässig lesbar | über Abgleich (3.4) |
+| Fairy Souls | keine Stats mehr [Doku Wiki: seit 0.15 nur SkyBlock XP] | entfällt | entfällt |
 
 `/resources/skyblock/items` ist die Quelle für Upgrades auf ein noch nicht besessenes Item, denn dafür gibt es keine Lore. Die Stat-Namen dort sind teils groß, teils klein geschrieben (`MINING_FORTUNE` und `mining_fortune`) [geprüft]; Normalisierung ist Teil von `profile.js`.
 
@@ -275,7 +279,7 @@ score = wF × ΔF / (100 + F)
 | Mithril | 500 [Doku] | 1 / 1 / 0 | 3334 |
 | Glacite | 6000 [Doku] | 1 / 1 / 0 | 40000 |
 
-**Prüfpflicht Pristine:** Der Pristine-Term dominiert die Rangliste (siehe Beispiel). Der Faktor 79/100 stammt aus dem Wikitext der Seite "Pristine" [Doku]. Paket 4 und 5 prüfen vor der ersten Rangliste Formel und Faktor erneut gegen das Wiki, auch das Zusammenspiel mit der Angabe "+1 % Chance auf Flawed je Pristine" und ob Fortune auf beide Drops wirkt. Ein Test hält das Wiki-Rechenbeispiel fest.
+**Prüfpflicht Pristine:** Der Pristine-Term dominiert die Rangliste (siehe Beispiel). Der Faktor 79/100 stammt aus dem Wikitext der Seite "Pristine" [Doku]. Paket 4 und 5 prüfen vor der ersten Rangliste Formel und Faktor erneut gegen das Wiki, auch das Zusammenspiel mit der Angabe "+1 % Chance auf Flawed je Pristine" und ob Fortune auf beide Drops wirkt. Ein Test hält die Werte fest. Geprüft am 2026-11-01 gegen Revision `oldid=866262`: Formel und Faktor stimmen, Fortune wirkt auf beide Drops, ein Zahlenbeispiel hat das Wiki nicht (`docs/plan-optimizer-p3-4.md`).
 - Anzeige: `+1,2 % yield`, darunter die Rohwerte (`+10 Fortune, +40 Speed`), damit die Gewichtung nachvollziehbar bleibt.
 
 Beispiel: Bei F=1000, S=6000, P=5 bringen +10 Fortune 0,9 %, +50 Speed 0,8 %, +1 Pristine 16 %. Pristine wird also zu Recht stark gewichtet; deshalb die Anzeige der Rohwerte und die anpassbaren Gewichte.

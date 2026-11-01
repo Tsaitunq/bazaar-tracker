@@ -1,6 +1,6 @@
 // What the player's stats are in a chosen setup, added up from item lore and the synced profile.
-// Potions, mayor, cake, fairy souls, museum and essence perks are not readable; the /stats comparison shows them.
-import { levelOf, SKILL_XP } from './requires.js';
+// Potions, mayor, cake and museum are not readable, shards and essence perks have no table yet; the /stats comparison shows them.
+import { levelOf, SKILL_XP, SLAYER_XP } from './requires.js';
 
 export const AREA_STATS = {
   mining: ['MINING_FORTUNE', 'GEMSTONE_FORTUNE', 'ORE_FORTUNE', 'BLOCK_FORTUNE', 'MINING_SPEED', 'PRISTINE'],
@@ -93,8 +93,8 @@ export function loadoutOf(profile, items, area, choice) {
   const armor = setOf('armor');
   const equipment = setOf('equipment');
   if (!items) gaps.push('Item data missing: no tool or weapon, and accessory families count twice.');
-  const held = items ? heldOf(profile, items, area, gearStats([...armor, ...equipment])) : null;
-  if (items && !held) gaps.push(area === 'mining' ? 'No mining tool found.' : 'No weapon found.');
+  const held = items && !choice?.emptyHand ? heldOf(profile, items, area, gearStats([...armor, ...equipment])) : null;
+  if (items && !held && !choice?.emptyHand) gaps.push(area === 'mining' ? 'No mining tool found.' : 'No weapon found.');
   for (const stem of fullSets(armor)) gaps.push(`Full set ${stem}: its bonus is not counted.`);
   return { armor, equipment, held, accessories: accessoriesOf(profile, items), pet: petOf(profile, choice?.pet, gaps), gaps };
 }
@@ -134,6 +134,29 @@ function skillStats(profile) {
     STRENGTH: steppedOf(skillLevel(profile, 'FORAGING', 57)), // wiki Foraging: 57 is the top
     CRITICAL_CHANCE: skillLevel(profile, 'COMBAT', 60) * 0.5, // wiki Combat
   };
+}
+
+// wiki SkyBlock Levels: 100 experience a level, +5 Health each, +1 Strength every 5
+function levelStats(xp) {
+  const level = Math.floor(xp / 100);
+  return { HEALTH: level * 5, STRENGTH: Math.floor(level / 5) };
+}
+
+// wiki Zombie, Spider, Wolf, Enderman and Blaze Slayer: what each level from 1 adds. Vampire has no stat of ours.
+const SLAYER_REWARDS = {
+  zombie: [{ HEALTH: 2 }, { HEALTH: 2 }, { HEALTH: 3 }, { HEALTH: 3 }, { HEALTH: 4 }, { HEALTH: 4 }, { HEALTH: 5 }, { HEALTH: 5 }, { HEALTH: 6 }],
+  spider: [{ CRITICAL_DAMAGE: 1 }, { CRITICAL_DAMAGE: 1 }, { CRITICAL_DAMAGE: 1 }, { CRITICAL_DAMAGE: 1 }, { CRITICAL_DAMAGE: 2 }, { CRITICAL_DAMAGE: 2 }, { CRITICAL_DAMAGE: 2 }, { CRITICAL_DAMAGE: 3 }, { CRITICAL_DAMAGE: 3 }],
+  wolf: [{}, { HEALTH: 2 }, {}, { HEALTH: 2 }, { CRITICAL_DAMAGE: 1 }, { HEALTH: 3 }, { CRITICAL_DAMAGE: 2 }, {}, { HEALTH: 5 }],
+  enderman: [{ HEALTH: 1 }, {}, { HEALTH: 2 }, {}, { HEALTH: 3 }, {}, { HEALTH: 4 }, {}, { HEALTH: 5 }],
+  blaze: [{ HEALTH: 3 }, { STRENGTH: 1 }, { HEALTH: 4 }, { TRUE_DEFENSE: 1 }, { HEALTH: 5 }, { STRENGTH: 2 }, { HEALTH: 6 }, { TRUE_DEFENSE: 2 }, { HEALTH: 7 }],
+};
+
+function slayerStats(slayer) {
+  const out = {};
+  for (const [boss, rewards] of Object.entries(SLAYER_REWARDS)) {
+    for (const reward of rewards.slice(0, levelOf(SLAYER_XP[boss], slayer[boss] ?? 0))) add(out, reward);
+  }
+  return out;
 }
 
 function hotmStats(profile) {
@@ -216,6 +239,8 @@ export function computeStats(profile, items, loadout, area) {
   if (!profile.skills) gaps.push('Skills API is off: skill stats are missing.');
   if (!profile.hotm) gaps.push('No Heart of the Mountain data.');
   if (!profile.collTiers) gaps.push('Collections API is off: collection stats are missing.');
+  if (profile.skyblockXp === null || profile.skyblockXp === undefined) gaps.push('Sync again to read your SkyBlock level.');
+  gaps.push('Not counted: shards, essence perks, potions, mayor, cake and museum.');
   const parts = {
     gear: gearStats([...loadout.armor, ...loadout.equipment, ...(loadout.held ? [loadout.held] : [])]),
     accessories: gearStats(loadout.accessories),
@@ -224,9 +249,13 @@ export function computeStats(profile, items, loadout, area) {
     hotm: profile.hotm ? hotmStats(profile) : {},
     skills: profile.skills ? skillStats(profile) : {},
     collections: profile.collTiers ? collectionStats(profile) : {},
+    level: levelStats(profile.skyblockXp ?? 0),
+    slayer: profile.slayer ? slayerStats(profile.slayer) : {},
     base: BASE,
   };
   const total = Object.values(parts).reduce((sum, part) => add(sum, part), {});
+  // wiki Stats: Attack Speed stops at 100
+  if (total.ATTACK_SPEED > 100) total.ATTACK_SPEED = 100;
   // the damage of a weapon counts only while it is in hand
   total.DAMAGE = area === 'blaze' ? loadout.held?.lore.DAMAGE ?? 0 : 0;
   return { total, parts, gaps };
@@ -245,14 +274,14 @@ export function compareStats(calculated, inGame) {
 }
 
 // What the form hands in, as it is stored: only known stats with real numbers, and the slots as numbers.
-export function statsEntry(area, { armor, equipment, pet, boost, values }, at) {
+export function statsEntry(area, { armor, equipment, pet, emptyHand, boost, values }, at) {
   const slot = (v) => (Number.isInteger(Number(v)) && Number(v) > 0 ? Number(v) : null);
   const kept = AREA_STATS[area].flatMap((stat) => {
     const raw = values?.[stat];
     const n = raw === '' || raw === null || raw === undefined ? NaN : Number(raw);
     return Number.isFinite(n) ? [[stat, n]] : [];
   });
-  return { choice: { armor: slot(armor), equipment: slot(equipment), pet: /^[A-Z_]+:[A-Z_]+$/.test(pet ?? '') ? pet : null }, values: Object.fromEntries(kept), boost: boost === true, at };
+  return { choice: { armor: slot(armor), equipment: slot(equipment), pet: /^[A-Z_]+:[A-Z_]+$/.test(pet ?? '') ? pet : null, emptyHand: emptyHand === true }, values: Object.fromEntries(kept), boost: boost === true, at };
 }
 
 const AREA_TITLE = { mining: 'Mining', blaze: 'Blaze' };
@@ -297,6 +326,7 @@ function areaView(area, state, items, esc) {
     ${slotPicker('equipment', 'Equipment slot', profile.wardrobe?.equipment, entry.choice?.equipment, esc)}
     ${petPicker(profile.pets, entry.choice?.pet, esc)}
     <small>Measure with the setup you actually play with. In hand: ${loadout.held ? esc(loadout.held.id) : 'nothing'}.</small>
+    <label class="check"><input type="checkbox" data-stats-empty-hand${entry.choice?.emptyHand ? ' checked' : ''}> Nothing in hand when measuring</label>
     <label class="check"><input type="checkbox" data-stats-boost${entry.boost ? ' checked' : ''}> God Potion / Booster Cookie active</label>
     ${AREA_STATS[area].map((stat) => `<label>${STAT_NAME[stat]} in /stats<input type="number" step="any" inputmode="decimal" data-stats-stat="${stat}" value="${entry.values?.[stat] ?? ''}"></label>`).join('')}
     <div class="actions"><button type="button" data-stats-save>Save ${AREA_TITLE[area]} stats</button></div>

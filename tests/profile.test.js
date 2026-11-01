@@ -10,6 +10,10 @@ test('parseLore takes the first number and strips colours', () => {
   assert.deepEqual(parseLore(['§7Mining Speed: §a+1,234 §9(+20)', '§7Pristine: §a+2.5', '§7Unrelated text', '§7Crit Damage: §c+60% §9(+20%) §9(+5%)', '§7Attack Speed: §a+10%', '§7Health: §c-5']), { MINING_SPEED: 1234, PRISTINE: 2.5, CRITICAL_DAMAGE: 60, ATTACK_SPEED: 10, HEALTH: -5 });
 });
 
+test('parseLore keeps the first number when a bracket is larger than it', () => {
+  assert.deepEqual(parseLore(['§7Health: §a+316.5 §e(+60) §9(+7) §8(+1,141.56)']), { HEALTH: 316.5 });
+});
+
 test('parseLore ignores lines without a stat name or a number', () => {
   assert.deepEqual(parseLore(['constructor: +1', 'toString: +2', 'Damage: +,', 'Strength: none', 'Health: +5']), { HEALTH: 5 });
 });
@@ -155,6 +159,8 @@ test('no loadout gives no wardrobe, and the farming cap is read', async () => {
   const out = await summarize({ inventory: {}, jacobs_contest: { perks: { farming_level_cap: 3 } } });
   assert.equal(out.wardrobe, null);
   assert.equal(out.farmingCap, 3);
+  assert.equal(out.skyblockXp, null);
+  assert.equal((await summarize({ leveling: { experience: 25341 } })).skyblockXp, 25341);
 });
 
 test('inventory off keeps the wardrobe of the last sync', async () => {

@@ -217,7 +217,7 @@ test('an in-game value of 0 gives no division by zero', () => {
 
 test('statsEntry keeps real numbers of known stats and leaves empty fields out', () => {
   const e = statsEntry('mining', { armor: '3', equipment: '', boost: true, values: { MINING_SPEED: '1200.5', PRISTINE: '', MINING_FORTUNE: 'abc', STRENGTH: '9', GEMSTONE_FORTUNE: '0' } }, 7);
-  assert.deepEqual(e, { choice: { armor: 3, equipment: null, pet: null }, values: { GEMSTONE_FORTUNE: 0, MINING_SPEED: 1200.5 }, boost: true, at: 7 });
+  assert.deepEqual(e, { choice: { armor: 3, equipment: null, pet: null, emptyHand: false }, values: { GEMSTONE_FORTUNE: 0, MINING_SPEED: 1200.5 }, boost: true, at: 7 });
 });
 
 test('DAMAGE is not a field of the form', () => {
@@ -329,4 +329,39 @@ test('the view offers the pets of the profile once each and keeps the pick', () 
 test('statsEntry keeps a well-formed pet only', () => {
   assert.equal(statsEntry('mining', { pet: 'LION:EPIC' }, 1).choice.pet, 'LION:EPIC');
   assert.equal(statsEntry('mining', { pet: '<x>' }, 1).choice.pet, null);
+});
+
+test('the SkyBlock level adds 5 health a level and 1 strength every 5', () => {
+  assert.deepEqual(part({ skyblockXp: 25341 }, 'level'), { HEALTH: 1265, STRENGTH: 50 });
+  assert.deepEqual(part({}, 'level'), { HEALTH: 0, STRENGTH: 0 });
+  assert.ok(computeStats({ items: [] }, {}, empty, 'mining').gaps.includes('Sync again to read your SkyBlock level.'));
+  assert.ok(!computeStats({ items: [], skyblockXp: 0 }, {}, empty, 'mining').gaps.includes('Sync again to read your SkyBlock level.'));
+});
+
+test('slayer levels add the wiki rewards up to the level reached', () => {
+  assert.deepEqual(part({ slayer: { zombie: 102120, spider: 102880, wolf: 100255, enderman: 24036, blaze: 1655, vampire: 99 } }, 'slayer'), { HEALTH: 23 + 7 + 6 + 7, CRITICAL_DAMAGE: 10 + 3, STRENGTH: 1, TRUE_DEFENSE: 1 });
+  assert.deepEqual(part({ slayer: { blaze: 1e7, wolf: 9 } }, 'slayer'), { HEALTH: 25, STRENGTH: 3, TRUE_DEFENSE: 3 });
+  assert.deepEqual(part({}, 'slayer'), {});
+});
+
+test('attack speed stops at 100, and the part stays as it is', () => {
+  const held = it('S', 'inventory', { ATTACK_SPEED: 150 });
+  const out = computeStats({ items: [] }, {}, { ...empty, held }, 'blaze');
+  assert.equal(out.total.ATTACK_SPEED, 100);
+  assert.equal(out.parts.gear.ATTACK_SPEED, 150);
+});
+
+test('what has no table is named in gaps', () => {
+  assert.ok(computeStats({ items: [] }, {}, empty, 'mining').gaps.some((g) => /shards, essence perks/.test(g)));
+});
+
+test('nothing in hand counts no tool, without a gap, and the box stays ticked', () => {
+  const p = prof([it('DRILL', 'inventory', { MINING_SPEED: 1000 })]);
+  const out = loadoutOf(p, data, 'mining', { ...choice, emptyHand: true });
+  assert.equal(out.held, null);
+  assert.ok(!out.gaps.includes('No mining tool found.'));
+  assert.equal(statsEntry('mining', { emptyHand: true }, 1).choice.emptyHand, true);
+  const html = areaOf(view({ syncedAt: 1, summary: p, statsInput: { mining: { choice: { ...choice, emptyHand: true }, values: {} } } }), 'mining');
+  assert.match(html, /data-stats-empty-hand checked/);
+  assert.match(html, /In hand: nothing/);
 });

@@ -7,7 +7,7 @@ export const HOTM_XP = [0, 3000, 12000, 37000, 97000, 197000, 347000, 557000, 84
 export const SKILL_XP = [50, 175, 375, 675, 1175, 1925, 2925, 4425, 6425, 9925, 14925, 22425, 32425, 47425, 67425, 97425, 147425, 222425, 322425, 522425, 822425, 1222425, 1722425, 2322425, 3022425, 3822425, 4722425, 5722425, 6822425, 8022425, 9322425, 10722425, 12222425, 13822425, 15522425, 17322425, 19222425, 21222425, 23322425, 25522425, 27822425, 30222425, 32722425, 35322425, 38072425, 40972425, 44072425, 47472425, 51172425, 55172425, 59472425, 64072425, 68972425, 74172425, 79672425, 85472425, 91572425, 97972425, 104672425, 111672425];
 // wiki Slayer: the table merges equal cells, so enderman and blaze read as wolf. It does not say the values are cumulative, NEU reads them so: not confirmed.
 const WOLF = [10, 30, 250, 1500, 5000, 20000, 100000, 400000, 1000000];
-const SLAYER_XP = { zombie: [5, 15, 200, 1000, 5000, 20000, 100000, 400000, 1000000], spider: [5, 25, 200, 1000, 5000, 20000, 100000, 400000, 1000000], wolf: WOLF, enderman: WOLF, blaze: WOLF, vampire: [20, 75, 240, 840, 2400] };
+export const SLAYER_XP = { zombie: [5, 15, 200, 1000, 5000, 20000, 100000, 400000, 1000000], spider: [5, 25, 200, 1000, 5000, 20000, 100000, 400000, 1000000], wolf: WOLF, enderman: WOLF, blaze: WOLF, vampire: [20, 75, 240, 840, 2400] };
 const SLAYER_NAME = { zombie: 'Revenant', spider: 'Tarantula', wolf: 'Sven', enderman: 'Voidgloom', blaze: 'Blaze', vampire: 'Vampire' };
 const OWN_TABLE = new Set(['RUNECRAFTING', 'SOCIAL']);
 

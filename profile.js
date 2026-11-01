@@ -120,6 +120,7 @@ export async function summarize(member, previous = null) {
     skipped,
     wardrobe: missing.inventory ? previous?.wardrobe ?? null : wardrobeOf(member.loadout),
     farmingCap: member.jacobs_contest?.perks?.farming_level_cap ?? 0,
+    skyblockXp: member.leveling?.experience ?? null,
     pets: (member.pets_data?.pets ?? []).map(({ type, exp, tier, active, heldItem }) => ({ type, exp, tier, active, heldItem })),
     mp: bag.highest_magical_power ?? null,
     selectedPower: bag.selected_power ?? null,
