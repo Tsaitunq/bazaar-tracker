@@ -17,8 +17,44 @@ const VALUE = {
   gem: (i, d) => (i.gems ?? []).filter((g) => (!d.type || g.type === d.type) && atLeast(QUALITY, g.quality, d.quality)).length,
 };
 
+// A guide can come from a file, so a rule only counts in full: a broken one leaves the step manual.
+const text = (v) => typeof v === 'string' && v.length > 0;
+const texts = (v) => Array.isArray(v) && v.every(text);
+const num = (v) => typeof v === 'number' && Number.isFinite(v);
+const slots = (v) => text(v) || (Array.isArray(v) && v.every(texts));
+const NEEDS = {
+  owned: { on: slots }, recomb: { on: slots }, coating: { on: slots }, polarvoid: { on: slots },
+  enchant: { on: slots, enchant: text, level: num }, reforge: { on: slots, value: texts }, scroll: { on: slots, value: text },
+  part: { on: slots, ids: texts }, gem: { on: slots, quality: text }, pet: { types: texts }, held: { item: text },
+  perk: { perk: text, level: num }, power: { value: text }, attr: { attr: text, need: num }, coll: { id: text, tier: num }, skill: { skill: text, xp: num },
+};
+const OPTIONAL = { need: num, type: text, tier: text };
+
+function validPart(d) {
+  const needs = Object.hasOwn(NEEDS, d?.kind) ? NEEDS[d.kind] : null;
+  if (!needs || !Object.entries(needs).every(([k, ok]) => ok(d[k]))) return null;
+  const out = { kind: d.kind };
+  for (const k of Object.keys(needs)) out[k] = d[k];
+  for (const [k, ok] of Object.entries(OPTIONAL)) if (ok(d[k])) out[k] = d[k];
+  return out;
+}
+
+export function validDetect(d) {
+  if (!Array.isArray(d)) return validPart(d);
+  const parts = d.map(validPart);
+  return parts.length && !parts.includes(null) ? parts : null;
+}
+
+export function validGroups(g) {
+  if (!g || typeof g !== 'object' || Array.isArray(g)) return null;
+  const entries = Object.entries(g).filter(([, v]) => Array.isArray(v) && v.every(texts));
+  return entries.length ? Object.fromEntries(entries) : null;
+}
+
 // Each group is one slot: its best item counts, so a spare piece never stands in for another slot.
 function itemPart(d, profile, groups) {
+  // Inventory API off and nothing kept from before: that says nothing about what is owned.
+  if (profile.missing?.inventory && !profile.items.length) return null;
   const slots = typeof d.on === 'string' ? groups?.[d.on] : d.on;
   if (!Array.isArray(slots)) return null;
   const value = VALUE[d.kind];

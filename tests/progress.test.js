@@ -333,3 +333,77 @@ test('a sync refutes the default tick of a table step, but not one the player se
   setMark(g, marks, key, false);
   assert.equal(doneSet(g, marks, met).has(key), false);
 });
+
+test('sync: a mark wins, an untick stays open, and a sync never writes marks', () => {
+  const g = { title: 'T', sections: [{ name: 'S', steps: [{ text: 'A' }] }] };
+  const met = new Map([['S|A', { have: 1, need: 1 }]]);
+  const not = new Map([['S|A', { have: 0, need: 1 }]]);
+  const marks = new Set();
+  assert.equal(doneSet(g, marks, met).has('S|A'), true);
+  assert.deepEqual([...marks], []);
+  assert.equal(doneSet(g, marks, not).has('S|A'), false);
+  setMark(g, marks, 'S|A', false, met);
+  assert.deepEqual([...marks], ['undone:S|A']);
+  assert.equal(doneSet(g, marks, met).has('S|A'), false);
+  setMark(g, marks, 'S|A', true, met);
+  assert.equal(doneSet(g, marks, not).has('S|A'), true);
+  setMark(g, marks, 'S|A', false, not);
+  assert.deepEqual([...marks], []);
+});
+
+const synced = { title: 'S', groups: { armor: [['H'], ['C'], ['L'], ['B']] }, sections: [{ name: 'Gear', steps: [
+  { text: 'Set', line: 'g', items: ['H', 'C', 'L', 'B'].map((id) => ({ id, qty: 1 })), detect: { kind: 'owned', on: 'armor' } },
+  { text: 'Better', line: 'g', items: [{ id: 'X', qty: 1 }], detect: { kind: 'owned', on: [['X']] } },
+  { text: 'Book', items: [{ id: 'ENCHANTMENT_A_6', qty: 4 }], detect: { kind: 'enchant', on: 'armor', enchant: 'a', level: 6, need: 4 } },
+  { text: 'Sold', items: [{ id: 'S1', qty: 1 }], detect: { kind: 'owned', on: [['S1']] } },
+] }] };
+const own = (...ids) => ({ items: ids.map((id) => ({ id, enchants: {}, gems: [], parts: {} })), pets: [] });
+const book = (price) => ({ buy_summary: [{ pricePerUnit: price, amount: 100 }] });
+const synProducts = { H: book(10), C: book(20), L: book(40), B: book(80), X: book(5), ENCHANTMENT_A_6: book(1000), S1: book(1) };
+const view = (profile, mode = 'slot', marks = new Set()) => progressView({ guides: [{ id: 's', ...synced }], current: 's', checked: marks, products: synProducts, name: (x) => x, mode, profile });
+
+test('a partly owned step shows how far it is and prices only what is open', () => {
+  const html = view(own('H', 'C'), 'next');
+  assert.match(html, /2 \/ 4<\/span><span class="guide-src" data-src="api">API/);
+  assert.ok(!/1× H /.test(html));
+  assert.match(html, /1× L/);
+  assert.match(html, /1× B/);
+});
+
+test('next upgrades and the total follow the sync', () => {
+  assert.match(view(null, 'next'), /<h2>Next 3 upgrades cost/);
+  const html = view(own('H', 'C', 'L', 'B', 'S1'), 'next');
+  assert.ok(!html.includes('data-step="Gear|Set"'));
+  assert.ok(html.includes('data-step="Gear|Better"'));
+  assert.ok(html.includes('Checked by sync'));
+  assert.ok(html.includes('data-guide-undo="Gear|Set"'));
+});
+
+test('an API check has a badge and undo, a tick of the player has neither', () => {
+  const auto = view(own('S1'));
+  assert.match(auto, /Sold<\/span><span class="guide-src" data-src="api">API<\/span><button type="button" class="guide-auto-undo" data-guide-undo="Gear\|Sold"/);
+  const manual = view(own('S1'), 'slot', new Set(['Gear|Sold']));
+  assert.ok(!manual.includes('data-guide-undo="Gear|Sold"'));
+});
+
+test('a sold item loses the API tick, a manual one stays', () => {
+  assert.ok(!/data-step="Gear\|Sold" checked/.test(view(own('H'))));
+  assert.match(view(own('H'), 'slot', new Set(['Gear|Sold'])), /data-step="Gear\|Sold" checked/);
+});
+
+test('validGuide keeps sound rules and groups and drops broken ones, the step stays', () => {
+  const g = validGuide({ title: 'T', groups: { a: [['X']], bad: 'no' }, sections: [{ name: 'S', steps: [
+    { text: 'ok', detect: { kind: 'owned', on: 'a', soft: 'x', need: 1 } },
+    { text: 'bad kind', detect: { kind: 'constructor' } },
+    { text: 'bad field', detect: { kind: 'reforge', on: 'a', value: 7 } },
+    { text: 'bad part', detect: [{ kind: 'owned', on: 'a' }, { kind: 'held' }] },
+  ] }] });
+  assert.deepEqual(g.groups, { a: [['X']] });
+  assert.deepEqual(g.sections[0].steps[0].detect, { kind: 'owned', on: 'a', need: 1 });
+  for (const s of g.sections[0].steps.slice(1)) assert.equal(s.detect, undefined);
+});
+
+test('the export of a guide carries no profile', () => {
+  const out = exportData([{ id: 's', ...synced }], { s: ['Gear|Set'] });
+  assert.ok(!/summary|profile|uuid|API-Key/i.test(out));
+});

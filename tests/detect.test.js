@@ -76,3 +76,9 @@ test('an essence perk needs its level', () => {
   assert.equal(detectStep({ detect: { kind: 'perk', perk: 'high_roller', level: 1 } }, p, {}).have, 1);
   assert.equal(detectStep({ detect: { kind: 'perk', perk: 'eager_miner', level: 1 } }, profile([], { perks: null }), {}), null);
 });
+
+test('inventory API off with nothing kept gives no answer, so nothing gets unticked', () => {
+  const step = { detect: { kind: 'owned', on: [['X']] } };
+  assert.equal(detectStep(step, { items: [], pets: [], missing: { inventory: true } }, {}), null);
+  assert.deepEqual(detectStep(step, { items: [item('X')], pets: [], missing: { inventory: true } }, {}), { have: 1, need: 1 });
+});
