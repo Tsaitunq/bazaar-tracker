@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { stepDelta, PRESETS, miningSettings, rankUpgrades } from '../optimizer.js';
+import { stepDelta, PRESETS, miningSettings, rankUpgrades, netCost } from '../optimizer.js';
 import { GEMSTONE, miningScore, loadoutOf } from '../stats.js';
+import { guideStats } from '../progress.js';
 
 const piece = (id, extra = {}) => ({ id, where: 'armor', gems: [], enchants: {}, parts: {}, reforge: null, recomb: false, polarvoid: 0, coating: false, lore: {}, ...extra });
 const DRILL = 'TITANIUM_DRILL_4';
@@ -334,4 +335,71 @@ test('priority does not change the order', () => {
 test('a new tick moves the line on to its next step', () => {
   const g = rankGuide({ text: 'one', line: 'L', ...gainOf({ MINING_SPEED: 10 }), ...bought('A') }, { text: 'two', line: 'L', ...gainOf({ MINING_SPEED: 10 }), ...bought('A') });
   assert.deepEqual(texts(rank(g, { products: { A: sold(1e6) }, checked: new Set(['Main|one']) }).ranked), ['two']);
+});
+
+const swap = { detect: { kind: 'owned', on: [['NEW_HELMET']] }, items: [{ id: 'NEW_HELMET', qty: 1 }] };
+const orders = (price) => ({ sell_summary: [{ pricePerUnit: price, amount: 10 }] });
+const netOf = ({ step = swap, gross = 20e6, loadout = setup(), other = null, ctx = {}, keep = false, data = items } = {}) =>
+  netCost(step, gross, loadout, other, data, { profile: profile(), guide, tax: 0.0125, products: {}, ...ctx }, keep);
+
+test('net is the price minus the bazaar sell price after the bazaar tax', () => {
+  const out = netOf({ ctx: { products: { OLD_HELMET: orders(8e6) } } });
+  assert.equal(out.resale, 8e6 * 0.9875);
+  assert.equal(out.net, 20e6 - 8e6 * 0.9875);
+  assert.deepEqual(out.soldIds, ['OLD_HELMET']);
+});
+
+test('without a bazaar price it takes the BIN after ahNet', () => {
+  // 10M: 2 % listing fee and 1 % tax on collecting
+  assert.equal(netOf({ ctx: { ah: { OLD_HELMET: 10e6 } } }).resale, 10e6 - 200000 - 100000);
+  assert.equal(netOf({ ctx: { cofl: { OLD_HELMET: 10e6 }, derpy: true } }).resale, 10e6 - 200000 - 400000);
+});
+
+test('a forge ingredient or prestige step sells nothing', () => {
+  const products = { OLD_HELMET: orders(8e6) };
+  assert.equal(netOf({ ctx: { products, forge: { NEW_HELMET: { d: 1, i: { OLD_HELMET: 1 } } } } }).resale, 0);
+  assert.equal(netOf({ ctx: { products }, step: { ...swap, items: [{ id: 'NEW_HELMET', qty: 1, without: ['OLD_HELMET'] }] } }).resale, 0);
+  const data = { ...items, NEW_HELMET: { ...items.NEW_HELMET, prestige: { item_id: 'OLD_HELMET' } } };
+  assert.equal(netCost(swap, 20e6, setup(), null, data, { profile: profile(), guide, products, items: data }, false).resale, 0);
+});
+
+test('a piece in the other area loadout sells nothing', () => {
+  const other = setup({ armor: [piece('OLD_HELMET')] });
+  assert.equal(netOf({ other, ctx: { products: { OLD_HELMET: orders(8e6) } } }).resale, 0);
+});
+
+test('a piece without a price or marked nt sells nothing', () => {
+  assert.equal(netOf().resale, 0);
+  assert.equal(netOf({ ctx: { products: { OLD_HELMET: orders(8e6) }, nt: new Set(['OLD_HELMET']) } }).resale, 0);
+});
+
+test('a piece not owned or no sync means the gross price', () => {
+  assert.equal(netOf({ loadout: setup({ armor: [] }), ctx: { products: { OLD_HELMET: orders(8e6) } } }).net, 20e6);
+  assert.equal(netCost(swap, 20e6, setup(), null, items, { profile: null, guide, products: { OLD_HELMET: orders(8e6) } }, false).net, 20e6);
+});
+
+test('keepOldGear means the gross price', () => {
+  assert.equal(netOf({ keep: true, ctx: { products: { OLD_HELMET: orders(8e6) } } }).net, 20e6);
+});
+
+test('only an item swap has a resale, an enchant keeps the gross price', () => {
+  assert.equal(netOf({ step: { detect: enchant('fortune', 1) }, ctx: { products: { OLD_HELMET: orders(8e6) } } }).net, 20e6);
+});
+
+test('net is never below 0', () => {
+  const out = netOf({ gross: 1e6, ctx: { products: { OLD_HELMET: orders(8e6) } } });
+  assert.equal(out.net, 0);
+});
+
+test('a resale above the price makes the step free', () => {
+  const g = rankGuide({ text: 'x', ...swap });
+  const out = rank(g, { products: { NEW_HELMET: sold(1e6), OLD_HELMET: orders(8e6) }, base: { MINING_FORTUNE: 100 } });
+  assert.deepEqual(texts(out.free), ['x']);
+  assert.equal(out.free[0].net, 0);
+});
+
+test('By slot sums stay gross', () => {
+  const g = rankGuide({ text: 'x', ...swap });
+  const ctx = { products: { NEW_HELMET: sold(5e6), OLD_HELMET: orders(1e6) }, profile: profile(), items };
+  assert.equal(guideStats(g, new Set(), ctx).sections[0].coins, 5e6);
 });

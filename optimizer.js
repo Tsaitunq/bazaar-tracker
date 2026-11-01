@@ -2,6 +2,8 @@
 import { AREA_STATS, computeStats, miningScore } from './stats.js';
 import { nextUpgrades, stepCost, openStep, bookOf, stepKey } from './progress.js';
 import { checkStep } from './requires.js';
+import { walkBook } from './craft.js';
+import { ahNet } from './forge.js';
 import { RARITIES, ENCHANTS, ENCHANTS_NO_STAT, GEMS, GEM_STAT, REFORGES, REFORGES_NO_STAT, PARTS, POLARVOID, COATING } from './optimizer-data.js';
 
 // Spec 4.1. Gemstone Fortune applies on gemstones only (wiki Pristine), and the other fortunes are not counted, so mithril and glacite read low.
@@ -64,13 +66,19 @@ export function replaced(id, loadout, profile, items) {
   return { item: owned.reduce((best, i) => (!best || strength(i) > strength(best) ? i : best), null), inUse: false };
 }
 
-function ownedDelta(d, guide, loadout, profile, items) {
+// The ids a step of owned still has to bring: the first of each slot nothing is owned of, as many as it needs.
+function openRungs(d, guide, profile) {
   const slots = slotsOf(d, guide);
-  if (!slots || !items) return null;
+  if (!slots) return null;
   const open = slots.filter((ids) => !profile.items.some((i) => ids.includes(i.id)));
-  const taken = open.slice(0, Math.max((d.need ?? slots.length) - (slots.length - open.length), 0));
+  return open.slice(0, Math.max((d.need ?? slots.length) - (slots.length - open.length), 0)).map(([id]) => id);
+}
+
+function ownedDelta(d, guide, loadout, profile, items) {
+  const rungs = openRungs(d, guide, profile);
+  if (!rungs || !items) return null;
   const deltas = [];
-  for (const [id] of taken) {
+  for (const id of rungs) {
     if (!items[id]) return null;
     deltas.push(difference(items[id].stats, items[replaced(id, loadout, profile, items).item?.id]?.stats));
   }
@@ -224,9 +232,39 @@ export function stepDelta(step, loadout, profile, items, settings, guide) {
   return known;
 }
 
-// shortcut: gross for now, the resale of the replaced piece comes with spec 5.7.
-export function netCost(step, gross) {
-  return { net: gross, resale: 0, soldIds: [] };
+// What the replaced piece brings: sold to the buy orders minus the bazaar tax, else its BIN minus the auction fees. 0 without a price.
+function resaleOf(id, ctx) {
+  const book = walkBook(ctx.products?.[id]?.sell_summary, 1, false);
+  if (book) return book * (1 - (ctx.tax ?? 0));
+  const bin = ctx.ah?.[id] > 0 ? ctx.ah[id] : ctx.cofl?.[id];
+  if (bin === undefined && ctx.products) ctx.wants?.add(id);
+  return bin > 0 ? ahNet(bin, ctx.derpy) : 0;
+}
+
+// The recipe takes the old piece in: it cannot also be sold.
+function consumes(id, old, step, ctx) {
+  const lines = (step.items ?? []).filter((i) => i.id === id);
+  const recipes = [...lines.map((i) => i.forge), ctx.forge?.[id]].filter(Boolean);
+  return recipes.some((r) => old in r.i) || lines.some((i) => i.without?.includes(old))
+    || ctx.items?.[id]?.prestige?.item_id === old || Object.values(ctx.items?.[id]?.parent ?? {}).includes(old);
+}
+
+// Spec 5.7. Only an item swap sells something: reforges, gems and enchants carry over, so the base price is on the careful side.
+export function netCost(step, gross, loadout, other, items, ctx, keepOldGear) {
+  const soldIds = [];
+  let resale = 0;
+  if (!keepOldGear && ctx.profile && items) {
+    const elsewhere = new Set(other ? [...worn(other), ...other.accessories].map((i) => i.id) : []);
+    for (const d of [step.detect ?? []].flat().filter((part) => part.kind === 'owned')) {
+      for (const id of openRungs(d, ctx.guide, ctx.profile) ?? []) {
+        const { item, inUse } = replaced(id, loadout, ctx.profile, items);
+        if (!item || !inUse || elsewhere.has(item.id) || ctx.nt?.has(item.id) || consumes(id, item.id, step, ctx)) continue;
+        const price = resaleOf(item.id, ctx);
+        if (price > 0) { resale += price; soldIds.push(item.id); }
+      }
+    }
+  }
+  return { net: Math.max(gross - resale, 0), resale, soldIds };
 }
 
 // Spec 5.3: from the first open step of a line up to the first one that brings something. What stands in the way decides.
