@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Farming guide – leaf green</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7FE38C}a:hover{color:#B4F0BC}
+button{font:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: {{t.bg}}; color: #EFF4F0; font-family: 'Space Grotesk', system-ui, sans-serif; display: flex; flex-direction: column; gap: 14px; padding: 18px 20px 12px;">
+  <a href="App-Home.dc.html" style="align-self: flex-start; height: 36px; display: flex; align-items: center; gap: 4px; font-size: 13px; color: {{t.muted}}; text-decoration: none;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Guides</a>
+  <div style="display: flex; align-items: center; gap: 16px;">
+    <svg width="116" height="116" viewBox="0 0 116 116" role="img" aria-label="Chapter progress">
+      <sc-for list="{{arcs}}" as="r" hint-placeholder-count="3">
+        <circle cx="58" cy="58" r="47" fill="none" stroke="{{t.track}}" stroke-width="11" stroke-linecap="round" stroke-dasharray="{{r.bg}}" stroke-dashoffset="{{r.off}}" transform="rotate(-90 58 58)"></circle>
+        <circle cx="58" cy="58" r="47" fill="none" stroke="{{r.color}}" stroke-width="11" stroke-linecap="round" stroke-dasharray="{{r.fill}}" stroke-dashoffset="{{r.off}}" transform="rotate(-90 58 58)"></circle>
+      </sc-for>
+      <text x="58" y="64" text-anchor="middle" fill="#EFF4F0" font-size="22" font-weight="700" font-family="Space Grotesk, sans-serif">48%</text>
+    </svg>
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{t.area}}" stroke-width="2" aria-hidden="true"><path d="M12 21V10M12 10C12 6 9 4 5 4c0 4 3 6 7 6zM12 13c0-4 3-6 7-6 0 4-3 6-7 6z"/></svg>
+        <h1 style="margin: 0; font-size: 22px; font-weight: 700;">Farming</h1>
+      </div>
+      <sc-for list="{{legend}}" as="l" hint-placeholder-count="3">
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
+          <span style="width: 9px; height: 9px; border-radius: 5px; background: {{l.color}};"></span>
+          <span style="color: {{l.text}}; font-weight: {{l.weight}};">{{l.name}}</span>
+          <span style="color: {{t.muted}};">{{l.pct}}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  <div style="padding: 14px 16px; border-radius: 20px; background: {{t.surface}}; border: 1px solid {{t.line}}; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 12px; column-gap: 12px;">
+    <sc-for list="{{stats}}" as="st" hint-placeholder-count="4">
+      <div style="display: flex; flex-direction: column; gap: 2px;">
+        <div style="font-size: 12px; color: {{t.muted}};"><span style="color: {{st.color}};">{{st.icon}}</span> {{st.label}}</div>
+        <div style="display: flex; align-items: baseline; gap: 6px;">
+          <span style="font-size: 22px; font-weight: 700; color: {{st.color}};">{{st.value}}</span>
+          <span style="font-size: 13px; font-weight: 700; color: #55FF55;">{{st.delta}}</span>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+  <div style="flex-grow: 1; overflow: hidden; display: flex; flex-direction: column;">
+    <sc-for list="{{steps}}" as="s" hint-placeholder-count="5">
+      <div style="display: flex; gap: 14px;">
+        <div style="width: 28px; display: flex; flex-direction: column; align-items: center;">
+          <div style="width: 3px; height: 14px; border-radius: 2px; background: {{s.lineTop}};"></div>
+          <div style="width: 22px; height: 22px; border-radius: 11px; background: {{s.dot}}; border: 2px solid {{s.dotBorder}}; box-shadow: {{s.glow}}; color: {{t.bg}}; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">{{s.mark}}</div>
+          <div style="width: 3px; flex-grow: 1; border-radius: 2px; background: {{s.lineBottom}};"></div>
+        </div>
+        <sc-if value="{{s.current}}" hint-placeholder-val="{{false}}">
+          <div style="flex-grow: 1; margin: 6px 0 10px; padding: 14px; border-radius: 18px; background: {{t.raised}}; border: 1px solid {{t.area}}; display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline;"><span style="font-size: 17px; font-weight: 700;">Fermento Leggings</span><span style="font-size: 12px; color: {{t.muted}};">Armor</span></div>
+            <div style="padding: 10px 12px; border-radius: 14px; background: {{t.deep}}; display: flex; flex-direction: column; gap: 3px;">
+              <span style="font-size: 15px; font-weight: 700; color: #FFAA00;">+30 ☘ Farming Fortune</span>
+              <span style="font-size: 13px; color: #55FF55;">+2.1 % more crops</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 13px;"><span style="color: {{t.soft}};">12M coins</span><span style="color: {{t.area}}; font-weight: 700;">0.18 % per 1M</span></div>
+            <button style="height: 44px; border-radius: 22px; background: {{t.area}}; border: none; color: {{t.bg}}; font-size: 14px; font-weight: 700;">Mark done</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{s.plain}}" hint-placeholder-val="{{true}}">
+          <div style="flex-grow: 1; padding: 11px 0 10px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+            <div style="display: flex; flex-direction: column;">
+              <div style="font-size: 15px; font-weight: 500; color: {{s.text}};">{{s.name}}</div>
+              <div style="font-size: 12px; color: {{s.subColor}};">{{s.sub}}</div>
+            </div>
+            <div style="font-size: 12px; color: {{s.pillColor}}; text-align: right;">{{s.pill}}</div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-for>
+  </div>
+  <div style="height: 56px; border-radius: 28px; background: {{t.surface}}; border: 1px solid {{t.line}}; display: flex; align-items: center; padding: 0 6px;">
+    <button style="flex-grow: 1; height: 44px; border-radius: 22px; background: {{t.raised}}; border: none; color: #EFF4F0; font-size: 13px; font-weight: 700;">Path</button>
+    <button style="flex-grow: 1; height: 44px; border-radius: 22px; background: none; border: none; color: {{t.muted}}; font-size: 13px;">Best value</button>
+    <button style="flex-grow: 1; height: 44px; border-radius: 22px; background: none; border: none; color: {{t.muted}}; font-size: 13px;">Stats</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const t = { area: '#5BD46B', bg: '#0A0C0B', surface: '#121714', raised: '#16201A', deep: '#0E1310', line: '#1F2A22', track: '#18221B', muted: '#A3B3A6', soft: '#C9D6CC', dim: '#33463A', text: '#EFF4F0' };
+    const C = 2 * Math.PI * 47, third = C / 3, gap = 15, L = third - gap;
+    const ch = [['Early', 1, '#A8EBB1'], ['Mid · Fermento', 0.45, t.area], ['Late', 0, '#2E8A3C']];
+    const arcs = ch.map(([n, p, color], i) => ({ color, off: (-(i * third) - gap / 2).toFixed(1), bg: L.toFixed(1) + ' ' + (C - L).toFixed(1), fill: Math.max(0.1, L * p).toFixed(1) + ' ' + (C - L * p).toFixed(1) }));
+    const legend = ch.map(([name, p, color], i) => ({ name, color, pct: Math.round(p * 100) + '%', text: i === 1 ? t.text : t.soft, weight: i === 1 ? '700' : '400' }));
+    const stats = [
+      { icon: '☘', label: 'Farming Fortune', value: '1,245', delta: '+30', color: '#FFAA00' },
+      { icon: '☘', label: 'Wheat Fortune', value: '180', delta: '', color: '#FFAA00' },
+      { icon: '✦', label: 'Speed', value: '400', delta: '', color: '#FFFFFF' },
+      { icon: '☯', label: 'Farming Wisdom', value: '60', delta: '', color: '#55FFFF' }
+    ];
+    const raw = [
+      { name: 'Fermento Helmet', sub: 'from sync', st: 'd', pill: 'done' },
+      { name: 'Fermento Leggings', st: 'c' },
+      { name: 'Fermento Chestplate', sub: '+30 ☘ Farming Fortune', st: 'o', pill: '0.15 % / 1M' },
+      { name: 'Green Thumb V', sub: 'scales with Garden level', st: 'o', pill: 'no data' },
+      { name: 'Melon Dicer 3.0', sub: 'Garden level 12 needed', st: 'l', pill: 'locked' }
+    ];
+    const steps = raw.map((r, i) => {
+      const st = r.st, next = raw[i + 1] && raw[i + 1].st;
+      return Object.assign({}, r, {
+        current: st === 'c', plain: st !== 'c', mark: st === 'd' ? '✓' : '',
+        dot: st === 'd' ? t.area : t.bg,
+        dotBorder: st === 'd' || st === 'c' ? t.area : st === 'l' ? t.line : t.dim,
+        glow: st === 'c' ? '0 0 14px ' + t.area : 'none',
+        text: st === 'l' ? t.muted : t.text,
+        subColor: st === 'o' && r.sub.indexOf('☘') >= 0 ? '#FFAA00' : t.muted,
+        pillColor: st === 'd' ? '#55FF55' : st === 'l' ? t.muted : t.soft,
+        lineTop: st === 'd' || st === 'c' ? t.area : t.line,
+        lineBottom: st === 'd' && (next === 'd' || next === 'c') ? t.area : t.line
+      });
+    });
+    return { t, arcs, legend, stats, steps };
+  }
+}
+</script>
+</body>
+</html>

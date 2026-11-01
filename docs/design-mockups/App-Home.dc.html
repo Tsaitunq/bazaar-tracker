@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Home dashboard</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#B794FF}a:hover{color:#D6C2FF}
+button{font:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #0B0A10; color: #F2F0F7; font-family: 'Space Grotesk', system-ui, sans-serif; display: flex; flex-direction: column; gap: 14px; padding: 22px 20px 12px;">
+  <div style="display: flex; justify-content: space-between; align-items: center;">
+    <div style="display: flex; flex-direction: column; gap: 2px;">
+      <div style="font-size: 13px; color: #A39DB5;">Synced 2 h ago</div>
+      <h1 style="margin: 0; font-size: 28px; font-weight: 700;">Your guides</h1>
+    </div>
+    <a href="S-1.dc.html" aria-label="Your stats" style="width: 48px; height: 48px; border-radius: 24px; background: #15131C; border: 1px solid {{accent}}; display: flex; align-items: center; justify-content: center; color: {{accent}};"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg></a>
+  </div>
+  <div style="padding: 16px 18px; border-radius: 24px; background: #1A1626; border: 1px solid {{accent}}; display: flex; flex-direction: column; gap: 8px;">
+    <div style="display: flex; justify-content: space-between; font-size: 12px;"><span style="color: {{accent}}; font-weight: 700; letter-spacing: 1px;">BEST DEAL RIGHT NOW</span><span style="color: #5CC8FF;">Mining</span></div>
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 10px;">
+      <div style="display: flex; flex-direction: column; gap: 2px;">
+        <span style="font-size: 20px; font-weight: 700;">Perfect Jade</span>
+        <span style="font-size: 14px; font-weight: 700; color: #FFAA00;">+8 ☘ Mining Fortune</span>
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: flex-end;"><span style="font-size: 24px; font-weight: 700; color: {{accent}};">0.61 %</span><span style="font-size: 11px; color: #A39DB5;">per 1M · costs 3.9M</span></div>
+    </div>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <sc-for list="{{guides}}" as="g" hint-placeholder-count="3">
+      <a href="{{g.href}}" style="padding: 14px; border-radius: 22px; background: {{g.bg}}; border: 1px solid {{g.border}}; color: #F2F0F7; text-decoration: none; display: flex; align-items: center; gap: 14px;">
+        <svg width="70" height="70" viewBox="0 0 70 70" role="img" aria-label="{{g.name}} {{g.pct}}">
+          <sc-for list="{{g.arcs}}" as="r" hint-placeholder-count="3">
+            <circle cx="35" cy="35" r="28" fill="none" stroke="{{g.track}}" stroke-width="7" stroke-linecap="round" stroke-dasharray="{{r.bg}}" stroke-dashoffset="{{r.off}}" transform="rotate(-90 35 35)"></circle>
+            <circle cx="35" cy="35" r="28" fill="none" stroke="{{r.color}}" stroke-width="7" stroke-linecap="round" stroke-dasharray="{{r.fill}}" stroke-dashoffset="{{r.off}}" transform="rotate(-90 35 35)"></circle>
+          </sc-for>
+          <text x="35" y="40" text-anchor="middle" fill="#F2F0F7" font-size="14" font-weight="700" font-family="Space Grotesk, sans-serif">{{g.pct}}</text>
+        </svg>
+        <span style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px;">
+          <span style="font-size: 17px; font-weight: 700;">{{g.name}}</span>
+          <span style="font-size: 12px; color: #A39DB5;">{{g.chapter}}</span>
+          <span style="font-size: 12px; color: {{g.color}};">Next: {{g.next}}</span>
+        </span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A39DB5" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+      </a>
+    </sc-for>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
+    <div style="padding: 14px; border-radius: 20px; background: #15131C; border: 1px solid #2A2636; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 12px; color: #A39DB5;">Coins for all next steps</span><span style="font-size: 22px; font-weight: 700;">49.1M</span></div>
+    <div style="padding: 14px; border-radius: 20px; background: #15131C; border: 1px solid #2A2636; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 12px; color: #A39DB5;">Unlocked this week</span><span style="font-size: 22px; font-weight: 700;">6 <span style="font-size: 13px; color: #55FF55;">steps</span></span></div>
+  </div>
+  <div style="margin-top: auto; height: 60px; border-radius: 30px; background: #15131C; border: 1px solid #2A2636; display: flex; align-items: center; padding: 0 6px;">
+    <button style="flex-grow: 1; height: 48px; border-radius: 24px; background: #221E2E; border: none; color: #F2F0F7; font-size: 13px; font-weight: 700;">Home</button>
+    <button style="flex-grow: 1; height: 48px; border-radius: 24px; background: none; border: none; color: #A39DB5; font-size: 13px;">Stats</button>
+    <button style="flex-grow: 1; height: 48px; border-radius: 24px; background: none; border: none; color: #A39DB5; font-size: 13px;">Settings</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#9B6BFF","options":["#9B6BFF","#E05CFF"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const a = this.props.accent ?? '#9B6BFF';
+    const C = 2 * Math.PI * 28, third = C / 3, gap = 10, L = third - gap;
+    const arcsOf = (ps, cs) => ps.map((p, i) => ({
+      color: cs[i], off: (-(i * third) - gap / 2).toFixed(1),
+      bg: L.toFixed(1) + ' ' + (C - L).toFixed(1),
+      fill: Math.max(0.1, L * p).toFixed(1) + ' ' + (C - L * p).toFixed(1)
+    }));
+    const guides = [
+      { name: 'Mining', href: 'App-Mining.dc.html', pct: '38%', chapter: 'Chapter 2 · The middle', next: 'Perfect Jade', color: '#5CC8FF', bg: '#111821', border: '#1E2A36', track: '#1A2532', arcs: arcsOf([0.82, 0.26, 0.05], ['#BDEBFF', '#5CC8FF', '#2F6FD6']) },
+      { name: 'Blaze Slayer', href: 'App-Blaze.dc.html', pct: '57%', chapter: 'Chapter 2 · Crimson', next: 'Infernal Boots', color: '#FF8A3D', bg: '#1A1210', border: '#33221F', track: '#2A1C1A', arcs: arcsOf([1, 0.6, 0.1], ['#FFC27A', '#FF8A3D', '#C24A1F']) },
+      { name: 'Farming', href: 'App-Farming.dc.html', pct: '48%', chapter: 'Chapter 2 · Fermento', next: 'Fermento Leggings', color: '#5BD46B', bg: '#121714', border: '#1F2A22', track: '#18221B', arcs: arcsOf([1, 0.45, 0], ['#A8EBB1', '#5BD46B', '#2E8A3C']) }
+    ];
+    return { accent: a, guides };
+  }
+}
+</script>
+</body>
+</html>
