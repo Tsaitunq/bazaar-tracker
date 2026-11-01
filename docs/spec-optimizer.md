@@ -224,7 +224,7 @@ Nur der Stand aus 2.3 für das eigene Mitglied plus Pets, MP, HOTM-Knoten, Colle
 | Accessories | alle | Lore, doppelte Familien nur einmal | automatisch; Familien aus NEU `parents.json` [nicht bestätigt] |
 | Power Stone und Tuning | Strength, Crit Damage usw. | `selected_power`, `tuning`, Multiplikator `29.97 × ln(0.0019 × MP + 1)^1.2` [Doku Wiki]; Grundwerte je Stone manuell | teilweise |
 | Pet | Stats, Fähigkeiten, Held Item | Stufe aus `exp`; Werte aus Wiki, sonst NEU `pets.json` [nicht bestätigt] | teilweise |
-| HOTM-Perks | Mining Speed `Stufe × 20`, Mining Fortune `Stufe × 2`, Pristine `Stufe × 0,1` [Doku Wiki] | `skill_tree` | automatisch für diese drei; weitere Perks über manuelle Tabelle |
+| HOTM-Perks | `mining_speed` ×20, `speedy_mineman` ×40, `mining_fortune` ×2, `fortunate_mineman` ×3, `gem_lover` 20 + ×4, `mining_master` Pristine ×0,1 [Doku Wiki; Schlüssel aus Perk-Namen, nur drei am Profil gesehen]. Core of the Mountain gibt keinen dieser Stats. Bedingte Perks stehen in `gaps` | `skill_tree.nodes.mining` (`mining_core.nodes` gibt es nicht) | automatisch |
 | Skills | Mining 4 Fortune je Stufe [Doku Wiki], Combat/Foraging etc. | `player_data.experience` plus `/resources/skyblock/skills` | automatisch |
 | Collections | Mining Fortune bei Glacite, Tungsten, Umber, Obsidian [Doku Wiki] | `collection` | automatisch |
 | SkyBlock-Level | +5 Health je Level, +1 Strength je 5 Level [Doku Wiki] | `leveling.experience` | automatisch |
@@ -232,7 +232,8 @@ Nur der Stand aus 2.3 für das eigene Mitglied plus Pets, MP, HOTM-Knoten, Colle
 | Basiswerte | z. B. Crit Chance 30 [Doku Wiki], Health | Tabelle | automatisch |
 | Shards | nur Attribute ohne Bedingung; Bedingte stehen in `gaps` [Doku Wiki, Attributes; Schlüssel aus NEU nicht bestätigt] | `attributes.stacks`, Stufe aus Anzahl und Rarity | automatisch |
 | Essence-Perks | diverse | `player_data.perks`; noch keine Tabelle | über Abgleich (3.4) |
-| Potions, Mayor, Cake, Events, Booster, Museum | diverse | nicht zuverlässig lesbar | über Abgleich (3.4) |
+| God Potion, Booster Cookie | God Potion: Strength 95, Crit Chance 25, Crit Damage 80, Defense 60, True Defense 20, Health 100, Mining Speed 200, Mining Fortune 25. Booster Cookie: keiner unserer Stats [Doku Wiki: Potions, God Potion, Jerry Candy, Booster Cookie] | Einstellung in Settings | per Einstellung |
+| Andere Potions, Mayor, Cake, Events, Museum | diverse | nicht zuverlässig lesbar | über Abgleich (3.4) |
 | Fairy Souls | keine Stats mehr [Doku Wiki: seit 0.15 nur SkyBlock XP] | entfällt | entfällt |
 
 `/resources/skyblock/items` ist die Quelle für Upgrades auf ein noch nicht besessenes Item, denn dafür gibt es keine Lore. Die Stat-Namen dort sind teils groß, teils klein geschrieben (`MINING_FORTUNE` und `mining_fortune`) [geprüft]; Normalisierung ist Teil von `profile.js`.
@@ -251,7 +252,7 @@ Nur der Stand aus 2.3 für das eigene Mitglied plus Pets, MP, HOTM-Knoten, Colle
 - **Ausgleichswert (Plan für Paket 5, noch nicht gebaut):** Beim Speichern einer Messung wird je Stat `offset = inGame − berechnet` mit diesem Setup festgehalten, im selben `statsInput`. Er fasst zusammen, was die App nicht lesen kann (Potions, Mayor, Essence-Perks, Set-Boni). Die Bewertung rechnet dann mit `Basis = berechnet(aktuelles Loadout) + offset`, statt den In-Game-Wert fest zu übernehmen. So bleibt die Basis stimmig, wenn sich nach der Messung Gear ändert, und der Fehler landet nicht im Delta.
   - Ein gemessener Wert am Spielmaximum (Attack Speed 100) gibt keinen Offset, weil der echte Wert darüber liegen kann.
   - Ein Offset ist nur mit seinem Setup belegt: Wechselt Wardrobe-Slot, Equipment-Slot oder Pet, erscheint der Hinweis, neu zu messen.
-  - Ein aktiver Boost (God Potion, Booster Cookie) bleibt im Offset. Die Anzeige nennt ihn, weil er vergeht.
+  - **Boost kommt nicht in den Ausgleichswert.** God Potion und Booster Cookie sind berechnete Quellen, geschaltet über dauerhafte Einstellungen. Der Offset gilt nur, wenn die Einstellungen beim Speichern zur Messung passen (Häkchen je Messung); sonst erscheint ein Hinweis und es entsteht kein Offset.
 
 ## 4. Bewertung
 

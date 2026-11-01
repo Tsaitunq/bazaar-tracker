@@ -112,8 +112,8 @@ test('gearStats adds lore', () => {
 const empty = { armor: [], equipment: [], held: null, accessories: [], pet: null, gaps: [] };
 const part = (profile, name, loadout = empty) => computeStats({ items: [], ...profile }, {}, loadout, 'mining').parts[name];
 
-test('HOTM adds 20 speed, 2 fortune and 0.1 pristine per level of the matching perk', () => {
-  assert.deepEqual(part({ hotm: { nodes: { mining_speed: 10, mining_fortune: 5, pristine: 3 } } }, 'hotm'), { MINING_SPEED: 200, MINING_FORTUNE: 10, PRISTINE: 0.30000000000000004 });
+test('HOTM adds what the perks give per level', () => {
+  assert.deepEqual(part({ hotm: { nodes: { mining_speed: 10, speedy_mineman: 2, mining_fortune: 5, fortunate_mineman: 2, mining_master: 10, gem_lover: 1 } } }, 'hotm'), { MINING_SPEED: 280, MINING_FORTUNE: 16, PRISTINE: 1, GEMSTONE_FORTUNE: 24 });
 });
 
 test('skills follow the wiki totals at the top levels', () => {
@@ -407,4 +407,41 @@ test('shards count before the attack speed cap', () => {
 
 test('a saved profile without shards asks for a sync', () => {
   assert.ok(computeStats({ items: [] }, {}, empty, 'mining').gaps.includes('Sync again to read your shards.'));
+});
+
+test('a HOTM perk with a condition stays out of the numbers and is named', () => {
+  const out = computeStats({ items: [], hotm: { nodes: { professional: 2, front_loaded: 1, mining_speed: 1 } } }, {}, empty, 'mining');
+  assert.deepEqual(out.parts.hotm, { MINING_SPEED: 20 });
+  assert.ok(out.gaps.includes('HOTM perks with a condition are not counted: professional, front_loaded.'));
+});
+
+test('Echo of Elemental raises the Elemental shards only', () => {
+  assert.deepEqual(shards({ light_elemental: 96, veil: 32, echo_of_elemental: 24 }), { STRENGTH: 12, TRUE_DEFENSE: 10 });
+});
+
+test('the God Potion adds its wiki values when on, and nothing when off', () => {
+  const on = computeStats({ items: [] }, {}, empty, 'blaze', { godPotion: true });
+  assert.deepEqual(on.parts.boost, { STRENGTH: 95, CRITICAL_CHANCE: 25, CRITICAL_DAMAGE: 80, DEFENSE: 60, TRUE_DEFENSE: 20, HEALTH: 100, MINING_SPEED: 200, MINING_FORTUNE: 25 });
+  assert.equal(on.total.CRITICAL_CHANCE, 55);
+  assert.deepEqual(computeStats({ items: [] }, {}, empty, 'blaze').parts.boost, {});
+});
+
+test('the Booster Cookie changes none of our stats', () => {
+  const cookie = computeStats({ items: [] }, {}, empty, 'blaze', { boosterCookie: true });
+  assert.deepEqual(cookie.total, computeStats({ items: [] }, {}, empty, 'blaze').total);
+});
+
+test('the view counts the boost that is on', () => {
+  const html = statsView(state(), data, escHtml, { godPotion: true });
+  assert.match(areaOf(html, 'blaze'), /True Defense<\/th><td>20</);
+});
+
+test('a preset fills an area until a measurement is saved', () => {
+  const preset = { mining: { choice: { emptyHand: true }, values: { PRISTINE: 4.4 }, boost: true } };
+  const html = areaOf(statsView(state(), data, escHtml, {}, preset), 'mining');
+  assert.match(html, /data-stats-stat="PRISTINE" value="4.4"/);
+  assert.match(html, /data-stats-empty-hand checked/);
+  assert.match(html, /data-stats-boost checked/);
+  const saved = areaOf(statsView(state({ statsInput: { mining: { values: { PRISTINE: 9 } } } }), data, escHtml, {}, preset), 'mining');
+  assert.match(saved, /data-stats-stat="PRISTINE" value="9"/);
 });

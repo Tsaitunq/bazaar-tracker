@@ -4,7 +4,7 @@ import { craftFlips, craftHints, CRAFT_RUNS } from './craft.js';
 import { forgeFlips, forgeFlip } from './forge.js';
 import { minionRows, minionDetail, FUELS, UPGRADES, MAX_TIER } from './minions.js';
 import { loadItems, fallbackName } from './names.js';
-import { loadItemData, loadStats, loadRecipes, loadForge, loadAh, loadElection, loadTiming, loadWindows, loadHistory, freshBins, fetchBins } from './data.js';
+import { loadItemData, loadStatsPreset, loadStats, loadRecipes, loadForge, loadAh, loadElection, loadTiming, loadWindows, loadHistory, freshBins, fetchBins } from './data.js';
 import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission, loadHeld, storeHeld, canSync, getApiKey, setApiKey, loadProfile, saveProfile, clearProfileData } from './native.js';
 import { esc, PERSONAL, flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, trendsView, todayView, windowBanners, minionCard, minionSheet, parseRoute, detailView, portfolioView, warningsView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, viewsFor, areaOf, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
@@ -862,11 +862,18 @@ $('personal-settings').addEventListener('click', async (e) => {
 const profileSync = createSync({ store: { getApiKey, loadProfile, saveProfile }, summarize });
 let removeArmed = false;
 const hpStatus = (text) => { $('hp-status').textContent = text; };
+let statsPreset = null;
+// A setting wins once it is made; before that a local preset may say what was active.
+const boostsNow = () => ({ godPotion: settings.godPotion ?? statsPreset?.boosts?.godPotion ?? false, boosterCookie: settings.boosterCookie ?? statsPreset?.boosts?.boosterCookie ?? false });
 function renderStats() {
   if (!canSync()) return;
   askItemData();
-  $('hp-stats').innerHTML = statsView(profileState, itemData, esc);
+  const boosts = boostsNow();
+  $('hp-god-potion').checked = boosts.godPotion;
+  $('hp-booster-cookie').checked = boosts.boosterCookie;
+  $('hp-stats').innerHTML = statsView(profileState, itemData, esc, boosts, statsPreset);
 }
+loadStatsPreset().then((p) => { statsPreset = p; if (p) renderStats(); });
 async function showProfile() {
   if (!canSync()) return;
   profileState = await loadProfile();
@@ -927,6 +934,13 @@ $('hypixel-profile').addEventListener('click', async (e) => {
   hpStatus(await clearProfileData() ? 'Key and profile data removed.' : 'Could not remove them.');
   await showProfile();
 });
+for (const [id, key] of [['hp-god-potion', 'godPotion'], ['hp-booster-cookie', 'boosterCookie']]) {
+  $(id).addEventListener('change', (e) => {
+    settings[key] = e.target.checked;
+    save('bt.settings', settings);
+    renderStats();
+  });
+}
 $('hp-stats').addEventListener('click', async (e) => {
   if (!e.target.closest('[data-stats-save]')) return;
   const box = e.target.closest('[data-stats-area]');

@@ -1,5 +1,5 @@
 // What the player's stats are in a chosen setup, added up from item lore and the synced profile.
-// Potions, mayor, cake and museum are not readable, essence perks have no table yet; the /stats comparison shows them.
+// Other potions, mayor, cake and museum are not readable, essence perks have no table yet; the /stats comparison shows them.
 import { levelOf, SKILL_XP, SLAYER_XP } from './requires.js';
 
 export const AREA_STATS = {
@@ -101,8 +101,11 @@ export function loadoutOf(profile, items, area, choice) {
 
 // wiki Stats
 const BASE = { HEALTH: 100, CRITICAL_CHANCE: 30, CRITICAL_DAMAGE: 50 };
-// wiki Heart of the Mountain, per perk level. gem_lover as the node of +20 and +4 per level is not confirmed.
-const HOTM_PERKS = { mining_speed: { MINING_SPEED: 20 }, mining_fortune: { MINING_FORTUNE: 2 }, pristine: { PRISTINE: 0.1 } };
+// wiki Heart of the Mountain, Mining Fortune, Gemstone Fortune and Pristine, per perk level. Core of the Mountain gives none of our stats.
+// The keys are the perk names in snake case; only mining_speed, mining_fortune and gem_lover were seen in a real profile.
+const HOTM_PERKS = { mining_speed: { MINING_SPEED: 20 }, speedy_mineman: { MINING_SPEED: 40 }, mining_fortune: { MINING_FORTUNE: 2 }, fortunate_mineman: { MINING_FORTUNE: 3 }, mining_master: { PRISTINE: 0.1 } };
+// Same pages: these count only on some blocks, in some areas, for a daily amount or while an ability runs.
+const HOTM_CONDITIONAL = ['professional', 'strong_arm', 'front_loaded', 'rags_to_riches', 'eager_adventurer', 'sky_mall', 'mineshaft_mayhem', 'lonesome_miner', 'maniac_miner'];
 // wiki Mining Fortune: +1 at each of these collection tiers
 const FORTUNE_TIERS = { GLACITE: [1, 6, 7, 8], TUNGSTEN: [1, 5, 7, 8, 9], UMBER: [1, 5, 7, 8], OBSIDIAN: [5, 7, 8, 10] };
 // wiki Powers: Fortuitous as listed. The other three are its values at 250 power divided by the multiplier there, plus the flat bonus.
@@ -182,11 +185,13 @@ const SHARD_CONDITIONAL = ['forest_strength', 'royal_riches', 'fiesta_fortune', 
 
 const shardLevel = (attrs, key, rarity) => levelOf(SHARD_LEVELS[rarity], attrs[key] ?? 0);
 
+// wiki Starborn Shard: Echo of Elemental makes the other Elemental shards +2% to 20% stronger.
 function shardStats(attrs) {
   const out = {};
+  const echo = 1 + shardLevel(attrs, 'echo_of_elemental', 'LEGENDARY') * 0.02;
   for (const [key, [rarity, stats]] of Object.entries(SHARD_FLAT)) {
     const level = shardLevel(attrs, key, rarity);
-    if (level) add(out, stats, level);
+    if (level) add(out, stats, level * (key.endsWith('_elemental') ? echo : 1));
   }
   return out;
 }
@@ -204,7 +209,7 @@ function shardPercents(attrs) {
 
 function hotmStats(profile) {
   const out = {};
-  for (const [node, stats] of Object.entries(HOTM_PERKS)) add(out, stats, profile.hotm.nodes?.[node] ?? 0);
+  for (const [node, stats] of Object.entries(HOTM_PERKS)) if (profile.hotm.nodes?.[node]) add(out, stats, profile.hotm.nodes[node]);
   const gem = profile.hotm.nodes?.gem_lover;
   if (gem > 0) add(out, { GEMSTONE_FORTUNE: 20 + 4 * gem });
   return out;
@@ -277,13 +282,19 @@ function petStats(pet, gaps) {
   return known.stats(petLevel(pet, known.top));
 }
 
-export function computeStats(profile, items, loadout, area) {
+// wiki Potions, God Potion, Jerry Candy: Strength VIII 75 + candy 20, Critical IV 25 and 40, Spirit IV 40, Resistance VIII 60,
+// True Resistance IV 20, Haste IV 200, Spelunker V 25, candy +100 Health. Booster Cookie gives Magic Find and Wisdom, none of our stats.
+const GOD_POTION = { STRENGTH: 95, CRITICAL_CHANCE: 25, CRITICAL_DAMAGE: 80, DEFENSE: 60, TRUE_DEFENSE: 20, HEALTH: 100, MINING_SPEED: 200, MINING_FORTUNE: 25 };
+
+export function computeStats(profile, items, loadout, area, boosts = {}) {
   const gaps = [...loadout.gaps];
   if (!profile.skills) gaps.push('Skills API is off: skill stats are missing.');
   if (!profile.hotm) gaps.push('No Heart of the Mountain data.');
   if (!profile.collTiers) gaps.push('Collections API is off: collection stats are missing.');
   if (profile.skyblockXp === null || profile.skyblockXp === undefined) gaps.push('Sync again to read your SkyBlock level.');
-  gaps.push('Not counted: essence perks, potions, mayor, cake and museum.');
+  gaps.push('Not counted: essence perks, other potions, mayor, cake and museum.');
+  const perks = HOTM_CONDITIONAL.filter((key) => profile.hotm?.nodes?.[key] > 0);
+  if (perks.length) gaps.push(`HOTM perks with a condition are not counted: ${perks.join(', ')}.`);
   if (!profile.attrs) gaps.push('Sync again to read your shards.');
   const conditional = SHARD_CONDITIONAL.filter((key) => profile.attrs?.[key] > 0);
   if (conditional.length) gaps.push(`Shards with a condition are not counted: ${conditional.join(', ')}.`);
@@ -298,6 +309,7 @@ export function computeStats(profile, items, loadout, area) {
     level: levelStats(profile.skyblockXp ?? 0),
     slayer: profile.slayer ? slayerStats(profile.slayer) : {},
     shards: profile.attrs ? shardStats(profile.attrs) : {},
+    boost: boosts.godPotion ? GOD_POTION : {},
     base: BASE,
   };
   const total = Object.values(parts).reduce((sum, part) => add(sum, part), {});
@@ -355,11 +367,11 @@ function petPicker(pets, picked, esc) {
   return `<label>Pet<select data-stats-set="pet">${options.join('')}</select></label>`;
 }
 
-function areaView(area, state, items, esc) {
+function areaView(area, state, items, esc, boosts, preset) {
   const profile = state.summary;
-  const entry = state.statsInput?.[area] ?? {};
+  const entry = state.statsInput?.[area] ?? preset?.[area] ?? {};
   const loadout = loadoutOf(profile, items, area, entry.choice);
-  const { total, gaps } = computeStats(profile, items, loadout, area);
+  const { total, gaps } = computeStats(profile, items, loadout, area, boosts);
   const rows = new Map(compareStats(total, entry.values).map((r) => [r.stat, r]));
   const stale = entry.at && entry.at < state.syncedAt;
   const boost = entry.boost ? ' · God Potion / Booster Cookie active' : '';
@@ -386,7 +398,7 @@ function areaView(area, state, items, esc) {
 }
 
 // The settings block: pick the slots, type in /stats, read the difference.
-export function statsView(state, items, esc) {
+export function statsView(state, items, esc, boosts = {}, preset = null) {
   if (!state?.summary) return '<small>Sync your profile to see your stats.</small>';
-  return ['mining', 'blaze'].map((area) => areaView(area, state, items, esc)).join('');
+  return ['mining', 'blaze'].map((area) => areaView(area, state, items, esc, boosts, preset)).join('');
 }
