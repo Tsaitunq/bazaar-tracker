@@ -10,6 +10,10 @@ test('parseLore takes the first number and strips colours', () => {
   assert.deepEqual(parseLore(['§7Mining Speed: §a+1,234 §9(+20)', '§7Pristine: §a+2.5', '§7Unrelated text', '§7Crit Damage: §c+60% §9(+20%) §9(+5%)', '§7Attack Speed: §a+10%', '§7Health: §c-5']), { MINING_SPEED: 1234, PRISTINE: 2.5, CRITICAL_DAMAGE: 60, ATTACK_SPEED: 10, HEALTH: -5 });
 });
 
+test('parseLore ignores lines without a stat name or a number', () => {
+  assert.deepEqual(parseLore(['constructor: +1', 'toString: +2', 'Damage: +,', 'Strength: none', 'Health: +5']), { HEALTH: 5 });
+});
+
 test('readItem finds reforge, enchants, gems, recomb, stars and parts', () => {
   const item = readItem(slot('DIVAN_DRILL', {
     modifier: 'jaded', enchantments: { fortune: 4 }, rarity_upgrades: 1, upgrade_level: 5, drill_part_engine: 'amber_polished_drill_engine',
@@ -108,6 +112,17 @@ test('one broken inventory does not lose the others', async () => {
   const out = await summarize(m);
   assert.ok(out.items.some((i) => i.id === 'PACK7'));
   assert.ok(!out.items.some((i) => i.id === 'PACK0'));
+  assert.equal(out.skipped, 1);
+});
+
+test('one broken item does not lose the others', async () => {
+  const m = member();
+  m.inventory.inv_contents = store(slot('BROKEN', {}, { not: 'a list' }), slot('FINE'));
+  const out = await summarize(m);
+  assert.ok(out.items.some((i) => i.id === 'FINE'));
+  assert.ok(!out.items.some((i) => i.id === 'BROKEN'));
+  assert.equal(out.skipped, 1);
+  assert.equal((await summarize(member())).skipped, 0);
 });
 
 test('nothing readable at all rejects', async () => {

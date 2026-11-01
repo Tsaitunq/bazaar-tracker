@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readNbt, decodeInventory } from '../nbt.js';
+import { readNbt, decodeInventory, MAX_INFLATED } from '../nbt.js';
 import { tag, encodeNbt, encodeInventory, gzipBase64 } from './fixtures/nbt-encode.js';
 
 test('decodeInventory reads a slot with nested attributes', async () => {
@@ -47,6 +47,10 @@ test('truncated, non-gzip and absurd-length data reject', async () => {
   let deep = tag.int(1);
   for (let n = 0; n < 70; n++) deep = tag.list([deep]);
   assert.throws(() => readNbt(encodeNbt({ d: deep })), /deep/);
+});
+
+test('data that unpacks past the limit rejects as too large', async () => {
+  await assert.rejects(decodeInventory(gzipBase64(new Uint8Array(MAX_INFLATED + 1))), /too large/);
 });
 
 test('an inventory without a slot list rejects', async () => {

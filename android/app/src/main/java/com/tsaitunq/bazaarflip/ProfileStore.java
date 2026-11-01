@@ -43,13 +43,30 @@ final class ProfileStore {
 
     // A crash while writing must not leave half a file: the old one stays until the new one is complete.
     private static void write(File target, byte[] data) throws IOException {
-        File tmp = new File(target.getPath() + ".tmp");
-        try (FileOutputStream out = new FileOutputStream(tmp)) {
-            out.write(data);
-        }
-        if (!tmp.renameTo(target)) {
+        File tmp = temp(target);
+        try {
+            try (FileOutputStream out = new FileOutputStream(tmp)) {
+                out.write(data);
+            }
+            if (!tmp.renameTo(target)) throw new IOException("could not store the file");
+        } finally {
             tmp.delete();
-            throw new IOException("could not store the file");
+        }
+    }
+
+    private static File temp(File target) {
+        return new File(target.getPath() + ".tmp");
+    }
+
+    /** What a process killed while writing left behind; profile.json.tmp is plain text. */
+    static void removeTemp(Context context) {
+        temp(file(context, KEY_FILE)).delete();
+        temp(file(context, PROFILE_FILE)).delete();
+    }
+
+    private static void remove(File target) throws IOException {
+        for (File f : new File[] { target, temp(target) }) {
+            if (f.exists() && !f.delete()) throw new IOException("could not remove the file");
         }
     }
 
@@ -110,8 +127,8 @@ final class ProfileStore {
         }
     }
 
-    static void clearKey(Context context) {
-        file(context, KEY_FILE).delete();
+    static void clearKey(Context context) throws IOException {
+        remove(file(context, KEY_FILE));
     }
 
     static void saveProfile(Context context, String json) throws IOException {
@@ -128,7 +145,7 @@ final class ProfileStore {
         }
     }
 
-    static void clearProfile(Context context) {
-        file(context, PROFILE_FILE).delete();
+    static void clearProfile(Context context) throws IOException {
+        remove(file(context, PROFILE_FILE));
     }
 }

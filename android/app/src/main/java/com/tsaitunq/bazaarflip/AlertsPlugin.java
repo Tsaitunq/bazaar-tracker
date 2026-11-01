@@ -66,6 +66,7 @@ public class AlertsPlugin extends Plugin {
         route(getActivity().getIntent());
         // the field check build left a copy of the profile here
         new File(getContext().getCacheDir(), "profile-fixture.json").delete();
+        ProfileStore.removeTemp(getContext());
     }
 
     @Override
@@ -219,8 +220,12 @@ public class AlertsPlugin extends Plugin {
 
     @PluginMethod
     public void clearApiKey(PluginCall call) {
-        ProfileStore.clearKey(getContext());
-        call.resolve();
+        try {
+            ProfileStore.clearKey(getContext());
+            call.resolve();
+        } catch (IOException e) {
+            call.reject("could not remove the key");
+        }
     }
 
     @PluginMethod
@@ -245,8 +250,12 @@ public class AlertsPlugin extends Plugin {
 
     @PluginMethod
     public void clearProfile(PluginCall call) {
-        ProfileStore.clearProfile(getContext());
-        call.resolve();
+        try {
+            ProfileStore.clearProfile(getContext());
+            call.resolve();
+        } catch (IOException e) {
+            call.reject("could not remove the profile");
+        }
     }
 
     @PluginMethod

@@ -34,7 +34,7 @@ test('fetchProfiles sends the key as a header, never caches and never puts it in
   let seen;
   const out = await fetchProfiles({ uuid: U, key: 'K', get: async (url, o) => { seen = { url, o }; return json(200, { success: true, profiles: [{ a: 1 }] }); } });
   assert.equal(seen.url, `https://api.hypixel.net/v2/skyblock/profiles?uuid=${U}`);
-  assert.deepEqual(seen.o, { headers: { 'API-Key': 'K' }, cache: 'no-store' });
+  assert.deepEqual(seen.o, { headers: { 'API-Key': 'K' }, cache: 'no-store', redirect: 'error' });
   assert.deepEqual(out, { ok: true, profiles: [{ a: 1 }] });
 });
 
@@ -105,8 +105,16 @@ test('a successful run stores the summary and no coop mate', async () => {
 
 test('the previous summary reaches summarize', async () => {
   let previous;
-  await setup({ state: { uuid: U, summary: { old: 1 } }, summarize: async (_, p) => { previous = p; return {}; } }).sync.run();
+  await setup({ state: { uuid: U, profileId: 'profileid', summary: { old: 1 } }, summarize: async (_, p) => { previous = p; return {}; } }).sync.run();
   assert.deepEqual(previous, { old: 1 });
+});
+
+test('the previous summary stays behind when the profile or UUID changed', async () => {
+  for (const state of [{ uuid: U, profileId: 'other', summary: { old: 1 } }, { uuid: U }]) {
+    let previous = 'not called';
+    await setup({ state, summarize: async (_, p) => { previous = p; return {}; } }).sync.run();
+    assert.equal(previous, null);
+  }
 });
 
 test('a run overtaken by Remove or a new UUID stores nothing', async () => {
@@ -223,6 +231,12 @@ test('syncView shows a message and the profiles to pick', () => {
   const html = syncView(synced, 1000 * DAY, esc, { message: 'Syncing…', choices: [{ id: 'a', name: 'Pear', members: 2 }] });
   assert.match(html, /Syncing…/);
   assert.match(html, /data-sync-pick="a"[^>]*>Pear \(2\)/);
+});
+
+test('syncView shows what was skipped and escapes API values', () => {
+  assert.match(syncView({ ...synced, summary: { ...summary, skipped: 2 } }, 1000 * DAY, esc), /2 skipped/);
+  assert.ok(!syncView(synced, 1000 * DAY, esc).includes('skipped'));
+  assert.ok(!syncView({ ...synced, summary: { ...summary, mp: '<img src=x>' } }, 1000 * DAY, esc).includes('<img'));
 });
 
 test('syncView escapes profile names', () => {

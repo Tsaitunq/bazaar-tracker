@@ -894,6 +894,7 @@ $('hypixel-profile').addEventListener('click', async (e) => {
   removeArmed = false;
   remove.textContent = 'Remove key and profile data';
   syncNote = {};
+  $('hp-key').value = '';
   profileSync.invalidate();
   hpStatus(await clearProfileData() ? 'Key and profile data removed.' : 'Could not remove them.');
   await showProfile();

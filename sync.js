@@ -14,7 +14,7 @@ export const cleanKey = (s) => String(s ?? '').trim() || null;
 export async function fetchProfiles({ uuid, key, get = fetch }) {
   let res;
   try {
-    res = await get(`https://api.hypixel.net/v2/skyblock/profiles?uuid=${uuid}`, { headers: { 'API-Key': key }, cache: 'no-store' });
+    res = await get(`https://api.hypixel.net/v2/skyblock/profiles?uuid=${uuid}`, { headers: { 'API-Key': key }, cache: 'no-store', redirect: 'error' });
   } catch {
     return { ok: false, error: 'network' };
   }
@@ -79,7 +79,8 @@ export function createSync({ store, get = fetch, now = Date.now, summarize }) {
     const { profile } = chosen;
     let summary;
     try {
-      summary = await summarize(profile.members[state.uuid], state.summary ?? null);
+      // the items of another profile must not stay behind under this one
+      summary = await summarize(profile.members[state.uuid], profile.profile_id === state.profileId ? state.summary ?? null : null);
     } catch {
       return fail('format');
     }
@@ -111,9 +112,9 @@ const DAY = 86400e3;
 const REMINDER_DAYS = 21;
 const API_NAMES = { inventory: 'API: Inventory', collections: 'API: Collections', skills: 'API: Skills' };
 
-function seenLine(s) {
+function seenLine(s, esc) {
   const count = (...where) => s.items.filter((i) => where.includes(i.where)).length;
-  return `Seen: ${count('armor')} armor, ${count('equipment')} equipment, ${count('wardrobe')} wardrobe, ${count('inventory', 'ender', 'backpack', 'vault')} storage, ${count('accessory')} accessories, ${s.pets.length} pets${s.mp === null ? '' : ` · MP ${s.mp}`}`;
+  return `Seen: ${count('armor')} armor, ${count('equipment')} equipment, ${count('wardrobe')} wardrobe, ${count('inventory', 'ender', 'backpack', 'vault')} storage, ${count('accessory')} accessories, ${s.pets.length} pets${s.mp === null ? '' : ` · MP ${esc(s.mp)}`}${s.skipped ? ` · ${esc(s.skipped)} skipped` : ''}`;
 }
 
 // The line above the guides: when the last sync was, what it found, and what the player has to do about it.
@@ -124,7 +125,7 @@ export function syncView(state, now, esc, { message = '', choices = [] } = {}) {
     ? ['Not synced yet. Add your UUID and key in the settings.']
     : [
       `${esc(state.profileName)} · ${days ? `${days} d ago` : 'today'}`,
-      seenLine(state.summary),
+      seenLine(state.summary, esc),
       ...(off.length ? [`Turn on ${off.join(', ')} in SkyBlock Menu → Settings → API Settings.`] : []),
       ...(days >= REMINDER_DAYS ? ['Sync soon: Hypixel can disable an API application after 28 days without a request.'] : []),
     ];

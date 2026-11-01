@@ -2,7 +2,9 @@
 // no lore text and nothing of the raw answer.
 import { decodeInventory } from './nbt.js';
 
+// no prototype, so a lore line called "constructor" is no stat
 const STATS = {
+  __proto__: null,
   Damage: 'DAMAGE', Strength: 'STRENGTH', 'Crit Chance': 'CRITICAL_CHANCE', 'Crit Damage': 'CRITICAL_DAMAGE', 'Attack Speed': 'ATTACK_SPEED',
   Health: 'HEALTH', Defense: 'DEFENSE', 'True Defense': 'TRUE_DEFENSE', 'Magic Find': 'MAGIC_FIND',
   'Mining Speed': 'MINING_SPEED', 'Mining Fortune': 'MINING_FORTUNE', 'Gemstone Fortune': 'GEMSTONE_FORTUNE', 'Ore Fortune': 'ORE_FORTUNE', 'Block Fortune': 'BLOCK_FORTUNE', Pristine: 'PRISTINE',
@@ -13,7 +15,8 @@ export function parseLore(lines) {
   const out = {};
   for (const line of lines ?? []) {
     const [, name, value] = String(line).replace(/§./g, '').match(/^([A-Za-z ]+): ([+-][\d,.]+)/) ?? [];
-    if (STATS[name] && !(STATS[name] in out)) out[STATS[name]] = Number(value.replaceAll(',', ''));
+    const number = Number(value?.replaceAll(',', ''));
+    if (STATS[name] && !(STATS[name] in out) && Number.isFinite(number)) out[STATS[name]] = number;
   }
   return out;
 }
@@ -58,25 +61,32 @@ async function readItems(member) {
   const items = [];
   const seen = new Set();
   let readable = 0;
-  // One broken inventory must not cost the others. They run one after the other, so the page stays responsive.
+  let skipped = 0;
+  // One broken inventory or item must not cost the others. They run one after the other, so the page stays responsive.
   for (const [where, store, slot] of list) {
     let slots;
     try {
       slots = await decodeInventory(store.data);
     } catch {
+      skipped++;
       continue;
     }
     readable++;
     for (const raw of slots) {
-      const item = readItem(raw, where, slot ?? null);
-      const uuid = raw.tag?.ExtraAttributes?.uuid;
-      if (!item || (uuid && seen.has(uuid))) continue;
-      if (uuid) seen.add(uuid);
-      items.push(item);
+      try {
+        const item = readItem(raw, where, slot ?? null);
+        const uuid = raw.tag?.ExtraAttributes?.uuid;
+        if (!item || (uuid && seen.has(uuid))) continue;
+        if (uuid) seen.add(uuid);
+        items.push(item);
+      } catch {
+        skipped++;
+      }
     }
   }
+  // Nothing readable at all replaces no stored items: the run fails and the last stand stays.
   if (list.length && !readable) throw new Error('No inventory could be read');
-  return items;
+  return { items, skipped };
 }
 
 const numbers = (o) => Object.fromEntries(Object.entries(o ?? {}).filter(([, v]) => typeof v === 'number'));
@@ -85,8 +95,10 @@ export async function summarize(member, previous = null) {
   const missing = { inventory: !member.inventory, collections: !member.collection, skills: !member.player_data?.experience };
   const bag = member.accessory_bag_storage ?? {};
   const tree = member.skill_tree;
+  const { items, skipped } = missing.inventory ? { items: previous?.items ?? [], skipped: 0 } : await readItems(member);
   return {
-    items: missing.inventory ? previous?.items ?? [] : await readItems(member),
+    items,
+    skipped,
     pets: (member.pets_data?.pets ?? []).map(({ type, exp, tier, active, heldItem }) => ({ type, exp, tier, active, heldItem })),
     mp: bag.highest_magical_power ?? null,
     selectedPower: bag.selected_power ?? null,

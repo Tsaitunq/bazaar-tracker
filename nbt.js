@@ -64,10 +64,27 @@ export function readNbt(bytes) {
   return value(root, 0);
 }
 
+// A few kilobytes of gzip can unpack to gigabytes, so the size is checked while unpacking.
+export const MAX_INFLATED = 20 * 1024 * 1024;
+
+async function inflate(bytes) {
+  const reader = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip')).getReader();
+  const chunks = [];
+  let total = 0;
+  for (let part = await reader.read(); !part.done; part = await reader.read()) {
+    total += part.value.length;
+    if (total > MAX_INFLATED) {
+      reader.cancel().catch(() => {});
+      throw new RangeError('too large');
+    }
+    chunks.push(part.value);
+  }
+  return new Uint8Array(await new Blob(chunks).arrayBuffer());
+}
+
 export async function decodeInventory(base64) {
   const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
-  const { i } = readNbt(new Uint8Array(await new Response(stream).arrayBuffer()));
+  const { i } = readNbt(await inflate(bytes));
   if (!Array.isArray(i)) throw new Error('No slot list in this inventory');
   return i;
 }
