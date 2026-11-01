@@ -847,7 +847,7 @@ async function showProfile() {
   if (!canSync()) return;
   profileState = await loadProfile();
   $('hp-uuid').value = profileState?.uuid ?? '';
-  $('hp-key-state').textContent = await getApiKey() ? 'Key saved.' : 'No key saved.';
+  $('hp-key-state').textContent = await getApiKey().then((key) => (key ? 'Key saved.' : 'No key saved.'), () => syncMessage('keyread'));
   if (area() === PERSONAL) renderProgress();
 }
 async function runProfileSync(pick) {

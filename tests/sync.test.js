@@ -139,6 +139,18 @@ test('a missing key or uuid sends no request', async () => {
   assert.equal(noKey.calls() + noUuid.calls(), 0);
 });
 
+test('a key that cannot be read stops the run with its own message', async () => {
+  let calls = 0;
+  const sync = createSync({
+    store: { getApiKey: async () => { throw new Error('could not read the key'); }, loadProfile: async () => ({ uuid: U }), saveProfile: async () => true },
+    get: async () => { calls++; }, now: () => 1e9, summarize: async () => ({}),
+  });
+  const result = await sync.run();
+  assert.deepEqual(result, { status: 'error', error: 'keyread' });
+  assert.equal(syncMessage(result.error), 'Key could not be read – try again');
+  assert.equal(calls, 0);
+});
+
 test('a second run while one is busy sends no second request', async () => {
   const { sync, calls } = setup();
   const [a, b] = await Promise.all([sync.run(), sync.run()]);

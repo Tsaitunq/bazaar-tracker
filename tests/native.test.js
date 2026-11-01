@@ -85,14 +85,14 @@ test('without the plugin nothing about the key or profile works and nothing thro
   assert.equal(await clearProfileData(), false);
 });
 
-test('a failing plugin gives null or false for the key and profile', async () => {
+test('a failing plugin rejects for the key and gives null or false for the rest', async () => {
   const boom = async () => { throw new Error('boom'); };
   globalThis.Capacitor = {
     isNativePlatform: () => true,
     Plugins: { BazaarAlerts: { getApiKey: boom, setApiKey: boom, clearApiKey: boom, loadProfile: boom, saveProfile: boom, clearProfile: boom } },
   };
   assert.equal(canSync(), true);
-  assert.equal(await getApiKey(), null);
+  await assert.rejects(getApiKey());
   assert.equal(await setApiKey('x'), false);
   assert.equal(await loadProfile(), null);
   assert.equal(await saveProfile({ a: 1 }), false);

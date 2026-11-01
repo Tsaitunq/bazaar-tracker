@@ -45,6 +45,7 @@ export function chooseProfile(list, savedId) {
 
 const MESSAGES = {
   nokey: 'Add your API key first.',
+  keyread: 'Key could not be read – try again',
   nouuid: 'Add your Minecraft UUID first.',
   key: 'Hypixel rejected the key. Check it in the developer dashboard.',
   input: 'Check your UUID.',
@@ -65,7 +66,12 @@ export function createSync({ store, get = fetch, now = Date.now, summarize }) {
   async function attempt(pick, token) {
     const state = await store.loadProfile();
     if (!state?.uuid) return fail('nouuid');
-    const key = await store.getApiKey();
+    let key;
+    try {
+      key = await store.getApiKey();
+    } catch {
+      return fail('keyread');
+    }
     if (!key) return fail('nokey');
     const wait = (state.syncedAt ?? -Infinity) + COOLDOWN - now();
     if (wait > 0) return fail('limit', { retryIn: Math.ceil(wait / 1000) });

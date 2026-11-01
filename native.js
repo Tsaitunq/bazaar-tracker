@@ -65,12 +65,9 @@ export async function storeHeld(id, held) {
 // The API key and the profile stay on the device: natively, encrypted and outside Android's backup, never in localStorage.
 export const canSync = () => plugin() !== null;
 
+// Null means no key. A key that cannot be read right now rejects, so nobody is told to add it again.
 export async function getApiKey() {
-  try {
-    return (await plugin()?.getApiKey())?.key ?? null;
-  } catch {
-    return null;
-  }
+  return (await plugin()?.getApiKey())?.key ?? null;
 }
 
 const done = async (call) => {
