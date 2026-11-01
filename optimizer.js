@@ -1,6 +1,6 @@
 // Which open guide step brings the most per coin (spec 4 and 5). Pure functions over the guide, the prices and the synced profile.
-import { AREA_STATS, computeStats, miningScore, loadoutOf, withOffset, offsetStale, maxPetStats, petStats } from './stats.js';
-import { DAGGERS, OFA, ADDITIVE_ENCHANTS } from './blaze.js';
+import { AREA_STATS, computeStats, miningScore, loadoutOf, withOffset, offsetStale, maxPetStats, petStats, MIN_TRUE_DEFENSE, MIN_MP } from './stats.js';
+import { DAGGERS, OFA, ADDITIVE_ENCHANTS, blazeOutput } from './blaze.js';
 import { nextUpgrades, stepCost, openStep, bookOf, stepKey, stepRow } from './progress.js';
 import { esc, coins } from './render.js';
 import { checkStep } from './requires.js';
@@ -312,6 +312,8 @@ export function blazeDelta(step, state, loadout, profile, items, settings, guide
   }
   if (change.mp && profile.mp !== null && profile.mp !== undefined) plus(change.common, recomputed({ mp: profile.mp + change.mp }, profile, items, loadout, 'blaze'));
   change.common = onlyOf(change.common, 'blaze');
+  const crimson = change.armor.some((piece) => piece.in.includes('_CRIMSON_')) && new Set([...state.armorIds.filter((id) => !change.armor.some((piece) => piece.out === id)), ...change.armor.map((piece) => piece.in)].filter((id) => id.includes('_CRIMSON_'))).size === 4;
+  if (crimson) change.notes.push('Set bonus not fully rated.');
   const nothing = !Object.values(change.common).some(Boolean) && !change.ofa && !change.mp && !Object.keys(change.swaps).length && !change.armor.length
     && !Object.values(change.lines).some((s) => Object.values(s).some(Boolean)) && !Object.values(change.enchants).some((e) => Object.keys(e).length);
   return nothing && step.gain ? fallback() : change;
@@ -399,20 +401,24 @@ export function netCost(step, gross, loadout, other, items, ctx, keepOldGear) {
 }
 
 // Spec 5.3: from the first open step of a line up to the first one that brings something. What stands in the way decides.
-function walkLine(chain, ctx, loadout, settings, base, guide) {
+function walkLine(chain, ctx, rules) {
   const steps = [];
   let unknown = false;
+  const notes = [];
   for (const entry of chain) {
     steps.push(entry);
     const { status, reasons } = checkStep(entry.step, ctx.items, ctx.profile);
     if (status === 'locked') return { group: 'locked', reasons };
     unknown ||= status === 'unknown';
-    const delta = stepDelta(entry.step, loadout, ctx.profile, ctx.items, settings, guide);
+    const delta = rules.deltaOf(entry.step);
     if (!delta) return { group: 'noGain', unknown };
-    const gain = miningScore(base, delta, settings);
-    if (gain > 0) return { steps, target: entry, delta, gain, unknown };
+    const verdict = rules.verdict?.(delta) ?? {};
+    if (verdict.breaks) return { group: 'locked', reasons: [verdict.breaks] };
+    notes.push(...(delta.notes ?? []));
+    const gain = rules.gainOf(delta);
+    if (gain > 0 || verdict.helps?.length) return { steps, target: entry, delta, gain, unknown, helps: verdict.helps ?? [], progress: verdict.progress ?? 0, notes };
   }
-  return { group: 'zero', unknown };
+  return { group: 'zero', unknown, notes };
 }
 
 // A line of books pays only for its last one: that price is the cheapest way there, so the levels between are in it.
@@ -422,29 +428,59 @@ function chainCost({ steps, target }, ctx) {
   return { coins: costs.reduce((n, c) => n + c.coins, 0), unpriced: costs.reduce((n, c) => n + c.unpriced, 0) };
 }
 
+// Spec 4.2 and 4.3: gain in damage per second, and what a step does to the limits. An unread value locks nothing and helps nothing.
+function blazeRules(state, loadout, ctx, settings, guide) {
+  const now = blazeOutput(state);
+  const td = ctx.profile.missing?.inventory ? null : state.common.TRUE_DEFENSE ?? 0;
+  const mp = ctx.profile.mp ?? null;
+  return {
+    deltaOf: (step) => blazeDelta(step, state, loadout, ctx.profile, ctx.items, settings, guide),
+    gainOf: (change) => (now > 0 ? blazeOutput(applyBlaze(state, change)) / now - 1 : 0),
+    verdict: (change) => {
+      const moreTd = change.common.TRUE_DEFENSE ?? 0;
+      if (td !== null && td >= MIN_TRUE_DEFENSE && td + moreTd < MIN_TRUE_DEFENSE) return { breaks: `Would drop True Defense below ${MIN_TRUE_DEFENSE}` };
+      if (mp !== null && mp >= MIN_MP && mp + change.mp < MIN_MP) return { breaks: `Would drop Magical Power below ${MIN_MP}` };
+      const helps = [];
+      let progress = 0;
+      if (td !== null && td < MIN_TRUE_DEFENSE && moreTd > 0) { helps.push('trueDefense'); progress = Math.max(progress, Math.min(moreTd / (MIN_TRUE_DEFENSE - td), 1)); }
+      if (mp !== null && mp < MIN_MP && change.mp > 0) { helps.push('mp'); progress = Math.max(progress, Math.min(change.mp / (MIN_MP - mp), 1)); }
+      if (change.missing.length) { helps.push('dagger'); progress = 1; }
+      return { helps, progress };
+    },
+  };
+}
+
 // Spec 5.1. score and gain are shares: 0.012 is 1.2 %. A sum missing a price never gets a rank, it would look cheaper than it is.
-export function rankUpgrades(guide, checked, ctx, loadout, settings, base, { other = null, keepOldGear = false } = {}) {
-  const groups = { free: [], ranked: [], noPrice: [], noGain: [], zero: [], locked: [] };
+export function rankUpgrades(guide, checked, ctx, loadout, settings, base, { area = 'mining', other = null, keepOldGear = false, state = null } = {}) {
+  const groups = { requirements: [], free: [], ranked: [], noPrice: [], noGain: [], zero: [], locked: [] };
+  const rules = area === 'blaze' ? blazeRules(state, loadout, ctx, settings, guide) : {
+    deltaOf: (step) => stepDelta(step, loadout, ctx.profile, ctx.items, settings, guide),
+    gainOf: (delta) => miningScore(base, delta, settings),
+  };
   const firsts = nextUpgrades(guide, checked, ctx);
   const rest = (line) => guide.sections.flatMap((section) => section.steps.filter((step) => step.line === line && !checked.has(stepKey(section, step))).map((step) => ({ section, step })));
   const nt = new Set(guide.sections.flatMap((s) => s.steps.flatMap((step) => (step.items ?? []).filter((i) => i.nt && i.id).map((i) => i.id))));
   const sellCtx = { ...ctx, guide, nt };
   for (const first of firsts) {
     const row = { section: first.section, step: first.step, coins: first.coins, unpriced: first.unpriced, status: 'ok', reasons: [] };
-    const walked = walkLine(first.step.line ? rest(first.step.line) : [first], ctx, loadout, settings, base, guide);
+    const walked = walkLine(first.step.line ? rest(first.step.line) : [first], ctx, rules);
     if (walked.unknown) row.status = 'unknown';
     if (walked.group) {
-      groups[walked.group].push(walked.group === 'locked' ? { ...row, status: 'locked', reasons: walked.reasons } : row);
+      groups[walked.group].push(walked.group === 'locked' ? { ...row, status: 'locked', reasons: walked.reasons } : { ...row, notes: walked.notes ?? [] });
       continue;
     }
     const { coins, unpriced } = chainCost(walked, ctx);
     const { net, resale } = netCost(walked.target.step, coins, loadout, other, ctx.items, sellCtx, keepOldGear);
-    const rated = { ...row, coins, unpriced, delta: walked.delta, gain: walked.gain, net, resale, ahead: walked.target === walked.steps[0] ? null : walked.target.step };
-    if (unpriced) groups.noPrice.push(rated);
+    const rated = { ...row, coins, unpriced, delta: walked.delta, gain: walked.gain, net, resale, helps: walked.helps, notes: walked.notes, ahead: walked.target === walked.steps[0] ? null : walked.target.step };
+    if (walked.helps.length) {
+      const paid = !unpriced && (coins > 0 || walked.target.step.table);
+      groups.requirements.push({ ...rated, ...(paid && net > 0 && { perMillion: walked.gain / (net / 1e6) }), pace: !paid ? -1 : net > 0 ? walked.progress / (net / 1e6) : Infinity });
+    } else if (unpriced) groups.noPrice.push(rated);
     else if (net > 0) groups.ranked.push({ ...rated, perMillion: walked.gain / (net / 1e6) });
     else if (coins > 0 || walked.target.step.table) groups.free.push({ ...rated, net: 0 });
     else groups.noPrice.push(rated);
   }
+  groups.requirements.sort((a, b) => b.pace - a.pace || (b.perMillion ?? 0) - (a.perMillion ?? 0));
   groups.ranked.sort((a, b) => b.perMillion - a.perMillion);
   groups.free.sort((a, b) => b.gain - a.gain);
   return groups;

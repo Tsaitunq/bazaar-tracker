@@ -9,8 +9,9 @@ export const AREA_STATS = {
 export const GEMSTONE = { wF: 1, wS: 1, wP: 1, blockStrength: 3000 };
 const TOOLS = new Set(['DRILL', 'PICKAXE', 'GAUNTLET']);
 const WEAPONS = new Set(['SWORD', 'LONGSWORD']);
-const MIN_TRUE_DEFENSE = 140;
-const MIN_MP = 800;
+export const MIN_TRUE_DEFENSE = 140;
+export const MIN_MP = 800;
+export const TARGET_MP = 1100;
 
 // wiki Pristine: Gemstone Fortune counts on gemstones only, so the other presets leave it out.
 const fortune = (s, settings) => (s.MINING_FORTUNE ?? 0) + (settings.gemFortune === false ? 0 : s.GEMSTONE_FORTUNE ?? 0);

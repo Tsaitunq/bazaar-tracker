@@ -719,3 +719,99 @@ test('a mining step gives the same delta as before', () => {
   assert.deepEqual(delta({ kind: 'owned', on: [['NEW_HELMET']] }), { MINING_FORTUNE: 20, MINING_SPEED: 5 });
   assert.deepEqual(delta({ kind: 'reforge', on: 'armor', value: ['jaded'] }, { loadout: setup({ armor: [piece('OLD_HELMET', { reforge: 'fierce' })] }) }), { MINING_SPEED: 20, MINING_FORTUNE: 15 });
 });
+
+const rankBlaze = (steps, { world = blazeWorld(), products = {}, opts = {} } = {}) => {
+  const g = { groups: blazeGuide.groups, sections: [{ name: 'Main', steps: steps.map((s, i) => ({ text: s.text ?? `step ${i}`, ...s })) }] };
+  return rankUpgrades(g, new Set(), { products, profile: world.profile, items: blazeItems }, world.loadout, miningSettings(null), null, { area: 'blaze', state: world.state, ...opts });
+};
+const lowTd = () => { const w = blazeWorld(); return { ...w, state: { ...w.state, common: { ...w.state.common, TRUE_DEFENSE: 100 } } }; };
+const buy = (id) => ({ items: [{ id, qty: 1 }] });
+
+test('blaze rows rank by damage gain per million', () => {
+  const out = rankBlaze([
+    { text: 'sharp', detect: onDaggers('sharpness', 7), ...buy('A') },
+    { text: 'crit', detect: onDaggers('critical', 1), ...buy('B') },
+  ], { products: { A: sold(10e6), B: sold(1e6) } });
+  assert.deepEqual(texts(out.ranked).sort(), ['crit', 'sharp']);
+  const sharp = out.ranked.find((r) => r.step.text === 'sharp');
+  assert.ok(Math.abs(sharp.gain - 0.5) < 1e-9);
+  assert.ok(Math.abs(sharp.perMillion - 0.05) < 1e-9);
+});
+
+test('a dagger of one line never takes the place of the other line', () => {
+  const w = blazeWorld();
+  const data = { profile: w.profile, guide: { groups: {} }, products: { [MAW]: orders(8e6) } };
+  const step = { detect: { kind: 'owned', on: [[KINDLE]] }, items: [{ id: KINDLE, qty: 1 }] };
+  assert.equal(netCost(step, 20e6, w.loadout, null, blazeItems, data, false).soldIds.includes(MAW), false);
+});
+
+test('a dagger upgrade sells nothing even without a forge recipe', () => {
+  const w = blazeWorld();
+  const data = { profile: w.profile, guide: { groups: {} }, products: { [FIRE]: orders(8e6) } };
+  assert.equal(netCost({ detect: { kind: 'owned', on: [[KINDLE]] } }, 20e6, w.loadout, null, blazeItems, data, false).resale, 0);
+});
+
+test('a look ahead works for blaze lines and a line of books', () => {
+  const book = (level) => ({ items: [{ id: `ENCHANTMENT_S_${level}`, qty: 1, combine: 0 }] });
+  const out = rankBlaze([
+    { text: 'first', line: 'L', detect: onDaggers('looting', 1), ...book(1) },
+    { text: 'second', line: 'L', detect: onDaggers('sharpness', 7), ...book(2) },
+  ], { products: { ENCHANTMENT_S_1: sold(1e6), ENCHANTMENT_S_2: sold(4e6) } });
+  assert.equal(out.ranked[0].step.text, 'first');
+  assert.equal(out.ranked[0].ahead.text, 'second');
+  assert.equal(out.ranked[0].coins, 4e6);
+});
+
+test('a step that helps a missed limit goes to requirements with its reason', () => {
+  const out = rankBlaze([{ text: 'gem', detect: { kind: 'gem', on: [['PLATE']], type: 'OPAL', quality: 'PERFECT', need: 1 }, ...buy('A') }], { world: lowTd(), products: { A: sold(1e6) } });
+  assert.deepEqual(texts(out.requirements), ['gem']);
+  assert.deepEqual(out.requirements[0].helps, ['trueDefense']);
+  assert.equal(out.ranked.length, 0);
+});
+
+test('requirements sort by progress on the limit per million, then damage', () => {
+  const out = rankBlaze([
+    { text: 'small', gain: { TRUE_DEFENSE: 4 }, ...buy('A') },
+    { text: 'big', gain: { TRUE_DEFENSE: 20 }, ...buy('A') },
+    { text: 'noprice', gain: { TRUE_DEFENSE: 40 }, ...buy('NOPE') },
+  ], { world: lowTd(), products: { A: sold(1e6) } });
+  assert.deepEqual(texts(out.requirements), ['big', 'small', 'noprice']);
+});
+
+test('a step that would break a met limit is locked with the reason', () => {
+  const out = rankBlaze([{ text: 'swap', gain: { TRUE_DEFENSE: -20, STRENGTH: 50 }, ...buy('A') }], { products: { A: sold(1e6) } });
+  assert.deepEqual(texts(out.locked), ['swap']);
+  assert.match(out.locked[0].reasons[0], /below 140/);
+});
+
+test('a step that lifts a met limit further stays in the ranking', () => {
+  const out = rankBlaze([{ text: 'x', gain: { TRUE_DEFENSE: 20, STRENGTH: 50 }, ...buy('A') }], { products: { A: sold(1e6) } });
+  assert.deepEqual(texts(out.ranked), ['x']);
+});
+
+test('the missing dagger goes to requirements as dagger pair incomplete', () => {
+  const out = rankBlaze([{ text: 'maw', detect: { kind: 'owned', on: [[MAW]] }, ...buy(MAW) }], { world: blazeWorld({ daggers: { ashen: fire(), spirit: null } }), products: { [MAW]: sold(1e6) } });
+  assert.deepEqual(out.requirements[0].helps, ['dagger']);
+});
+
+test('magical power between 800 and 1100 locks nothing and helps nothing', () => {
+  const out = rankBlaze([{ text: 'x', detect: { kind: 'owned', on: [['NEW_ONE']] }, ...buy('A') }], { world: mpWorld(), products: { A: sold(1e6) } });
+  assert.equal(out.locked.length, 0);
+  assert.equal(out.requirements.length, 0);
+  const low = mpWorld([], { mp: 700 });
+  assert.deepEqual(rankBlaze([{ text: 'x', detect: { kind: 'owned', on: [['NEW_ONE']] }, ...buy('A') }], { world: low, products: { A: sold(1e6) } }).requirements[0].helps, ['mp']);
+});
+
+test('a limit that cannot be read locks nothing', () => {
+  const w = blazeWorld({ prof: { missing: { inventory: true }, mp: null } });
+  const out = rankBlaze([{ text: 'x', gain: { TRUE_DEFENSE: -500, STRENGTH: 50 }, ...buy('A') }], { world: w, products: { A: sold(1e6) } });
+  assert.equal(out.locked.length, 0);
+  assert.deepEqual(texts(out.ranked), ['x']);
+});
+
+test('a step left out by one for all goes to zero with its hint', () => {
+  const w = blazeWorld({ daggers: { ashen: fire({ enchants: { [OFA]: 1 } }), spirit: maw({ enchants: { [OFA]: 1 } }) } });
+  const out = rankBlaze([{ text: 'x', detect: onDaggers('sharpness', 7), ...buy('A') }], { world: w, products: { A: sold(1e6) } });
+  assert.deepEqual(texts(out.zero), ['x']);
+  assert.ok(out.zero[0].notes.includes('Not used with One For All.'));
+});
