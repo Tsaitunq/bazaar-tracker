@@ -236,6 +236,18 @@
         <small id="hp-status" role="status"></small>
         <label class="check"><input id="hp-god-potion" type="checkbox"> God Potion active</label>
         <label class="check"><input id="hp-booster-cookie" type="checkbox"> Booster Cookie active</label>
+        <div id="hp-mining" class="stats-area">
+          <strong>Best value for Mining</strong>
+          <label>Target
+            <select id="hp-preset"><option value="gemstone">Gemstone</option><option value="mithril">Mithril</option><option value="glacite">Glacite</option></select>
+          </label>
+          <label>Fortune weight<input id="hp-wF" type="number" step="any" min="0" inputmode="decimal"></label>
+          <label>Speed weight<input id="hp-wS" type="number" step="any" min="0" inputmode="decimal"></label>
+          <label>Pristine weight<input id="hp-wP" type="number" step="any" min="0" inputmode="decimal"></label>
+          <label>Block strength<input id="hp-blockStrength" type="number" step="any" min="1" inputmode="numeric"></label>
+          <div class="actions"><button type="button" id="hp-mining-reset">Reset</button></div>
+          <label class="check"><input id="hp-keep-gear" type="checkbox"> I keep old gear</label>
+        </div>
         <div id="hp-stats"></div>
       </div>
     </fieldset>

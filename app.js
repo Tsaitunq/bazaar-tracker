@@ -16,6 +16,7 @@ import { loadBundled, mergeGuides, exportData, importData, progressView, persona
 import { createSync, syncMessage, syncView, normalizeUuid, cleanKey } from './sync.js';
 import { summarize } from './profile.js';
 import { statsView, statsEntry, loadoutOf, computeStats, offsetStale } from './stats.js';
+import { PRESETS, miningSettings } from './optimizer.js';
 import { detectGuide } from './detect.js';
 import { initOnboarding, refreshHints, offerAdvanced, returning } from './tour.js';
 
@@ -952,13 +953,39 @@ $('hp-stats').addEventListener('click', async (e) => {
   if (!state) return;
   const { choice } = statsEntry(statsArea, form, 0);
   const boosts = boostsNow();
-  const measured = itemData && state.summary ? { total: computeStats(state.summary, itemData, loadoutOf(state.summary, itemData, statsArea, choice), statsArea, boosts).total, boosts } : null;
+  const measured = itemData && state.summary ? { total: computeStats(state.summary, itemData, loadoutOf(state.summary, itemData, statsArea, choice, miningSettings(settings.mining)), statsArea, boosts).total, boosts } : null;
   const entry = statsEntry(statsArea, form, Date.now(), measured, state.statsInput?.[statsArea] ?? null);
   const next = { ...state, statsInput: { ...state.statsInput, [statsArea]: entry } };
   if (!await saveProfile(next)) return hpStatus(syncMessage('store'));
   profileState = next;
   renderStats();
 });
+const MINING_FIELDS = ['wF', 'wS', 'wP', 'blockStrength'];
+function showMining() {
+  const now = miningSettings(settings.mining);
+  $('hp-preset').value = now.preset;
+  for (const key of MINING_FIELDS) $(`hp-${key}`).value = now[key];
+  $('hp-keep-gear').checked = settings.keepOldGear === true;
+}
+function saveMining(mining) {
+  settings.mining = mining;
+  save('bt.settings', settings);
+  showMining();
+  renderStats();
+  if (area() === PERSONAL) renderProgress();
+}
+$('hp-preset').addEventListener('change', (e) => {
+  const { gemFortune, ...values } = PRESETS[e.target.value];
+  saveMining({ preset: e.target.value, ...values });
+});
+for (const key of MINING_FIELDS) $(`hp-${key}`).addEventListener('change', (e) => saveMining({ ...miningSettings(settings.mining), [key]: e.target.value }));
+$('hp-mining-reset').addEventListener('click', () => saveMining(null));
+$('hp-keep-gear').addEventListener('change', (e) => {
+  settings.keepOldGear = e.target.checked;
+  save('bt.settings', settings);
+  if (area() === PERSONAL) renderProgress();
+});
+showMining();
 // A picker that moves away from the measured setup says so before anything is saved.
 $('hp-stats').addEventListener('change', (e) => {
   if (!e.target.matches('[data-stats-set]')) return;

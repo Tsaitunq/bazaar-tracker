@@ -2,6 +2,25 @@
 import { AREA_STATS, computeStats } from './stats.js';
 import { RARITIES, ENCHANTS, ENCHANTS_NO_STAT, GEMS, GEM_STAT, REFORGES, REFORGES_NO_STAT, PARTS, POLARVOID, COATING } from './optimizer-data.js';
 
+// Spec 4.1. Gemstone Fortune applies on gemstones only (wiki Pristine), and the other fortunes are not counted, so mithril and glacite read low.
+export const PRESETS = {
+  gemstone: { blockStrength: 3000, wF: 1, wS: 1, wP: 1, gemFortune: true },
+  mithril: { blockStrength: 500, wF: 1, wS: 1, wP: 0, gemFortune: false },
+  glacite: { blockStrength: 6000, wF: 1, wS: 1, wP: 0, gemFortune: false },
+};
+
+// What the settings hold is typed in by the player: anything unusable takes the value of the preset.
+export function miningSettings(raw) {
+  const preset = Object.hasOwn(PRESETS, raw?.preset ?? '') ? raw.preset : 'gemstone';
+  const base = PRESETS[preset];
+  const number = (key, ok) => {
+    const v = raw?.[key] === '' || raw?.[key] === null ? NaN : Number(raw?.[key]);
+    return Number.isFinite(v) && ok(v) ? v : base[key];
+  };
+  const weight = (key) => number(key, (v) => v >= 0);
+  return { preset, wF: weight('wF'), wS: weight('wS'), wP: weight('wP'), blockStrength: number('blockStrength', (v) => v > 0), gemFortune: base.gemFortune };
+}
+
 const QUALITY = ['ROUGH', 'FLAWED', 'FINE', 'FLAWLESS', 'PERFECT'];
 const TOOLS = new Set(['DRILL', 'PICKAXE', 'GAUNTLET']);
 const GEM_SLOTS = ['MINING', 'UNIVERSAL'];

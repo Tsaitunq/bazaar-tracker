@@ -12,7 +12,8 @@ const WEAPONS = new Set(['SWORD', 'LONGSWORD']);
 const MIN_TRUE_DEFENSE = 140;
 const MIN_MP = 800;
 
-const fortune = (s) => (s.MINING_FORTUNE ?? 0) + (s.GEMSTONE_FORTUNE ?? 0);
+// wiki Pristine: Gemstone Fortune counts on gemstones only, so the other presets leave it out.
+const fortune = (s, settings) => (s.MINING_FORTUNE ?? 0) + (settings.gemFortune === false ? 0 : s.GEMSTONE_FORTUNE ?? 0);
 
 // Spec 4.1, the derivative of the yield. wiki Pristine: Base Drop × (1 + Pristine × 79/100) × (1 + (Mining Fortune + Gemstone Fortune) / 100).
 export function miningScore(stats, delta, settings = GEMSTONE) {
@@ -20,7 +21,7 @@ export function miningScore(stats, delta, settings = GEMSTONE) {
   const cap = Math.ceil((20 * blockStrength) / 3);
   const speed = Math.min(stats.MINING_SPEED ?? 0, cap);
   const nextSpeed = Math.min((stats.MINING_SPEED ?? 0) + (delta.MINING_SPEED ?? 0), cap);
-  return wF * fortune(delta) / (100 + fortune(stats))
+  return wF * fortune(delta, settings) / (100 + fortune(stats, settings))
     + wS * (nextSpeed - speed) / Math.max(speed, 1)
     + wP * 0.79 * (delta.PRISTINE ?? 0) / (1 + 0.79 * (stats.PRISTINE ?? 0));
 }
@@ -52,9 +53,9 @@ function accessoriesOf(profile, items) {
 }
 
 // A wardrobe slot holds no tool or weapon, so the strongest owned one is taken and shown.
-function heldOf(profile, items, area, gear) {
+function heldOf(profile, items, area, gear, settings) {
   const of = (group) => profile.items.filter((i) => group.has(items?.[i.id]?.category) && i.where !== 'accessory');
-  const rate = area === 'mining' ? (i) => miningScore(gear, i.lore) : (i) => i.lore.DAMAGE ?? 0;
+  const rate = area === 'mining' ? (i) => miningScore(gear, i.lore, settings) : (i) => i.lore.DAMAGE ?? 0;
   return of(area === 'mining' ? TOOLS : WEAPONS).reduce((best, i) => (!best || rate(i) > rate(best) ? i : best), null);
 }
 
@@ -80,7 +81,7 @@ function petOf(profile, pick, gaps) {
 }
 
 // choice: the wardrobe slot, equipment slot and pet the player picked. Accessories and power are what the sync found.
-export function loadoutOf(profile, items, area, choice) {
+export function loadoutOf(profile, items, area, choice, settings = GEMSTONE) {
   const gaps = [];
   const setOf = (kind) => {
     const known = profile.wardrobe?.[kind];
@@ -93,7 +94,7 @@ export function loadoutOf(profile, items, area, choice) {
   const armor = setOf('armor');
   const equipment = setOf('equipment');
   if (!items) gaps.push('Item data missing: no tool or weapon, and accessory families count twice.');
-  const held = items && !choice?.emptyHand ? heldOf(profile, items, area, gearStats([...armor, ...equipment])) : null;
+  const held = items && !choice?.emptyHand ? heldOf(profile, items, area, gearStats([...armor, ...equipment]), settings) : null;
   if (items && !held && !choice?.emptyHand) gaps.push(area === 'mining' ? 'No mining tool found.' : 'No weapon found.');
   for (const stem of fullSets(armor)) gaps.push(`Full set ${stem}: its bonus is not counted.`);
   return { armor, equipment, held, accessories: accessoriesOf(profile, items), pet: petOf(profile, choice?.pet, gaps), gaps };

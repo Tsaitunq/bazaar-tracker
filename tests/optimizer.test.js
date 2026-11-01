@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { stepDelta } from '../optimizer.js';
-import { GEMSTONE } from '../stats.js';
+import { stepDelta, PRESETS, miningSettings } from '../optimizer.js';
+import { GEMSTONE, miningScore, loadoutOf } from '../stats.js';
 
 const piece = (id, extra = {}) => ({ id, where: 'armor', gems: [], enchants: {}, parts: {}, reforge: null, recomb: false, polarvoid: 0, coating: false, lore: {}, ...extra });
 const DRILL = 'TITANIUM_DRILL_4';
@@ -175,4 +175,46 @@ test('a step with nothing to go on gives null', () => {
 test('parts of a step add up, one part with null makes the whole step null', () => {
   assert.deepEqual(delta([enchant('fortune', 1), enchant('efficiency', 1)]), { MINING_FORTUNE: 10, MINING_SPEED: 30 });
   assert.equal(delta([enchant('fortune', 1), { kind: 'scroll', on: 'drill', value: 'X' }]), null);
+});
+
+const softcap = (s) => Math.ceil((20 * s.blockStrength) / 3);
+const pick = ({ blockStrength, wF, wS, wP }) => ({ blockStrength, wF, wS, wP });
+
+test('presets hold the spec values', () => {
+  assert.deepEqual(pick(PRESETS.gemstone), { blockStrength: 3000, wF: 1, wS: 1, wP: 1 });
+  assert.deepEqual(pick(PRESETS.mithril), { blockStrength: 500, wF: 1, wS: 1, wP: 0 });
+  assert.deepEqual(pick(PRESETS.glacite), { blockStrength: 6000, wF: 1, wS: 1, wP: 0 });
+  assert.equal(softcap(PRESETS.gemstone), 20000);
+  assert.equal(softcap(PRESETS.mithril), 3334);
+  assert.equal(softcap(PRESETS.glacite), 40000);
+});
+
+test('gemFortune false leaves gemstone fortune out of the score', () => {
+  assert.equal(miningScore({ GEMSTONE_FORTUNE: 900 }, { GEMSTONE_FORTUNE: 10 }, PRESETS.mithril), 0);
+  assert.equal(miningScore({ GEMSTONE_FORTUNE: 900 }, { MINING_FORTUNE: 10 }, PRESETS.mithril), 10 / 100);
+});
+
+test('gemFortune left out counts it, so old calls stay the same', () => {
+  assert.equal(miningScore({ GEMSTONE_FORTUNE: 900 }, { GEMSTONE_FORTUNE: 10 }, GEMSTONE), 10 / 1000);
+});
+
+test('miningSettings replaces an empty, negative or unreadable field by the preset value', () => {
+  const s = miningSettings({ preset: 'mithril', wF: '', wS: -2, wP: 'x', blockStrength: '750' });
+  assert.deepEqual(s, { preset: 'mithril', wF: 1, wS: 1, wP: 0, blockStrength: 750, gemFortune: false });
+  assert.equal(miningSettings(null).preset, 'gemstone');
+  assert.equal(miningSettings({ preset: 'constructor' }).preset, 'gemstone');
+  assert.equal(miningSettings({ wF: 0 }).wF, 0);
+});
+
+test('a block strength of 0 falls back to the preset', () => {
+  assert.equal(miningSettings({ preset: 'glacite', blockStrength: 0 }).blockStrength, 6000);
+});
+
+test('with the mithril preset the tool is picked by its mithril score', () => {
+  const gemTool = piece('GEM_TOOL', { where: 'inventory', lore: { GEMSTONE_FORTUNE: 200 } });
+  const oreTool = piece('ORE_TOOL', { where: 'inventory', lore: { MINING_FORTUNE: 20 } });
+  const data = { GEM_TOOL: { category: 'DRILL' }, ORE_TOOL: { category: 'DRILL' } };
+  const prof = { items: [gemTool, oreTool], pets: [], wardrobe: { armor: { equipped: 1, sets: [1] }, equipment: { equipped: 1, sets: [1] } } };
+  assert.equal(loadoutOf(prof, data, 'mining', null).held.id, 'GEM_TOOL');
+  assert.equal(loadoutOf(prof, data, 'mining', null, PRESETS.mithril).held.id, 'ORE_TOOL');
 });
