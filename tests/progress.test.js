@@ -407,3 +407,35 @@ test('the export of a guide carries no profile', () => {
   const out = exportData([{ id: 's', ...synced }], { s: ['Gear|Set'] });
   assert.ok(!/summary|profile|uuid|API-Key/i.test(out));
 });
+
+const slotGuide = { title: 'G', sections: [{ name: 'Armor', steps: [
+  { text: 'Necron', line: 'a', detect: { kind: 'owned', on: [['N1'], ['N2'], ['N3'], ['N4']], slot: 'armor' } },
+  { text: 'Frozen Blaze', line: 'a', detect: { kind: 'owned', on: [['F1'], ['F2'], ['F3'], ['F4']], slot: 'armor' } },
+  { text: '3/4 Crimson', line: 'a', detect: { kind: 'owned', on: [['C1'], ['C2'], ['C3'], ['C4']], need: 3, slot: 'armor' } },
+  { text: '4/4 Infernal', line: 'a', detect: { kind: 'owned', on: [['I1'], ['I2'], ['I3'], ['I4']], slot: 'armor' } },
+  { text: 'Sharpness VI', line: 'e', detect: { kind: 'enchant', on: [['C1']], enchant: 'sharpness', level: 6 } },
+] }, { name: 'Drill', steps: [
+  { text: '555', line: 'd', detect: { kind: 'owned', on: [['DRILL_555']], slot: 'drill' } },
+  { text: '655', line: 'd', detect: { kind: 'owned', on: [['DRILL_655']], slot: 'drill' } },
+  { text: 'Divan', line: 'd', detect: { kind: 'owned', on: [['DIVAN']], slot: 'drill' } },
+] }] };
+const drawSlots = (...ids) => progressView({ guides: [{ id: 'g', ...slotGuide }], current: 'g', checked: new Set(), products: {}, name: (x) => x, mode: 'slot', profile: own(...ids) });
+const rowOf = (html, key) => html.slice(html.indexOf(`data-step="${key}"`)).split('</li>')[0];
+
+test('3/4 Crimson checks Frozen Blaze and Necron with the API badge, not the enchants', () => {
+  const html = drawSlots('C1', 'C2', 'C3');
+  for (const key of ['Armor|Necron', 'Armor|Frozen Blaze', 'Armor|3/4 Crimson']) {
+    assert.match(rowOf(html, key), /" checked>/);
+    assert.match(rowOf(html, key), /data-src="api"/);
+    assert.match(rowOf(html, key), /data-guide-undo/);
+  }
+  assert.ok(!/" checked>/.test(rowOf(html, 'Armor|4/4 Infernal')));
+  assert.ok(!/" checked>/.test(rowOf(html, 'Armor|Sharpness VI')));
+});
+
+test('part of a later step is enough for the earlier ones, and Divan checks the earlier drills', () => {
+  assert.match(rowOf(drawSlots('F1'), 'Armor|Necron'), /" checked>/);
+  assert.ok(!/" checked>/.test(rowOf(drawSlots('F1'), 'Armor|Frozen Blaze')));
+  const html = drawSlots('DIVAN');
+  for (const key of ['Drill|555', 'Drill|655', 'Drill|Divan']) assert.match(rowOf(html, key), /" checked>[\s\S]*data-src="api"/);
+});

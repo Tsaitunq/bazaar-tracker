@@ -82,3 +82,17 @@ test('inventory API off with nothing kept gives no answer, so nothing gets untic
   assert.equal(detectStep(step, { items: [], pets: [], missing: { inventory: true } }, {}), null);
   assert.deepEqual(detectStep(step, { items: [item('X')], pets: [], missing: { inventory: true } }, {}), { have: 1, need: 1 });
 });
+
+test('anything found of a later step settles the earlier ones of its slot, across lines', () => {
+  const step = (id, line, slot, need) => ({ text: id, line, detect: { kind: 'owned', on: [[id], [`${id}2`]], ...(slot && { slot }), ...(need && { need }) } });
+  const guide = { sections: [
+    { name: 'A', steps: [step('OLD', 'x', 'gear'), step('MID', 'y', 'gear')] },
+    { name: 'B', steps: [step('NEW', 'z', 'gear'), step('TOP', 'z', 'gear'), step('FREE', 'f'), step('OTHER', 'o', 'else')] },
+  ] };
+  const found = detectGuide(guide, profile([item('NEW'), item('FREE')]), stepKey);
+  assert.deepEqual(found.get('A|OLD'), { have: 2, need: 2 });
+  assert.deepEqual(found.get('A|MID'), { have: 2, need: 2 });
+  assert.deepEqual(found.get('B|NEW'), { have: 1, need: 2 });
+  assert.equal(found.get('B|TOP').have, 0);
+  assert.equal(found.get('B|OTHER').have, 0);
+});

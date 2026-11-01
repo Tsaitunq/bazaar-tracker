@@ -444,7 +444,7 @@ Mögliche Werte von `detect.kind`:
 | `perk` | HOTM-Knoten auf Stufe | HOTM-Schritte |
 | `mp` | Magical Power erreicht | Accessory Power |
 
-**Höherstufen zählen mit, aber nur, wo das Wiki ein Upgrade belegt.** Was der Guide nur ordnet (etwa Necron vor Crimson), zählt allein für sich. Infernal Crimson erfüllt alle niedrigeren Stufen über `items.prestige.item_id`, Drill-Stufen über `museum_data.parent` [geprüft: beide Felder vorhanden]. Bei Enchants zählt die Mindeststufe.
+**Höherstufen zählen mit.** Wird von einem späteren Schritt eines Slots etwas erkannt, auch teilweise, gelten die früheren Schritte dieses Slots als erfüllt, auch über Linien hinweg (`detect.slot`). Enchants und Ultimates haben keinen Slot. Infernal Crimson erfüllt alle niedrigeren Stufen über `items.prestige.item_id`, Drill-Stufen über `museum_data.parent` [geprüft: beide Felder vorhanden]. Bei Enchants zählt die Mindeststufe.
 
 **Ziel-Items** (`on`): Slot-Gruppe (`armor`, `equipment`, `weapons`, `drill`) oder feste Liste. Geprüft wird im Loadout des Bereichs, bei `owned` im gesamten Besitz.
 

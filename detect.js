@@ -28,7 +28,7 @@ const NEEDS = {
   part: { on: slots, ids: texts }, gem: { on: slots, quality: text }, pet: { types: texts }, held: { item: text },
   perk: { perk: text, level: num }, power: { value: text }, attr: { attr: text, need: num }, coll: { id: text, tier: num }, skill: { skill: text, xp: num },
 };
-const OPTIONAL = { need: num, type: text, tier: text };
+const OPTIONAL = { need: num, type: text, tier: text, slot: text };
 
 function validPart(d) {
   const needs = Object.hasOwn(NEEDS, d?.kind) ? NEEDS[d.kind] : null;
@@ -90,13 +90,19 @@ export function detectStep(step, profile, groups) {
   return { have: parts.reduce((n, p) => n + p.have, 0), need: parts.reduce((n, p) => n + p.need, 0) };
 }
 
-// All steps of a guide by key.
+// All steps of a guide by key. Anything found of a later step in a slot settles the earlier steps of that slot, also
+// across lines: nobody goes back to worse gear once better is on hand.
 export function detectGuide(guide, profile, keyOf) {
   const out = new Map();
-  for (const section of guide.sections) {
-    for (const step of section.steps) {
+  const reached = new Set();
+  for (const section of [...guide.sections].reverse()) {
+    for (const step of [...section.steps].reverse()) {
       const found = detectStep(step, profile, guide.groups);
-      if (found) out.set(keyOf(section, step), found);
+      if (!found) continue;
+      const slot = [step.detect].flat().find((d) => d.slot)?.slot;
+      if (slot && reached.has(slot)) found.have = found.need;
+      if (slot && found.have) reached.add(slot);
+      out.set(keyOf(section, step), found);
     }
   }
   return out;
