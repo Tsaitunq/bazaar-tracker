@@ -78,6 +78,7 @@ Freigegeben am 2026-11-01: B1 (`hit × hits/s`) und B2 bis B12. **B1 bis B4 änd
 - **B10, Power-Schritte:** `power` zählt als Wechsel auf diese Power, gerechnet über `computeStats`. Der Spieler entscheidet selbst, ob er wechselt.
 - **B11, Daggers und One For All:** Das Wiki sagt "any Sword" und nennt Dolche nicht. Der Guide führt den Schritt, darum rechnet das Modell damit, im UI als Estimate.
 - **B12, Best possible hält die Grenze:** Ein Tausch, der True Defense unter 140 drückt, wird nicht vorgeschlagen, solange sie erfüllt ist. Waffen: je Linie der stärkste besessene Dolch.
+- **B13, Smoldering (bei der Umsetzung gefunden, ergänzt B5):** Das Wiki nennt +5, 10, 15, 20, 30 % gegen Infernal auf allen Waffen, Spec 4.2 führt es nicht auf. Das Modell zählt es wie Sharpness additiv, das Wiki sagt zur Art nichts (Herleitung). Cayenne (True Defense je Stelle der Accessory Power) bleibt `null`.
 - **Aus dem Umfang:** Thunderlord, Crimson-Swipe, Burning Vengeance, Fire Aspect, Venomous, Demonen-Phasen, Pillars (im UI genannt). Das vierte Crimson-Teil zeigt "set bonus not fully rated" (Spec 4.2).
 
 ## Review Focus

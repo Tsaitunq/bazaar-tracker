@@ -115,6 +115,9 @@ const POWERS = {
   scorching: { scaled: { CRITICAL_DAMAGE: 9.6, STRENGTH: 8.4, ATTACK_SPEED: 1.8 } },
   silky: { scaled: { CRITICAL_DAMAGE: 22.8 }, flat: { ATTACK_SPEED: 5 } },
   bloody: { scaled: { CRITICAL_DAMAGE: 10.8, STRENGTH: 10.8 }, flat: { ATTACK_SPEED: 10 } },
+  shaded: { scaled: { CRITICAL_DAMAGE: 18, STRENGTH: 4.8 }, flat: { ATTACK_SPEED: 3 } },
+  strong: { scaled: { STRENGTH: 12, CRITICAL_DAMAGE: 12 }, flat: { STRENGTH: 25, CRITICAL_DAMAGE: 25 } },
+  hurtful: { scaled: { STRENGTH: 4.8, CRITICAL_DAMAGE: 19.2 }, flat: { ATTACK_SPEED: 15 } },
 };
 // not confirmed: the wiki pages Maxwell, Accessory Bag and Tuning Points give no value per point. The closed wiki.hypixel.net Powers page, seen
 // only as a search excerpt, gave health 5, crit chance 0.2, attack speed 0.3. Defense, strength and crit damage 1 have no source: /stats decides.
@@ -271,7 +274,13 @@ const PETS = {
   GOBLIN: { tiers: ['LEGENDARY'], stats: (l) => ({ ORE_FORTUNE: l }) },
 };
 
-function petStats(pet, gaps) {
+// What a pet of the table gives at its top level, null without a table. wiki pages of the pets; abilities are not counted.
+export function maxPetStats(type, tier) {
+  const known = PETS[type];
+  return known?.tiers.includes(tier) ? known.stats(known.top ?? 100) : null;
+}
+
+export function petStats(pet, gaps = []) {
   if (!pet) return {};
   gaps.push('Pet abilities are not counted.');
   if (pet.heldItem) gaps.push('The pet item is not counted.');

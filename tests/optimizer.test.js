@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
-import { stepDelta, PRESETS, miningSettings, rankUpgrades, netCost, bestLoadout, bestValueView } from '../optimizer.js';
+import { blazeOutput, blazeState, OFA } from '../blaze.js';
+import { blazeDelta, applyBlaze, accessoryPower, stepDelta, PRESETS, miningSettings, rankUpgrades, netCost, bestLoadout, bestValueView } from '../optimizer.js';
 import { summarize } from '../profile.js';
 import { GEMSTONE, miningScore, loadoutOf } from '../stats.js';
 import { guideStats, progressView, validGuide, exportData } from '../progress.js';
@@ -543,4 +544,178 @@ test('the real mining guide ranks without error and every group is an array', { 
   const out = rankUpgrades(realGuide, new Set(), { products: {}, profile: prof, items: data }, loadout, settings, {});
   for (const rows of Object.values(out)) assert.ok(Array.isArray(rows));
   assert.equal(realGuide.area, 'mining');
+});
+
+// Blaze
+const FIRE = 'FIREDUST_DAGGER'; const KINDLE = 'BURSTFIRE_DAGGER'; const MAW = 'MAWDUST_DAGGER';
+const blazeItems = {
+  [FIRE]: { category: 'SWORD', tier: 'EPIC', stats: { DAMAGE: 90, STRENGTH: 45, CRITICAL_DAMAGE: 15 } },
+  [KINDLE]: { category: 'SWORD', tier: 'EPIC', stats: { DAMAGE: 130, STRENGTH: 55, CRITICAL_DAMAGE: 20, ATTACK_SPEED: 10 } },
+  [MAW]: { category: 'SWORD', tier: 'EPIC', stats: { DAMAGE: 90, STRENGTH: 45, CRITICAL_DAMAGE: 15 } },
+  PLATE: { category: 'CHESTPLATE', tier: 'LEGENDARY', gemstone_slots: [{ slot_type: 'DEFENSIVE' }, { slot_type: 'JADE' }], stats: { TRUE_DEFENSE: 10, STRENGTH: 5, HEALTH: 7 } },
+  BOOT: { category: 'BOOTS', tier: 'RARE', stats: {} },
+  INFERNAL_CRIMSON_CHESTPLATE: { category: 'CHESTPLATE', tier: 'MYTHIC', stats: { STRENGTH: 60 } },
+  INFERNAL_CRIMSON_BOOTS: { category: 'BOOTS', tier: 'MYTHIC', stats: { STRENGTH: 40 } },
+  RARE_RING: { category: 'ACCESSORY', tier: 'RARE', family: 'RING', stats: { STRENGTH: 1 } },
+  TOP_RING: { category: 'ACCESSORY', tier: 'LEGENDARY', family: 'RING', stats: { STRENGTH: 3 } },
+  NEW_ONE: { category: 'ACCESSORY', tier: 'EPIC', stats: {} },
+  HEGEMONY_ARTIFACT: { category: 'ACCESSORY', tier: 'LEGENDARY' },
+  RIFT_PRISM: { category: 'ACCESSORY', tier: 'RARE' },
+};
+const blazeGuide = { groups: { weapons: [[FIRE, KINDLE], [MAW]], armor: [['PLATE'], ['BOOT']] } };
+const fire = (extra = {}) => piece(FIRE, { where: 'inventory', lore: { DAMAGE: 90, STRENGTH: 45 }, ...extra });
+const maw = (extra = {}) => piece(MAW, { where: 'inventory', lore: { DAMAGE: 90, STRENGTH: 45 }, ...extra });
+const blazeWorld = ({ daggers = { ashen: fire(), spirit: maw() }, armor = [piece('PLATE')], prof = {}, pet = null } = {}) => {
+  const list = [...Object.values(daggers).filter(Boolean), ...armor];
+  const loadout = { armor, equipment: [], held: null, accessories: [], pet, gaps: [], daggers };
+  const profile2 = { items: list, pets: [], hotm: null, skills: null, collTiers: null, attrs: {}, slayer: null, mp: 900, selectedPower: null, tuning: null, ...prof };
+  return { loadout, profile: profile2, state: blazeState({ STRENGTH: 100, CRITICAL_CHANCE: 100, CRITICAL_DAMAGE: 100, TRUE_DEFENSE: 150 }, loadout, daggers) };
+};
+const blazeOf = (detect, world = blazeWorld(), gain) => blazeDelta({ text: 's', ...(detect && { detect }), ...(gain && { gain }) }, world.state, world.loadout, world.profile, blazeItems, miningSettings(null), blazeGuide);
+const onDaggers = (name, level) => ({ kind: 'enchant', on: 'weapons', enchant: name, level, need: 2 });
+
+test('sharpness on both daggers raises the additive of both lines', () => {
+  const w = blazeWorld();
+  const after = applyBlaze(w.state, blazeOf(onDaggers('sharpness', 7), w));
+  assert.ok(Math.abs(blazeOutput(after) / blazeOutput(w.state) - 1.5) < 1e-9);
+});
+
+test('smoldering adds like sharpness', () => {
+  const w = blazeWorld();
+  const after = applyBlaze(w.state, blazeOf(onDaggers('smoldering', 5), w));
+  assert.ok(Math.abs(blazeOutput(after) / blazeOutput(w.state) - 1.3) < 1e-9);
+});
+
+test('with one for all active a sharpness step gives 0 and a hint', () => {
+  const w = blazeWorld({ daggers: { ashen: fire({ enchants: { [OFA]: 1 } }), spirit: maw({ enchants: { [OFA]: 1 } }) } });
+  const change = blazeOf(onDaggers('sharpness', 7), w);
+  assert.equal(blazeOutput(applyBlaze(w.state, change)), blazeOutput(w.state));
+  assert.ok(change.notes.includes('Not used with One For All.'));
+});
+
+test('the one for all step removes the guide enchants and adds 500', () => {
+  const w = blazeWorld({ daggers: { ashen: fire({ enchants: { sharpness: 7 } }), spirit: maw({ enchants: { sharpness: 7 } }) } });
+  const after = applyBlaze(w.state, blazeOf(onDaggers(OFA, 1), w));
+  assert.equal(after.path, 'ofa');
+  assert.equal(w.state.path, 'guide');
+  assert.ok(Math.abs(blazeOutput(after) / blazeOutput(w.state) - 6 / 1.5) < 1e-9);
+});
+
+test('critical adds crit damage on the dagger it goes on', () => {
+  const change = blazeOf(onDaggers('critical', 7));
+  assert.deepEqual(change.lines.ashen, { CRITICAL_DAMAGE: 100 });
+  assert.deepEqual(change.lines.spirit, { CRITICAL_DAMAGE: 100 });
+  assert.deepEqual(change.common, {});
+});
+
+test('an enchant without a fixed value gives null, a proven non-damage one nothing', () => {
+  for (const name of ['giant_killer', 'execute', 'thunderlord', 'fire_aspect', 'smite', 'pyroclasm', 'ultimate_chimera']) assert.equal(blazeOf(onDaggers(name, 1)), null, name);
+  const w = blazeWorld();
+  assert.equal(blazeOutput(applyBlaze(w.state, blazeOf(onDaggers('looting', 5), w))), blazeOutput(w.state));
+});
+
+test('a dagger upgrade replaces the stats and multiplier of its line only', () => {
+  const w = blazeWorld();
+  const change = blazeDelta({ text: 's', detect: { kind: 'owned', on: [[KINDLE, 'HEARTFIRE_DAGGER']] } }, w.state, w.loadout, w.profile, blazeItems, miningSettings(null), blazeGuide);
+  const after = applyBlaze(w.state, change);
+  assert.equal(after.daggers.ashen.id, KINDLE);
+  assert.equal(after.daggers.ashen.lore.DAMAGE, 130);
+  assert.equal(after.daggers.spirit.id, MAW);
+  assert.equal(after.daggers.ashen.lore.ATTACK_SPEED, 10);
+});
+
+test('the missing dagger is named', () => {
+  const w = blazeWorld({ daggers: { ashen: fire(), spirit: null } });
+  const change = blazeOf({ kind: 'owned', on: [[MAW]] }, w);
+  assert.deepEqual(change.missing, ['spirit']);
+  assert.equal(applyBlaze(w.state, change).daggers.spirit.lore.DAMAGE, 90);
+});
+
+test('fabled, withered and coldfused follow the table, coldfused adds its bonus with a wisp', () => {
+  const r = (name) => ({ kind: 'reforge', on: 'weapons', value: [name] });
+  assert.deepEqual(blazeOf(r('fabled')).lines.ashen, { STRENGTH: 50, CRITICAL_DAMAGE: 32 });
+  assert.deepEqual(blazeOf(r('withered')).lines.ashen, { STRENGTH: 110 });
+  assert.deepEqual(blazeOf(r('coldfused')).lines.ashen, { STRENGTH: 35, CRITICAL_DAMAGE: 50 });
+  const wisp = blazeWorld({ pet: { type: 'SUBZERO_WISP', tier: 'LEGENDARY' } });
+  assert.deepEqual(blazeOf(r('coldfused'), wisp).lines.ashen, { STRENGTH: 110, CRITICAL_DAMAGE: 105 });
+});
+
+test('a reforge outside the table is unknown for blaze, also on the old piece', () => {
+  assert.equal(blazeOf({ kind: 'reforge', on: 'weapons', value: ['heavy'] }), null);
+  assert.equal(blazeOf({ kind: 'reforge', on: 'weapons', value: ['fabled'] }, blazeWorld({ daggers: { ashen: fire({ reforge: 'heavy' }), spirit: maw() } })), null);
+});
+
+test('perfect opal on a legendary piece gives 11 true defense', () => {
+  assert.deepEqual(blazeOf({ kind: 'gem', on: [['PLATE']], type: 'OPAL', quality: 'PERFECT', need: 1 }).common, { TRUE_DEFENSE: 11 });
+});
+
+test('opal on a divine piece has no wiki value', () => {
+  const data = { ...blazeItems, PLATE: { ...blazeItems.PLATE, tier: 'DIVINE' } };
+  const w = blazeWorld();
+  assert.equal(blazeDelta({ text: 's', detect: { kind: 'gem', on: [['PLATE']], type: 'OPAL', quality: 'PERFECT', need: 1 } }, w.state, w.loadout, w.profile, data, miningSettings(null), blazeGuide), null);
+});
+
+test('true protection gives 5 true defense on a chestplate, once', () => {
+  assert.deepEqual(blazeOf({ kind: 'enchant', on: 'armor', enchant: 'true_protection', level: 1 }).common, { TRUE_DEFENSE: 5 });
+  assert.deepEqual(blazeOf({ kind: 'enchant', on: [['BOOT']], enchant: 'true_protection', level: 1 }, blazeWorld({ armor: [piece('BOOT')] })).common, {});
+});
+
+const mpWorld = (accessories = [], extra = {}) => { const w = blazeWorld({ prof: { selectedPower: 'strong', ...extra } }); return { ...w, loadout: { ...w.loadout, accessories }, profile: { ...w.profile, items: [...w.profile.items, ...accessories] } }; };
+
+test('a new accessory family gives its full power, a replacement the difference', () => {
+  assert.equal(blazeOf({ kind: 'owned', on: [['NEW_ONE']] }, mpWorld()).mp, 12);
+  assert.equal(blazeOf({ kind: 'owned', on: [['TOP_RING']] }, mpWorld([piece('RARE_RING', { where: 'accessory' })])).mp, 16 - 8);
+});
+
+test('recomb on an accessory gives one rarity step of power', () => {
+  const w = mpWorld([piece('NEW_ONE', { where: 'accessory' })]);
+  assert.equal(blazeOf({ kind: 'recomb', on: [['NEW_ONE']] }, w).mp, 16 - 12);
+  assert.equal(accessoryPower('NEW_ONE', true, blazeItems), 16);
+});
+
+test('hegemony counts double, rift prism gives null', () => {
+  assert.equal(accessoryPower('HEGEMONY_ARTIFACT', false, blazeItems), 32);
+  assert.equal(blazeOf({ kind: 'owned', on: [['RIFT_PRISM']] }, mpWorld()), null);
+});
+
+test('power gain goes through the multiplier', () => {
+  const stats = blazeOf({ kind: 'owned', on: [['NEW_ONE']] }, mpWorld()).common;
+  // strong: 12 strength per multiplier point, and the new ring has no stat of its own
+  const m = (mp) => 29.97 * Math.log(0.0019 * mp + 1) ** 1.2;
+  assert.ok(Math.abs(stats.STRENGTH - 12 * (m(912) - m(900))) < 1e-9);
+});
+
+test('switching power counts its stats, the three new powers follow the wiki', () => {
+  const w = mpWorld([], { selectedPower: null });
+  const m = 29.97 * Math.log(0.0019 * 900 + 1) ** 1.2;
+  const hurtful = blazeOf({ kind: 'power', value: 'hurtful' }, w).common;
+  assert.ok(Math.abs(hurtful.CRITICAL_DAMAGE - 19.2 * m) < 1e-9);
+  assert.equal(hurtful.ATTACK_SPEED, 15);
+  assert.equal(blazeOf({ kind: 'power', value: 'shaded' }, w).common.ATTACK_SPEED, 3);
+  assert.ok(Math.abs(blazeOf({ kind: 'power', value: 'strong' }, w).common.STRENGTH - (12 * m + 25)) < 1e-9);
+  assert.deepEqual(blazeOf({ kind: 'power', value: 'strong' }, mpWorld()).common, {});
+});
+
+test('a pet step compares max level with the picked pet, without a table null', () => {
+  const change = blazeOf({ kind: 'pet', types: ['LION'], tier: 'LEGENDARY' });
+  assert.deepEqual(change.common, { STRENGTH: 50 });
+  assert.ok(change.notes[0].includes('max level'));
+  assert.equal(blazeOf({ kind: 'pet', types: ['UNKNOWN'], tier: 'LEGENDARY' }), null);
+});
+
+test('a guide step without a detect falls back on its gain', () => {
+  assert.equal(blazeOf(null), null);
+  assert.deepEqual(blazeOf(null, blazeWorld(), { STRENGTH: 9, MINING_SPEED: 3 }).common, { STRENGTH: 9 });
+});
+
+test('dominus comes into the output with the second infernal piece', () => {
+  const w = blazeWorld({ armor: [piece('INFERNAL_CRIMSON_CHESTPLATE')] });
+  const after = applyBlaze(w.state, blazeOf({ kind: 'owned', on: [['INFERNAL_CRIMSON_BOOTS']] }, w));
+  assert.equal(after.armorIds.length, 2);
+  assert.ok(blazeOutput(after) / blazeOutput(w.state) > 2);
+});
+
+test('a mining step gives the same delta as before', () => {
+  assert.deepEqual(delta({ kind: 'owned', on: [['NEW_HELMET']] }), { MINING_FORTUNE: 20, MINING_SPEED: 5 });
+  assert.deepEqual(delta({ kind: 'reforge', on: 'armor', value: ['jaded'] }, { loadout: setup({ armor: [piece('OLD_HELMET', { reforge: 'fierce' })] }) }), { MINING_SPEED: 20, MINING_FORTUNE: 15 });
 });

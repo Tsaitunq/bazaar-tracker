@@ -10,6 +10,10 @@ export const DAGGERS = {
 export const OFA = 'ultimate_one_for_all';
 // wiki Enchantments
 const SHARPNESS = [5, 10, 15, 20, 30, 40, 50];
+// wiki Smoldering: against Infernal mobs, on all weapons. The page does not say how it stacks; additive like Sharpness is an assumption.
+const SMOLDERING = [5, 10, 15, 20, 30];
+const percentOf = (table, level) => (level ? table[Math.min(level, table.length) - 1] : 0);
+export const ADDITIVE_ENCHANTS = new Set(['sharpness', 'smoldering']);
 // wiki One For All: 500 % additive, removes all other enchants
 const OFA_ADDITIVE = 500;
 // wiki Crimson Armor: only the Infernal tier has damage, 10 % additive per stack, 10 stacks, from 2 pieces. Mixed sets are not described, so two Infernal pieces it is.
@@ -32,8 +36,8 @@ export function daggersOf(profile) {
 export const activePath = (daggers) => (Object.values(daggers).some((d) => d?.enchants?.[OFA]) ? 'ofa' : 'guide');
 
 export function additiveOf(dagger, armorIds, path) {
-  const level = dagger?.enchants?.sharpness ?? 0;
-  return (path === 'ofa' ? OFA_ADDITIVE : level ? SHARPNESS[Math.min(level, SHARPNESS.length) - 1] : 0) + dominusOf(armorIds);
+  const enchants = dagger?.enchants ?? {};
+  return (path === 'ofa' ? OFA_ADDITIVE : percentOf(SHARPNESS, enchants.sharpness) + percentOf(SMOLDERING, enchants.smoldering)) + dominusOf(armorIds);
 }
 
 // wiki Attack Speed: ticks between hits, rounded. hits per second is derived from it.

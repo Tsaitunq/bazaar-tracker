@@ -1,11 +1,12 @@
 // Which open guide step brings the most per coin (spec 4 and 5). Pure functions over the guide, the prices and the synced profile.
-import { AREA_STATS, computeStats, miningScore, loadoutOf, withOffset, offsetStale } from './stats.js';
+import { AREA_STATS, computeStats, miningScore, loadoutOf, withOffset, offsetStale, maxPetStats, petStats } from './stats.js';
+import { DAGGERS, OFA, ADDITIVE_ENCHANTS } from './blaze.js';
 import { nextUpgrades, stepCost, openStep, bookOf, stepKey, stepRow } from './progress.js';
 import { esc, coins } from './render.js';
 import { checkStep } from './requires.js';
 import { walkBook } from './craft.js';
 import { ahNet } from './forge.js';
-import { RARITIES, ENCHANTS, ENCHANTS_NO_STAT, GEMS, GEM_STAT, REFORGES, REFORGES_NO_STAT, PARTS, POLARVOID, COATING } from './optimizer-data.js';
+import { RARITIES, ENCHANTS, ENCHANTS_NO_STAT, GEMS, GEM_STAT, GEM_SHARED_SLOTS, REFORGES, REFORGES_NO_STAT, COLDFUSED_WISP, ACCESSORY_POWER, PARTS, POLARVOID, COATING } from './optimizer-data.js';
 
 // Spec 4.1. Gemstone Fortune applies on gemstones only (wiki Pristine), and the other fortunes are not counted, so mithril and glacite read low.
 export const PRESETS = {
@@ -28,15 +29,15 @@ export function miningSettings(raw) {
 
 const QUALITY = ['ROUGH', 'FLAWED', 'FINE', 'FLAWLESS', 'PERFECT'];
 const TOOLS = new Set(['DRILL', 'PICKAXE', 'GAUNTLET']);
-const GEM_SLOTS = ['MINING', 'UNIVERSAL'];
 
 function plus(sum, stats, times = 1) {
-  for (const [k, v] of Object.entries(stats ?? {})) if (AREA_STATS.mining.includes(k)) sum[k] = (sum[k] ?? 0) + v * times;
+  for (const [k, v] of Object.entries(stats ?? {})) sum[k] = (sum[k] ?? 0) + v * times;
   return sum;
 }
+const onlyOf = (stats, area) => Object.fromEntries(Object.entries(stats).filter(([k]) => AREA_STATS[area].includes(k)));
 const difference = (next, old) => plus(plus({}, next), old, -1);
 const total = (list) => list.reduce((sum, stats) => plus(sum, stats), {});
-const worn = (loadout) => [...loadout.armor, ...loadout.equipment, ...(loadout.held ? [loadout.held] : [])];
+const worn = (loadout) => [...loadout.armor, ...loadout.equipment, ...Object.values(loadout.daggers ?? {}).filter(Boolean), ...(loadout.held ? [loadout.held] : [])];
 const slotsOf = (d, guide) => (typeof d.on === 'string' ? guide.groups?.[d.on] : d.on);
 
 // The piece a step works on: the one in the loadout, else one owned, else the one it will be.
@@ -51,7 +52,9 @@ const rarityOf = (item, items) => {
 };
 
 // The piece a new item takes the place of, and whether it is really in use.
-export function replaced(id, loadout, profile, items) {
+export function replaced(id, loadout, profile, items, area = 'mining') {
+  // a dagger only ever takes the place of its own line
+  if (DAGGERS[id]) return { item: loadout.daggers?.[DAGGERS[id].line] ?? null, inUse: false };
   const category = items[id]?.category;
   if (category === 'ACCESSORY') {
     const family = items[id].family ?? id;
@@ -62,7 +65,7 @@ export function replaced(id, loadout, profile, items) {
   if (inSlot) return { item: inSlot, inUse: true };
   if ([...loadout.armor, ...loadout.equipment].length && ['HELMET', 'CHESTPLATE', 'LEGGINGS', 'BOOTS', 'NECKLACE', 'CLOAK', 'BELT', 'GLOVES', 'BRACELET'].includes(category)) return { item: null, inUse: true };
   // no slot for it, like a lantern: the strongest one owned is what it improves on
-  const strength = (i) => Object.values(plus({}, items[i.id]?.stats)).reduce((sum, v) => sum + v, 0);
+  const strength = (i) => Object.values(onlyOf(items[i.id]?.stats ?? {}, area)).reduce((sum, v) => sum + v, 0);
   const owned = profile.items.filter((i) => items[i.id]?.category === category);
   return { item: owned.reduce((best, i) => (!best || strength(i) > strength(best) ? i : best), null), inUse: false };
 }
@@ -75,25 +78,26 @@ function openRungs(d, guide, profile) {
   return open.slice(0, Math.max((d.need ?? slots.length) - (slots.length - open.length), 0)).map(([id]) => id);
 }
 
-function ownedDelta(d, guide, loadout, profile, items) {
+function ownedDelta(d, guide, loadout, profile, items, area) {
   const rungs = openRungs(d, guide, profile);
   if (!rungs || !items) return null;
   const deltas = [];
   for (const id of rungs) {
     if (!items[id]) return null;
-    deltas.push(difference(items[id].stats, items[replaced(id, loadout, profile, items).item?.id]?.stats));
+    deltas.push(difference(items[id].stats, items[replaced(id, loadout, profile, items, area).item?.id]?.stats));
   }
   return total(deltas);
 }
 
-function enchantDelta(d, guide, loadout, profile, settings) {
+function enchantDelta(d, guide, loadout, profile, settings, items) {
   if (ENCHANTS_NO_STAT.has(d.enchant)) return {};
   const table = ENCHANTS[d.enchant];
   const targets = targetsOf(d, guide, loadout, profile);
   if (!table || !targets || (table.gemstonesOnly && settings.gemFortune === false)) return null;
   const at = (level) => Object.fromEntries(Object.entries(table.stats).map(([stat, values]) => [stat, level ? values[level - 1] : 0]));
   if (Object.values(at(d.level)).includes(undefined)) return null;
-  const open = targets.filter((t) => (t.enchants?.[d.enchant] ?? 0) < d.level).slice(0, d.need ?? targets.length);
+  const fits = (t) => !table.only || items?.[t.id]?.category === table.only;
+  const open = targets.filter((t) => fits(t) && (t.enchants?.[d.enchant] ?? 0) < d.level).slice(0, table.only ? 1 : d.need ?? targets.length);
   return total(open.map((t) => difference(at(d.level), at(t.enchants?.[d.enchant] ?? 0))));
 }
 
@@ -109,12 +113,16 @@ function gemDelta(d, guide, loadout, profile, items) {
     if (r < 0) return null;
     for (const g of (t.gems ?? []).filter((gem) => gem.type === d.type)) {
       if (QUALITY.indexOf(g.quality) >= QUALITY.indexOf(d.quality)) have++;
+      else if (table[d.quality][r] === undefined) return null;
       else gains.push(table[d.quality][r] - (table[g.quality]?.[r] ?? 0));
     }
     const seen = {};
     for (const { slot_type: type } of items[t.id]?.gemstone_slots ?? []) {
       const key = `${type}_${seen[type] = (seen[type] ?? -1) + 1}`;
-      if ((type === d.type || GEM_SLOTS.includes(type)) && !t.gems?.some((g) => g.slot === key)) gains.push(table[d.quality][r]);
+      if ((type === d.type || GEM_SHARED_SLOTS[d.type].includes(type)) && !t.gems?.some((g) => g.slot === key)) {
+        if (table[d.quality][r] === undefined) return null;
+        gains.push(table[d.quality][r]);
+      }
     }
   }
   const open = Math.max((d.need ?? targets.length) - have, 0);
@@ -122,13 +130,15 @@ function gemDelta(d, guide, loadout, profile, items) {
   return sum ? { [GEM_STAT[d.type]]: sum } : {};
 }
 
-const reforgeAt = (name, rarity) => {
-  if (REFORGES_NO_STAT.has(name)) return {};
+// The "no stat" list only speaks for mining; for Blaze a reforge outside the table is unknown.
+const reforgeAt = (name, rarity, area = 'mining', pet = null) => {
   const table = REFORGES[name];
-  return table ? Object.fromEntries(Object.entries(table).map(([stat, values]) => [stat, values[rarity]])) : null;
+  if (!table) return area === 'mining' && REFORGES_NO_STAT.has(name) ? {} : null;
+  const stats = Object.fromEntries(Object.entries(table).map(([stat, values]) => [stat, values[rarity]]));
+  return name === 'coldfused' && /_WISP$/.test(pet?.type ?? '') ? plus(stats, COLDFUSED_WISP) : stats;
 };
 
-function reforgeDelta(d, guide, loadout, profile, items) {
+function reforgeDelta(d, guide, loadout, profile, items, area) {
   const targets = targetsOf(d, guide, loadout, profile);
   if (!targets || !items) return null;
   const deltas = [];
@@ -136,8 +146,8 @@ function reforgeDelta(d, guide, loadout, profile, items) {
     const old = t.reforge ? String(t.reforge).toLowerCase() : null;
     if (d.value.includes(old)) continue;
     const r = rarityOf(t, items);
-    const next = reforgeAt(d.value[0], r);
-    const before = old ? reforgeAt(old, r) : {};
+    const next = reforgeAt(d.value[0], r, area, loadout.pet);
+    const before = old ? reforgeAt(old, r, area, loadout.pet) : {};
     if (r < 0 || !next || !before) return null;
     deltas.push(difference(next, before));
   }
@@ -156,7 +166,7 @@ function recombDelta(d, guide, loadout, profile, items) {
     const sum = {};
     for (const g of t.gems ?? []) {
       const values = GEMS[g.type]?.[g.quality];
-      if (values) plus(sum, { [GEM_STAT[g.type]]: values[next] - values[r] });
+      if (values?.[next] !== undefined) plus(sum, { [GEM_STAT[g.type]]: values[next] - values[r] });
     }
     const name = String(t.reforge).toLowerCase();
     if (REFORGES[name]) plus(sum, difference(reforgeAt(name, next), reforgeAt(name, r)));
@@ -166,10 +176,10 @@ function recombDelta(d, guide, loadout, profile, items) {
 }
 
 // What a change of the profile does to the calculated stats. No visible change means the data has no value for it.
-function recomputed(change, profile, items, loadout) {
-  const before = computeStats(profile, items, loadout, 'mining').total;
-  const after = computeStats({ ...profile, ...change }, items, loadout, 'mining').total;
-  const delta = Object.fromEntries(Object.entries(difference(after, before)).filter(([, v]) => v));
+function recomputed(change, profile, items, loadout, area = 'mining') {
+  const before = computeStats(profile, items, loadout, area).total;
+  const after = computeStats({ ...profile, ...change }, items, loadout, area).total;
+  const delta = Object.fromEntries(Object.entries(onlyOf(difference(after, before), area)).filter(([, v]) => v));
   return Object.keys(delta).length ? delta : null;
 }
 
@@ -207,18 +217,26 @@ function coatingDelta(d, guide, loadout, profile, items) {
   return total(open.map((t) => (items[t.id]?.category === 'DRILL' ? COATING.drill : COATING.other)));
 }
 
-function partOf(d, guide, loadout, profile, items, settings) {
+// Spec 5.4: a pet at the top of its table against the one picked. A type with no entry for that rarity has no value.
+function petDelta(d, loadout) {
+  const type = d.types.find((t) => maxPetStats(t, d.tier ?? 'LEGENDARY'));
+  return type ? difference(maxPetStats(type, d.tier ?? 'LEGENDARY'), loadout.pet ? petStats(loadout.pet) : {}) : null;
+}
+
+function partOf(d, guide, loadout, profile, items, settings, area = 'mining') {
   switch (d.kind) {
-    case 'owned': return ownedDelta(d, guide, loadout, profile, items);
-    case 'enchant': return enchantDelta(d, guide, loadout, profile, settings);
+    case 'owned': return ownedDelta(d, guide, loadout, profile, items, area);
+    case 'enchant': return enchantDelta(d, guide, loadout, profile, settings, items);
     case 'gem': return gemDelta(d, guide, loadout, profile, items);
-    case 'reforge': return reforgeDelta(d, guide, loadout, profile, items);
+    case 'reforge': return reforgeDelta(d, guide, loadout, profile, items, area);
+    case 'pet': return petDelta(d, loadout);
+    case 'power': return d.value === profile.selectedPower ? {} : recomputed({ selectedPower: d.value }, profile, items, loadout, area);
     case 'recomb': return recombDelta(d, guide, loadout, profile, items);
     case 'part': return partDelta(d, loadout, profile, items);
     case 'polarvoid': return polarvoidDelta(d, guide, loadout, profile);
     case 'coating': return coatingDelta(d, guide, loadout, profile, items);
-    case 'perk': return profile.hotm ? recomputed({ hotm: { ...profile.hotm, nodes: { ...profile.hotm.nodes, [d.perk]: d.level } } }, profile, items, loadout) : null;
-    case 'attr': return profile.attrs ? recomputed({ attrs: { ...profile.attrs, [d.attr]: d.need } }, profile, items, loadout) : null;
+    case 'perk': return profile.hotm ? recomputed({ hotm: { ...profile.hotm, nodes: { ...profile.hotm.nodes, [d.perk]: d.level } } }, profile, items, loadout, area) : null;
+    case 'attr': return profile.attrs ? recomputed({ attrs: { ...profile.attrs, [d.attr]: d.need } }, profile, items, loadout, area) : null;
     // scroll: wiki Amber Power Scroll, +30 Mining Speed for 5 s after an ability, no uptime known. held, coll, skill: no table.
     default: return null;
   }
@@ -227,10 +245,122 @@ function partOf(d, guide, loadout, profile, items, settings) {
 // What a step adds to the stats of the loadout. null: nothing known about it. {}: known to add nothing of ours.
 export function stepDelta(step, loadout, profile, items, settings, guide) {
   const parts = [step.detect ?? []].flat().map((d) => partOf(d, guide, loadout, profile, items, settings));
-  const known = parts.length && !parts.includes(null) ? total(parts) : null;
+  const known = parts.length && !parts.includes(null) ? onlyOf(total(parts), 'mining') : null;
   // the guide's own number stands in only where the data has nothing to say
-  if (step.gain && (!known || !Object.keys(known).length)) return plus({}, step.gain);
+  if (step.gain && (!known || !Object.keys(known).length)) return onlyOf(step.gain, 'mining');
   return known;
+}
+
+// Accessory Power of an accessory; null where the wiki gives it its own rule.
+export function accessoryPower(id, recomb, items) {
+  if (id === 'RIFT_PRISM' || id?.startsWith('ABICASE')) return null;
+  const tier = items[id]?.tier;
+  const i = RARITIES.indexOf(tier);
+  const power = ACCESSORY_POWER[recomb && i >= 0 ? RARITIES[Math.min(i + 1, RARITIES.length - 1)] : tier];
+  if (power === undefined) return null;
+  return id === 'HEGEMONY_ARTIFACT' ? power * 2 : power;
+}
+
+// What a step does to the Accessory Power; null when an accessory in it follows its own rule.
+function powerDelta(d, guide, loadout, profile, items) {
+  const accessory = (id) => items?.[id]?.category === 'ACCESSORY';
+  let sum = 0;
+  if (d.kind === 'owned') {
+    for (const id of openRungs(d, guide, profile) ?? []) {
+      if (!accessory(id)) continue;
+      const next = accessoryPower(id, false, items);
+      const old = replaced(id, loadout, profile, items, 'blaze').item;
+      const before = old ? accessoryPower(old.id, old.recomb, items) : 0;
+      if (next === null || before === null) return null;
+      sum += next - before;
+    }
+  }
+  if (d.kind === 'recomb') {
+    for (const t of targetsOf(d, guide, loadout, profile) ?? []) {
+      if (!accessory(t.id) || t.recomb) continue;
+      const [plain, lifted] = [accessoryPower(t.id, false, items), accessoryPower(t.id, true, items)];
+      if (plain === null || lifted === null) return null;
+      sum += lifted - plain;
+    }
+  }
+  return sum;
+}
+
+// A step for Blaze: what it does to the shared stats, to one dagger line, to the enchants and to the Accessory Power.
+export function blazeDelta(step, state, loadout, profile, items, settings, guide) {
+  const change = { common: {}, lines: { ashen: {}, spirit: {} }, enchants: { ashen: {}, spirit: {} }, swaps: {}, armor: [], ofa: false, mp: 0, missing: [], notes: [] };
+  const fallback = () => (step.gain ? { ...change, common: onlyOf(step.gain, 'blaze') } : null);
+  const parts = [step.detect ?? []].flat();
+  if (!parts.length) return fallback();
+  for (const d of parts) {
+    const slots = d.on === undefined ? null : slotsOf(d, guide);
+    if (slots?.some((ids) => DAGGERS[ids[0]])) {
+      for (const ids of slots.filter((list) => DAGGERS[list[0]])) {
+        if (!weaponPart({ ...d, on: [ids], need: 1 }, ids, change, state, loadout, profile, items, settings, guide)) return fallback();
+      }
+      continue;
+    }
+    const delta = partOf(d, guide, loadout, profile, items, settings, 'blaze');
+    const power = powerDelta(d, guide, loadout, profile, items);
+    if (!delta || power === null) return fallback();
+    plus(change.common, delta);
+    change.mp += power;
+    if (d.kind === 'owned') {
+      for (const id of openRungs(d, guide, profile) ?? []) if (isArmor(items?.[id]?.category)) change.armor.push({ out: replaced(id, loadout, profile, items, 'blaze').item?.id ?? null, in: id });
+    }
+    if (d.kind === 'pet') change.notes.push('At max level. Abilities are not counted.');
+  }
+  if (change.mp && profile.mp !== null && profile.mp !== undefined) plus(change.common, recomputed({ mp: profile.mp + change.mp }, profile, items, loadout, 'blaze'));
+  change.common = onlyOf(change.common, 'blaze');
+  const nothing = !Object.values(change.common).some(Boolean) && !change.ofa && !change.mp && !Object.keys(change.swaps).length && !change.armor.length
+    && !Object.values(change.lines).some((s) => Object.values(s).some(Boolean)) && !Object.values(change.enchants).some((e) => Object.keys(e).length);
+  return nothing && step.gain ? fallback() : change;
+}
+
+const isArmor = (category) => ['HELMET', 'CHESTPLATE', 'LEGGINGS', 'BOOTS'].includes(category);
+
+// One dagger of a step. false: nothing known about it.
+function weaponPart(d, ids, change, state, loadout, profile, items, settings, guide) {
+  const { line } = DAGGERS[ids[0]];
+  const dagger = state.daggers[line];
+  if (d.kind === 'owned') {
+    if (dagger && ids.includes(dagger.id)) return true;
+    if (!items?.[ids[0]]) return false;
+    change.swaps[line] = { id: ids[0], lore: difference(items[ids[0]].stats, items[dagger?.id]?.stats) };
+    if (!dagger) change.missing.push(line);
+    return true;
+  }
+  if (d.kind === 'enchant') {
+    if (d.enchant === OFA) { change.ofa = state.path !== 'ofa'; return true; }
+    if (state.path === 'ofa') {
+      change.notes.push('Not used with One For All.');
+      return true;
+    }
+    if (ADDITIVE_ENCHANTS.has(d.enchant)) {
+      if ((dagger?.enchants?.[d.enchant] ?? 0) < d.level) change.enchants[line][d.enchant] = d.level;
+      return true;
+    }
+  }
+  const delta = partOf(d, guide, loadout, profile, items, settings, 'blaze');
+  if (!delta) return false;
+  plus(change.lines[line], delta);
+  return true;
+}
+
+// The state after a step. Pure: the state itself stays.
+export function applyBlaze(state, change) {
+  const daggers = { ...state.daggers };
+  for (const line of ['ashen', 'spirit']) {
+    const swap = change.swaps[line];
+    const hasEnchant = Object.keys(change.enchants[line]).length;
+    const hasStats = Object.values(change.lines[line]).some(Boolean);
+    if (!swap && !hasEnchant && !hasStats) continue;
+    const old = daggers[line] ?? { enchants: {}, lore: {} };
+    daggers[line] = { ...old, id: swap?.id ?? old.id, enchants: { ...old.enchants, ...change.enchants[line] }, lore: plus(plus({ ...old.lore }, swap?.lore), change.lines[line]) };
+  }
+  let armorIds = state.armorIds;
+  for (const piece of change.armor) armorIds = [...armorIds.filter((id) => id !== piece.out), piece.in];
+  return { ...state, common: plus({ ...state.common }, change.common), daggers, armorIds, path: change.ofa ? 'ofa' : state.path };
 }
 
 // What the replaced piece brings: sold to the buy orders minus the bazaar tax, else its BIN minus the auction fees. 0 without a price.
