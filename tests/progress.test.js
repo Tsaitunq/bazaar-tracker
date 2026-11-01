@@ -489,3 +489,11 @@ test('progress.js does not pull the market views', () => {
   assert.doesNotMatch(src, /from '\.\/render\.js'/);
   assert.match(src, /from '\.\/format\.js'/);
 });
+
+test('validGuide keeps area farming and valid chapters, drops broken ones', () => {
+  const sections = [{ name: 'a', steps: [] }, { name: 'b', steps: [] }];
+  const g = validGuide({ title: 't', area: 'farming', sections, chapters: [{ name: 'One', sections: ['a', 'nope'] }, { name: 'Empty', sections: ['nope'] }, { sections: ['b'] }, 'x'] });
+  assert.equal(g.area, 'farming');
+  assert.deepEqual(g.chapters, [{ name: 'One', sections: ['a'] }]);
+  assert.equal(validGuide({ title: 't', sections, chapters: 'x' }).chapters, undefined);
+});
