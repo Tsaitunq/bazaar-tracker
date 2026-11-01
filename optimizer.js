@@ -1,5 +1,7 @@
 // Which open guide step brings the most per coin (spec 4 and 5). Pure functions over the guide, the prices and the synced profile.
-import { AREA_STATS, computeStats } from './stats.js';
+import { AREA_STATS, computeStats, miningScore } from './stats.js';
+import { nextUpgrades, stepCost, openStep, bookOf, stepKey } from './progress.js';
+import { checkStep } from './requires.js';
 import { RARITIES, ENCHANTS, ENCHANTS_NO_STAT, GEMS, GEM_STAT, REFORGES, REFORGES_NO_STAT, PARTS, POLARVOID, COATING } from './optimizer-data.js';
 
 // Spec 4.1. Gemstone Fortune applies on gemstones only (wiki Pristine), and the other fortunes are not counted, so mithril and glacite read low.
@@ -220,4 +222,61 @@ export function stepDelta(step, loadout, profile, items, settings, guide) {
   // the guide's own number stands in only where the data has nothing to say
   if (step.gain && (!known || !Object.keys(known).length)) return plus({}, step.gain);
   return known;
+}
+
+// shortcut: gross for now, the resale of the replaced piece comes with spec 5.7.
+export function netCost(step, gross) {
+  return { net: gross, resale: 0, soldIds: [] };
+}
+
+// Spec 5.3: from the first open step of a line up to the first one that brings something. What stands in the way decides.
+function walkLine(chain, ctx, loadout, settings, base, guide) {
+  const steps = [];
+  let unknown = false;
+  for (const entry of chain) {
+    steps.push(entry);
+    const { status, reasons } = checkStep(entry.step, ctx.items, ctx.profile);
+    if (status === 'locked') return { group: 'locked', reasons };
+    unknown ||= status === 'unknown';
+    const delta = stepDelta(entry.step, loadout, ctx.profile, ctx.items, settings, guide);
+    if (!delta) return { group: 'noGain', unknown };
+    const gain = miningScore(base, delta, settings);
+    if (gain > 0) return { steps, target: entry, delta, gain, unknown };
+  }
+  return { group: 'zero', unknown };
+}
+
+// A line of books pays only for its last one: that price is the cheapest way there, so the levels between are in it.
+function chainCost({ steps, target }, ctx) {
+  const list = bookOf(target.step) ? [target] : steps;
+  const costs = list.map(({ section, step }) => stepCost(openStep(section, step, ctx), ctx));
+  return { coins: costs.reduce((n, c) => n + c.coins, 0), unpriced: costs.reduce((n, c) => n + c.unpriced, 0) };
+}
+
+// Spec 5.1. score and gain are shares: 0.012 is 1.2 %. A sum missing a price never gets a rank, it would look cheaper than it is.
+export function rankUpgrades(guide, checked, ctx, loadout, settings, base, { other = null, keepOldGear = false } = {}) {
+  const groups = { free: [], ranked: [], noPrice: [], noGain: [], zero: [], locked: [] };
+  const firsts = nextUpgrades(guide, checked, ctx);
+  const rest = (line) => guide.sections.flatMap((section) => section.steps.filter((step) => step.line === line && !checked.has(stepKey(section, step))).map((step) => ({ section, step })));
+  const nt = new Set(guide.sections.flatMap((s) => s.steps.flatMap((step) => (step.items ?? []).filter((i) => i.nt && i.id).map((i) => i.id))));
+  const sellCtx = { ...ctx, guide, nt };
+  for (const first of firsts) {
+    const row = { section: first.section, step: first.step, coins: first.coins, unpriced: first.unpriced, status: 'ok', reasons: [] };
+    const walked = walkLine(first.step.line ? rest(first.step.line) : [first], ctx, loadout, settings, base, guide);
+    if (walked.unknown) row.status = 'unknown';
+    if (walked.group) {
+      groups[walked.group].push(walked.group === 'locked' ? { ...row, status: 'locked', reasons: walked.reasons } : row);
+      continue;
+    }
+    const { coins, unpriced } = chainCost(walked, ctx);
+    const { net, resale } = netCost(walked.target.step, coins, loadout, other, ctx.items, sellCtx, keepOldGear);
+    const rated = { ...row, coins, unpriced, delta: walked.delta, gain: walked.gain, net, resale, ahead: walked.target === walked.steps[0] ? null : walked.target.step };
+    if (unpriced) groups.noPrice.push(rated);
+    else if (net > 0) groups.ranked.push({ ...rated, perMillion: walked.gain / (net / 1e6) });
+    else if (coins > 0 || walked.target.step.table) groups.free.push({ ...rated, net: 0 });
+    else groups.noPrice.push(rated);
+  }
+  groups.ranked.sort((a, b) => b.perMillion - a.perMillion);
+  groups.free.sort((a, b) => b.gain - a.gain);
+  return groups;
 }

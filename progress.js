@@ -250,7 +250,7 @@ export function stepCost(step, ctx) {
 
 // What is still open of a step the sync found partly done. Pieces owned drop out, the rest shrinks with what is
 // left, rounded up. shortcut: anyOf stays at its own qty and skip, a partly owned choice can read a bit high; split it if that misleads.
-function openStep(section, step, ctx) {
+export function openStep(section, step, ctx) {
   const found = ctx.auto?.get(stepKey(section, step));
   if (!found?.have || !step.items || met(found)) return step;
   const owned = [step.detect].flat().some((d) => d.kind === 'owned') ? new Set(ctx.profile?.items.map((i) => i.id)) : new Set();
@@ -264,7 +264,7 @@ function openStep(section, step, ctx) {
   return { ...step, items };
 }
 
-const bookOf = (step) => (step.items?.length === 1 && step.items[0].combine !== undefined ? step.items[0] : null);
+export const bookOf = (step) => (step.items?.length === 1 && step.items[0].combine !== undefined ? step.items[0] : null);
 const bookLevel = (item) => item.id.match(/^(.+)_(\d+)$/) ?? [];
 
 // Per book of a guide the highest level of the same enchant already checked below it.

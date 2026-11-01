@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { stepDelta, PRESETS, miningSettings } from '../optimizer.js';
+import { stepDelta, PRESETS, miningSettings, rankUpgrades } from '../optimizer.js';
 import { GEMSTONE, miningScore, loadoutOf } from '../stats.js';
 
 const piece = (id, extra = {}) => ({ id, where: 'armor', gems: [], enchants: {}, parts: {}, reforge: null, recomb: false, polarvoid: 0, coating: false, lore: {}, ...extra });
@@ -217,4 +217,121 @@ test('with the mithril preset the tool is picked by its mithril score', () => {
   const prof = { items: [gemTool, oreTool], pets: [], wardrobe: { armor: { equipped: 1, sets: [1] }, equipment: { equipped: 1, sets: [1] } } };
   assert.equal(loadoutOf(prof, data, 'mining', null).held.id, 'GEM_TOOL');
   assert.equal(loadoutOf(prof, data, 'mining', null, PRESETS.mithril).held.id, 'ORE_TOOL');
+});
+
+const speed = (n, extra = {}) => ({ detect: { kind: 'perk', perk: 'mining_speed', level: n }, ...extra });
+const bought = (id) => ({ items: [{ id, qty: 1 }] });
+const sold = (price) => ({ buy_summary: [{ pricePerUnit: price, amount: 100 }] });
+const rankGuide = (...steps) => ({ groups: guide.groups, sections: [{ name: 'Main', steps: steps.map((s, i) => ({ text: s.text ?? `step ${i}`, ...s })) }] });
+const rank = (g, { products = {}, base = { MINING_SPEED: 1000 }, checked = new Set(), prof = profile(), data = items, opts } = {}) =>
+  rankUpgrades(g, checked, { products, profile: prof, items: data }, setup(), GEMSTONE, base, opts);
+const texts = (rows) => rows.map((r) => r.step.text);
+const gainOf = (stats) => ({ gain: stats });
+
+test('ranked by gain per million, best first', () => {
+  const g = rankGuide({ text: 'dear', ...gainOf({ MINING_SPEED: 100 }), ...bought('A') }, { text: 'cheap', ...gainOf({ MINING_SPEED: 50 }), ...bought('B') });
+  const out = rank(g, { products: { A: sold(10e6), B: sold(1e6) } });
+  assert.deepEqual(texts(out.ranked), ['cheap', 'dear']);
+  assert.ok(Math.abs(out.ranked[0].gain - 0.05) < 1e-9);
+  assert.ok(Math.abs(out.ranked[0].perMillion - 0.05) < 1e-9);
+});
+
+test('a table step with a gain is free, no rank', () => {
+  const out = rank(rankGuide({ text: 't', table: true, ...gainOf({ MINING_SPEED: 10 }) }));
+  assert.deepEqual(texts(out.free), ['t']);
+  assert.equal(out.ranked.length, 0);
+});
+
+test('a score of 0 or less goes to zero, no rank and not free', () => {
+  const g = rankGuide({ text: 'tank', detect: { kind: 'part', on: 'drill', ids: ['PERFECTLY_CUT_FUEL_TANK'] }, table: true }, { text: 'worse', ...gainOf({ MINING_SPEED: -5 }), ...bought('A') });
+  const out = rank(g, { products: { A: sold(1e6) } });
+  assert.deepEqual(texts(out.zero).sort(), ['tank', 'worse']);
+  assert.equal(out.free.length + out.ranked.length, 0);
+});
+
+test('speed above the softcap goes to zero', () => {
+  const out = rank(rankGuide({ text: 'x', ...gainOf({ MINING_SPEED: 100 }), ...bought('A') }), { products: { A: sold(1e6) }, base: { MINING_SPEED: 20000 } });
+  assert.deepEqual(texts(out.zero), ['x']);
+});
+
+test('a sum missing a price goes to noPrice, never ranked', () => {
+  const out = rank(rankGuide({ text: 'x', ...gainOf({ MINING_SPEED: 10 }), items: [{ id: 'A', qty: 1 }, { id: 'NO_PRICE', qty: 1 }] }), { products: { A: sold(1e6) } });
+  assert.deepEqual(texts(out.noPrice), ['x']);
+  assert.equal(out.noPrice[0].unpriced, 1);
+});
+
+test('a step with a gain and nothing to buy goes to noPrice', () => {
+  assert.deepEqual(texts(rank(rankGuide({ text: 'x', ...gainOf({ MINING_SPEED: 10 }) })).noPrice), ['x']);
+});
+
+test('a delta of null goes to noGain', () => {
+  assert.deepEqual(texts(rank(rankGuide({ text: 'x', detect: { kind: 'scroll', on: 'drill', value: 'A' }, ...bought('A') }), { products: { A: sold(1) } }).noGain), ['x']);
+});
+
+const lockedData = { ...items, HARD: { requirements: [{ type: 'HEART_OF_THE_MOUNTAIN', tier: 7 }] } };
+
+test('locked goes to its own group with its reason', () => {
+  const out = rank(rankGuide({ text: 'x', ...gainOf({ MINING_SPEED: 10 }), ...bought('HARD') }), { products: { HARD: sold(1e6) }, data: lockedData });
+  assert.deepEqual(texts(out.locked), ['x']);
+  assert.match(out.locked[0].reasons[0], /HOTM 7 needed/);
+  assert.equal(out.ranked.length, 0);
+});
+
+test('unknown stays in the ranking and is marked', () => {
+  const data = { ...items, ODD: { requirements: [{ type: 'GARDEN_LEVEL', tier: 2 }] } };
+  const out = rank(rankGuide({ text: 'x', ...gainOf({ MINING_SPEED: 10 }), ...bought('ODD') }), { products: { ODD: sold(1e6) }, data });
+  assert.deepEqual(texts(out.ranked), ['x']);
+  assert.equal(out.ranked[0].status, 'unknown');
+});
+
+test('a step of 0 gain in a line adds up to the first step with a gain', () => {
+  const g = rankGuide(
+    { text: 'first', line: 'L', detect: { kind: 'part', on: 'drill', ids: ['PERFECTLY_CUT_FUEL_TANK'] }, ...bought('A') },
+    { text: 'second', line: 'L', ...gainOf({ MINING_SPEED: 100 }), ...bought('B') },
+    { text: 'third', line: 'L', ...gainOf({ MINING_SPEED: 900 }), ...bought('C') },
+  );
+  const [row] = rank(g, { products: { A: sold(1e6), B: sold(2e6), C: sold(1) } }).ranked;
+  assert.equal(row.step.text, 'first');
+  assert.equal(row.ahead.text, 'second');
+  assert.equal(row.coins, 3e6);
+  assert.ok(Math.abs(row.gain - 0.1) < 1e-9);
+});
+
+test('a line of books counts the last book only', () => {
+  const book = (level) => ({ items: [{ id: `ENCHANTMENT_X_${level}`, qty: 1, combine: 0 }] });
+  const g = rankGuide(
+    { text: 'I', line: 'B', detect: enchant('experience', 1), ...book(1) },
+    { text: 'II', line: 'B', ...gainOf({ MINING_SPEED: 10 }), ...book(2) },
+  );
+  const [row] = rank(g, { products: { ENCHANTMENT_X_1: sold(1e6), ENCHANTMENT_X_2: sold(4e6) } }).ranked;
+  assert.equal(row.coins, 4e6);
+});
+
+test('a locked step ahead in the line locks the row', () => {
+  const g = rankGuide({ text: 'first', line: 'L', detect: enchant('experience', 1), ...bought('A') }, { text: 'second', line: 'L', ...gainOf({ MINING_SPEED: 1 }), ...bought('HARD') });
+  assert.deepEqual(texts(rank(g, { products: { A: sold(1), HARD: sold(1) }, data: lockedData }).locked), ['first']);
+});
+
+test('a line with no gain at all goes to zero', () => {
+  const g = rankGuide({ text: 'first', line: 'L', detect: enchant('experience', 1) }, { text: 'second', line: 'L', detect: enchant('compact', 1) });
+  assert.deepEqual(texts(rank(g).zero), ['first']);
+});
+
+test('the score uses the base with the offset', () => {
+  const g = rankGuide({ text: 'fort', ...gainOf({ MINING_FORTUNE: 10 }), ...bought('A') }, { text: 'spd', ...gainOf({ MINING_SPEED: 50 }), ...bought('A') });
+  const products = { A: sold(1e6) };
+  const low = { MINING_SPEED: 500, MINING_FORTUNE: 900 }; // speed leads
+  const offset = { MINING_SPEED: 10000, MINING_FORTUNE: 0 }; // what /stats added makes fortune lead
+  assert.equal(rank(g, { products, base: low }).ranked[0].step.text, 'spd');
+  assert.equal(rank(g, { products, base: { MINING_SPEED: low.MINING_SPEED + offset.MINING_SPEED, MINING_FORTUNE: 900 } }).ranked[0].step.text, 'fort');
+});
+
+test('priority does not change the order', () => {
+  const g = rankGuide({ text: 'pinned', priority: 5, ...gainOf({ MINING_SPEED: 1 }), ...bought('A') }, { text: 'good', ...gainOf({ MINING_SPEED: 100 }), ...bought('A') });
+  assert.deepEqual(texts(rank(g, { products: { A: sold(1e6) } }).ranked), ['good', 'pinned']);
+});
+
+test('a new tick moves the line on to its next step', () => {
+  const g = rankGuide({ text: 'one', line: 'L', ...gainOf({ MINING_SPEED: 10 }), ...bought('A') }, { text: 'two', line: 'L', ...gainOf({ MINING_SPEED: 10 }), ...bought('A') });
+  assert.deepEqual(texts(rank(g, { products: { A: sold(1e6) }, checked: new Set(['Main|one']) }).ranked), ['two']);
 });
