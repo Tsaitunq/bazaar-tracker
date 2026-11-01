@@ -302,12 +302,12 @@ hit = (5 + WD) × (1 + STR/100) × (1 + min(CC,100)/100 × CD/100) × (1 + A/100
 
 Der Crit-Term ist der Erwartungswert, eine Herleitung aus der Crit-Formel des Wikis.
 
-- **A (additiv):** Sharpness, One For All (+500, entfernt andere Enchants), Dominus bei Infernal Crimson: +10 % pro Stack, angenommen 10 Stacks [Doku].
+- **A (additiv):** Sharpness, Smoldering (gegen Infernal; additiv ist Annahme, Paket 6), One For All (+500, entfernt andere Enchants), Dominus bei mindestens zwei Infernal-Crimson-Teilen: +10 % pro Stack, angenommen 10 Stacks [Doku]. Niedrigere Crimson-Stufen geben keinen Schaden je Stack (`docs/plan-optimizer-p6.md`).
 - **M (multiplikativ):** Dolchfaktor gegen Infernal aus dem Wiki:
 
 | Linie | Stufe 1 | Stufe 2 | Stufe 3 |
 |---|---|---|---|
-| Ashen (IDs `FIREDUST`, `BURSTFIRE`, `HEARTFIRE`) | ×1,25 | ×1,5 | ×2 |
+| Ashen (IDs `FIREDUST`, `BURSTFIRE`, `HEARTFIRE`) | ×1,2 | ×1,5 | ×2 |
 | Spirit (IDs `MAWDUST`, `BURSTMAW`, `HEARTMAW`) | ×1,5 | ×2,5 | ×3,5 |
 
 Treffer pro Sekunde: `Ticks = round(10 / (1 + AS/100))`, `hits/s = 20 / Ticks`, Attack Speed max. 100 mit effektiver Grenze 82 [Doku; Umrechnung in hits/s ist Herleitung]. Der Effekt ist stufig, also bringt ein kleines Plus oft 0 %. Das ist gewollt.
@@ -340,7 +340,7 @@ Zum Einordnen: True Defense reduziert True Damage um `TD / (100 + TD)` [Doku]. B
 
 Regeln:
 
-1. Solange eine Bedingung verletzt ist, zeigt die Rangliste oben "Requirements first" mit den Schritten, die TD bzw. MP erhöhen, sortiert nach Zugewinn pro 1M. Der Block darunter zeigt die übrigen Schritte ausgegraut ohne Rang.
+1. Solange eine Bedingung verletzt ist, zeigt die Rangliste oben "Requirements first" mit den Schritten, die TD bzw. MP erhöhen, sortiert nach Fortschritt der Bedingung pro 1M, dann nach Zugewinn. Die übrigen Schritte behalten ihren Rang, darüber steht der Warnhinweis `Below the limit` (Paket 6, B3 und B4).
 2. Ein Schritt, der eine erfüllte Bedingung brechen würde (z. B. Opal durch Jasper ersetzen), wird nicht angeboten und in "locked" mit Grund aufgeführt.
 3. Beide Werte erscheinen als Fortschrittsanzeige oben im Blaze-Guide.
 4. Fehlt ein Wert (Inventory-API aus), gilt die Bedingung als "unknown". Dann läuft die Rangliste weiter, mit sichtbarem Warnhinweis.
@@ -403,7 +403,7 @@ Delta-Berechnung pro Art:
 | Accessory, MP | ΔMP über den Multiplikator plus Lore-Stats |
 | Pet | Tabelle |
 
-Stand Paket 5 (`docs/plan-optimizer-p5.md`, A2): Drei Ergebnisse je Schritt: ein Delta, `{}` (belegt kein Stat von uns, Gruppe "No mining gain") oder `null` (kein fester Wert, Gruppe "No gain data"). Die Daten liegen in `optimizer-data.js`, zusätzlich zu dieser Tabelle mit Drill-Teilen, Polarvoid und Powder Coating. Ein ΔMP gibt es erst mit Paket 6, weil keine Power Mining-Stats gibt.
+Stand Paket 5 (`docs/plan-optimizer-p5.md`, A2): Drei Ergebnisse je Schritt: ein Delta, `{}` (belegt kein Stat von uns, Gruppe "No mining gain") oder `null` (kein fester Wert, Gruppe "No gain data"). Die Daten liegen in `optimizer-data.js`, zusätzlich zu dieser Tabelle mit Drill-Teilen, Polarvoid und Powder Coating. Ein ΔMP gibt es seit Paket 6 für Blaze, Mining rechnet weiter ohne, weil keine Power Mining-Stats gibt. Abdeckung und offene Enchants für Blaze: `docs/plan-optimizer-p6.md`, B5.
 
 Quellenregel aus `CLAUDE.md`: Wiki zuerst. Was nur aus NEU stammt, trägt in `optimizer-data.js` den Vermerk `src: 'not confirmed'`. Die Daten sind Spieldaten und damit unkritisch für das Repo.
 
