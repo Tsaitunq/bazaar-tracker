@@ -15,7 +15,7 @@ import { bindSheet, openSheet } from './sheet.js';
 import { loadBundled, mergeGuides, exportData, importData, progressView, personalVisibility, secretTap, setMark, pushRecent, stepKey } from './progress.js';
 import { createSync, syncMessage, syncView, normalizeUuid, cleanKey } from './sync.js';
 import { summarize } from './profile.js';
-import { statsView, statsEntry } from './stats.js';
+import { statsView, statsEntry, loadoutOf, computeStats, offsetStale } from './stats.js';
 import { detectGuide } from './detect.js';
 import { initOnboarding, refreshHints, offerAdvanced, returning } from './tour.js';
 
@@ -947,13 +947,26 @@ $('hp-stats').addEventListener('click', async (e) => {
   const { statsArea } = box.dataset;
   const values = Object.fromEntries([...box.querySelectorAll('[data-stats-stat]')].map((input) => [input.dataset.statsStat, input.value]));
   const pick = (kind) => box.querySelector(`[data-stats-set="${kind}"]`).value;
-  const entry = statsEntry(statsArea, { armor: pick('armor'), equipment: pick('equipment'), pet: pick('pet'), emptyHand: box.querySelector('[data-stats-empty-hand]').checked, boost: box.querySelector('[data-stats-boost]').checked, values }, Date.now());
+  const form = { armor: pick('armor'), equipment: pick('equipment'), pet: pick('pet'), emptyHand: box.querySelector('[data-stats-empty-hand]').checked, boost: box.querySelector('[data-stats-boost]').checked, values };
   const state = await loadProfile();
   if (!state) return;
+  const { choice } = statsEntry(statsArea, form, 0);
+  const boosts = boostsNow();
+  const measured = itemData && state.summary ? { total: computeStats(state.summary, itemData, loadoutOf(state.summary, itemData, statsArea, choice), statsArea, boosts).total, boosts } : null;
+  const entry = statsEntry(statsArea, form, Date.now(), measured, state.statsInput?.[statsArea] ?? null);
   const next = { ...state, statsInput: { ...state.statsInput, [statsArea]: entry } };
   if (!await saveProfile(next)) return hpStatus(syncMessage('store'));
   profileState = next;
   renderStats();
+});
+// A picker that moves away from the measured setup says so before anything is saved.
+$('hp-stats').addEventListener('change', (e) => {
+  if (!e.target.matches('[data-stats-set]')) return;
+  const box = e.target.closest('[data-stats-area]');
+  if (!box.dataset.offsetFor) return;
+  const was = JSON.parse(box.dataset.offsetFor);
+  const picked = (kind) => (was[kind] === null ? null : box.querySelector(`[data-stats-set="${kind}"]`).value);
+  box.querySelector('[data-stats-setup-hint]').hidden = !offsetStale({ offsetFor: was }, { armor: was.armor === null ? null : Number(picked('armor')), equipment: was.equipment === null ? null : Number(picked('equipment')), pet: picked('pet') });
 });
 showProfile();
 $('search').addEventListener('input', render);
