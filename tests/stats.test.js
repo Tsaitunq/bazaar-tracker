@@ -217,7 +217,7 @@ test('an in-game value of 0 gives no division by zero', () => {
 
 test('statsEntry keeps real numbers of known stats and leaves empty fields out', () => {
   const e = statsEntry('mining', { armor: '3', equipment: '', boost: true, values: { MINING_SPEED: '1200.5', PRISTINE: '', MINING_FORTUNE: 'abc', STRENGTH: '9', GEMSTONE_FORTUNE: '0' } }, 7);
-  assert.deepEqual(e, { choice: { armor: 3, equipment: null }, values: { GEMSTONE_FORTUNE: 0, MINING_SPEED: 1200.5 }, boost: true, at: 7 });
+  assert.deepEqual(e, { choice: { armor: 3, equipment: null, pet: null }, values: { GEMSTONE_FORTUNE: 0, MINING_SPEED: 1200.5 }, boost: true, at: 7 });
 });
 
 test('DAMAGE is not a field of the form', () => {
@@ -282,4 +282,51 @@ test('without a summary the view asks for a sync', () => {
 
 test('a saved profile without a wardrobe still draws', () => {
   assert.match(view({ syncedAt: 1, summary: { items: [], pets: [] } }), /Sync again to read your wardrobe/);
+});
+
+const owned = [{ type: 'LION', tier: 'EPIC', exp: 1e12 }, { type: 'LION', tier: 'EPIC', exp: 1 }, { type: 'BAL', tier: 'LEGENDARY', exp: 1e12, active: true }];
+
+test('a picked pet wins over the active one, the most levelled of its kind', () => {
+  const out = loadoutOf(prof([], { pets: owned }), data, 'blaze', { ...choice, pet: 'LION:EPIC' });
+  assert.equal(out.pet.exp, 1e12);
+  assert.equal(out.pet.type, 'LION');
+  assert.ok(!out.gaps.some((g) => /No pet picked/.test(g)));
+});
+
+test('no pick uses the active pet and says so, a pet gone from the sync is named', () => {
+  const none = loadoutOf(prof([], { pets: owned }), data, 'blaze', choice);
+  assert.equal(none.pet.type, 'BAL');
+  assert.ok(none.gaps.includes('No pet picked, using the active one.'));
+  const gone = loadoutOf(prof([], { pets: owned }), data, 'blaze', { ...choice, pet: 'WOLF:EPIC' });
+  assert.equal(gone.pet, null);
+  assert.ok(gone.gaps.includes('The picked pet is not in the last sync.'));
+});
+
+test('the table follows the wiki pages at level 100, per rarity', () => {
+  const stats = (type, tier) => computeStats({ items: [] }, {}, { ...empty, pet: { type, tier, exp: 1e12 } }, 'mining').parts.pet;
+  assert.deepEqual(stats('LION', 'EPIC'), { STRENGTH: 50 });
+  assert.deepEqual(stats('DROPLET_WISP', 'UNCOMMON'), { HEALTH: 100 });
+  assert.deepEqual(stats('SUBZERO_WISP', 'LEGENDARY'), { HEALTH: 600, TRUE_DEFENSE: 35 });
+  assert.deepEqual(stats('BAL', 'LEGENDARY'), { MINING_FORTUNE: 100 });
+  assert.deepEqual(stats('GOBLIN', 'LEGENDARY'), { ORE_FORTUNE: 100 });
+  assert.deepEqual(stats('DROPLET_WISP', 'LEGENDARY'), {});
+});
+
+test('abilities are named in gaps for any pet', () => {
+  for (const type of ['LION', 'WOLF']) {
+    assert.ok(computeStats({ items: [] }, {}, { ...empty, pet: { type, tier: 'EPIC', exp: 1 } }, 'mining').gaps.includes('Pet abilities are not counted.'));
+  }
+});
+
+test('the view offers the pets of the profile once each and keeps the pick', () => {
+  const s = state({ statsInput: { blaze: { choice: { armor: 1, equipment: 1, pet: 'LION:EPIC' }, values: {} } } }, { pets: owned });
+  const blaze = areaOf(view(s), 'blaze');
+  assert.equal(blaze.match(/value="LION:EPIC"/g).length, 1);
+  assert.match(blaze, /<option value="LION:EPIC" selected>Lion Epic<\/option>/);
+  assert.match(areaOf(view(s), 'mining'), /<option value="BAL:LEGENDARY" selected>/);
+});
+
+test('statsEntry keeps a well-formed pet only', () => {
+  assert.equal(statsEntry('mining', { pet: 'LION:EPIC' }, 1).choice.pet, 'LION:EPIC');
+  assert.equal(statsEntry('mining', { pet: '<x>' }, 1).choice.pet, null);
 });

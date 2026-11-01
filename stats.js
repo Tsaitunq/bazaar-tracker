@@ -67,7 +67,19 @@ function fullSets(armor) {
   return [...pieces].filter(([, n]) => n === 4).map(([stem]) => stem);
 }
 
-// choice: the wardrobe and equipment slot the player picked. Accessories and pet are what the sync found.
+// The pet of a pick like LION:EPIC, the most levelled of them. Without a pick the active one.
+function petOf(profile, pick, gaps) {
+  const pets = profile.pets ?? [];
+  if (!pick) {
+    gaps.push('No pet picked, using the active one.');
+    return pets.find((p) => p.active) ?? null;
+  }
+  const pet = pets.filter((p) => `${p.type}:${p.tier}` === pick).reduce((best, p) => (!best || (p.exp ?? 0) > (best.exp ?? 0) ? p : best), null);
+  if (!pet) gaps.push('The picked pet is not in the last sync.');
+  return pet;
+}
+
+// choice: the wardrobe slot, equipment slot and pet the player picked. Accessories and power are what the sync found.
 export function loadoutOf(profile, items, area, choice) {
   const gaps = [];
   const setOf = (kind) => {
@@ -84,7 +96,7 @@ export function loadoutOf(profile, items, area, choice) {
   const held = items ? heldOf(profile, items, area, gearStats([...armor, ...equipment])) : null;
   if (items && !held) gaps.push(area === 'mining' ? 'No mining tool found.' : 'No weapon found.');
   for (const stem of fullSets(armor)) gaps.push(`Full set ${stem}: its bonus is not counted.`);
-  return { armor, equipment, held, accessories: accessoriesOf(profile, items), pet: profile.pets?.find((p) => p.active) ?? null, gaps };
+  return { armor, equipment, held, accessories: accessoriesOf(profile, items), pet: petOf(profile, choice?.pet, gaps), gaps };
 }
 
 // wiki Stats
@@ -100,7 +112,8 @@ const POWERS = {
   silky: { scaled: { CRITICAL_DAMAGE: 22.8 }, flat: { ATTACK_SPEED: 5 } },
   bloody: { scaled: { CRITICAL_DAMAGE: 10.8, STRENGTH: 10.8 }, flat: { ATTACK_SPEED: 10 } },
 };
-// not confirmed: no wiki table found for the stat per tuning point. The /stats comparison checks them.
+// not confirmed: the wiki pages Maxwell, Accessory Bag and Tuning Points give no value per point. The closed wiki.hypixel.net Powers page, seen
+// only as a search excerpt, gave health 5, crit chance 0.2, attack speed 0.3. Defense, strength and crit damage 1 have no source: /stats decides.
 const TUNING = { health: { HEALTH: 5 }, defense: { DEFENSE: 1 }, strength: { STRENGTH: 1 }, critical_damage: { CRITICAL_DAMAGE: 1 }, critical_chance: { CRITICAL_CHANCE: 0.2 }, attack_speed: { ATTACK_SPEED: 0.3 } };
 
 export const powerMultiplier = (mp) => 29.97 * Math.log(0.0019 * mp + 1) ** 1.2;
@@ -171,22 +184,30 @@ export function petLevel(pet, top = 100) {
   return level;
 }
 
-// The pets of the guides' pet steps, Legendary, from their wiki pages. Stat as a function of the level.
+// The pets owned or named in the guides, from their wiki pages (Lion, Blaze, Golden Dragon, Droplet to Subzero Wisp, Bal, Goblin).
+// Stat as a function of the level. Pet Damage stays out: DAMAGE here means the weapon in hand. Abilities are not counted.
+const WISP = (tier, health, td) => ({ tiers: [tier], stats: (l) => ({ HEALTH: health * l, ...(td && { TRUE_DEFENSE: td * l }) }) });
 const PETS = {
-  LION: { top: 100, stats: (l) => ({ STRENGTH: 0.5 * l }) },
-  BLAZE: { top: 100, stats: (l) => ({ DEFENSE: 0.3 * l }) },
-  GOLDEN_DRAGON: { top: 200, stats: (l) => (l > 100 ? { STRENGTH: 25.25 + 0.25 * (l - 101), ATTACK_SPEED: 25.25 + 0.25 * (l - 101) } : {}) },
+  LION: { tiers: ['RARE', 'EPIC', 'LEGENDARY'], stats: (l) => ({ STRENGTH: 0.5 * l }) },
+  BLAZE: { tiers: ['LEGENDARY'], stats: (l) => ({ DEFENSE: 0.3 * l }) },
+  GOLDEN_DRAGON: { tiers: ['LEGENDARY'], top: 200, stats: (l) => (l > 100 ? { STRENGTH: 25.25 + 0.25 * (l - 101), ATTACK_SPEED: 25.25 + 0.25 * (l - 101) } : {}) },
+  DROPLET_WISP: WISP('UNCOMMON', 1),
+  FROST_WISP: WISP('RARE', 2.5, 0.15),
+  GLACIAL_WISP: WISP('EPIC', 4, 0.3),
+  SUBZERO_WISP: WISP('LEGENDARY', 6, 0.35),
+  BAL: { tiers: ['LEGENDARY'], stats: (l) => ({ MINING_FORTUNE: l }) },
+  GOBLIN: { tiers: ['LEGENDARY'], stats: (l) => ({ ORE_FORTUNE: l }) },
 };
 
 function petStats(pet, gaps) {
   if (!pet) return {};
-  const known = pet.tier === 'LEGENDARY' ? PETS[pet.type] : null;
-  if (!known) {
+  gaps.push('Pet abilities are not counted.');
+  if (pet.heldItem) gaps.push('The pet item is not counted.');
+  const known = PETS[pet.type];
+  if (!known?.tiers.includes(pet.tier)) {
     gaps.push(`Pet ${pet.type} ${pet.tier} has no stat table yet.`);
     return {};
   }
-  if (pet.heldItem) gaps.push('The pet item is not counted.');
-  gaps.push('Pet abilities are not counted.');
   return known.stats(petLevel(pet, known.top));
 }
 
@@ -224,14 +245,14 @@ export function compareStats(calculated, inGame) {
 }
 
 // What the form hands in, as it is stored: only known stats with real numbers, and the slots as numbers.
-export function statsEntry(area, { armor, equipment, boost, values }, at) {
+export function statsEntry(area, { armor, equipment, pet, boost, values }, at) {
   const slot = (v) => (Number.isInteger(Number(v)) && Number(v) > 0 ? Number(v) : null);
   const kept = AREA_STATS[area].flatMap((stat) => {
     const raw = values?.[stat];
     const n = raw === '' || raw === null || raw === undefined ? NaN : Number(raw);
     return Number.isFinite(n) ? [[stat, n]] : [];
   });
-  return { choice: { armor: slot(armor), equipment: slot(equipment) }, values: Object.fromEntries(kept), boost: boost === true, at };
+  return { choice: { armor: slot(armor), equipment: slot(equipment), pet: /^[A-Z_]+:[A-Z_]+$/.test(pet ?? '') ? pet : null }, values: Object.fromEntries(kept), boost: boost === true, at };
 }
 
 const AREA_TITLE = { mining: 'Mining', blaze: 'Blaze' };
@@ -242,6 +263,19 @@ const LOW = { ok: 'ok', low: 'too low', unknown: 'unknown' };
 function slotPicker(kind, label, known, picked, esc) {
   const options = (known?.sets ?? []).map((n) => `<option value="${esc(n)}"${n === (picked ?? known.equipped) ? ' selected' : ''}>Slot ${esc(n)}${n === known.equipped ? ' (worn)' : ''}</option>`);
   return `<label>${label}<select data-stats-set="${kind}">${options.join('')}</select></label>`;
+}
+
+const words = (s) => String(s).toLowerCase().split('_').map((w) => (w[0]?.toUpperCase() ?? '') + w.slice(1)).join(' ');
+
+function petPicker(pets, picked, esc) {
+  const keys = [...new Set((pets ?? []).map((p) => `${p.type}:${p.tier}`))].sort();
+  const active = (pets ?? []).find((p) => p.active);
+  const chosen = picked ?? (active ? `${active.type}:${active.tier}` : null);
+  const options = keys.map((key) => {
+    const [type, tier] = key.split(':');
+    return `<option value="${esc(key)}"${key === chosen ? ' selected' : ''}>${esc(words(type))} ${esc(words(tier))}</option>`;
+  });
+  return `<label>Pet<select data-stats-set="pet">${options.join('')}</select></label>`;
 }
 
 function areaView(area, state, items, esc) {
@@ -261,6 +295,7 @@ function areaView(area, state, items, esc) {
   return `<section class="stats-area" data-stats-area="${area}"><strong>${AREA_TITLE[area]}</strong>
     ${slotPicker('armor', 'Wardrobe slot', profile.wardrobe?.armor, entry.choice?.armor, esc)}
     ${slotPicker('equipment', 'Equipment slot', profile.wardrobe?.equipment, entry.choice?.equipment, esc)}
+    ${petPicker(profile.pets, entry.choice?.pet, esc)}
     <small>Measure with the setup you actually play with. In hand: ${loadout.held ? esc(loadout.held.id) : 'nothing'}.</small>
     <label class="check"><input type="checkbox" data-stats-boost${entry.boost ? ' checked' : ''}> God Potion / Booster Cookie active</label>
     ${AREA_STATS[area].map((stat) => `<label>${STAT_NAME[stat]} in /stats<input type="number" step="any" inputmode="decimal" data-stats-stat="${stat}" value="${entry.values?.[stat] ?? ''}"></label>`).join('')}

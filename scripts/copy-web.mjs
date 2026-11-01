@@ -24,6 +24,12 @@ export function copyWeb(root, out) {
   }
   fs.cpSync(path.join(root, 'icons'), path.join(out, 'icons'), { recursive: true });
   copyGuides(root, out);
+  // public game data for a local test build, also outside git
+  const items = path.join(root, 'personal', 'items.json');
+  if (fs.existsSync(items)) {
+    fs.mkdirSync(path.join(out, 'personal'), { recursive: true });
+    fs.copyFileSync(items, path.join(out, 'personal', 'items.json'));
+  }
   return files.length;
 }
 

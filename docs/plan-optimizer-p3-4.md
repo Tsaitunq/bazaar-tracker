@@ -56,7 +56,7 @@ Im Code gibt es den Score noch nicht (grep auf `0.79` ohne Treffer). Task 4 legt
 - **`requires` im Guide-Schritt entfällt:** Kein Guide nutzt das Feld. Es zählt nur `items.requirements`.
 - **`/stats` im Profilstand:** Die Werte liegen als `inGame` im vorhandenen Profil-Blob, also in `noBackupFilesDir`. Es gibt keine neue Native-Methode.
 - **Verschoben auf Paket 5:** "In-Game-Wert als Basis der Bewertung" (Spec 3.4), weil es hier noch keine Bewertung gibt.
-- **Loadout (Auftrag 2026-11-01, ersetzt Spec 2.5 für dieses Paket):** Der Nutzer wählt je Bereich Wardrobe-Slot und Equipment-Slot in `#personal-settings`. Accessories, Pet und Power gelten wie erkannt. Die automatische Wahl "best possible" kommt in Paket 5.
+- **Loadout (Auftrag 2026-11-01, ersetzt Spec 2.5 für dieses Paket):** Der Nutzer wählt je Bereich Wardrobe-Slot und Equipment-Slot in `#personal-settings`. Auch das Pet wird je Bereich gewählt (Auftrag vom selben Tag). Accessories und Power gelten wie erkannt. Die automatische Wahl "best possible" kommt in Paket 5.
 - **Blaze-Score:** `blazeScore = hit` (Spec 4.2). True Defense ≥ 140 und MP ≥ 800 sind nur Constraints.
 - **`DAMAGE`:** nicht im `/stats`-Formular. Der Waffenschaden kommt aus der Lore.
 - **Boost-Angabe:** Das Formular hat je Messung die Checkbox "God Potion / Booster Cookie active", der Report nennt sie bei Abweichungen.
@@ -194,7 +194,7 @@ test('the held item is the best owned tool or the weapon with the most lore dama
 ```
 
 - [ ] **Step 2: Test ausführen.** Erwartet: FAIL.
-- [ ] **Step 3: Implementieren.** Score laut Spec 4.1, `hit` laut Spec 4.2 ohne `A` und `M`. Der Slot enthält keine Waffe, darum gilt für `held`: Mining das Item der Kategorien Drill, Pickaxe oder Gauntlet mit dem höchsten `miningScore`, Blaze das Item der Kategorien Sword oder Longsword mit dem höchsten Lore-`DAMAGE`. Die UI zeigt die Wahl. Pet ist das Pet mit `active`. Volles Set: vier Rüstungsteile mit gleichem Namensstamm vor dem Slot-Suffix.
+- [ ] **Step 3: Implementieren.** Score laut Spec 4.1, `hit` laut Spec 4.2 ohne `A` und `M`. Der Slot enthält keine Waffe, darum gilt für `held`: Mining das Item der Kategorien Drill, Pickaxe oder Gauntlet mit dem höchsten `miningScore`, Blaze das Item der Kategorien Sword oder Longsword mit dem höchsten Lore-`DAMAGE`. Die UI zeigt die Wahl. Pet ist das gewählte (`choice.pet`, Form `TYPE:TIER`), ohne Wahl das mit `active`. Volles Set: vier Rüstungsteile mit gleichem Namensstamm vor dem Slot-Suffix.
 - [ ] **Step 4: Test ausführen.** Erwartet: PASS.
 - [ ] **Step 5: Commit** `feat: add lore stats and the chosen loadout`
 

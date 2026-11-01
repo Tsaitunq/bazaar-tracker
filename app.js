@@ -933,7 +933,7 @@ $('hp-stats').addEventListener('click', async (e) => {
   const { statsArea } = box.dataset;
   const values = Object.fromEntries([...box.querySelectorAll('[data-stats-stat]')].map((input) => [input.dataset.statsStat, input.value]));
   const pick = (kind) => box.querySelector(`[data-stats-set="${kind}"]`).value;
-  const entry = statsEntry(statsArea, { armor: pick('armor'), equipment: pick('equipment'), boost: box.querySelector('[data-stats-boost]').checked, values }, Date.now());
+  const entry = statsEntry(statsArea, { armor: pick('armor'), equipment: pick('equipment'), pet: pick('pet'), boost: box.querySelector('[data-stats-boost]').checked, values }, Date.now());
   const state = await loadProfile();
   if (!state) return;
   const next = { ...state, statsInput: { ...state.statsInput, [statsArea]: entry } };
