@@ -58,9 +58,11 @@ export const syncMessage = (error, retryIn) => (error === 'limit' ? `Too many re
 
 export function createSync({ store, get = fetch, now = Date.now, summarize }) {
   let busy = false;
+  // Raised by Remove and a new UUID: a run that started before must not write its old answer back.
+  let generation = 0;
   const fail = (error, extra = {}) => ({ status: 'error', error, ...extra });
 
-  async function attempt(pick) {
+  async function attempt(pick, token) {
     const state = await store.loadProfile();
     if (!state?.uuid) return fail('nouuid');
     const key = await store.getApiKey();
@@ -82,16 +84,22 @@ export function createSync({ store, get = fetch, now = Date.now, summarize }) {
       return fail('format');
     }
     const next = { uuid: state.uuid, profileId: profile.profile_id, profileName: profile.cute_name, syncedAt: now(), summary };
+    if (token !== generation) return { status: 'stale' };
     if (!await store.saveProfile(next)) return fail('store');
     return { status: 'ok', state: next };
   }
 
   return {
+    invalidate() {
+      generation++;
+    },
     async run(pick) {
       if (busy) return { status: 'busy' };
       busy = true;
+      const token = generation;
       try {
-        return await attempt(pick);
+        const result = await attempt(pick, token);
+        return token === generation ? result : { status: 'stale' };
       } finally {
         busy = false;
       }

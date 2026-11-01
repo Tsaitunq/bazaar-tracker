@@ -109,6 +109,20 @@ test('the previous summary reaches summarize', async () => {
   assert.deepEqual(previous, { old: 1 });
 });
 
+test('a run overtaken by Remove or a new UUID stores nothing', async () => {
+  let answer;
+  const body = json(200, { success: true, profiles: [coopProfile] });
+  const { sync, saved } = setup({ get: () => (answer ? body : new Promise((resolve) => { answer = resolve; })) });
+  const running = sync.run();
+  while (!answer) await new Promise((resolve) => setImmediate(resolve));
+  sync.invalidate();
+  answer(body);
+  assert.deepEqual(await running, { status: 'stale' });
+  assert.deepEqual(saved, []);
+  assert.equal((await sync.run()).status, 'ok');
+  assert.equal(saved.length, 1);
+});
+
 test('a missing key or uuid sends no request', async () => {
   const noKey = setup({ key: null });
   assert.deepEqual(await noKey.sync.run(), { status: 'error', error: 'nokey' });

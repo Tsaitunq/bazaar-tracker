@@ -3,6 +3,7 @@
   "appName": "Bazaar Flip Helper",
   "webDir": "www",
   "backgroundColor": "#110C09",
+  "loggingBehavior": "none",
   "plugins": {
     "SystemBars": {
       "style": "DARK"

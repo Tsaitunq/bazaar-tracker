@@ -857,6 +857,7 @@ async function runProfileSync(pick) {
   if (result.status === 'busy') return;
   syncNote = result.status === 'error' ? { message: syncMessage(result.error, result.retryIn) }
     : result.status === 'choose' ? { message: 'Pick your profile.', choices: result.choices }
+    : result.status === 'stale' ? {}
     : { message: 'Synced.' };
   if (result.status === 'ok') profileState = result.state;
   if (area() === PERSONAL) renderProgress();
@@ -866,7 +867,10 @@ async function saveProfileFields() {
   if (!uuid) return hpStatus(syncMessage('input'));
   const state = await loadProfile();
   // another player's stand must not stay behind under a new UUID
-  if (state?.uuid !== uuid && !await saveProfile({ uuid })) return hpStatus(syncMessage('store'));
+  if (state?.uuid !== uuid) {
+    profileSync.invalidate();
+    if (!await saveProfile({ uuid })) return hpStatus(syncMessage('store'));
+  }
   const key = cleanKey($('hp-key').value);
   $('hp-key').value = '';
   if (key && !await setApiKey(key)) return hpStatus('Could not save the key on this phone.');
@@ -890,6 +894,7 @@ $('hypixel-profile').addEventListener('click', async (e) => {
   removeArmed = false;
   remove.textContent = 'Remove key and profile data';
   syncNote = {};
+  profileSync.invalidate();
   hpStatus(await clearProfileData() ? 'Key and profile data removed.' : 'Could not remove them.');
   await showProfile();
 });

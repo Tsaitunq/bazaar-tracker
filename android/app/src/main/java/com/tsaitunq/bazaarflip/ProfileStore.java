@@ -2,17 +2,20 @@ package com.tsaitunq.bazaarflip;
 
 import android.content.Context;
 import android.security.keystore.KeyGenParameterSpec;
+import android.security.keystore.KeyPermanentlyInvalidatedException;
 import android.security.keystore.KeyProperties;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.util.Arrays;
 
+import javax.crypto.AEADBadTagException;
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -50,6 +53,16 @@ final class ProfileStore {
         }
     }
 
+    // java.nio.file only exists from API 26; minSdk is 24.
+    private static byte[] read(File file) throws IOException {
+        try (FileInputStream in = new FileInputStream(file)) {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            byte[] chunk = new byte[8192];
+            for (int n = in.read(chunk); n != -1; n = in.read(chunk)) out.write(chunk, 0, n);
+            return out.toByteArray();
+        }
+    }
+
     private static SecretKey secret(boolean create) throws GeneralSecurityException, IOException {
         KeyStore store = KeyStore.getInstance(KEYSTORE);
         store.load(null);
@@ -74,18 +87,24 @@ final class ProfileStore {
         write(file(context, KEY_FILE), all);
     }
 
-    /** Null without a key. A key that cannot be read any more, for example after a restore, counts as none and is removed. */
-    static String getKey(Context context) {
+    /**
+     * Null without a key. A key that can never be read again (Keystore key gone or invalidated, bad tag, broken file)
+     * counts as none and is removed. Any other error may pass, so it is thrown and the file stays.
+     */
+    static String getKey(Context context) throws GeneralSecurityException, IOException {
         File file = file(context, KEY_FILE);
         if (!file.exists()) return null;
+        byte[] all = read(file);
+        SecretKey secret = secret(false);
+        if (secret == null || all.length <= IV_BYTES) {
+            file.delete();
+            return null;
+        }
         try {
-            byte[] all = Files.readAllBytes(file.toPath());
-            SecretKey secret = secret(false);
-            if (secret == null || all.length <= IV_BYTES) throw new GeneralSecurityException();
             Cipher cipher = Cipher.getInstance(CIPHER);
             cipher.init(Cipher.DECRYPT_MODE, secret, new GCMParameterSpec(TAG_BITS, all, 0, IV_BYTES));
             return new String(cipher.doFinal(all, IV_BYTES, all.length - IV_BYTES), StandardCharsets.UTF_8);
-        } catch (GeneralSecurityException | IOException | RuntimeException e) {
+        } catch (AEADBadTagException | KeyPermanentlyInvalidatedException e) {
             file.delete();
             return null;
         }
@@ -103,7 +122,7 @@ final class ProfileStore {
     static String loadProfile(Context context) {
         try {
             File file = file(context, PROFILE_FILE);
-            return file.exists() ? new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8) : null;
+            return file.exists() ? new String(read(file), StandardCharsets.UTF_8) : null;
         } catch (IOException e) {
             return null;
         }

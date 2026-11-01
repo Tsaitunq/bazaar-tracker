@@ -210,7 +210,11 @@ public class AlertsPlugin extends Plugin {
 
     @PluginMethod
     public void getApiKey(PluginCall call) {
-        call.resolve(new JSObject().put("key", ProfileStore.getKey(getContext())));
+        try {
+            call.resolve(new JSObject().put("key", ProfileStore.getKey(getContext())));
+        } catch (GeneralSecurityException | IOException | RuntimeException e) {
+            call.reject("could not read the key");
+        }
     }
 
     @PluginMethod
