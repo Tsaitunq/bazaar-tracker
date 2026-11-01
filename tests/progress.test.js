@@ -439,3 +439,38 @@ test('part of a later step is enough for the earlier ones, and Divan checks the 
   const html = drawSlots('DIVAN');
   for (const key of ['Drill|555', 'Drill|655', 'Drill|Divan']) assert.match(rowOf(html, key), /" checked>[\s\S]*data-src="api"/);
 });
+
+const lockGuide = { title: 'L', sections: [{ name: 'S', steps: [{ text: 'Drill', items: [{ id: 'D', qty: 1 }] }, { text: 'Free', items: [{ id: 'F', qty: 1 }] }, { text: 'Later', items: [{ id: 'U', qty: 1 }] }] }] };
+const lockItems = { D: { requirements: [{ type: 'HEART_OF_THE_MOUNTAIN', tier: 7 }] }, U: { requirements: [{ type: 'GARDEN_LEVEL', level: 1 }] } };
+const lockProfile = { items: [], pets: [], hotm: { experience: 97000 }, skills: {}, slayer: {}, kuudra: {}, collTiers: [] };
+const lockView = (over = {}) => progressView({ guides: [{ id: 'l', ...lockGuide }], current: 'l', checked: new Set(), products: {}, name: (x) => x, prices: { items: lockItems }, profile: lockProfile, ...over });
+
+test('a locked step shows a badge with its reason and stays checkable', () => {
+  const row = rowOf(lockView(), 'S|Drill');
+  assert.match(row, /data-src="locked"/);
+  assert.match(row, /HOTM 7 needed, you have 5/);
+  assert.ok(!/disabled/.test(row));
+});
+
+test('Next upgrades marks a locked step and leaves order and totals unchanged', () => {
+  const texts = (html) => [...html.matchAll(/guide-text">([^<]+)/g)].map((m) => m[1]);
+  const locked = lockView({ mode: 'next' });
+  const plain = lockView({ mode: 'next', prices: {} });
+  assert.deepEqual(texts(locked), texts(plain));
+  assert.equal(locked.match(/<h2>[^<]+/)[0], plain.match(/<h2>[^<]+/)[0]);
+  assert.match(rowOf(locked, 'S|Drill'), /data-src="locked"/);
+});
+
+test('an unknown or met step shows no lock, and neither does a done one', () => {
+  assert.ok(!/data-src="locked"/.test(rowOf(lockView(), 'S|Later')));
+  assert.ok(!/data-src="locked"/.test(rowOf(lockView(), 'S|Free')));
+  assert.ok(!/data-src="locked"/.test(lockView({ prices: {} })));
+  assert.ok(!/data-src="locked"/.test(lockView({ profile: null })));
+  assert.ok(!/data-src="locked"/.test(rowOf(lockView({ checked: new Set(['S|Drill']) }), 'S|Drill')));
+});
+
+test('a reason with HTML is escaped', () => {
+  const items = { D: { requirements: [{ type: 'COLLECTION', collection: '<b>x', tier: 1 }] } };
+  const html = lockView({ prices: { items } });
+  assert.ok(!html.includes('<b>'));
+});

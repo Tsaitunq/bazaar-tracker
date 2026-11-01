@@ -4,7 +4,7 @@ import { craftFlips, craftHints, CRAFT_RUNS } from './craft.js';
 import { forgeFlips, forgeFlip } from './forge.js';
 import { minionRows, minionDetail, FUELS, UPGRADES, MAX_TIER } from './minions.js';
 import { loadItems, fallbackName } from './names.js';
-import { loadStats, loadRecipes, loadForge, loadAh, loadElection, loadTiming, loadWindows, loadHistory, freshBins, fetchBins } from './data.js';
+import { loadItemData, loadStats, loadRecipes, loadForge, loadAh, loadElection, loadTiming, loadWindows, loadHistory, freshBins, fetchBins } from './data.js';
 import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission, loadHeld, storeHeld, canSync, getApiKey, setApiKey, loadProfile, saveProfile, clearProfileData } from './native.js';
 import { esc, PERSONAL, flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, trendsView, todayView, windowBanners, minionCard, minionSheet, parseRoute, detailView, portfolioView, warningsView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, viewsFor, areaOf, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
@@ -708,11 +708,20 @@ function markStep(guide, key, on) {
   undoKey = on && guideMode === 'next' ? key : null;
   if (undoKey) undoTimer = setTimeout(() => { undoKey = null; if (area() === PERSONAL) renderProgress(); }, UNDO_MS);
 }
+// Game data of all items, large, so only asked once a guide is on screen. Until then requirements are unknown.
+let itemData = null;
+let itemDataAsked = false;
+function askItemData() {
+  if (itemDataAsked) return;
+  itemDataAsked = true;
+  loadItemData().then((r) => { itemData = r; if (r && area() === PERSONAL) renderProgress(); });
+}
 function renderProgress() {
   const guide = currentGuide();
   if (!guide) { $('progress').innerHTML = '<p class="count muted">Loading…</p>'; return; }
+  askItemData();
   const wants = new Set();
-  $('progress').innerHTML = progressView({ guides: guides(), current: guide.id, checked: checksOf(guide.id), products, prices: { forge, ah, cofl: freshBins(bins), wants }, name: nameOf, open: guideOpen[guide.id] ?? null, armed: resetArmed, removable: imported.some((g) => g.id === guide.id), mode: guideMode, recent: guideRecent[guide.id] ?? [], undo: undoKey, syncBar: canSync() ? syncView(profileState, Date.now(), esc, syncNote) : '', profile: profileState?.summary ?? null, autoOpen: guideAutoOpen });
+  $('progress').innerHTML = progressView({ guides: guides(), current: guide.id, checked: checksOf(guide.id), products, prices: { forge, ah, cofl: freshBins(bins), wants, items: itemData }, name: nameOf, open: guideOpen[guide.id] ?? null, armed: resetArmed, removable: imported.some((g) => g.id === guide.id), mode: guideMode, recent: guideRecent[guide.id] ?? [], undo: undoKey, syncBar: canSync() ? syncView(profileState, Date.now(), esc, syncNote) : '', profile: profileState?.summary ?? null, autoOpen: guideAutoOpen });
   askBins(wants);
 }
 $('progress').addEventListener('change', (e) => {
