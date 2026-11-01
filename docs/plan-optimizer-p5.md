@@ -54,6 +54,11 @@ Freigegeben am 2026-11-01: A1, A3 bis A12 wie geschrieben, A2 in der unten stehe
 - **A12, Zahlenformat:** `+1.2 % yield · 0.4 %/1M` mit Punkt, wie der Rest der englischen App. Die Spec schreibt Komma.
 - **Aus dem Umfang:** Blaze-Rangliste (Paket 6), manueller Loadout-Override. Blaze-Guide bekommt kein `area` und daher keinen Modus.
 
+**Bei der Umsetzung entschieden:**
+
+- Ohne gewählten Blaze-Slot zählt kein Teil als "im anderen Bereich verwendet". Beide Bereiche fielen sonst auf das Getragene zurück, und kein Stück brächte je einen Wiederverkauf.
+- `area: "mining"` steht direkt in `personal/guides/mining.json`. `personal/build-detect.mjs` lässt das Feld bei einem neuen Lauf stehen und bleibt daher unverändert.
+
 ## Review Focus
 
 1. Eine Linie aus Büchern: Die Vorausschau darf Zwischenstufen nicht doppelt zählen, denn der Preis der letzten Stufe enthält sie (Test in Task 4).

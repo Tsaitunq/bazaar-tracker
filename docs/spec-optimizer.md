@@ -249,7 +249,7 @@ Nur der Stand aus 2.3 für das eigene Mitglied plus Pets, MP, HOTM-Knoten, Colle
 - Anzeige je Stat: berechnet, in-game, Abweichung absolut und in Prozent. Ab 5 % gelb markiert.
 - **Wenn ein In-Game-Wert eingetragen ist, gilt er als Basis der Bewertung**, weil Potions und Mayor im Spiel enthalten sind. Veraltet er (älter als der letzte Sync), erscheint ein Hinweis.
 - Hinweis im Formular: Messung mit dem Setup, mit dem tatsächlich gespielt wird.
-- **Ausgleichswert (Plan für Paket 5, noch nicht gebaut):** Beim Speichern einer Messung wird je Stat `offset = inGame − berechnet` mit diesem Setup festgehalten, im selben `statsInput`. Er fasst zusammen, was die App nicht lesen kann (Potions, Mayor, Essence-Perks, Set-Boni). Die Bewertung rechnet dann mit `Basis = berechnet(aktuelles Loadout) + offset`, statt den In-Game-Wert fest zu übernehmen. So bleibt die Basis stimmig, wenn sich nach der Messung Gear ändert, und der Fehler landet nicht im Delta.
+- **Ausgleichswert (Paket 5):** Beim Speichern einer Messung wird je Stat `offset = inGame − berechnet` mit diesem Setup festgehalten, im selben `statsInput`. Er fasst zusammen, was die App nicht lesen kann (Potions, Mayor, Essence-Perks, Set-Boni). Die Bewertung rechnet dann mit `Basis = berechnet(aktuelles Loadout) + offset`, statt den In-Game-Wert fest zu übernehmen. So bleibt die Basis stimmig, wenn sich nach der Messung Gear ändert, und der Fehler landet nicht im Delta.
   - Ein gemessener Wert am Spielmaximum (Attack Speed 100) gibt keinen Offset, weil der echte Wert darüber liegen kann.
   - Ein Offset ist nur mit seinem Setup belegt: Wechselt Wardrobe-Slot, Equipment-Slot oder Pet, erscheint der Hinweis, neu zu messen.
   - **Boost kommt nicht in den Ausgleichswert.** God Potion und Booster Cookie sind berechnete Quellen, geschaltet über dauerhafte Einstellungen. Der Offset gilt nur, wenn die Einstellungen beim Speichern zur Messung passen (Häkchen je Messung); sonst erscheint ein Hinweis und es entsteht kein Offset.
@@ -285,7 +285,7 @@ score = wF × ΔF / (100 + F)
 | Mithril | 500 [Doku] | 1 / 1 / 0 | 3334 |
 | Glacite | 6000 [Doku] | 1 / 1 / 0 | 40000 |
 
-**Prüfpflicht Pristine:** Der Pristine-Term dominiert die Rangliste (siehe Beispiel). Der Faktor 79/100 stammt aus dem Wikitext der Seite "Pristine" [Doku]. Paket 4 und 5 prüfen vor der ersten Rangliste Formel und Faktor erneut gegen das Wiki, auch das Zusammenspiel mit der Angabe "+1 % Chance auf Flawed je Pristine" und ob Fortune auf beide Drops wirkt. Ein Test hält die Werte fest. Geprüft am 2026-11-01 gegen Revision `oldid=866262`: Formel und Faktor stimmen, Fortune wirkt auf beide Drops, ein Zahlenbeispiel hat das Wiki nicht (`docs/plan-optimizer-p3-4.md`).
+**Prüfpflicht Pristine:** Der Pristine-Term dominiert die Rangliste (siehe Beispiel). Der Faktor 79/100 stammt aus dem Wikitext der Seite "Pristine" [Doku]. Paket 4 und 5 prüfen vor der ersten Rangliste Formel und Faktor erneut gegen das Wiki, auch das Zusammenspiel mit der Angabe "+1 % Chance auf Flawed je Pristine" und ob Fortune auf beide Drops wirkt. Ein Test hält die Werte fest. Geprüft am 2026-11-01 gegen Revision `oldid=866262`: Formel und Faktor stimmen, Fortune wirkt auf beide Drops, ein Zahlenbeispiel hat das Wiki nicht (`docs/plan-optimizer-p3-4.md`). Paket 5 hat das am selben Tag bestätigt. Gemstone Fortune zählt nur im Preset Gemstone; Ore-, Block- und Dwarven-Metal-Fortune zählen nicht, für Mithril und Glacite liest sich Fortune daher eher niedrig (`docs/plan-optimizer-p5.md`, A1).
 - Anzeige: `+1,2 % yield`, darunter die Rohwerte (`+10 Fortune, +40 Speed`), damit die Gewichtung nachvollziehbar bleibt.
 
 Beispiel: Bei F=1000, S=6000, P=5 bringen +10 Fortune 0,9 %, +50 Speed 0,8 %, +1 Pristine 16 %. Pristine wird also zu Recht stark gewichtet; deshalb die Anzeige der Rohwerte und die anpassbaren Gewichte.
@@ -403,7 +403,9 @@ Delta-Berechnung pro Art:
 | Accessory, MP | ΔMP über den Multiplikator plus Lore-Stats |
 | Pet | Tabelle |
 
-Quellenregel aus `CLAUDE.md`: Wiki zuerst. Was nur aus NEU stammt, trägt in `optimizer-data.json` den Vermerk `"src": "not confirmed"`. Die Daten sind Spieldaten und damit unkritisch für das Repo.
+Stand Paket 5 (`docs/plan-optimizer-p5.md`, A2): Drei Ergebnisse je Schritt: ein Delta, `{}` (belegt kein Stat von uns, Gruppe "No mining gain") oder `null` (kein fester Wert, Gruppe "No gain data"). Die Daten liegen in `optimizer-data.js`, zusätzlich zu dieser Tabelle mit Drill-Teilen, Polarvoid und Powder Coating. Ein ΔMP gibt es erst mit Paket 6, weil keine Power Mining-Stats gibt.
+
+Quellenregel aus `CLAUDE.md`: Wiki zuerst. Was nur aus NEU stammt, trägt in `optimizer-data.js` den Vermerk `src: 'not confirmed'`. Die Daten sind Spieldaten und damit unkritisch für das Repo.
 
 ### 5.5 Neuberechnung
 
@@ -428,7 +430,7 @@ netto = Preis des Schritts − Wiederverkauf des abgelösten Teils
 ```
 
 - **Abgelöstes Teil:** das Item, das im Loadout des Bereichs denselben Slot belegt, nur wenn es wirklich im Besitz ist. Ohne Sync gibt es kein abgelöstes Teil, also Bruttopreis.
-- **Wiederverkauf:** Bazaar-Verkaufspreis, sonst AH-BIN abzüglich AH-Steuer. Nur der Basispreis des Items: Reforge, Gems und Enchants zählen nicht, weil sie laut 5.4 als übertragbar gelten. Die Schätzung ist damit eher vorsichtig.
+- **Wiederverkauf:** Bazaar-Verkaufspreis abzüglich Bazaar-Steuer, sonst AH-BIN abzüglich AH-Steuer. Nur der Basispreis des Items: Reforge, Gems und Enchants zählen nicht, weil sie laut 5.4 als übertragbar gelten. Die Schätzung ist damit eher vorsichtig.
 - **Kein Wiederverkauf (0):** Item nicht handelbar (`nt`, Soulbound), ohne Preis, oder im Loadout des anderen Bereichs noch verwendet.
 - **Keine Doppelzählung:** Verbraucht das Rezept das alte Teil (Forge-Zutat, Crimson-Stufe per `prestige`), zählt kein Wiederverkauf.
 - **Netto ≤ 0:** Der Schritt gilt als kostenlos mit Zugewinn. Die Rangliste rechnet nie mit negativen Kosten.
