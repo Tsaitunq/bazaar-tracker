@@ -36,7 +36,8 @@ export function readItem(raw, where, slot = null) {
   const parts = Object.fromEntries(['engine', 'fuel_tank', 'upgrade_module'].filter((p) => e[`drill_part_${p}`]).map((p) => [p, e[`drill_part_${p}`]]));
   return {
     id: e.id, slot, where, reforge: e.modifier ?? null, enchants: e.enchantments ?? {}, gems: readGems(e.gems),
-    recomb: e.rarity_upgrades > 0, stars: e.upgrade_level ?? e.dungeon_item_level ?? 0, parts, lore: parseLore(raw.tag.display?.Lore),
+    recomb: e.rarity_upgrades > 0, stars: e.upgrade_level ?? e.dungeon_item_level ?? 0, parts, polarvoid: e.polarvoid ?? 0, coating: !!e.divan_powder_coating,
+    scrolls: [...(e.ability_scroll ?? []), ...(e.power_ability_scroll ? [e.power_ability_scroll] : [])], lore: parseLore(raw.tag.display?.Lore),
   };
 }
 
@@ -108,6 +109,10 @@ export async function summarize(member, previous = null) {
     skills: member.player_data?.experience ?? null,
     slayer: Object.fromEntries(Object.entries(member.slayer?.slayer_bosses ?? {}).map(([boss, s]) => [boss, s.xp ?? 0])),
     kuudra: member.nether_island_player_data?.kuudra_completed_tiers ?? null,
+    attrs: member.attributes?.stacks ? numbers(member.attributes.stacks) : null,
+    powers: bag.unlocked_powers ?? null,
+    // tiers are unlocked for the whole coop, the member's own collection counts are not
+    collTiers: member.player_data?.unlocked_coll_tiers ?? null,
     missing,
   };
 }
