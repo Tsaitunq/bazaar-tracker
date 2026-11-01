@@ -106,6 +106,7 @@ export function refreshRecipes(dataDir, bazaarIds, nowMs) {
     fs.mkdirSync(dataDir, { recursive: true });
     fs.writeFileSync(path.join(dataDir, 'recipes.json'), JSON.stringify({ t: nowMs, r }));
     fs.writeFileSync(path.join(dataDir, 'forge.json'), JSON.stringify({ t: nowMs, r: forge }));
+    fs.writeFileSync(path.join(dataDir, 'parents.json'), JSON.stringify({ t: nowMs, r: JSON.parse(fs.readFileSync(path.join(tmp, 'constants', 'parents.json'), 'utf8')) }));
     return { recipes: r, forge };
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });

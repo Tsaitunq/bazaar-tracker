@@ -37,6 +37,14 @@ test('copyWeb takes private guides along with an index, and needs none', () => {
     assert.deepEqual(JSON.parse(fs.readFileSync(path.join(out, 'personal', 'guides', 'index.json'))), ['g.json']);
     assert.ok(fs.existsSync(path.join(out, 'personal', 'guides', 'g.json')));
     assert.ok(!fs.existsSync(path.join(out, 'personal', 'guides', 'note.txt')));
+    assert.ok(!fs.existsSync(path.join(out, 'personal', 'items.json')));
+    fs.writeFileSync(path.join(root, 'personal', 'items.json'), '{}');
+    copyWeb(root, out);
+    assert.ok(fs.existsSync(path.join(out, 'personal', 'items.json')));
+    assert.ok(!fs.existsSync(path.join(out, 'personal', 'stats-preset.json')));
+    fs.writeFileSync(path.join(root, 'personal', 'stats-preset.json'), '{}');
+    copyWeb(root, out);
+    assert.ok(fs.existsSync(path.join(out, 'personal', 'stats-preset.json')));
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

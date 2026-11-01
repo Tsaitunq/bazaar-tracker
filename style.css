@@ -516,6 +516,13 @@ html.sheet-open, html.sheet-open body, html:has(dialog:modal), html:has(dialog:m
 .guide-src { display: inline-block; margin-left: 4px; padding: 0 6px; border: 1px solid var(--line); border-radius: 999px; font-size: 11px; color: var(--muted); }
 .guide-src[data-src="nt"] { border-style: dashed; }
 .guide-src[data-src="api"] { border-color: var(--accent); }
+.guide-src[data-src="locked"] { border-color: var(--loss); }
+.stats-area { display: grid; gap: 6px; margin-top: 12px; }
+.stats-area small { display: block; }
+.stats-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.stats-table th, .stats-table td { padding: 2px 4px 2px 0; text-align: left; font-weight: normal; }
+.stats-flag td, .stats-flag th, .stats-stale { color: var(--warn); }
+.stats-gaps { margin: 0; padding-left: 16px; font-size: 12px; color: var(--muted); }
 .guide-auto-undo { margin-left: 6px; padding: 0 8px; font-size: 11px; }
 .guide-way { display: block; color: var(--muted); }
 .guide-credit { margin: 8px 0 0; }

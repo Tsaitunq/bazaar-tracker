@@ -8,6 +8,7 @@ import { runSnapshot, runExtras, retry } from '../scripts/snapshot.mjs';
 import { restoreTiming, backupTiming } from '../scripts/timing-backup.mjs';
 import { itemIds, lowestBins, fetchLowestBins } from '../scripts/auctions.mjs';
 import { compactElection } from '../scripts/election.mjs';
+import { compactItems } from '../scripts/items.mjs';
 import { shardOf, dayKey } from '../history.js';
 import { skyTime } from '../events.js';
 
@@ -234,3 +235,43 @@ test('timing.json: backfilled runs are put in, an own run of the same start stay
   assert.equal(plain.length, 1);
   assert.equal(plain[0].src, undefined);
 }));
+
+test('compactItems keeps only the listed fields and folds stat names to upper case', () => {
+  const out = compactItems({ items: [{ id: 'A', name: 'a', npc_sell_price: 9, stats: { mining_fortune: 5 }, tiered_stats: { damage: [1, 2] }, museum_data: { parent: { x: 'B' }, donation_xp: 3 } }] }, {});
+  assert.deepEqual(out.A.stats, { MINING_FORTUNE: 5 });
+  assert.deepEqual(out.A.tiered_stats, { DAMAGE: [1, 2] });
+  assert.deepEqual(out.A.parent, { x: 'B' });
+  assert.equal(out.A.npc_sell_price, undefined);
+  assert.equal(out.A.id, undefined);
+});
+
+test('compactItems takes the accessory family from the parents list', () => {
+  const out = compactItems({ items: [{ id: 'LOW' }, { id: 'TOP' }, { id: 'OTHER' }] }, { TOP: ['LOW'] });
+  assert.equal(out.LOW.family, 'TOP');
+  assert.equal(out.TOP.family, 'TOP');
+  assert.equal(out.OTHER.family, undefined);
+});
+
+test('runExtras writes items.json once a day and a short answer keeps the old file', async (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bt-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  t.mock.method(console, 'error', () => {});
+  const many = Array.from({ length: 1000 }, (_, i) => ({ id: `I${i}` }));
+  const get = (items) => async (url) => (url.includes('resources/skyblock/items') ? { items } : election);
+  assert.ok((await runExtras(dir, new Set(), 1e12, get(many))).includes('items'));
+  assert.equal(Object.keys(readJson(dir, 'items.json').r).length, 1000);
+  // fresh: asked no second time
+  assert.ok(!(await runExtras(dir, new Set(), 1e12 + 1000, get(many))).includes('items'));
+  // stale, but the answer is too short to be real
+  assert.ok(!(await runExtras(dir, new Set(), 1e12 + 90000e3, get([{ id: 'ONE' }]))).includes('items'));
+  assert.equal(Object.keys(readJson(dir, 'items.json').r).length, 1000);
+});
+
+test('runExtras folds the families of parents.json into items.json', async (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bt-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(dir, 'parents.json'), JSON.stringify({ t: 1, r: { I1: ['I0'] } }));
+  const many = Array.from({ length: 1000 }, (_, i) => ({ id: `I${i}` }));
+  await runExtras(dir, new Set(), 1e12, async (url) => (url.includes('resources/skyblock/items') ? { items: many } : election));
+  assert.equal(readJson(dir, 'items.json').r.I0.family, 'I1');
+});

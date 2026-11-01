@@ -18,6 +18,12 @@ export const loadStats = () => fetchJson('stats.json').then((d) => d.i ?? null, 
 export const loadRecipes = () => fetchJson('recipes.json').then((d) => d.r ?? null, () => null);
 export const loadForge = () => fetchJson('forge.json').then((d) => d.r ?? null, () => null);
 // lowest BIN per forge result that is not on the bazaar; empty when there is none yet
+// game data of all items (scripts/items.mjs); null until the snapshot run has written it
+// A local build may carry its own copy (personal/items.json) for the time before that.
+const localItems = () => fetch('personal/items.json').then((res) => (res.ok ? res.json() : null));
+export const loadItemData = () => fetchJson('items.json').catch(localItems).then((d) => d?.r ?? null, () => null);
+// /stats values for a local build to start from, not in git
+export const loadStatsPreset = () => fetch('personal/stats-preset.json').then((res) => (res.ok ? res.json() : null), () => null).catch(() => null);
 export const loadAh = () => fetchJson('ah.json').then((d) => d.p ?? {}, () => ({}));
 export const loadElection = () => fetchJson('election.json').then((d) => (d?.mayor ? d : null), () => null);
 // runs per event and perk (timing.js); empty until the first one is recorded

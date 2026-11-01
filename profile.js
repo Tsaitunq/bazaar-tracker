@@ -49,9 +49,9 @@ function storages(member) {
     ...Object.values(inv.backpack_contents ?? {}).map((s) => ['backpack', s]),
     ['accessory', inv.bag_contents?.talisman_bag],
   ];
-  for (const sets of [member.loadout?.armor, member.loadout?.equipment]) {
-    for (const set of Object.values(sets ?? {})) {
-      for (const [slot, s] of Object.entries(set ?? {})) if (s?.data) list.push(['wardrobe', s, slot]);
+  for (const kind of ['armor', 'equipment']) {
+    for (const [n, set] of Object.entries(member.loadout?.[kind] ?? {})) {
+      for (const [slot, s] of Object.entries(set ?? {})) if (s?.data) list.push(['wardrobe', s, slot, `${kind}:${n}`]);
     }
   }
   return list.filter(([, s]) => s?.data);
@@ -60,11 +60,14 @@ function storages(member) {
 async function readItems(member) {
   const list = storages(member);
   const items = [];
-  const seen = new Set();
+  const seen = new Map();
+  // the slot of a worn set is empty in the wardrobe: what is worn belongs to it
+  const worn = { armor: member.loadout?.armor?.equipped_set, equipment: member.loadout?.equipment?.equipped_set };
   let readable = 0;
   let skipped = 0;
   // One broken inventory or item must not cost the others. They run one after the other, so the page stays responsive.
-  for (const [where, store, slot] of list) {
+  for (const [where, store, slot, wardrobeSet] of list) {
+    const set = wardrobeSet ?? (where in worn && worn[where] ? `${where}:${worn[where]}` : null);
     let slots;
     try {
       slots = await decodeInventory(store.data);
@@ -77,8 +80,13 @@ async function readItems(member) {
       try {
         const item = readItem(raw, where, slot ?? null);
         const uuid = raw.tag?.ExtraAttributes?.uuid;
-        if (!item || (uuid && seen.has(uuid))) continue;
-        if (uuid) seen.add(uuid);
+        if (!item) continue;
+        // the same item in two places is one item, and it stays in each set
+        const known = uuid && seen.get(uuid);
+        const kept = known || item;
+        if (set) kept.sets = [...new Set([...(kept.sets ?? []), set])];
+        if (known) continue;
+        if (uuid) seen.set(uuid, item);
         items.push(item);
       } catch {
         skipped++;
@@ -88,6 +96,16 @@ async function readItems(member) {
   // Nothing readable at all replaces no stored items: the run fails and the last stand stays.
   if (list.length && !readable) throw new Error('No inventory could be read');
   return { items, skipped };
+}
+
+// Which wardrobe and equipment slots hold anything, by index. Names of loadouts stay out.
+function wardrobeOf(loadout) {
+  if (!loadout?.armor && !loadout?.equipment) return null;
+  const read = (group) => ({
+    equipped: group?.equipped_set ?? null,
+    sets: [...new Set([...Object.entries(group ?? {}).filter(([, set]) => Object.values(set ?? {}).some((s) => s?.data)).map(([n]) => Number(n)), ...(group?.equipped_set ? [group.equipped_set] : [])])].sort((a, b) => a - b),
+  });
+  return { armor: read(loadout.armor), equipment: read(loadout.equipment) };
 }
 
 const numbers = (o) => Object.fromEntries(Object.entries(o ?? {}).filter(([, v]) => typeof v === 'number'));
@@ -100,6 +118,9 @@ export async function summarize(member, previous = null) {
   return {
     items,
     skipped,
+    wardrobe: missing.inventory ? previous?.wardrobe ?? null : wardrobeOf(member.loadout),
+    farmingCap: member.jacobs_contest?.perks?.farming_level_cap ?? 0,
+    skyblockXp: member.leveling?.experience ?? null,
     pets: (member.pets_data?.pets ?? []).map(({ type, exp, tier, active, heldItem }) => ({ type, exp, tier, active, heldItem })),
     mp: bag.highest_magical_power ?? null,
     selectedPower: bag.selected_power ?? null,

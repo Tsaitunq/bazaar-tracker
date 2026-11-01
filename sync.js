@@ -90,7 +90,7 @@ export function createSync({ store, get = fetch, now = Date.now, summarize }) {
     } catch {
       return fail('format');
     }
-    const next = { uuid: state.uuid, profileId: profile.profile_id, profileName: profile.cute_name, syncedAt: now(), summary };
+    const next = { uuid: state.uuid, profileId: profile.profile_id, profileName: profile.cute_name, syncedAt: now(), summary, ...(state.statsInput && profile.profile_id === state.profileId && { statsInput: state.statsInput }) };
     if (token !== generation) return { status: 'stale' };
     if (!await store.saveProfile(next)) return fail('store');
     return { status: 'ok', state: next };

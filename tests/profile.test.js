@@ -10,6 +10,10 @@ test('parseLore takes the first number and strips colours', () => {
   assert.deepEqual(parseLore(['§7Mining Speed: §a+1,234 §9(+20)', '§7Pristine: §a+2.5', '§7Unrelated text', '§7Crit Damage: §c+60% §9(+20%) §9(+5%)', '§7Attack Speed: §a+10%', '§7Health: §c-5']), { MINING_SPEED: 1234, PRISTINE: 2.5, CRITICAL_DAMAGE: 60, ATTACK_SPEED: 10, HEALTH: -5 });
 });
 
+test('parseLore keeps the first number when a bracket is larger than it', () => {
+  assert.deepEqual(parseLore(['§7Health: §a+316.5 §e(+60) §9(+7) §8(+1,141.56)']), { HEALTH: 316.5 });
+});
+
 test('parseLore ignores lines without a stat name or a number', () => {
   assert.deepEqual(parseLore(['constructor: +1', 'toString: +2', 'Damage: +,', 'Strength: none', 'Health: +5']), { HEALTH: 5 });
 });
@@ -129,4 +133,37 @@ test('nothing readable at all rejects', async () => {
   await assert.rejects(summarize({ inventory: { inv_armor: { data: 'bm90Z3ppcA==' } } }));
   // an inventory without slots is readable, just empty
   assert.deepEqual((await summarize({ inventory: { inv_armor: { data: gzipBase64(encodeNbt({ i: tag.list([]) })) } } })).items, []);
+});
+
+test('items know their wardrobe set, and what is worn belongs to the equipped one', async () => {
+  const shared = slot('SHARED', { uuid: 'one' });
+  const m = {
+    inventory: { inv_armor: store(slot('WORN')), equipment_contents: store(slot('WORN_NECK')) },
+    loadout: {
+      armor: { 1: { id: 1, HELMET: store(shared), BOOTS: store(slot('ONLY_ONE')) }, 3: { id: 3, HELMET: store(shared) }, 2: { id: 2 }, 5: { id: 5 }, equipped_set: 2 },
+      equipment: { 4: { id: 4, EQUIPMENT_SLOT_1: store(slot('NECK')) }, equipped_set: 7 },
+    },
+  };
+  const out = await summarize(m);
+  const sets = Object.fromEntries(out.items.map((i) => [i.id, i.sets]));
+  assert.deepEqual(sets.WORN, ['armor:2']);
+  assert.deepEqual(sets.WORN_NECK, ['equipment:7']);
+  assert.deepEqual(sets.SHARED, ['armor:1', 'armor:3']);
+  assert.deepEqual(sets.ONLY_ONE, ['armor:1']);
+  assert.deepEqual(sets.NECK, ['equipment:4']);
+  assert.equal(out.items.filter((i) => i.id === 'SHARED').length, 1);
+  assert.deepEqual(out.wardrobe, { armor: { equipped: 2, sets: [1, 2, 3] }, equipment: { equipped: 7, sets: [4, 7] } });
+});
+
+test('no loadout gives no wardrobe, and the farming cap is read', async () => {
+  const out = await summarize({ inventory: {}, jacobs_contest: { perks: { farming_level_cap: 3 } } });
+  assert.equal(out.wardrobe, null);
+  assert.equal(out.farmingCap, 3);
+  assert.equal(out.skyblockXp, null);
+  assert.equal((await summarize({ leveling: { experience: 25341 } })).skyblockXp, 25341);
+});
+
+test('inventory off keeps the wardrobe of the last sync', async () => {
+  const out = await summarize({}, { items: [], wardrobe: { armor: { equipped: 1, sets: [1] }, equipment: { equipped: 1, sets: [1] } } });
+  assert.equal(out.wardrobe.armor.equipped, 1);
 });

@@ -4,6 +4,7 @@
 import { esc, coins } from './render.js';
 import { walkBook } from './craft.js';
 import { detectGuide, validDetect, validGroups } from './detect.js';
+import { checkStep } from './requires.js';
 
 const INDEX = 'personal/guides/index.json';
 const text = (v) => (typeof v === 'string' && v.trim() ? v : null);
@@ -330,6 +331,12 @@ function apiBadge(key, checked, ctx) {
   return checked.has(key) && !ctx.marks?.has(key) ? `${api}<button type="button" class="guide-auto-undo" data-guide-undo="${esc(key)}" aria-label="Undo the API check">Undo</button>` : '';
 }
 
+// Only proof locks a step; a done step has nothing left to unlock. It stays checkable, the game may know better.
+function lockBadge(step, ctx) {
+  const { status, reasons } = checkStep(step, ctx.items, ctx.profile);
+  return status === 'locked' ? `<span class="guide-src" data-src="locked">locked</span><small class="guide-hint">${esc(reasons.join(' · '))}</small>` : '';
+}
+
 const stepRow = (section, step, checked, ctx, name, extra = '') => {
   const key = stepKey(section, step);
   const shown = checked.has(key) ? step : openStep(section, step, ctx);
@@ -337,7 +344,7 @@ const stepRow = (section, step, checked, ctx, name, extra = '') => {
   const itemCtx = checked.has(key) ? { ...ctx, wants: null } : ctx;
   return `<li class="guide-step"><label>
     <input type="checkbox" data-step="${esc(key)}"${checked.has(key) ? ' checked' : ''}>
-    <span><span class="guide-text">${esc(step.text)}</span>${step.table ? '<span class="guide-src" data-src="table">table</span>' : ''}${apiBadge(key, checked, ctx)}${extra}${(shown.items ?? []).map((i) => itemLine(i, itemCtx, name)).join('')}${step.hint ? `<small class="guide-hint">${esc(step.hint)}</small>` : ''}</span>
+    <span><span class="guide-text">${esc(step.text)}</span>${step.table ? '<span class="guide-src" data-src="table">table</span>' : ''}${apiBadge(key, checked, ctx)}${checked.has(key) ? '' : lockBadge(step, ctx)}${extra}${(shown.items ?? []).map((i) => itemLine(i, itemCtx, name)).join('')}${step.hint ? `<small class="guide-hint">${esc(step.hint)}</small>` : ''}</span>
   </label></li>`;
 };
 

@@ -189,7 +189,7 @@ Normalform in `profile.js`:
 
 ### 2.4 Lore-Parser
 
-Pro Lore-Zeile wird nach Entfernen der `§`-Farbcodes geprüft: `Name: +1,234`, auch mit `%`, dahinter bis zu drei Klammern `(+x)` [geprüft: Format]. Nur die erste Zahl zählt, die Liste bekannter Stat-Namen ist fest, Unbekanntes wird ignoriert. Dass die erste Zahl der Gesamtwert ist, passt zu 103 von 115 geprüften Zeilen (erste Zahl mindestens so groß wie die Summe der Klammern). Die übrigen 12 sind ungeklärt; der `/stats`-Abgleich in Paket 4 muss das zeigen.
+Pro Lore-Zeile wird nach Entfernen der `§`-Farbcodes geprüft: `Name: +1,234`, auch mit `%`, dahinter bis zu drei Klammern `(+x)` [geprüft: Format]. Nur die erste Zahl zählt, die Liste bekannter Stat-Namen ist fest, Unbekanntes wird ignoriert. Dass die erste Zahl der Gesamtwert ist, passt zu 103 von 115 geprüften Zeilen (erste Zahl mindestens so groß wie die Summe der Klammern). Stand Paket 4 (Rüstung und Equipment am Fixture): Bei 46 Zeilen steht am Ende eine viel größere Klammer, vermutlich der Wert im Dungeon [nicht bestätigt]. Bei 70 Zeilen ist die erste Zahl genau Basis plus Klammern, bei 71 geht die Rechnung nicht auf. Die erste Zahl bleibt der Gesamtwert, belegt ist das aber nicht für jede Zeile.
 
 ### 2.5 Loadouts: das Wardrobe-Problem
 
@@ -224,11 +224,17 @@ Nur der Stand aus 2.3 für das eigene Mitglied plus Pets, MP, HOTM-Knoten, Colle
 | Accessories | alle | Lore, doppelte Familien nur einmal | automatisch; Familien aus NEU `parents.json` [nicht bestätigt] |
 | Power Stone und Tuning | Strength, Crit Damage usw. | `selected_power`, `tuning`, Multiplikator `29.97 × ln(0.0019 × MP + 1)^1.2` [Doku Wiki]; Grundwerte je Stone manuell | teilweise |
 | Pet | Stats, Fähigkeiten, Held Item | Stufe aus `exp`; Werte aus Wiki, sonst NEU `pets.json` [nicht bestätigt] | teilweise |
-| HOTM-Perks | Mining Speed `Stufe × 20`, Mining Fortune `Stufe × 2`, Pristine `Stufe × 0,1` [Doku Wiki] | `skill_tree` | automatisch für diese drei; weitere Perks über manuelle Tabelle |
+| HOTM-Perks | `mining_speed` ×20, `speedy_mineman` ×40, `mining_fortune` ×2, `fortunate_mineman` ×3, `gem_lover` 20 + ×4, `mining_master` Pristine ×0,1 [Doku Wiki; Schlüssel aus Perk-Namen, nur drei am Profil gesehen]. Core of the Mountain gibt keinen dieser Stats. Bedingte Perks stehen in `gaps` | `skill_tree.nodes.mining` (`mining_core.nodes` gibt es nicht) | automatisch |
 | Skills | Mining 4 Fortune je Stufe [Doku Wiki], Combat/Foraging etc. | `player_data.experience` plus `/resources/skyblock/skills` | automatisch |
 | Collections | Mining Fortune bei Glacite, Tungsten, Umber, Obsidian [Doku Wiki] | `collection` | automatisch |
+| SkyBlock-Level | +5 Health je Level, +1 Strength je 5 Level [Doku Wiki] | `leveling.experience` | automatisch |
+| Slayer | Belohnungen je Stufe [Doku Wiki, Seiten der einzelnen Slayer] | `slayer.slayer_bosses` | automatisch |
 | Basiswerte | z. B. Crit Chance 30 [Doku Wiki], Health | Tabelle | automatisch |
-| Potions, Mayor, Cake, Events, Booster, Fairy Souls, Museum | diverse | nicht zuverlässig lesbar | über Abgleich (3.4) |
+| Shards | nur Attribute ohne Bedingung; Bedingte stehen in `gaps` [Doku Wiki, Attributes; Schlüssel aus NEU nicht bestätigt] | `attributes.stacks`, Stufe aus Anzahl und Rarity | automatisch |
+| Essence-Perks | diverse | `player_data.perks`; noch keine Tabelle | über Abgleich (3.4) |
+| God Potion, Booster Cookie | God Potion: Strength 95, Crit Chance 25, Crit Damage 80, Defense 60, True Defense 20, Health 100, Mining Speed 200, Mining Fortune 25. Booster Cookie: keiner unserer Stats [Doku Wiki: Potions, God Potion, Jerry Candy, Booster Cookie] | Einstellung in Settings | per Einstellung |
+| Andere Potions, Mayor, Cake, Events, Museum | diverse | nicht zuverlässig lesbar | über Abgleich (3.4) |
+| Fairy Souls | keine Stats mehr [Doku Wiki: seit 0.15 nur SkyBlock XP] | entfällt | entfällt |
 
 `/resources/skyblock/items` ist die Quelle für Upgrades auf ein noch nicht besessenes Item, denn dafür gibt es keine Lore. Die Stat-Namen dort sind teils groß, teils klein geschrieben (`MINING_FORTUNE` und `mining_fortune`) [geprüft]; Normalisierung ist Teil von `profile.js`.
 
@@ -243,6 +249,10 @@ Nur der Stand aus 2.3 für das eigene Mitglied plus Pets, MP, HOTM-Knoten, Colle
 - Anzeige je Stat: berechnet, in-game, Abweichung absolut und in Prozent. Ab 5 % gelb markiert.
 - **Wenn ein In-Game-Wert eingetragen ist, gilt er als Basis der Bewertung**, weil Potions und Mayor im Spiel enthalten sind. Veraltet er (älter als der letzte Sync), erscheint ein Hinweis.
 - Hinweis im Formular: Messung mit dem Setup, mit dem tatsächlich gespielt wird.
+- **Ausgleichswert (Plan für Paket 5, noch nicht gebaut):** Beim Speichern einer Messung wird je Stat `offset = inGame − berechnet` mit diesem Setup festgehalten, im selben `statsInput`. Er fasst zusammen, was die App nicht lesen kann (Potions, Mayor, Essence-Perks, Set-Boni). Die Bewertung rechnet dann mit `Basis = berechnet(aktuelles Loadout) + offset`, statt den In-Game-Wert fest zu übernehmen. So bleibt die Basis stimmig, wenn sich nach der Messung Gear ändert, und der Fehler landet nicht im Delta.
+  - Ein gemessener Wert am Spielmaximum (Attack Speed 100) gibt keinen Offset, weil der echte Wert darüber liegen kann.
+  - Ein Offset ist nur mit seinem Setup belegt: Wechselt Wardrobe-Slot, Equipment-Slot oder Pet, erscheint der Hinweis, neu zu messen.
+  - **Boost kommt nicht in den Ausgleichswert.** God Potion und Booster Cookie sind berechnete Quellen, geschaltet über dauerhafte Einstellungen. Der Offset gilt nur, wenn die Einstellungen beim Speichern zur Messung passen (Häkchen je Messung); sonst erscheint ein Hinweis und es entsteht kein Offset.
 
 ## 4. Bewertung
 
@@ -275,7 +285,7 @@ score = wF × ΔF / (100 + F)
 | Mithril | 500 [Doku] | 1 / 1 / 0 | 3334 |
 | Glacite | 6000 [Doku] | 1 / 1 / 0 | 40000 |
 
-**Prüfpflicht Pristine:** Der Pristine-Term dominiert die Rangliste (siehe Beispiel). Der Faktor 79/100 stammt aus dem Wikitext der Seite "Pristine" [Doku]. Paket 4 und 5 prüfen vor der ersten Rangliste Formel und Faktor erneut gegen das Wiki, auch das Zusammenspiel mit der Angabe "+1 % Chance auf Flawed je Pristine" und ob Fortune auf beide Drops wirkt. Ein Test hält das Wiki-Rechenbeispiel fest.
+**Prüfpflicht Pristine:** Der Pristine-Term dominiert die Rangliste (siehe Beispiel). Der Faktor 79/100 stammt aus dem Wikitext der Seite "Pristine" [Doku]. Paket 4 und 5 prüfen vor der ersten Rangliste Formel und Faktor erneut gegen das Wiki, auch das Zusammenspiel mit der Angabe "+1 % Chance auf Flawed je Pristine" und ob Fortune auf beide Drops wirkt. Ein Test hält die Werte fest. Geprüft am 2026-11-01 gegen Revision `oldid=866262`: Formel und Faktor stimmen, Fortune wirkt auf beide Drops, ein Zahlenbeispiel hat das Wiki nicht (`docs/plan-optimizer-p3-4.md`).
 - Anzeige: `+1,2 % yield`, darunter die Rohwerte (`+10 Fortune, +40 Speed`), damit die Gewichtung nachvollziehbar bleibt.
 
 Beispiel: Bei F=1000, S=6000, P=5 bringen +10 Fortune 0,9 %, +50 Speed 0,8 %, +1 Pristine 16 %. Pristine wird also zu Recht stark gewichtet; deshalb die Anzeige der Rohwerte und die anpassbaren Gewichte.
@@ -511,7 +521,7 @@ Der erste spürbare Nutzen kommt nach Paket 2: Die Haken pflegen sich selbst. Di
 | 2 | Auto-Abhaken | `detect`, `doneSet`, Badge, Teil-Erfüllung und Preis, `detect` für alle Guide-Schritte | **Erster Nutzen** | M, ca. 300 Zeilen plus Pflege der Guides | Sonnet 5.5 |
 | 3 | Voraussetzungen | `items.json` im Snapshot-Job, HOTM-, Collection-, Slayer- und Skill-Prüfung, Anzeige "locked" | "Geht das schon?" im Guide | S, ca. 150 Zeilen | Sonnet 5.5 |
 | 4 | Stats und Abgleich | Lore-Summe, Loadouts, HOTM, Skills, Pets, MP, `/stats`-Formular | Stats sichtbar, Abweichung prüfbar | L, ca. 500 Zeilen | Opus 5.5 |
-| 5 | Mining-Rangliste | `optimizer.js`, Delta-Arten, `optimizer-data.json`, Modus `Best value`, Gewichte und Presets, Netto-Preis mit "I keep old gear", Pristine-Prüfung | **Rangliste Mining** | M, ca. 450 Zeilen plus Daten | Sonnet 5.5 |
+| 5 | Mining-Rangliste | `optimizer.js`, Delta-Arten, `optimizer-data.json`, Modus `Best value`, Gewichte und Presets, Netto-Preis mit "I keep old gear", Pristine-Prüfung, Ausgleichswert (3.4) | **Rangliste Mining** | M, ca. 450 Zeilen plus Daten | Sonnet 5.5 |
 | 6 | Blaze-Modell | Schadensmodell, beide Enchant-Wege, Constraints mit MP-Zielwert, Enchant-Daten, Estimate-Hinweise | **Rangliste Blaze** | M, ca. 350 Zeilen plus Daten | Opus 5.5 |
 
 Reihenfolge fest: 0, 1, 2. Danach 3 und 4 unabhängig, dann 5, dann 6. Mining kommt vor Blaze, weil die Formeln belegt sind und das Blaze-Modell auf derselben Struktur aufsetzt.

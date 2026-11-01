@@ -25,6 +25,13 @@ test('the real test copy gives a well-formed summary', { skip: !existsSync(FILE)
 
 const GUIDES = 'personal/guides';
 
+test('the attack speed shard of the real guide has the bazaar id', { skip: !existsSync(`${GUIDES}/blaze-slayer.json`) }, () => {
+  const text = readFileSync(`${GUIDES}/blaze-slayer.json`, 'utf8');
+  assert.ok(text.includes('SHARD_BURNINGSOUL'));
+  assert.ok(!text.includes('SHARD_INFERNO_DEMONLORD'));
+  assert.ok(!text.includes('Inferno Demonlord Shard is not on the Bazaar'));
+});
+
 test('the real guides survive validation and draw against the real test copy', { skip: !existsSync(FILE) || !existsSync(GUIDES) }, async () => {
   const profile = await summarize(JSON.parse(readFileSync(FILE, 'utf8')).members.self);
   for (const file of readdirSync(GUIDES).filter((f) => f.endsWith('.json') && f !== 'index.json')) {

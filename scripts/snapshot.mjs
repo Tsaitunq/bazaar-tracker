@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { recipesStale, refreshRecipes } from './recipes.mjs';
+import { compactItems } from './items.mjs';
 import { fetchLowestBins } from './auctions.mjs';
 import { compactElection } from './election.mjs';
 import { trendSlope } from '../trends.js';
@@ -106,6 +107,17 @@ export async function runExtras(dataDir, bazaarIds, nowMs, get = getJson) {
   } catch (e) {
     console.error(`auctions failed: ${e.message}${e.cause ? ` (${e.cause.code ?? e.cause.message})` : ''}`);
   }
+  try {
+    if (recipesStale(path.join(dataDir, 'items.json'), nowMs)) {
+      const items = compactItems(await get(`${API}resources/skyblock/items`), readChunk(path.join(dataDir, 'parents.json'))?.r);
+      // a short answer is a broken one, and the old file is better than that
+      if (Object.keys(items).length < 1000) throw new Error('too few items');
+      write('items.json', { t: nowMs, r: items });
+      done.push('items');
+    }
+  } catch (e) {
+    console.error(`items failed: ${e.message}`);
+  }
   return done;
 }
 
@@ -118,7 +130,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     const { day, count } = runSnapshot(dataDir, json.products, now, { backfillFile });
     console.log(`snapshot ${day}: ${count} products`);
     // forge.json came later than recipes.json: fetch both as soon as it is missing
-    if (recipesStale(path.join(dataDir, 'recipes.json'), now) || !fs.existsSync(path.join(dataDir, 'forge.json'))) {
+    if (recipesStale(path.join(dataDir, 'recipes.json'), now) || !fs.existsSync(path.join(dataDir, 'forge.json')) || !fs.existsSync(path.join(dataDir, 'parents.json'))) {
       try {
         const r = refreshRecipes(dataDir, new Set(Object.keys(json.products)), now);
         console.log(`recipes: ${Object.keys(r.recipes).length}, forge: ${Object.keys(r.forge).length}`);

@@ -4,7 +4,7 @@ import { craftFlips, craftHints, CRAFT_RUNS } from './craft.js';
 import { forgeFlips, forgeFlip } from './forge.js';
 import { minionRows, minionDetail, FUELS, UPGRADES, MAX_TIER } from './minions.js';
 import { loadItems, fallbackName } from './names.js';
-import { loadStats, loadRecipes, loadForge, loadAh, loadElection, loadTiming, loadWindows, loadHistory, freshBins, fetchBins } from './data.js';
+import { loadItemData, loadStatsPreset, loadStats, loadRecipes, loadForge, loadAh, loadElection, loadTiming, loadWindows, loadHistory, freshBins, fetchBins } from './data.js';
 import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission, loadHeld, storeHeld, canSync, getApiKey, setApiKey, loadProfile, saveProfile, clearProfileData } from './native.js';
 import { esc, PERSONAL, flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, trendsView, todayView, windowBanners, minionCard, minionSheet, parseRoute, detailView, portfolioView, warningsView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, viewsFor, areaOf, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
@@ -15,6 +15,7 @@ import { bindSheet, openSheet } from './sheet.js';
 import { loadBundled, mergeGuides, exportData, importData, progressView, personalVisibility, secretTap, setMark, pushRecent, stepKey } from './progress.js';
 import { createSync, syncMessage, syncView, normalizeUuid, cleanKey } from './sync.js';
 import { summarize } from './profile.js';
+import { statsView, statsEntry } from './stats.js';
 import { detectGuide } from './detect.js';
 import { initOnboarding, refreshHints, offerAdvanced, returning } from './tour.js';
 
@@ -708,11 +709,20 @@ function markStep(guide, key, on) {
   undoKey = on && guideMode === 'next' ? key : null;
   if (undoKey) undoTimer = setTimeout(() => { undoKey = null; if (area() === PERSONAL) renderProgress(); }, UNDO_MS);
 }
+// Game data of all items, large, so only asked once a guide is on screen. Until then requirements are unknown.
+let itemData = null;
+let itemDataAsked = false;
+function askItemData() {
+  if (itemDataAsked) return;
+  itemDataAsked = true;
+  loadItemData().then((r) => { itemData = r; if (!r) return; renderStats(); if (area() === PERSONAL) renderProgress(); });
+}
 function renderProgress() {
   const guide = currentGuide();
   if (!guide) { $('progress').innerHTML = '<p class="count muted">Loading…</p>'; return; }
+  askItemData();
   const wants = new Set();
-  $('progress').innerHTML = progressView({ guides: guides(), current: guide.id, checked: checksOf(guide.id), products, prices: { forge, ah, cofl: freshBins(bins), wants }, name: nameOf, open: guideOpen[guide.id] ?? null, armed: resetArmed, removable: imported.some((g) => g.id === guide.id), mode: guideMode, recent: guideRecent[guide.id] ?? [], undo: undoKey, syncBar: canSync() ? syncView(profileState, Date.now(), esc, syncNote) : '', profile: profileState?.summary ?? null, autoOpen: guideAutoOpen });
+  $('progress').innerHTML = progressView({ guides: guides(), current: guide.id, checked: checksOf(guide.id), products, prices: { forge, ah, cofl: freshBins(bins), wants, items: itemData }, name: nameOf, open: guideOpen[guide.id] ?? null, armed: resetArmed, removable: imported.some((g) => g.id === guide.id), mode: guideMode, recent: guideRecent[guide.id] ?? [], undo: undoKey, syncBar: canSync() ? syncView(profileState, Date.now(), esc, syncNote) : '', profile: profileState?.summary ?? null, autoOpen: guideAutoOpen });
   askBins(wants);
 }
 $('progress').addEventListener('change', (e) => {
@@ -852,11 +862,24 @@ $('personal-settings').addEventListener('click', async (e) => {
 const profileSync = createSync({ store: { getApiKey, loadProfile, saveProfile }, summarize });
 let removeArmed = false;
 const hpStatus = (text) => { $('hp-status').textContent = text; };
+let statsPreset = null;
+// A setting wins once it is made; before that a local preset may say what was active.
+const boostsNow = () => ({ godPotion: settings.godPotion ?? statsPreset?.boosts?.godPotion ?? false, boosterCookie: settings.boosterCookie ?? statsPreset?.boosts?.boosterCookie ?? false });
+function renderStats() {
+  if (!canSync()) return;
+  askItemData();
+  const boosts = boostsNow();
+  $('hp-god-potion').checked = boosts.godPotion;
+  $('hp-booster-cookie').checked = boosts.boosterCookie;
+  $('hp-stats').innerHTML = statsView(profileState, itemData, esc, boosts, statsPreset);
+}
+loadStatsPreset().then((p) => { statsPreset = p; if (p) renderStats(); });
 async function showProfile() {
   if (!canSync()) return;
   profileState = await loadProfile();
   $('hp-uuid').value = profileState?.uuid ?? '';
   $('hp-key-state').textContent = await getApiKey().then((key) => (key ? 'Key saved.' : 'No key saved.'), () => syncMessage('keyread'));
+  renderStats();
   if (area() === PERSONAL) renderProgress();
 }
 async function runProfileSync(pick) {
@@ -868,7 +891,10 @@ async function runProfileSync(pick) {
     : result.status === 'choose' ? { message: 'Pick your profile.', choices: result.choices }
     : result.status === 'stale' ? {}
     : { message: 'Synced.' };
-  if (result.status === 'ok') profileState = result.state;
+  if (result.status === 'ok') {
+    profileState = result.state;
+    renderStats();
+  }
   if (area() === PERSONAL) renderProgress();
 }
 async function saveProfileFields() {
@@ -907,6 +933,27 @@ $('hypixel-profile').addEventListener('click', async (e) => {
   profileSync.invalidate();
   hpStatus(await clearProfileData() ? 'Key and profile data removed.' : 'Could not remove them.');
   await showProfile();
+});
+for (const [id, key] of [['hp-god-potion', 'godPotion'], ['hp-booster-cookie', 'boosterCookie']]) {
+  $(id).addEventListener('change', (e) => {
+    settings[key] = e.target.checked;
+    save('bt.settings', settings);
+    renderStats();
+  });
+}
+$('hp-stats').addEventListener('click', async (e) => {
+  if (!e.target.closest('[data-stats-save]')) return;
+  const box = e.target.closest('[data-stats-area]');
+  const { statsArea } = box.dataset;
+  const values = Object.fromEntries([...box.querySelectorAll('[data-stats-stat]')].map((input) => [input.dataset.statsStat, input.value]));
+  const pick = (kind) => box.querySelector(`[data-stats-set="${kind}"]`).value;
+  const entry = statsEntry(statsArea, { armor: pick('armor'), equipment: pick('equipment'), pet: pick('pet'), emptyHand: box.querySelector('[data-stats-empty-hand]').checked, boost: box.querySelector('[data-stats-boost]').checked, values }, Date.now());
+  const state = await loadProfile();
+  if (!state) return;
+  const next = { ...state, statsInput: { ...state.statsInput, [statsArea]: entry } };
+  if (!await saveProfile(next)) return hpStatus(syncMessage('store'));
+  profileState = next;
+  renderStats();
 });
 showProfile();
 $('search').addEventListener('input', render);
