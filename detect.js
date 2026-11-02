@@ -26,7 +26,7 @@ const NEEDS = {
   owned: { on: slots }, recomb: { on: slots }, coating: { on: slots }, polarvoid: { on: slots },
   enchant: { on: slots, enchant: text, level: num }, reforge: { on: slots, value: texts }, scroll: { on: slots, value: text },
   part: { on: slots, ids: texts }, gem: { on: slots, quality: text }, pet: { types: texts }, held: { item: text },
-  perk: { perk: text, level: num }, power: { value: text }, attr: { attr: text, need: num }, coll: { id: text, tier: num }, skill: { skill: text, xp: num },
+  perk: { perk: text, level: num }, essence: { perk: text, level: num }, petItem: { types: texts, item: text }, power: { value: text }, attr: { attr: text, need: num }, coll: { id: text, tier: num }, skill: { skill: text, xp: num },
 };
 const OPTIONAL = { need: num, type: text, tier: text, slot: text };
 
@@ -73,6 +73,8 @@ function dataPart(d, profile) {
   switch (d.kind) {
     case 'pet': return flag(profile.pets?.some((p) => d.types.includes(p.type) && atLeast(TIER, p.tier, d.tier ?? 'COMMON')));
     case 'held': return flag(profile.pets?.some((p) => p.heldItem === d.item));
+    case 'petItem': return profile.pets ? flag(profile.pets.some((p) => d.types.includes(p.type) && p.heldItem === d.item)) : null;
+    case 'essence': return profile.perks ? { have: Math.min(profile.perks[d.perk] ?? 0, d.level), need: d.level } : null;
     case 'perk': return profile.perks ? flag((profile.perks[d.perk] ?? 0) >= d.level) : null;
     case 'power': return profile.powers ? flag(profile.powers.includes(d.value)) : null;
     case 'attr': return profile.attrs ? { have: Math.min(profile.attrs[d.attr] ?? 0, d.need), need: d.need } : null;

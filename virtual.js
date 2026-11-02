@@ -71,6 +71,8 @@ function applyPart(p, d, guide, items) {
       if (p.hotm) p.hotm.nodes[d.perk] = Math.max(p.hotm.nodes?.[d.perk] ?? 0, d.level);
       if (p.perks) p.perks[d.perk] = Math.max(p.perks[d.perk] ?? 0, d.level);
       break;
+    case 'essence': if (p.perks) p.perks[d.perk] = Math.max(p.perks[d.perk] ?? 0, d.level); break;
+    case 'petItem': for (const pet of p.pets) if (d.types.includes(pet.type)) pet.heldItem = d.item; break;
     default: // held, coll, skill: nothing the ranking reads
   }
 }

@@ -943,3 +943,9 @@ test('each area has its score texts, and a swapped score changes the unit in the
   const coinsPerHour = { mining: { gainText: () => 'x coins/h', rateText: () => 'y', rateLong: () => 'z' } };
   assert.equal(rankArea(rankArgs(mineGuide(), { summary: summary(), syncedAt: 1 }, items), coinsPerHour).score.gainText(1), 'x coins/h');
 });
+
+test('an attribute without a value in the tables stays without one', () => {
+  const profile = { items: [], attrs: {}, hotm: null };
+  const change = blazeDelta({ text: 'x', detect: { kind: 'attr', attr: 'no_such_attribute', need: 10 } }, { common: {}, daggers: { ashen: null, spirit: null }, armorIds: [], path: 'guide' }, { armor: [], equipment: [], held: null, accessories: [], gaps: [], daggers: { ashen: null, spirit: null } }, profile, {}, miningSettings(null), {});
+  assert.equal(change, null);
+});

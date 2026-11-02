@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { detectStep, detectGuide } from '../detect.js';
+import { detectStep, detectGuide, validDetect } from '../detect.js';
 import { stepKey } from '../progress.js';
 
 const item = (id, extra = {}) => ({ id, enchants: {}, gems: [], parts: {}, ...extra });
@@ -105,4 +105,17 @@ test('a shard counts by its profile key, at the full amount of its rarity', () =
   }
   assert.deepEqual(detectStep(rule('undead', 64), p, {}), { have: 63, need: 64 });
   assert.deepEqual(detectStep(rule('fortitude', 24), p, {}), { have: 0, need: 24 });
+});
+
+test('essence reads the perk level, pet item the item on a pet of the type; without data no answer', () => {
+  const p = profile([], { perks: { forge_time: 3 }, pets: [{ type: 'MOLE', heldItem: 'TIN' }, { type: 'BEE', heldItem: 'GOLD' }] });
+  const has = (detect, who = p) => detectStep({ detect }, who, {});
+  assert.deepEqual(has({ kind: 'essence', perk: 'forge_time', level: 5 }), { have: 3, need: 5 });
+  assert.deepEqual(has({ kind: 'essence', perk: 'forge_time', level: 2 }), { have: 2, need: 2 });
+  assert.equal(has({ kind: 'essence', perk: 'forge_time', level: 1 }, profile([], { perks: null })), null);
+  assert.deepEqual(has({ kind: 'petItem', types: ['MOLE'], item: 'TIN' }), { have: 1, need: 1 });
+  assert.deepEqual(has({ kind: 'petItem', types: ['MOLE'], item: 'GOLD' }), { have: 0, need: 1 });
+  assert.equal(has({ kind: 'petItem', types: ['MOLE'], item: 'TIN' }, profile([], { pets: undefined })), null);
+  assert.equal(validDetect({ kind: 'petItem', item: 'TIN' }), null);
+  assert.equal(validDetect({ kind: 'essence', perk: 'x' }), null);
 });
