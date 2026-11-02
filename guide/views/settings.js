@@ -20,13 +20,16 @@ function resetRow(guide, armed, removable) {
 
 export function settingsView(world) {
   const s = world.settings;
-  const profile = `<section class="panel"><h2>Profile</h2>
+  const sync = world.personal ? `
     <label class="field">Minecraft UUID<input type="text" data-set="uuid" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(world.uuid ?? '')}"></label>
     <label class="field">API key<input type="password" data-set="key" autocomplete="off" autocapitalize="off" spellcheck="false" value=""></label>
     <small>${esc(world.keyMessage ?? (world.hasKey ? 'Key saved' : 'No key saved'))}</small>
     ${world.canSync ? syncView(world.state, world.now, esc, { message: world.message, choices: world.choices }) : '<p>Sync needs the Android app.</p>'}
     <small role="status">${esc(world.profileMessage ?? '')}</small>
-    <div class="actions"><button type="button" class="ghost" data-act="remove">${world.removeArmed ? 'Tap again to remove' : 'Remove key and profile data'}</button></div>
+    <div class="actions"><button type="button" class="ghost" data-act="remove">${world.removeArmed ? 'Tap again to remove' : 'Remove key and profile data'}</button></div>` : '';
+  const profile = `<section class="panel"><h2>Profile</h2>
+    ${check('personal', 'Sync with my own API key', world.personal)}
+    <small>Off: type in your /stats under <a href="#/stats">Stats</a> and tick steps by hand.</small>${sync}
   </section>`;
   const mining = `<section class="panel"><h2>Prices and mining target</h2>
     <label class="field">Bazaar tax<select data-tax>${TAXES.map(([v, label]) => `<option value="${v}"${Number(v) === (world.tax ?? 1.25) ? ' selected' : ''}>${label}</option>`).join('')}</select></label>

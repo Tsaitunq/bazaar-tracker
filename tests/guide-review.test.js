@@ -24,7 +24,7 @@ test('best value never calls a step without a price free', () => {
 });
 
 test('a key that cannot be read is not called missing', () => {
-  const base = { guides: [], settings: miningSettings(null), canSync: true, state: null, now: 1, choices: [], message: '' };
+  const base = { guides: [], personal: true, settings: miningSettings(null), canSync: true, state: null, now: 1, choices: [], message: '' };
   const html = settingsView({ ...base, keyMessage: 'Could not read the key.' });
   assert.match(html, /Could not read the key\./);
   assert.doesNotMatch(html, /No key saved/);
@@ -42,7 +42,7 @@ test('a form with edits holds back a redraw, a clean one takes it', () => {
 });
 
 test('import from a file and from the text field are two buttons', () => {
-  const html = settingsView({ guides: [], settings: miningSettings(null), canSync: true, state: null, now: 1, choices: [], message: '' });
+  const html = settingsView({ guides: [], personal: true, settings: miningSettings(null), canSync: true, state: null, now: 1, choices: [], message: '' });
   assert.match(html, /data-act="import-file"/);
   assert.match(html, /data-act="import"/);
   const app = readFileSync(new URL('../guide/app.js', import.meta.url), 'utf8');
@@ -51,7 +51,7 @@ test('import from a file and from the text field are two buttons', () => {
 
 test('an imported guide can be removed, a shipped one not', () => {
   const list = [{ id: 'mine', title: 'Mine' }, { id: 'own', title: 'Own' }];
-  const html = settingsView({ guides: list, importedIds: ['own'], settings: miningSettings(null), canSync: true, state: null, now: 1, choices: [], message: '' });
+  const html = settingsView({ guides: list, importedIds: ['own'], personal: true, settings: miningSettings(null), canSync: true, state: null, now: 1, choices: [], message: '' });
   assert.match(html, /data-remove-guide="own"/);
   assert.doesNotMatch(html, /data-remove-guide="mine"/);
 });
@@ -74,7 +74,7 @@ test('prices from SkyCofl are credited', () => {
 });
 
 test('the bazaar tax can be set', () => {
-  const html = settingsView({ guides: [], settings: miningSettings(null), tax: 1, canSync: true, state: null, now: 1, choices: [], message: '' });
+  const html = settingsView({ guides: [], personal: true, settings: miningSettings(null), tax: 1, canSync: true, state: null, now: 1, choices: [], message: '' });
   assert.match(html, /<select data-tax>/);
   assert.match(html, /<option value="1" selected>/);
 });

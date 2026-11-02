@@ -8,7 +8,7 @@ import { detectGuide } from '../detect.js';
 import { fallbackName, loadItems } from '../names.js';
 import { PRESETS, miningSettings } from '../optimizer.js';
 import { computeStats, loadoutOf, offsetStale, statsEntry } from '../stats.js';
-import { parseRoute, syncOutcome, applyImport, stampAll, formEdited, typedFields, restoreTyped, settled, swipeTarget } from './model.js';
+import { parseRoute, syncOutcome, applyImport, stampAll, formEdited, typedFields, restoreTyped, settled, swipeTarget, swipeAxis, swipeLands } from './model.js';
 import { homeView } from './views/home.js';
 import { guideView, statsView } from './views/guide.js';
 import { settingsView } from './views/settings.js';
@@ -17,6 +17,10 @@ const BAZAAR = 'https://api.hypixel.net/v2/skyblock/bazaar';
 const PRICE_EVERY = 300e3;
 const BIN_RETRY = 600e3;
 const DEFAULT_TAX = 1.25;
+const SETTLE_MS = 220; // as in guide.css
+const EDGE_PULL = 0.25;
+const FLICK_FRESH_MS = 80;
+const CARD_GAP = 8;
 
 const load = (key, fallback) => {
   try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
@@ -52,16 +56,29 @@ let binsBusy = false;
 let binsFailed = 0;
 let pending = new Set();
 let touch = null;
-let slide = '';
+let settling = false;
+let redrawDue = false;
+let shownRoute = '';
 
 const guides = () => mergeGuides(bundled, imported);
 const route = () => parseRoute(location.hash, guides());
+// Off until asked for, so the app starts on typed-in stats. Whoever already has a key or a sync keeps it.
+const personal = () => settings.personal ?? (hasKey || !!state?.syncedAt);
+// With the sync off, what it found stays stored but counts for nothing. Keeps undefined: the profile is not loaded yet.
+const shownState = () => (state && !personal() ? { ...state, summary: undefined, syncedAt: undefined } : state);
+// Typed-in stats are no secret, so without the Android store they live in the browser.
+const loadStand = () => (plugin() ? loadProfile() : load('pg.profile', null));
+const saveStand = async (stand) => {
+  if (plugin()) return saveProfile(stand);
+  save('pg.profile', stand);
+  return true;
+};
 const boosts = () => ({ godPotion: settings.godPotion ?? preset?.boosts?.godPotion ?? false, boosterCookie: settings.boosterCookie ?? preset?.boosts?.boosterCookie ?? false });
 
 const world = () => {
   pending = new Set();
   return {
-    guides: guides(), checks, dates, state: state ?? null, products, now: Date.now(),
+    guides: guides(), checks, dates, state: shownState() ?? null, personal: personal(), products, now: Date.now(),
     prices: { forge, ah, cofl: freshBins(bins), wants: pending, items, tax: (settings.tax ?? DEFAULT_TAX) / 100, derpy: election?.mayor?.name === 'Derpy' },
     settings: miningSettings(settings.mining), keepOldGear: settings.keepOldGear === true, boosts: boosts(), preset,
     name: (id) => names[id] ?? fallbackName(id), uuid: state?.uuid ?? '', hasKey, keyMessage, tax: settings.tax ?? DEFAULT_TAX, importedIds: imported.map((g) => g.id), canSync: canSync(), message: note.message, choices: note.choices,
@@ -76,8 +93,17 @@ function screenOf(r, w) {
   return homeView(w);
 }
 
+// A guide opens on its current step, just below the fixed head.
+function showCard(box) {
+  const path = box.querySelector('.path');
+  const card = path?.querySelector('.card');
+  if (card) path.scrollTop += card.getBoundingClientRect().top - path.getBoundingClientRect().top - CARD_GAP;
+}
+
 // A redraw keeps the scroll position of the list and the keyboard on the same step.
 function draw() {
+  // a redraw would pull the screen from under the finger; it follows when the swipe is over
+  if (settling || touch?.axis === 'x') { redrawDue = true; return; }
   const scroller = root.querySelector('.path, .scroll');
   const top = scroller?.scrollTop ?? 0;
   const list = scroller?.className;
@@ -95,10 +121,11 @@ function draw() {
     if (activeField >= 0) fields()[activeField]?.focus({ preventScroll: true });
   }
   document.documentElement.dataset.theme = root.firstElementChild?.dataset.theme ?? 'home';
-  if (slide) root.firstElementChild?.classList.add(slide);
-  slide = '';
   const after = root.querySelector('.path, .scroll');
   if (after && after.className === list) after.scrollTop = top;
+  const shown = JSON.stringify(route());
+  if (shown !== shownRoute) showCard(root);
+  shownRoute = shown;
   if (focused !== undefined) {
     const same = [...root.querySelectorAll('[data-step]')].filter((el) => el.dataset.step === focused);
     (same.find((el) => el.className === focusClass) ?? same[0])?.focus({ preventScroll: true });
@@ -126,7 +153,7 @@ async function askBins(wants) {
 }
 
 function stamp(firstRun = false) {
-  dates = stampAll(guides(), checks, dates, state, Date.now(), firstRun);
+  dates = stampAll(guides(), checks, dates, shownState(), Date.now(), firstRun);
   save('pg.dates', dates);
 }
 
@@ -145,7 +172,7 @@ function toggle(key) {
   const guide = guides().find((g) => g.id === r.id);
   if (!guide) return;
   const marks = new Set(checks[guide.id] ?? []);
-  const auto = detectGuide(guide, state?.summary ?? null, stepKey);
+  const auto = detectGuide(guide, shownState()?.summary ?? null, stepKey);
   setMark(guide, marks, key, !doneSet(guide, marks, auto).has(key), auto);
   checks = { ...checks, [guide.id]: [...marks] };
   save('pg.checks', checks);
@@ -170,19 +197,20 @@ async function runSync(pick) {
 }
 
 async function showProfile() {
-  state = await loadProfile();
+  state = await loadStand();
   // a key that cannot be read right now is not a missing key
   [hasKey, keyMessage] = await getApiKey().then((key) => [!!key, null], () => [false, syncMessage('keyread')]);
 }
 
 async function saveUuid(input) {
   const uuid = normalizeUuid(input.value);
+  let stand;
   if (uuid) settled(input);
   if (!uuid) profileMessage = syncMessage('input');
-  else if ((await loadProfile())?.uuid !== uuid) {
-    // another player's stand must not stay behind under a new UUID
+  else if ((stand = await loadStand())?.uuid !== uuid) {
+    // another player's stand must not stay behind under a new UUID; stats typed in before any UUID are the player's own
     profileSync.invalidate();
-    profileMessage = await saveProfile({ uuid }) ? 'Saved.' : syncMessage('store');
+    profileMessage = await saveStand(stand?.uuid ? { uuid } : { ...stand, uuid }) ? 'Saved.' : syncMessage('store');
     await showProfile();
   }
   draw();
@@ -254,15 +282,17 @@ async function runExport() {
 async function saveStats(box) {
   const area = box.dataset.statsArea;
   const values = Object.fromEntries([...box.querySelectorAll('[data-stats-stat]')].map((input) => [input.dataset.statsStat, input.value]));
-  const pick = (kind) => box.querySelector(`[data-stats-set="${kind}"]`).value;
-  const form = { armor: pick('armor'), equipment: pick('equipment'), pet: pick('pet'), emptyHand: box.querySelector('[data-stats-empty-hand]').checked, boost: box.querySelector('[data-stats-boost]').checked, values };
-  const stand = await loadProfile();
-  if (!stand) return;
+  // the typed-in form has no slots and boxes
+  const pick = (kind) => box.querySelector(`[data-stats-set="${kind}"]`)?.value;
+  const form = { armor: pick('armor'), equipment: pick('equipment'), pet: pick('pet'), emptyHand: box.querySelector('[data-stats-empty-hand]')?.checked, boost: box.querySelector('[data-stats-boost]')?.checked, values };
+  const stand = await loadStand() ?? {};
+  const synced = personal() ? stand.summary : null;
   const { choice } = statsEntry(area, form, 0);
-  const measured = items && stand.summary ? { total: computeStats(stand.summary, items, loadoutOf(stand.summary, items, area, choice, miningSettings(settings.mining)), area, boosts()).total, boosts: boosts() } : null;
+  let measured; // nothing to measure against without a sync, so no offset at all
+  if (synced) measured = items ? { total: computeStats(synced, items, loadoutOf(synced, items, area, choice, miningSettings(settings.mining)), area, boosts()).total, boosts: boosts() } : null;
   const entry = statsEntry(area, form, Date.now(), measured, stand.statsInput?.[area] ?? null);
   const next = { ...stand, statsInput: { ...stand.statsInput, [area]: entry } };
-  if (await saveProfile(next)) {
+  if (await saveStand(next)) {
     state = next;
     box.querySelectorAll('input, select').forEach(settled);
   }
@@ -350,20 +380,78 @@ function scrollsSideways(el) {
   return false;
 }
 
-root.addEventListener('touchstart', (e) => {
-  const [first] = e.touches;
-  touch = e.touches.length === 1 && !scrollsSideways(e.target) ? { x: first.clientX, y: first.clientY } : null;
-}, { passive: true });
-root.addEventListener('touchcancel', () => { touch = null; }, { passive: true });
-root.addEventListener('touchend', (e) => {
-  if (!touch) return;
-  const [last] = e.changedTouches;
-  const tabs = [...root.querySelectorAll('.bar [data-tab]')].map((b) => b.dataset.tab);
-  const to = swipeTarget(route(), last.clientX - touch.x, last.clientY - touch.y, tabs);
-  touch = null;
+const stillMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// The screen the drag leads to, waiting one width beside this one.
+function showPeek(to) {
+  root.querySelector('.peek')?.remove();
+  touch.peek = to?.hash ?? null;
+  root.classList.toggle('swipe-tabs', !!to && to.hash !== '#/');
   if (!to) return;
-  slide = to.back ? 'slide-back' : 'slide-next';
-  location.hash = to.hash;
+  const peek = document.createElement('div');
+  peek.className = 'peek';
+  peek.inert = true;
+  peek.style.setProperty('--peek-at', `${(to.back ? -1 : 1) * root.clientWidth}px`);
+  peek.innerHTML = screenOf(parseRoute(to.hash, guides()), world());
+  root.append(peek);
+  showCard(peek);
+}
+
+function landed(to) {
+  settling = false;
+  root.removeAttribute('class');
+  root.removeAttribute('style');
+  root.querySelector('.peek')?.remove();
+  if (to) location.hash = to.hash;
+  if (to || redrawDue) draw();
+  redrawDue = false;
+}
+
+function settle(to) {
+  touch = null;
+  settling = true;
+  if (stillMotion()) { landed(to); return; }
+  root.classList.add(to ? 'settle' : 'spring');
+  root.style.setProperty('--drag', `${to ? (to.back ? 1 : -1) * root.clientWidth : 0}px`);
+  setTimeout(() => landed(to), SETTLE_MS);
+}
+
+root.addEventListener('touchstart', (e) => {
+  if (touch?.axis === 'x') { settle(null); return; } // a second finger ends the swipe
+  const [first] = e.touches;
+  const free = e.touches.length === 1 && !settling && route().page === 'guide' && !scrollsSideways(e.target);
+  touch = free ? { x: first.clientX, y: first.clientY, lastX: first.clientX, at: e.timeStamp, speed: 0, axis: null, peek: null, tabs: [...root.querySelectorAll('.bar [data-tab]')].map((b) => b.dataset.tab) } : null;
+}, { passive: true });
+
+root.addEventListener('touchmove', (e) => {
+  if (!touch) return;
+  const [now] = e.touches;
+  const dx = now.clientX - touch.x;
+  touch.axis ??= swipeAxis(dx, now.clientY - touch.y);
+  if (touch.axis === 'y') { touch = null; return; }
+  if (touch.axis !== 'x') return;
+  if (e.timeStamp > touch.at) touch.speed = (now.clientX - touch.lastX) / (e.timeStamp - touch.at);
+  touch.lastX = now.clientX;
+  touch.at = e.timeStamp;
+  if (stillMotion()) return;
+  const to = swipeTarget(route(), dx, touch.tabs);
+  if (!root.classList.contains('swiping') || (to?.hash ?? null) !== touch.peek) showPeek(to);
+  root.classList.add('swiping');
+  root.style.setProperty('--drag', `${to ? dx : dx * EDGE_PULL}px`);
+}, { passive: true });
+
+root.addEventListener('touchcancel', () => {
+  if (touch?.axis === 'x') settle(null);
+  else touch = null;
+}, { passive: true });
+
+root.addEventListener('touchend', (e) => {
+  if (touch?.axis !== 'x') { touch = null; return; }
+  const dx = e.changedTouches[0].clientX - touch.x;
+  // a finger that rested before lifting is no flick
+  const speed = e.timeStamp - touch.at > FLICK_FRESH_MS ? 0 : touch.speed;
+  const to = swipeTarget(route(), dx, touch.tabs);
+  settle(to && swipeLands(dx, speed, root.clientWidth) ? to : null);
 }, { passive: true });
 
 window.addEventListener('hashchange', draw);

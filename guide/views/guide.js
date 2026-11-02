@@ -11,7 +11,7 @@ const SETTINGS_LINK = '<a href="#/settings">Settings</a>';
 const head = (m) => `<div class="ring-head">${ring({ chapters: m.chapters, total: m.total, size: 116 })}<div class="ring-text"><div class="ring-title">${icon(m.theme)}<h1>${esc(m.name)}</h1></div>${legend(m.chapters)}</div></div>`;
 
 function missingNote(m) {
-  if (m.missing === 'profile') return `<p class="note">Sync your profile in ${SETTINGS_LINK} to see your stats and rank the steps.</p>`;
+  if (m.missing === 'profile') return `<p class="note">Type in your /stats under <a href="#/stats">Stats</a>. Ranking the steps needs the profile sync in ${SETTINGS_LINK}.</p>`;
   return m.missing === 'items' ? '<p class="note">Loading item data…</p>' : '';
 }
 

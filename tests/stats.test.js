@@ -276,8 +276,16 @@ test('the view escapes and lists the gaps', () => {
 });
 
 test('without a summary the view asks for a sync', () => {
-  assert.match(statsView(null, data, escHtml), /Sync your profile/);
-  assert.match(statsView({ uuid: 'x' }, data, escHtml), /Sync your profile/);
+  for (const none of [null, { uuid: 'x' }]) {
+    const html = statsView(none, data, escHtml);
+    assert.match(html, /data-stats-area="mining"[^]*data-stats-area="blaze"/);
+    assert.match(html, /data-stats-stat="MINING_FORTUNE"/);
+    assert.match(html, /data-stats-save/);
+    assert.doesNotMatch(html, /data-stats-set|<table/);
+  }
+  const typed = statsView({ statsInput: { mining: { values: { PRISTINE: 7 }, at: 1 } } }, data, escHtml);
+  assert.match(typed, /data-stats-stat="PRISTINE" value="7"/);
+  assert.match(typed, /Saved on this device/);
 });
 
 test('a saved profile without a wardrobe still draws', () => {

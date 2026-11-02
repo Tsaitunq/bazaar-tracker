@@ -57,15 +57,15 @@ const server = http.createServer((req, res) => {
 const json = (route, body, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
 
 // The real guides and values in personal/ never reach a picture: all of it comes from the fixture.
-async function stubs(context, withData) {
-  await context.addInitScript(({ profile }) => {
-    let stand = profile;
+async function stubs(context, withData, { profile = withData ? { ...fixture.profile, syncedAt: Date.now() - 2 * 3600e3 } : null, native = true } = {}) {
+  if (native) await context.addInitScript(({ profile: first }) => {
+    let stand = first;
     const plugin = {
-      getApiKey: async () => ({ key: stand ? 'stub' : null }), setApiKey: async () => {}, clearApiKey: async () => {},
+      getApiKey: async () => ({ key: stand?.syncedAt ? 'stub' : null }), setApiKey: async () => {}, clearApiKey: async () => {},
       loadProfile: async () => ({ json: JSON.stringify(stand) }), saveProfile: async ({ json }) => { stand = JSON.parse(json); }, clearProfile: async () => { stand = null; },
     };
     window.Capacitor = { isNativePlatform: () => true, Plugins: { BazaarAlerts: plugin } };
-  }, { profile: withData ? { ...fixture.profile, syncedAt: Date.now() - 2 * 3600e3 } : null });
+  }, { profile });
   await context.route('**/*', (route) => {
     const url = new URL(route.request().url());
     const name = url.pathname.split('/').pop();
@@ -126,6 +126,35 @@ async function measureTable(page, base) {
   fs.writeFileSync('docs/guide-design-check.md', lines.join('\n'));
 }
 
+// A guide opens with its open step just below the head, and no redraw after that moves the list.
+async function opensOnCard(page, base) {
+  const list = page.locator('.path');
+  const gap = () => page.evaluate(() => document.querySelector('.card').getBoundingClientRect().top - document.querySelector('.path').getBoundingClientRect().top);
+  const onCard = async (what) => {
+    const got = await gap();
+    if (Math.abs(got - 8) > 1) fail(`${what}: the card is ${got} px below the head, should be 8`);
+  };
+  const scrolled = () => list.evaluate((el) => el.scrollTop);
+  await open(page, base, '#/');
+  await open(page, base, '#/guide/mining/path');
+  await onCard('from home');
+  if (await scrolled() <= 0) fail('the card already was on top, the check says nothing');
+  await list.evaluate((el) => { el.scrollTop += 100; });
+  const moved = await scrolled();
+  await page.evaluate(() => window.dispatchEvent(new HashChangeEvent('hashchange')));
+  if (await scrolled() !== moved) fail('a redraw moved the list back to the card');
+  await open(page, base, '#/guide/mining/best');
+  await open(page, base, '#/guide/mining/path');
+  await onCard('from the other tab');
+  const key = await page.locator('.card .primary').getAttribute('data-step');
+  const before = await scrolled();
+  await page.locator('.card .primary').click();
+  await page.waitForFunction((k) => document.activeElement?.dataset?.step === k || !document.querySelector(`.card [data-step="${k}"]`), key);
+  if (Math.abs(await scrolled() - before) > 1) fail('marking a step done moved the list');
+  await page.locator(`.path [data-step="${key}"]`).first().click();
+  await page.locator(`.card [data-step="${key}"]`).waitFor();
+}
+
 async function keepsPlace(page, base) {
   await open(page, base, '#/guide/mining/path');
   // not the last rows: a done row is lower, and at the very end the browser would have to move the list
@@ -150,36 +179,118 @@ async function keepsTyped(page, base) {
   await page.locator('[data-tax]').selectOption('1.25');
 }
 
-// A real swipe through the DOM: the screens change, the slide stays within 250 ms, and reduced motion has none.
-async function swipes(page, base) {
-  const swipe = (dx) => page.evaluate((move) => {
-    const el = document.querySelector('.screen');
-    const fire = (type, x) => {
-      const touch = { clientX: x, clientY: 300 };
-      el.dispatchEvent(Object.assign(new Event(type, { bubbles: true }), { touches: type === 'touchend' ? [] : [touch], changedTouches: [touch] }));
-    };
-    fire('touchstart', 200);
-    fire('touchend', 200 + move);
-  }, dx);
-  const landed = async (want) => {
-    await page.waitForFunction((hash) => location.hash === hash, want).catch(() => fail(`a swipe did not lead to ${want}`));
-    return page.evaluate(() => document.getAnimations().map((a) => a.effect.getTiming().duration));
+// The start state: no key, no sync, stats typed in by hand; they stay when the sync is switched on, and in a browser over a reload.
+async function manual(browser, base) {
+  const start = async (native) => {
+    const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2 });
+    await stubs(context, true, { profile: null, native });
+    const page = await context.newPage();
+    page.on('pageerror', (e) => fail(`manual: ${e.message}`));
+    await open(page, base, '#/stats');
+    await page.locator('[data-stats-area="mining"] [data-stats-stat="MINING_FORTUNE"]').fill('1234');
+    await page.locator('[data-stats-area="mining"] [data-stats-save]').click();
+    await page.locator('[data-stats-area="mining"] [role="status"]').waitFor();
+    return { context, page };
   };
+  const typed = (page) => page.locator('[data-stats-area="mining"] [data-stats-stat="MINING_FORTUNE"]').inputValue();
+  const { context, page } = await start(true);
+  await page.screenshot({ path: path.join(OUT, 'manual-stats.png') });
+  await layoutChecks(page, 'manual stats');
   await open(page, base, '#/guide/mining/path');
-  await swipe(-120);
-  const next = await landed('#/guide/mining/best');
+  await page.screenshot({ path: path.join(OUT, 'manual-guide.png') });
+  await layoutChecks(page, 'manual guide');
+  if (await page.locator('.stat-value').first().innerText() !== '1,234') fail('the typed-in value is not in the grid');
+  if (!await page.locator('.card .primary').count()) fail('no step to tick by hand');
+  await open(page, base, '#/settings');
+  await page.screenshot({ path: path.join(OUT, 'manual-settings.png') });
+  await layoutChecks(page, 'manual settings');
+  if (await page.locator('[data-set="key"]').count()) fail('the start state shows the key field');
+  await page.locator('[data-flag="personal"]').check();
+  await page.locator('[data-set="uuid"]').fill('0123456789abcdef0123456789abcdef');
+  await page.locator('[data-set="uuid"]').blur();
+  await page.getByText('Saved.').waitFor();
+  await open(page, base, '#/stats');
+  if (await typed(page) !== '1234') fail('saving a UUID threw away the typed-in stats');
+  await context.close();
+  const web = await start(false);
+  await web.page.reload();
+  await web.page.waitForLoadState('networkidle');
+  if (await typed(web.page) !== '1234') fail('a browser forgot the typed-in stats');
+  await web.context.close();
+}
+
+// Real touches: the screen follows the finger, a short drag springs back, a long one or a flick lands, a scroll never swipes, reduced motion has no movement.
+async function swipes(browser, base) {
+  const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2, hasTouch: true });
+  await stubs(context, true);
+  const page = await context.newPage();
+  page.on('pageerror', (e) => fail(`swipe: ${e.message}`));
+  const cdp = await context.newCDPSession(page);
+  const finger = (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] });
+  const wait = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
+  const pull = async (dx, dy = 0) => {
+    await finger('touchStart', 195, 500);
+    for (let step = 1; step <= 4; step += 1) await finger('touchMove', 195 + (dx * step) / 4, 500 + (dy * step) / 4);
+  };
+  const lift = async (restMs) => {
+    await wait(restMs);
+    await finger('touchEnd');
+    await wait(300);
+  };
+  const slow = async (dx, dy) => { await pull(dx, dy); await lift(150); };
+  const at = async (want, what) => {
+    const hash = await page.evaluate(() => location.hash);
+    if (hash !== want) fail(`${what}: at ${hash}, should be at ${want}`);
+    if (await page.locator('.peek').count()) fail(`${what}: the next screen stayed behind`);
+  };
+  const shift = (selector) => page.locator(selector).first().evaluate((el) => new DOMMatrix(getComputedStyle(el).transform).m41);
+  const MINING = '#/guide/mining/path';
+
+  await open(page, base, MINING);
+  await page.locator('.ring-head').waitFor();
+  await pull(-100);
+  await wait(50);
+  if (Math.abs(await shift('.ring-head') + 100) > 1) fail('the head does not follow the finger');
+  if (await shift('.screen > .bar') !== 0) fail('the bar moves between tabs');
+  if (await page.locator('.peek .screen').count() !== 1) fail('no next screen beside this one');
   await page.screenshot({ path: path.join(OUT, 'swipe-mid.png') });
-  if (!next.length || next.some((ms) => ms > 250)) fail(`the slide took ${next.join(', ') || 'no'} ms`);
-  await swipe(120);
-  await landed('#/guide/mining/path');
-  await swipe(120);
-  await landed('#/');
+  await lift(150);
+  await at(MINING, 'under 30 %');
+  await slow(-200);
+  await at('#/guide/mining/best', 'over 30 %');
+  await pull(-200);
+  await wait(50);
+  if (Math.abs(await shift('.ring-head') + 50) > 1) fail('the last tab does not hold back the pull');
+  await lift(150);
+  await at('#/guide/mining/best', 'past the last tab');
+  await slow(200);
+  await at(MINING, 'back a tab');
+
+  // a quick flick lands though it is short
+  await pull(-100); // under 30 %
+  await lift(0);
+  await at('#/guide/mining/best', 'flick');
+  await open(page, base, MINING);
+  await slow(200);
+  await at('#/', 'home from the first tab');
+
+  await open(page, base, MINING);
+  const top = () => page.locator('.path').evaluate((el) => el.scrollTop);
+  await page.locator('.path').evaluate((el) => { el.scrollTop = 0; });
+  await slow(10, -240);
+  await at(MINING, 'a scroll');
+  if (await top() <= 0) fail('a real scroll did not move the list');
+  await slow(70, 60);
+  await at(MINING, 'a slanted drag');
+
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await open(page, base, '#/guide/mining/path');
-  await swipe(-120);
-  const still = await landed('#/guide/mining/best');
-  if (still.length) fail('reduced motion still slides');
-  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await open(page, base, MINING);
+  await pull(-200);
+  await wait(50);
+  if (await page.locator('.swiping').count()) fail('reduced motion still follows the finger');
+  await lift(150);
+  await at('#/guide/mining/best', 'reduced motion');
+  await context.close();
 }
 
 await new Promise((resolve) => { server.listen(0, 'localhost', resolve); });
@@ -199,11 +310,13 @@ try {
     await page.screenshot({ path: path.join(OUT, `${name}.png`) });
     await layoutChecks(page, name);
   }
+  await opensOnCard(page, base);
   await keepsPlace(page, base);
-  await swipes(page, base);
   await keepsTyped(page, base);
   await measureTable(page, base);
   await context.close();
+  await swipes(browser, base);
+  await manual(browser, base);
 
   const empty = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2 });
   await stubs(empty, false);

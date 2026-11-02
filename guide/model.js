@@ -211,7 +211,10 @@ export function guideModel(guide, world) {
   });
 
   const chapters = chaptersOf(guide, checked, costs).map((c) => ({ ...c, leftText: c.current && c.done < c.total ? leftText(c.left, world.products) : '' }));
-  const grid = ranked.base ? (GRIDS[guide.area] ?? []).map((k) => ({ key: k, icon: STATS[k].icon, label: STATS[k].short ?? STATS[k].label, color: STATS[k].color, value: number(ranked.base[k] ?? 0), delta: '' })) : [];
+  // without a ranking the typed-in /stats are what is known; a field left empty is unknown, not 0
+  const typed = ranked.base ? null : (world.state?.statsInput?.[guide.area] ?? world.preset?.[guide.area])?.values;
+  const shown = ranked.base ?? (Object.keys(typed ?? {}).length ? typed : null);
+  const grid = shown ? (GRIDS[guide.area] ?? []).map((k) => ({ key: k, icon: STATS[k].icon, label: STATS[k].short ?? STATS[k].label, color: STATS[k].color, value: !ranked.base && shown[k] === undefined ? '–' : number(shown[k] ?? 0), delta: '' })) : [];
   return {
     id: guide.id, source: guide.source ?? '', products: world.products, area: guide.area, theme: guide.area ?? 'home', name: guide.title, chapters, total: totalShare(chapters),
     stats: statDelta(grid, card?.delta ?? null), chips: ranked.limits ?? null, rows, card, ranked, score, leader, missing: ranked.missing ?? null, usedCofl: !!ctx.usedCofl,
@@ -227,15 +230,25 @@ export function parseRoute(hash, guides) {
   return { page: 'home' };
 }
 
-// Where a sideways swipe leads from a guide: the next tab, the one before, and from the first tab home. tabs: those on screen.
-// It has to be long enough and clearly sideways, so scrolling a list never switches.
-const SWIPE_MIN_PX = 60;
-export function swipeTarget(r, dx, dy, tabs) {
-  if (r.page !== 'guide' || Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < 2 * Math.abs(dy)) return null;
+// Where a sideways drag leads from a guide: the next tab, the one before, and from the first tab home. tabs: those on screen.
+export function swipeTarget(r, dx, tabs) {
+  if (r.page !== 'guide' || !dx) return null;
   const at = Math.max(tabs.indexOf(r.tab), 0);
   if (dx > 0) return { hash: at > 0 ? `#/guide/${r.id}/${tabs[at - 1]}` : '#/', back: true };
   return at + 1 < tabs.length ? { hash: `#/guide/${r.id}/${tabs[at + 1]}`, back: false } : null;
 }
+
+// The first movement decides: clearly sideways is a swipe, anything else stays a scroll for the whole touch.
+const AXIS_MIN_PX = 10;
+export function swipeAxis(dx, dy) {
+  if (Math.hypot(dx, dy) < AXIS_MIN_PX) return null;
+  return Math.abs(dx) > 2 * Math.abs(dy) ? 'x' : 'y';
+}
+
+// On release a flick counts by its direction, a slow drag by how far it got. speed in px/ms.
+const LAND_SHARE = 0.3;
+const FLICK_SPEED = 0.5;
+export const swipeLands = (dx, speed, width) => (Math.abs(speed) >= FLICK_SPEED ? speed * dx > 0 : Math.abs(dx) >= LAND_SHARE * width);
 
 // What a sync run means for the screen. Anything but success keeps the last state.
 export function syncOutcome(result, last) {

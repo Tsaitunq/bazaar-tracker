@@ -287,6 +287,12 @@ test('a stand saved before shards were read asks for one more sync', () => {
   assert.ok(!syncView({ ...synced, summary: { ...synced.summary, attrs: null } }, 1000 * DAY, esc).includes(note));
 });
 
+test('the first sync keeps the stats typed in before it', async () => {
+  const statsInput = { mining: { values: { PRISTINE: 5 }, at: 1 } };
+  const first = setup({ state: { uuid: U, statsInput } });
+  assert.deepEqual((await first.sync.run()).state.statsInput, statsInput);
+});
+
 test('a sync on the same profile keeps statsInput, another profile starts without it', async () => {
   const statsInput = { mining: { values: { PRISTINE: 5 }, at: 1 } };
   const same = setup({ state: { uuid: U, profileId: coopProfile.profile_id, statsInput } });
