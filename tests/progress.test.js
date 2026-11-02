@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { validGuide, loadBundled, mergeGuides, exportData, importData, stepKey, stepCost, priceItem, guideStats, nextUpgrades, doneSet, setMark } from '../progress.js';
+import { validGuide, loadBundled, mergeGuides, exportData, importData, stepKey, stepCost, priceItem, guideStats, doneSet, setMark } from '../progress.js';
 import { guideModel } from '../guide/model.js';
 
 const guide = { title: 'Test guide', source: 'https://example.com/x', sections: [
@@ -168,34 +168,6 @@ test('validGuide keeps an open choice only with a name', () => {
   assert.equal(one({ qty: 1, anyOf: ['H'] }), null);
 });
 
-const lines = { id: 'n', title: 'N', sections: [
-  { name: 'Gear', steps: [
-    { text: 'Big', line: 'L', items: [{ id: 'X', qty: 3 }] },
-    { text: 'Bigger', line: 'L', items: [{ id: 'X', qty: 1 }] },
-    { text: 'Solo', items: [{ id: 'X', qty: 2 }] },
-    { text: 'Table', table: true },
-    { text: 'Missing', items: [{ id: 'X', qty: 1 }, { id: 'NOPE', qty: 1 }] },
-  ] },
-  { name: 'Must', steps: [{ text: 'Pinned', priority: 1, items: [{ id: 'X', qty: 9 }] }, { text: 'Top', priority: 2 }] },
-] };
-const flat = { products: { X: { buy_summary: [{ amount: 99, pricePerUnit: 10 }] } } };
-const order = (checked) => nextUpgrades(lines, new Set(checked), flat).map((r) => r.step.text);
-
-test('next upgrades: one step per line, pinned first, then by price, without a price last', () => {
-  assert.deepEqual(order([]), ['Top', 'Pinned', 'Solo', 'Big', 'Table', 'Missing']);
-});
-
-test('next upgrades: checking a step moves its line up and sorts again', () => {
-  assert.deepEqual(order(['Gear|Big']), ['Top', 'Pinned', 'Bigger', 'Solo', 'Table', 'Missing']);
-  assert.deepEqual(order(['Gear|Big', 'Gear|Bigger', 'Must|Top', 'Must|Pinned', 'Gear|Solo', 'Gear|Table', 'Gear|Missing']), []);
-});
-
-test('validGuide keeps line and a positive priority', () => {
-  const step = (s) => validGuide({ title: 't', sections: [{ name: 'S', steps: [s] }] }).sections[0].steps[0];
-  assert.deepEqual(step({ text: 'a', line: 'L', priority: 2 }), { text: 'a', line: 'L', priority: 2 });
-  assert.deepEqual(step({ text: 'a', line: 3, priority: 0 }), { text: 'a' });
-});
-
 const ladder = { id: 'l', title: 'L', sections: [
   { name: 'Books', steps: [
     { text: 'Table', table: true, line: 'E' },
@@ -224,14 +196,6 @@ test('a missing last level counts once as unpriced, the levels before it not at 
   assert.equal(s.coins, 160);
   const end = guideStats(ladder, keys(), { products: {} }).sections[0];
   assert.deepEqual([end.coins, end.unpriced], [0, 1]);
-});
-
-test('next upgrades shows the cost of the one jump from the level reached', () => {
-  const top = (done) => { const r = nextUpgrades(ladder, done, { ...books })[0]; return [r.step.text, r.coins]; };
-  assert.deepEqual(top(keys()), ['III', 40]);
-  // IV from III: 4 more IIIs at 10 beat the book at 100
-  assert.deepEqual(top(keys('III')), ['IV', 40]);
-  assert.deepEqual(top(keys('III', 'IV')), ['V', 80]);
 });
 
 test('a table step is done by default, can be unticked and ticked again', () => {

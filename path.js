@@ -210,7 +210,7 @@ function entriesOf(move, tier, rest = false) {
     gain: i === 0 ? move.gain ?? 0 : 0, delta: i === 0 ? move.delta ?? null : null,
     coins: i === 0 ? move.coins ?? 0 : 0, net: i === 0 ? move.net ?? 0 : 0, resale: i === 0 ? move.resale ?? 0 : 0, unpriced: i === 0 ? move.unpriced ?? 0 : 0,
     tier, status: move.status, reasons: move.reasons, notes: i === 0 ? move.notes : [], ahead: i === 0 ? move.ahead ?? null : null,
-    units: i === 0 ? move.units ?? null : null,
+    helps: i === 0 ? move.helps ?? [] : [], units: i === 0 ? move.units ?? null : null,
   }));
 }
 

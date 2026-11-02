@@ -303,20 +303,3 @@ export function guideStats(guide, checked, ctx) {
   });
   return { done: sections.reduce((n, s) => n + s.done, 0), total: sections.reduce((n, s) => n + s.total, 0), next, sections };
 }
-
-// Per line only its first open step, a step without a line stands alone. Pinned first by weight, then priced by
-// price, then what has no full price: a sum that leaves out an item would look cheaper than the step is.
-export function nextUpgrades(guide, checked, ctx) {
-  ctx.have = haveLevels(guide, checked);
-  const seen = new Set();
-  const rows = [];
-  for (const section of guide.sections) {
-    for (const step of section.steps) {
-      if (checked.has(stepKey(section, step)) || seen.has(step.line)) continue;
-      if (step.line) seen.add(step.line);
-      const cost = stepCost(openStep(section, step, ctx), ctx);
-      rows.push({ section, step, ...cost, priced: cost.coins > 0 && !cost.unpriced });
-    }
-  }
-  return rows.sort((a, b) => (b.step.priority ?? 0) - (a.step.priority ?? 0) || b.priced - a.priced || (a.priced ? a.coins - b.coins : 0));
-}

@@ -1,6 +1,15 @@
 {
   "versions": [
     {
+      "version": "0.4.0",
+      "date": "2026-11-02",
+      "entries": [
+        { "title": "The path is the ranking", "text": "Each guide now sorts its open steps by what they bring per coin, also without a sync, and a step that costs far more than you have spent so far waits its turn." },
+        { "title": "Shafting gear", "text": "A new mining guide with a fixed order of gear for Mineshafts, with the gain of every step added up." },
+        { "title": "One tick for all guides", "text": "Ticking an item in one guide marks it in every guide that holds it." }
+      ]
+    },
+    {
       "version": "0.3.0",
       "date": "2026-11-02",
       "entries": [

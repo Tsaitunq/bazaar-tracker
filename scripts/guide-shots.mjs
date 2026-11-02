@@ -155,6 +155,23 @@ async function opensOnCard(page, base) {
   await page.locator(`.card [data-step="${key}"]`).waitFor();
 }
 
+// What only a scroll shows: a group on the path, the extras at its end, the brake in the settings.
+async function pathParts(page, base) {
+  await open(page, base, '#/guide/mining/path');
+  const member = page.locator('.step-member');
+  if (await member.count() !== 1) fail('the group member is not on the path');
+  if (await page.locator('.path').getByText('with the next step').count() !== 1) fail('the group head does not say so');
+  const rows = page.locator('.path button.row');
+  if (!(await rows.last().innerText()).includes('Cake')) fail('the extras are not last');
+  await member.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: path.join(OUT, 'path-group.png') });
+  await open(page, base, '#/settings');
+  const brake = page.locator('[data-brake]');
+  if (await brake.inputValue() !== '5') fail('the brake does not start at 5');
+  await brake.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: path.join(OUT, 'settings-brake.png') });
+}
+
 async function keepsPlace(page, base) {
   await open(page, base, '#/guide/mining/path');
   // not the last rows: a done row is lower, and at the very end the browser would have to move the list
@@ -308,6 +325,7 @@ try {
   }
   await opensOnCard(page, base);
   await keepsPlace(page, base);
+  await pathParts(page, base);
   await keepsTyped(page, base);
   await measureTable(page, base);
   await context.close();
