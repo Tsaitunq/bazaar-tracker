@@ -36,6 +36,8 @@ export function settingsView(world) {
     <label class="field">Preset<select data-mining="preset">${Object.keys(PRESETS).map((p) => `<option value="${p}"${p === s.preset ? ' selected' : ''}>${words(p)}</option>`).join('')}</select></label>
     ${WEIGHTS.map(([key, label]) => `<label class="field">${label}<input type="number" step="any" min="0" inputmode="decimal" data-mining="${key}" value="${esc(s[key])}"></label>`).join('')}
     <div class="actions"><button type="button" class="ghost" data-act="mining-reset">Reset weights</button></div>
+    <label class="field">Budget brake<input type="number" step="any" min="0" inputmode="decimal" data-brake value="${esc(world.brake ?? 5)}"></label>
+    <small>A step waits while it costs more than this many times what you spent, or 1M if you spent less.</small>
     ${check('keepOldGear', 'I keep old gear', world.keepOldGear)}
     ${check('godPotion', 'God Potion active', world.boosts?.godPotion)}
     ${check('boosterCookie', 'Booster Cookie active', world.boosts?.boosterCookie)}

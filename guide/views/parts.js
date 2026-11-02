@@ -41,14 +41,14 @@ export function pathRow(row) {
   const state = row.status === 'done' || row.status === 'locked' ? ` row-${row.status}` : '';
   const sub = shown(`row-sub${row.subColor ? ` c-${row.subColor}` : ''}`, row.sub);
   const side = [row.side && esc(row.side), row.progress && esc(row.progress), row.api && '<span class="tag">API</span>'].filter(Boolean).map((part) => `<span>${part}</span>`).join('');
-  return `<div class="step">${rail(row.status, row.railTop, row.railBottom)}<button type="button" class="row${state}" data-step="${key}" aria-pressed="${row.status === 'done'}"><span class="row-text"><span class="row-name">${esc(row.name)}</span>${sub}</span><span class="row-side">${side}</span></button>${row.undo ? `<button type="button" class="undo" data-step="${key}" aria-label="Undo the API check">Undo</button>` : ''}</div>`;
+  return `<div class="step${row.member ? ' step-member' : ''}">${rail(row.status, row.railTop, row.railBottom)}<button type="button" class="row${state}" data-step="${key}" aria-pressed="${row.status === 'done'}"><span class="row-text"><span class="row-name">${esc(row.name)}</span>${sub}${shown('row-sub', row.group)}</span><span class="row-side">${side}</span></button>${row.undo ? `<button type="button" class="undo" data-step="${key}" aria-label="Undo the API check">Undo</button>` : ''}</div>`;
 }
 
 export function stepCard(card) {
   const box = card.stats.length || card.gain
     ? `<div class="card-box">${card.stats.map((s) => `<span class="card-stat c-${s.color}">${esc(s.text)}</span>`).join('')}${shown('card-gain', card.gain)}</div>`
     : '';
-  return `<div class="step">${rail('current', card.railTop, card.railBottom)}<div class="card"><div class="card-head"><span class="card-name">${esc(card.name)}</span>${card.badge ? '<span class="card-badge">★ BEST VALUE</span>' : ''}${shown('card-where', card.where)}</div>${box}${(card.items ?? []).map((i) => shown('card-item', i.text)).join('')}<div class="card-foot"><span class="card-cost">${esc(card.cost)}</span>${shown('card-rate', card.rate)}</div>${shown('card-where', card.hint)}${card.left ? `<span class="card-where">${esc(card.left)} to section end</span>` : ''}<button type="button" class="primary" data-step="${esc(card.key)}">Mark done</button></div></div>`;
+  return `<div class="step">${rail('current', card.railTop, card.railBottom)}<div class="card"><div class="card-head"><span class="card-name">${esc(card.name)}</span>${card.badge ? '<span class="card-badge">★ BEST VALUE</span>' : ''}${shown('card-where', card.where)}</div>${box}${(card.items ?? []).map((i) => shown('card-item', i.text)).join('')}<div class="card-foot"><span class="card-cost">${esc(card.cost)}</span>${shown('card-rate', card.rate)}</div>${shown('card-where', card.group)}${(card.notes ?? []).map((n) => shown('card-where', n)).join('')}${shown('card-where', card.hint)}${card.left ? `<span class="card-where">${esc(card.left)} to section end</span>` : ''}<button type="button" class="primary" data-step="${esc(card.key)}">Mark done</button></div></div>`;
 }
 
 const limitValue = (v) => (v === null ? 'unknown' : number(v));

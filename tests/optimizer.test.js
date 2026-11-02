@@ -6,7 +6,7 @@ import { SCORES, rankArea, bestBlaze, blazeDelta, applyBlaze, accessoryPower, st
 import { summarize } from '../profile.js';
 import { GEMSTONE, miningScore, loadoutOf } from '../stats.js';
 import { guideStats, validGuide, exportData } from '../progress.js';
-import { bestValueHtml } from '../guide/views/guide.js';
+import { guideView } from '../guide/views/guide.js';
 
 const piece = (id, extra = {}) => ({ id, where: 'armor', gems: [], enchants: {}, parts: {}, reforge: null, recomb: false, polarvoid: 0, coating: false, lore: {}, ...extra });
 const DRILL = 'TITANIUM_DRILL_4';
@@ -442,13 +442,13 @@ test('an item in the chest or a backpack counts, an accessory does not', () => {
 
 const mineGuide = (over = {}) => ({ id: 'm', title: 'Mine', area: 'mining', groups: guide.groups, sections: [{ name: 'Main', steps: [{ text: 'cheap', gain: { MINING_FORTUNE: 10, MINING_SPEED: 40 }, items: [{ id: 'A', qty: 1 }] }] }], ...over });
 const summary = () => ({ ...profile([piece(DRILL, { where: 'inventory', lore: { MINING_SPEED: 1000 } })]), wardrobe: { armor: { equipped: 1, sets: [1] }, equipment: { equipped: 1, sets: [1] } } });
-const bestHtml = (g, state, products, data, settings = miningSettings(null)) => bestValueHtml({ guides: [g], checks: {}, state, products, prices: { items: data }, name: (id) => id, settings }, g.id);
+const bestHtml = (g, state, products, data, settings = miningSettings(null)) => guideView({ guides: [g], checks: {}, state, products, prices: { items: data }, name: (id) => id, settings }, g.id);
 const view = (g, { state = { summary: summary(), syncedAt: 1 }, products = { A: sold(5e6) }, data = items } = {}) => bestHtml(g, state, products, data);
 
-test('without a sync the mode says what is missing and links to the settings', () => {
+test('without a sync and without typed stats the path says what is missing and links to the stats', () => {
   const html = view(mineGuide(), { state: null });
-  assert.match(html, /profile sync/);
-  assert.match(html, /href="#\/settings"/);
+  assert.match(html, /Type in your \/stats/);
+  assert.match(html, /href="#\/stats"/);
 });
 
 test('without item data the mode waits and does not throw', () => {
@@ -461,31 +461,20 @@ test('the row shows yield, per million, raw stats and the net line', () => {
     state: { summary: { ...profile([piece('OLD_HELMET', { sets: ['armor:1'] })]), wardrobe: { armor: { equipped: 1, sets: [1] }, equipment: { equipped: 1, sets: [1] } } }, syncedAt: 1 },
   });
   assert.match(html, /\+\d+(\.\d+)? % yield/);
-  assert.match(html, /\d+(\.\d+)? % \/ 1M/);
-  assert.match(html, /\+20 ☘ Mining Fortune · \+5 ⸕ Mining Speed/);
+  assert.match(html, /[\d.]+[kMB]? per 1 %/);
+  assert.match(html, /\+20 ☘ Mining Fortune/);
+  assert.match(html, /\+5 ⸕ Mining Speed/);
   assert.match(html, /Net .* \(buy .* − resale .*\)/);
-  assert.match(view(mineGuide()), /\+10 ☘ Mining Fortune · \+40 ⸕ Mining Speed/);
+  assert.match(view(mineGuide()), /\+10 ☘ Mining Fortune/);
 });
 
 test('locked rows stand under the ranking with their reason, no rank', () => {
   const html = view(mineGuide({ sections: [{ name: 'Main', steps: [{ text: 'open', gain: { MINING_SPEED: 10 }, items: [{ id: 'A', qty: 1 }] }, { text: 'hard', gain: { MINING_SPEED: 10 }, items: [{ id: 'HARD', qty: 1 }] }] }] }), { products: { A: sold(1e6), HARD: sold(1e6) }, data: lockedData });
-  const best = html.indexOf('<h2>Best value</h2>');
-  const locked = html.indexOf('<h2>Locked</h2>');
-  assert.ok(best > 0 && locked > best);
+  const locked = html.indexOf('row-locked');
+  assert.ok(html.indexOf('open') < locked);
   assert.match(html.slice(locked), /hard/);
   assert.match(html.slice(locked), /HOTM 7 needed/);
-  assert.doesNotMatch(html.slice(locked), /% \/ 1M/);
-  assert.doesNotMatch(html.slice(best, locked), /hard/);
-});
-
-test('the best card names the slot of the wardrobe and what stays out', () => {
-  const worn1 = piece('OLD_HELMET', { sets: ['armor:1'], lore: { MINING_FORTUNE: 1 } });
-  const spare = piece('NEW_HELMET', { where: 'ender_chest', lore: { MINING_FORTUNE: 100 } });
-  const state = { summary: { ...profile([worn1, spare]), wardrobe: { armor: { equipped: 1, sets: [1] }, equipment: { equipped: 1, sets: [1] } } }, syncedAt: 1 };
-  const html = view(mineGuide(), { state });
-  assert.match(html, /Best possible/);
-  assert.match(html, /OLD_HELMET → NEW_HELMET/);
-  assert.match(html, /Pet stays as picked/);
+  assert.doesNotMatch(html.slice(locked), /per 1 %/);
 });
 
 test('the notes say when the offset is not in use', () => {
@@ -816,7 +805,7 @@ const sharpStep = { text: 'sharp', detect: onDaggers('sharpness', 7), items: [{ 
 test('the row says damage, marks the estimate and shows the raw stats', () => {
   const html = blazeHtml(blazeG([{ text: 'x', detect: onDaggers('critical', 7), items: [{ id: 'A', qty: 1 }] }]));
   assert.match(html, /\+\d+(\.\d+)? % damage/);
-  assert.match(html, /\d+(\.\d+)? % \/ 1M/);
+  assert.match(html, /[\d.]+[kMB]? per 1 %/);
   assert.match(html, /Ashen: \+100 ☠ Crit Damage/);
   assert.match(html, /Estimate/);
 });
@@ -834,11 +823,7 @@ test('steps that close a gap stand first, the rest keeps its rank', () => {
   const summary = blazeProfile();
   summary.items = summary.items.map((i) => (i.id === 'PLATE' ? { ...i, lore: { TRUE_DEFENSE: 100 } } : i));
   const html = blazeHtml(blazeG([sharpStep, { text: 'gem', detect: { kind: 'gem', on: [['PLATE']], type: 'OPAL', quality: 'PERFECT', need: 1 }, items: [{ id: 'A', qty: 1 }] }]), { state: { summary, syncedAt: 1 } });
-  const req = html.indexOf('<h2>Requirements first</h2>');
-  const best = html.indexOf('<h2>Best value</h2>');
-  assert.ok(req > 0 && best > req);
-  assert.match(html.slice(req, best), /gem/);
-  assert.match(html.slice(best), /sharp/);
+  assert.ok(html.indexOf('>gem<') > 0 && html.indexOf('>gem<') < html.indexOf('>sharp<'));
 });
 
 test('magical power under the target of 1100 is no missed limit', () => {
@@ -850,7 +835,7 @@ test('magical power under the target of 1100 is no missed limit', () => {
 test('a missing value shows unknown in its chip and ranks on', () => {
   const html = blazeHtml(blazeG([sharpStep]), { state: { summary: blazeProfile({ mp: null, missing: { inventory: true } }), syncedAt: 1 } });
   assert.match(html, /chip-value">unknown/);
-  assert.match(html, /<h2>Best value<\/h2>/);
+  assert.match(html, /per 1 %/);
 });
 
 test('the path line compares enchants and one for all', () => {
@@ -865,7 +850,6 @@ test('the active path is named and never changes by itself', () => {
   const html = blazeHtml(blazeG([sharpStep]), { state: { summary, syncedAt: 1 } });
   assert.match(html, /In use: One For All/);
   assert.match(html, /Not used with One For All/);
-  assert.match(html, /<h2>No gain<\/h2>/);
 });
 
 test('the offset moves the blaze base, also in the limits', () => {
@@ -884,12 +868,6 @@ test('best possible keeps true defense at the limit', () => {
   const out = bestBlaze({ items: [armor, glass, tank] }, data, loadout, s);
   assert.equal(out.slots[0].best.id, 'OTHER_PLATE');
   assert.ok(out.gain > 0);
-});
-
-test('best possible does not list a dagger swap between the lines', () => {
-  const html = blazeHtml(blazeG([sharpStep]));
-  assert.doesNotMatch(html, /FIREDUST_DAGGER →|MAWDUST_DAGGER →/);
-  assert.match(html, /Pet and daggers stay/);
 });
 
 test('the page names what the model leaves out', () => {
@@ -916,7 +894,7 @@ test('a guide without any dagger still draws', () => {
   const summary = { ...blazeProfile(), items: [piece('PLATE', { sets: ['armor:1'], lore: { TRUE_DEFENSE: 200 } })] };
   const html = blazeHtml(blazeG([{ text: 'maw', detect: { kind: 'owned', on: [[MAW]] }, items: [{ id: 'A', qty: 1 }] }]), { state: { summary, syncedAt: 1 } });
   assert.match(html, /Dagger pair incomplete/);
-  assert.match(html, /<h2>Requirements first<\/h2>/);
+  assert.match(html, /maw/);
 });
 
 const BLAZE = 'personal/guides/blaze-slayer.json';
@@ -958,10 +936,10 @@ test('limits and paths are data', () => {
 
 test('each area has its score texts, and a swapped score changes the unit in the result', () => {
   assert.equal(SCORES.mining.gainText(0.024), '+2.4 % yield');
-  assert.equal(SCORES.mining.rateText(0.0033), '0.3 % / 1M');
-  assert.equal(SCORES.mining.rateLong(0.0061), '0.6 % per 1M');
+  assert.equal(SCORES.mining.rateText(0.0033), '3.03M per 1 %');
+  assert.equal(SCORES.mining.rateLong(0.0061), '1.64M per 1 % yield');
   assert.equal(SCORES.blaze.gainText(0.034), '+3.4 % damage');
-  assert.equal(SCORES.blaze.rateLong(0.0009), '0.09 % dmg per 1M');
+  assert.equal(SCORES.blaze.rateLong(0.0009), '11.11M per 1 % damage');
   const coinsPerHour = { mining: { gainText: () => 'x coins/h', rateText: () => 'y', rateLong: () => 'z' } };
   assert.equal(rankArea(rankArgs(mineGuide(), { summary: summary(), syncedAt: 1 }, items), coinsPerHour).score.gainText(1), 'x coins/h');
 });

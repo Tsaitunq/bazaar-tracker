@@ -74,6 +74,7 @@ a { color: var(--area); }
 /* dot path */
 .path { flex: 1 1 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
 .step { display: flex; gap: 14px; }
+.step-member .row { padding-left: 14px; }
 .step-rail { flex: none; width: 28px; display: flex; flex-direction: column; align-items: center; }
 .rail-top { width: 3px; height: 14px; border-radius: 2px; background: var(--line); }
 .rail-bottom { width: 3px; flex-grow: 1; border-radius: 2px; background: var(--line); }

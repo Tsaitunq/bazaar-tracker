@@ -60,6 +60,7 @@ let touch = null;
 let settling = false;
 let redrawDue = false;
 let shownRoute = '';
+let pathEpoch = 0; // a new order of the path: on opening a guide, on a tick, on the first prices and when a setting changes
 
 const guides = () => mergeGuides(bundled, imported);
 const route = () => parseRoute(location.hash, guides());
@@ -81,7 +82,7 @@ const world = () => {
   return {
     guides: guides(), checks, owned, dates, state: shownState() ?? null, personal: personal(), products, now: Date.now(),
     prices: { forge, ah, cofl: freshBins(bins), wants: pending, items, tax: (settings.tax ?? DEFAULT_TAX) / 100, derpy: election?.mayor?.name === 'Derpy' },
-    settings: miningSettings(settings.mining), keepOldGear: settings.keepOldGear === true, boosts: boosts(), preset,
+    settings: miningSettings(settings.mining), keepOldGear: settings.keepOldGear === true, brake: settings.brake > 0 ? settings.brake : 5, pathEpoch, boosts: boosts(), preset,
     name: (id) => names[id] ?? fallbackName(id), uuid: state?.uuid ?? '', hasKey, keyMessage, tax: settings.tax ?? DEFAULT_TAX, importedIds: imported.map((g) => g.id), canSync: canSync(), message: note.message, choices: note.choices,
     profileMessage, dataMessage, dataText, armed, removeArmed,
   };
@@ -163,6 +164,7 @@ async function refreshPrices() {
     const res = await fetch(BAZAAR, { cache: 'no-store' });
     const data = await res.json();
     if (!data.success) return;
+    if (!products) pathEpoch++;
     products = data.products;
     drawInBackground();
   } catch { /* no connection: costs stay as they were, or as … */ }
@@ -180,6 +182,7 @@ function toggle(key) {
   save('pg.checks', checks);
   save('pg.owned', owned);
   dataText = ''; // an export from before this tick must not come back by accident
+  pathEpoch++;
   stamp();
   draw();
 }
@@ -248,6 +251,7 @@ async function removeProfile() {
 }
 
 function saveSettings() {
+  pathEpoch++;
   save('pg.settings', settings);
   draw();
 }
@@ -260,6 +264,7 @@ function runImport(raw) {
     const data = importData(raw);
     ({ imported, checks, owned } = applyImport({ imported, checks, bundled, owned }, data));
     ({ owned, checks } = migrateOwned(guides(), checks, owned));
+    pathEpoch++;
     save('pg.guides', imported);
     save('pg.checks', checks);
     save('pg.owned', owned);
@@ -335,6 +340,7 @@ root.addEventListener('click', (e) => {
     armed = null;
     checks = { ...checks, [yes.dataset.resetYes]: [] };
     owned = [...resetOwned(guides().find((g) => g.id === yes.dataset.resetYes), owned)];
+    pathEpoch++;
     save('pg.checks', checks);
     save('pg.owned', owned);
     stamp();
@@ -359,7 +365,8 @@ root.addEventListener('change', async (e) => {
   const { dataset } = e.target;
   if (dataset.set === 'uuid') return saveUuid(e.target);
   if (dataset.set === 'key') return saveKey(e.target);
-  if (e.target.matches('[data-tax], [data-flag]')) settled(e.target);
+  if (e.target.matches('[data-tax], [data-flag], [data-brake]')) settled(e.target);
+  if (e.target.matches('[data-brake]')) { settings.brake = Number(e.target.value) > 0 ? Number(e.target.value) : 5; return saveSettings(); }
   if (e.target.matches('[data-tax]')) { settings.tax = Number(e.target.value); return saveSettings(); }
   if (dataset.flag) { settings[dataset.flag] = e.target.checked; return saveSettings(); }
   if (dataset.mining) settled(e.target);
@@ -467,7 +474,7 @@ root.addEventListener('touchend', (e) => {
   settle(to && swipeLands(dx, speed, root.clientWidth) ? to : null);
 }, { passive: true });
 
-window.addEventListener('hashchange', draw);
+window.addEventListener('hashchange', () => { pathEpoch++; draw(); });
 
 if ('serviceWorker' in navigator && !plugin()) navigator.serviceWorker.register('sw.js').catch(() => {});
 
@@ -478,6 +485,7 @@ await Promise.all([
   loadStatsPreset().then((p) => { preset = p; }),
 ]);
 // once: ticks from before the shared state. Without a guide loaded there is nothing to move yet.
+pathEpoch++;
 if (!load('pg.ownedV1', false) && guides().length) {
   ({ owned, checks } = migrateOwned(guides(), checks, owned));
   save('pg.owned', owned);
@@ -486,10 +494,10 @@ if (!load('pg.ownedV1', false) && guides().length) {
 }
 stamp();
 draw();
-loadForge().then((r) => { forge = r; drawInBackground(); });
-loadAh().then((r) => { ah = r; drawInBackground(); });
+loadForge().then((r) => { forge = r; pathEpoch++; drawInBackground(); });
+loadAh().then((r) => { ah = r; pathEpoch++; drawInBackground(); });
 loadElection().then((r) => { election = r; drawInBackground(); });
-loadItemData().then((r) => { items = r; drawInBackground(); });
+loadItemData().then((r) => { items = r; pathEpoch++; drawInBackground(); });
 loadItems().then((r) => { names = r.names; drawInBackground(); });
 refreshPrices();
 setInterval(refreshPrices, PRICE_EVERY);

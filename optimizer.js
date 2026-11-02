@@ -538,7 +538,7 @@ export function bestBlaze(profile, items, loadout, state) {
   return { slots, gain: slots.length ? blazeOutput(now) / blazeOutput(state) - 1 : 0 };
 }
 
-const offsetNotes = (entry, state, loadout) => [
+export const offsetNotes = (entry, state, loadout) => [
   ...(entry?.offset && NOTES[entry.offsetNote] ? [NOTES[entry.offsetNote]] : []),
   ...(!entry?.offset ? ['Save your /stats in Settings to include what the app cannot read.'] : []),
   ...(offsetStale(entry, entry?.choice) ? ['Measure /stats again: the slot or pet changed.'] : []),
@@ -546,7 +546,7 @@ const offsetNotes = (entry, state, loadout) => [
   ...loadout.gaps,
 ];
 
-const LEFT_OUT = 'Estimate: compares upgrades, says nothing about real kill time. Not modelled: Thunderlord, Fire Aspect, Crimson swipe, Burning Vengeance, Venomous, demon phases, pillars.';
+export const LEFT_OUT = 'Estimate: compares upgrades, says nothing about real kill time. Not modelled: Thunderlord, Fire Aspect, Crimson swipe, Burning Vengeance, Venomous, demon phases, pillars.';
 
 // Spec 4.3 as data.
 export function limitsOf(profile, state) {
@@ -562,7 +562,7 @@ export function limitsOf(profile, state) {
 }
 
 // One For All against the guide's enchants (spec 4.2) as data.
-function pathsOf(state) {
+export function pathsOf(state) {
   const lines = Object.values(state.daggers).filter(Boolean);
   const factor = (path) => (lines.length ? lines.reduce((sum, d) => sum + 1 + additiveOf(d, state.armorIds, path) / 100, 0) / lines.length : 1 + additiveOf(null, state.armorIds, path) / 100);
   const [guideOut, ofaOut] = [blazeOutput(state, 'guide'), blazeOutput(state, 'ofa')];
@@ -575,12 +575,19 @@ function pathsOf(state) {
 }
 
 // How a bare value reads. Swap this per area when the measure changes, for example to coins per hour: views only ever print these.
-const scoreOf = (unit, shortUnit) => ({
+// rate: share per million coins. Two decimals always, the short coin format would hide a difference here.
+const perOne = (rate) => {
+  const v = 1e4 / rate;
+  if (v >= 1e9) return `${(v / 1e9).toFixed(2)}B`;
+  if (v >= 1e6) return `${(v / 1e6).toFixed(2)}M`;
+  return v >= 1e3 ? `${(v / 1e3).toFixed(2)}k` : `${Math.round(v)}`;
+};
+const scoreOf = (unit) => ({
   gainText: (gain) => `+${share(gain)} % ${unit}`,
-  rateText: (rate) => `${share(rate)} % / 1M`,
-  rateLong: (rate) => `${share(rate)} % ${shortUnit}per 1M`,
+  rateText: (rate) => `${perOne(rate)} per 1 %`,
+  rateLong: (rate) => `${perOne(rate)} per 1 % ${unit}`,
 });
-export const SCORES = { mining: scoreOf('yield', ''), blaze: scoreOf('damage', 'dmg ') };
+export const SCORES = { mining: scoreOf('yield'), blaze: scoreOf('damage') };
 
 const rankMining = ({ guide, checked, ctx, state: synced, settings, keepOldGear, boosts, preset }) => {
   const profile = synced.summary;

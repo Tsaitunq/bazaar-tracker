@@ -97,6 +97,7 @@ function moveOf(list, world, env) {
   let progress = 0;
   let unknown = false;
   let leftover = null;
+  let shown = null;
   for (const chain of list) {
     const rules = rulesOf(now, env);
     const walked = walkLine(chain, { ...env.ctx, profile: now.profile }, rules);
@@ -105,6 +106,7 @@ function moveOf(list, world, env) {
     if (walked.group === 'locked') return { list, tier: 'locked', status: 'locked', reasons: walked.reasons, notes };
     if (walked.group) {
       leftover ??= walked.group;
+      shown = addChange(shown, rules.deltaOf(chain[0].step));
       continue;
     }
     units.push({ steps: walked.steps, target: walked.target, loadout: now.loadout, profile: now.profile });
@@ -114,13 +116,13 @@ function moveOf(list, world, env) {
     now = advance(now, walked.steps, walked.delta, env);
   }
   const status = unknown ? 'unknown' : 'ok';
-  if (!units.length) return { list, tier: leftover ?? 'zero', status, reasons: [], notes };
+  if (!units.length) return { list, tier: leftover ?? 'zero', status, reasons: [], notes, delta: shown };
   const gain = isBlaze(start)
     ? (blazeOutput(start.state) > 0 ? blazeOutput(now.state) / blazeOutput(start.state) - 1 : 0)
     : miningScore(start.base, delta, env.settings);
   const price = sumPrices(units.map((u) => unitPrice(u, env)));
   const ahead = units.length === 1 && units[0].target !== units[0].steps[0] ? units[0].target.step : null;
-  const move = { list, units, delta, gain, helps: [...helps], progress, status, reasons: [], notes, ahead, after: now, ...price };
+  const move = { list, units, delta: addChange(delta, shown), gain, helps: [...helps], progress, status, reasons: [], notes, ahead, after: now, ...price };
   move.perMillion = move.net > 0 ? gain / (move.net / 1e6) : null;
   move.pace = !move.unpriced && (move.coins > 0 || tableStep(units)) ? (move.net > 0 ? progress / (move.net / 1e6) : Infinity) : -1;
   move.tier = tierOf(move);

@@ -28,8 +28,8 @@ test('home shows one line per guide with its next step, value and unit, and no s
   const html = homeView(world());
   assert.doesNotMatch(html, /BEST DEAL/);
   assert.match(html, /NEXT STEP PER GUIDE/);
-  assert.match(html, /<b>Mining:<\/b> Jade <span>· [\d.]+ % \/ 1M<\/span>/);
-  assert.match(html, /<b>Blaze Slayer:<\/b> Boots <span>· [\d.]+ % \/ 1M<\/span>/);
+  assert.match(html, /<b>Mining:<\/b> Jade <span>· [\d.]+[kMB]? per 1 %<\/span>/);
+  assert.match(html, /<b>Blaze Slayer:<\/b> Boots <span>· [\d.]+[kMB]? per 1 %<\/span>/);
   const lines = nextPerGuide(world().guides.map((g) => guideModel(g, worldFor(world(), g))));
   assert.deepEqual(lines.map((l) => l.area), ['mining', 'blaze']);
   assert.equal(lines[0].step, 'Jade');
@@ -165,9 +165,8 @@ test('no sync shows what is missing and links to settings', () => {
   assert.match(homeView(off), /Not synced yet/);
   const path = guideView(off, 'mine', 'path');
   assert.match(path, /class="card"/);
-  assert.match(path, /profile sync/);
+  assert.match(path, /Type in your \/stats/);
   assert.match(path, /href="#\/stats"/);
-  assert.match(path, /href="#\/settings"/);
   assert.match(guideView(world({ prices: {} }), 'mine', 'path'), /Loading item data/);
 });
 

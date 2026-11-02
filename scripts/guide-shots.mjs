@@ -164,8 +164,9 @@ async function keepsPlace(page, base) {
   if (before <= 0) fail('the path does not scroll, the check below says nothing');
   await row.click();
   await page.waitForFunction(() => document.activeElement?.dataset?.step === 'The middle|No price yet');
-  const after = await page.locator('.path').evaluate((el) => el.scrollTop);
-  if (Math.abs(after - before) > 1) fail(`a tick moved the list from ${before} to ${after}`);
+  // the ticked row moves up to the done ones, so a list at its end may get shorter under the finger
+  const { after, most } = await page.locator('.path').evaluate((el) => ({ after: el.scrollTop, most: el.scrollHeight - el.clientHeight }));
+  if (Math.abs(after - Math.min(before, most)) > 1) fail(`a tick moved the list from ${before} to ${after}`);
 }
 
 // Saving one setting must not throw away what is typed in another field.

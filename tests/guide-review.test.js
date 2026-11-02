@@ -96,8 +96,7 @@ test('the card shows the net cost beside the net rate', () => {
   const data = { ...items, NEW: { category: 'HELMET', tier: 'LEGENDARY', stats: { MINING_FORTUNE: 20 } }, OLD: { category: 'HELMET', tier: 'COMMON', stats: {} } };
   const state = { summary: { ...summary, items: [...summary.items, helmet], wardrobe: { armor: { equipped: 1, sets: [1] }, equipment: { equipped: 1, sets: [1] } } }, syncedAt: 1 };
   const products = { NEW: sold(20e6), OLD: { sell_summary: [{ pricePerUnit: 8e6, amount: 100 }], buy_summary: [] } };
-  const { card, ranked } = guideModel(g, world({ state, products, prices: { items: data } }));
-  const row = ranked.groups.ranked[0];
+  const { card, leader: row } = guideModel(g, world({ state, products, prices: { items: data } }));
   assert.ok(row.resale > 0 && row.net < row.coins);
   assert.ok(card.cost.startsWith('Net '));
   assert.ok(card.cost.includes(coins(row.net)));
