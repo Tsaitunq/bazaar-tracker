@@ -183,7 +183,7 @@ export function guideModel(guide, world) {
       row.card = card = {
         key, name: step.text, where: section.name, stats: lines, hint: step.hint ?? '', items: itemLines(open, ctx, world.name ?? String),
         gain: rank?.gain === undefined ? '' : score.gainText(rank.gain),
-        cost: costText(open, price, ctx), coins: price.coins, unpriced: price.unpriced,
+        cost: costText(open, price, ctx),
         rate: rank?.perMillion === undefined ? '' : score.rateLong(rank.perMillion),
         badge: !!leader && leader.step === step,
         delta: rank?.delta ?? null,
@@ -257,15 +257,6 @@ export const bestPerGuide = (models) => models.filter((m) => m.leader).map((m) =
   area: m.area, name: m.name, step: m.leader.step.text,
   text: m.leader.perMillion === undefined ? m.score.gainText(m.leader.gain) : m.score.rateText(m.leader.perMillion),
 }));
-
-// What the next step of every guide costs together. Steps without a price stay counted, so the sum never just reads lower.
-export function coinsForNext(models) {
-  const cards = models.map((m) => m.card).filter(Boolean);
-  return {
-    text: cards.some((c) => c.cost === '…') ? '…' : coins(cards.reduce((sum, c) => sum + c.coins, 0)),
-    unpriced: cards.reduce((n, c) => n + c.unpriced, 0),
-  };
-}
 
 function bestRow(row, model, products) {
   const lines = statLines(row.delta ?? null).map((l) => l.text);

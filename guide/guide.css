@@ -139,7 +139,6 @@ a { color: var(--area); }
 .guide-info strong { font-size: 17px; font-weight: 700; }
 .guide-info small { font-size: 12px; color: var(--muted); }
 .guide-info em { font-style: normal; font-size: 12px; color: var(--area); }
-.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .tile { padding: 14px; border-radius: 20px; background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
 .tile small { font-size: 12px; color: var(--muted); }
 .tile strong { font-size: 22px; font-weight: 700; }
@@ -161,7 +160,6 @@ a { color: var(--area); }
 .compare td, .compare th { padding: 4px 4px 4px 0; }
 .compare .flag { color: var(--stat-yellow); }
 .note a, .empty a { display: inline-flex; align-items: center; min-height: 44px; }
-.tile strong small { font-size: 12px; font-weight: 400; color: var(--muted); }
 .panel .row { width: 100%; }
 /* the shared /stats form and sync block */
 .stats-area, .guide-sync { padding: 14px 16px; border-radius: 20px; background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; font-size: 12px; color: var(--muted); }

@@ -1,6 +1,6 @@
-// The start page: one card per guide, each guide's best step, and two tiles.
+// The start page: one card per guide, each guide's best step, and what was unlocked this week.
 import { esc, number } from '../../format.js';
-import { guideModel, worldFor, bestPerGuide, coinsForNext, unlockedThisWeek } from '../model.js';
+import { guideModel, worldFor, bestPerGuide, unlockedThisWeek } from '../model.js';
 import { ring, bottomBar, profileLink } from './parts.js';
 
 export const HOME_TABS = [{ id: 'home', label: 'Home' }, { id: 'settings', label: 'Settings' }];
@@ -30,9 +30,8 @@ export function homeView(world) {
   const lines = bestPerGuide(models);
   const bests = lines.length ? `<section class="bests"><div class="bests-title">BEST STEP PER GUIDE</div>${lines.map((l) => `<div class="best-line"><b>${esc(l.name)}:</b> ${esc(l.step)} <span>· ${esc(l.text)}</span></div>`).join('')}</section>` : '';
   const noSync = world.state?.summary ? '' : '<p class="note">Sync your profile in <a href="#/settings">Settings</a> to see the best steps.</p>';
-  const total = coinsForNext(models);
   const week = Object.values(world.dates ?? {}).reduce((n, stamps) => n + unlockedThisWeek(stamps, world.now), 0);
-  const tiles = `<div class="tiles"><div class="tile"><small>Coins for all next steps</small><strong>${esc(total.text)}${total.unpriced && total.text !== '…' ? `<small> + ${total.unpriced} unpriced</small>` : ''}</strong></div><div class="tile"><small>Unlocked this week</small><strong>${number(week)} <em>step${week === 1 ? '' : 's'}</em></strong></div></div>`;
+  const tiles = `<div class="tile"><small>Unlocked this week</small><strong>${number(week)} <em>step${week === 1 ? '' : 's'}</em></strong></div>`;
   const hasFarming = world.guides.some((g) => g.area === 'farming');
   return `<div class="screen screen-home" data-theme="home">${head}<div class="scroll">${bests}${noSync}${models.map(guideCard).join('')}${hasFarming ? '' : farmingCard}${tiles}</div>${bar}</div>`;
 }

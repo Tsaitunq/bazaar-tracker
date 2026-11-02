@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { homeView } from '../guide/views/home.js';
 import { guideView, statsView } from '../guide/views/guide.js';
 import { settingsView } from '../guide/views/settings.js';
-import { bestPerGuide, coinsForNext, guideModel, worldFor } from '../guide/model.js';
+import { bestPerGuide, guideModel, worldFor } from '../guide/model.js';
 import { miningSettings } from '../optimizer.js';
 
 const sold = (price) => ({ buy_summary: [{ pricePerUnit: price, amount: 100 }] });
@@ -45,17 +45,8 @@ test('home has one card per guide in its theme, next step in area colour', () =>
 
 test('home shows coins for all next steps and unlocked this week', () => {
   const html = homeView(world({ dates: { mine: { 'Main|Jade': NOW - 1000, 'Main|Old': 0 } } }));
-  assert.match(html, /Coins for all next steps<\/small><strong>2M<\/strong>/);
+  assert.doesNotMatch(html, /Coins for all next steps/);
   assert.match(html, /Unlocked this week<\/small><strong>1 <em>step<\/em><\/strong>/);
-});
-
-test('a missing price leaves coins marked, not lower', () => {
-  const noB = world({ guides: [{ ...mining, sections: [{ name: 'Main', steps: [step('Jade', 'Z')] }] }, blaze] });
-  const models = noB.guides.map((g) => guideModel(g, worldFor(noB, g)));
-  assert.deepEqual(coinsForNext(models), { text: '1M', unpriced: 1 });
-  assert.match(homeView(noB), /1M<small> \+ 1 unpriced<\/small>/);
-  const none = world({ products: null });
-  assert.equal(coinsForNext(none.guides.map((g) => guideModel(g, worldFor(none, g)))).text, '…');
 });
 
 test('the guide screen sets its theme on the root', () => {
