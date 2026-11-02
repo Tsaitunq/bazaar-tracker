@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { chaptersOf, totalShare, stampDone, unlockedThisWeek, guideModel, stepStatus, statDelta } from '../guide/model.js';
+import { chaptersOf, totalShare, stampDone, unlockedThisWeek, guideModel, stepStatus, statDelta, statsOnly } from '../guide/model.js';
 import { pathRow, stepCard } from '../guide/views/parts.js';
 import { number } from '../format.js';
-import { miningSettings } from '../optimizer.js';
+import { miningSettings, SCORES } from '../optimizer.js';
 
 const steps = (n, prefix) => Array.from({ length: n }, (_, i) => ({ text: `${prefix}${i}` }));
 const guide = (sizes, extra = {}) => ({ sections: sizes.map((n, i) => ({ name: `S${i}`, steps: steps(n, `s${i}-`) })), ...extra });
@@ -103,7 +103,7 @@ test('a row shows the rate from the score of its area, done in green text, locke
   const gated = { text: 'gated', items: [{ id: 'GATE', qty: 1 }] };
   const m = guideModel(mining([fortune('a'), fortune('b'), fortune('c'), gated]), world({ marks: new Set(['Main|a']) }));
   assert.equal(m.rows[0].side, 'done');
-  assert.match(m.rows[2].side, /^[\d.]+ % \/ 1M$/);
+  assert.match(m.rows[2].side, /^[\d.]+[kMB]? per 1 %$/);
   assert.equal(m.rows[2].sub, '+8 ☘ Mining Fortune');
   assert.equal(m.rows[2].subColor, 'orange');
   assert.equal(m.rows[3].status, 'locked');
@@ -126,13 +126,13 @@ test('the card holds the hypixel stat, the gain, the cost and the rate', () => {
   assert.deepEqual(card.stats, [{ text: '+8 ☘ Mining Fortune', color: 'orange' }]);
   assert.match(card.gain, /^\+[\d.]+ % yield$/);
   assert.equal(card.cost, '1M coins');
-  assert.match(card.rate, /^[\d.]+ % per 1M$/);
+  assert.match(card.rate, /^[\d.]+[kMB]? per 1 % yield$/);
   assert.equal(card.where, 'Main');
 });
 
 test('the card gets the BEST VALUE badge only when it leads the ranking', () => {
   assert.equal(guideModel(mining([fortune('a', 'B'), fortune('b', 'A')]), world()).card.badge, true);
-  assert.equal(guideModel(mining([fortune('a', 'A'), fortune('b', 'B')]), world()).card.badge, false);
+  assert.equal(guideModel(mining([fortune('a', 'GONE'), fortune('b', 'GONE')]), world()).card.badge, false);
 });
 
 test('a partly done step shows have / need with API, an API tick has Undo', () => {
@@ -189,11 +189,11 @@ test('without prices cost shows … and is never 0', () => {
 
 test('without a sync the path still shows, with no stats and no ranking', () => {
   const m = guideModel(mining([fortune('a')]), world({ state: null }));
-  assert.equal(m.missing, 'profile');
+  assert.equal(m.missing, 'stats');
   assert.deepEqual(m.stats, []);
   assert.equal(m.card.cost, '1M coins');
   assert.equal(m.card.gain, '');
-  assert.deepEqual(m.tabs.map((t) => t.id), ['path', 'best']);
+  assert.deepEqual(m.tabs.map((t) => t.id), ['path']);
 });
 
 test('a guide without a score has only the path tab', () => {
@@ -220,4 +220,107 @@ test('a section with nothing left to pay says nothing', () => {
   const g = { id: 'g', title: 'G', sections: [{ name: 'A', steps: [{ text: 'free' }] }] };
   const m = guideModel(g, { marks: new Set(), products: {}, name: String });
   assert.equal(m.card.left, '');
+});
+
+test('statsOnly keeps typed stats and drops what came from the sync', () => {
+  const stand = { uuid: 'u', summary: {}, syncedAt: 1, statsInput: { mining: { values: { MINING_SPEED: 1 }, choice: { armor: null }, boost: false, at: 5, offset: { MINING_SPEED: 3 }, offsetFor: {}, offsetNote: null } } };
+  assert.deepEqual(statsOnly(stand), { statsInput: { mining: { values: { MINING_SPEED: 1 }, choice: { armor: null }, boost: false, at: 5 } } });
+});
+
+test('statsOnly without typed stats is null', () => {
+  assert.equal(statsOnly({ uuid: 'u' }), null);
+  assert.equal(statsOnly(null), null);
+});
+
+test('a section marked extra stays out of the ring', () => {
+  const g = guide([1, 1], {});
+  g.sections[1].extra = true;
+  assert.equal(chaptersOf(g, new Set()).reduce((n, c) => n + c.total, 0), 1);
+});
+
+test('the current chapter follows the current step, not the first open one', () => {
+  const out = chaptersOf(guide([1, 1, 1]), new Set(), null, 'S2|s2-0');
+  assert.deepEqual(out.map((c) => c.current), [false, false, true]);
+});
+
+// the path as the order of the rows
+const coinsOf = (text, id, fortune, extra = {}) => ({ text, gain: { MINING_FORTUNE: fortune }, items: [{ id, qty: 1 }], ...extra });
+const typed = (over = {}) => world({ state: { statsInput: { mining: { values: { MINING_FORTUNE: 100, MINING_SPEED: 1000 }, at: 5 } } }, ...over });
+
+test('rate reads as coins per 1 %', () => assert.equal(SCORES.mining.rateText(0.01 / 1.62), '1.62M per 1 %'));
+
+test('a head reads with the next N steps, one member reads with the next step', () => {
+  const three = mining([coinsOf('a', 'A', 1, { group: 'G' }), coinsOf('b', 'A', 1, { group: 'G' }), coinsOf('c', 'A', 1, { group: 'G' })]);
+  const rows = guideModel(three, typed()).rows;
+  assert.equal(rows[0].card.group, 'with the next 2 steps');
+  assert.equal(rows[1].member, true);
+  const two = mining([coinsOf('a', 'A', 1, { group: 'G' }), coinsOf('b', 'A', 1, { group: 'G' })]);
+  assert.equal(guideModel(two, typed()).rows[0].group, 'with the next step');
+});
+
+test('without a sync the rows have a rate from typed stats and ticks', () => {
+  const m = guideModel(mining([coinsOf('a', 'A', 10), coinsOf('b', 'A', 5)]), typed());
+  assert.match(m.rows[1].side, /per 1 %$/);
+  assert.match(m.rows[0].card.rate, /per 1 % yield$/);
+  assert.equal(m.missing, null);
+  assert.equal(guideModel(mining([coinsOf('a', 'A', 10)]), world({ state: null })).missing, 'stats');
+});
+
+test('stats typed in before a tick follow it, ticks from before stay out of them', () => {
+  const g = mining([coinsOf('old', 'A', 10), coinsOf('new', 'A', 20), coinsOf('open', 'A', 5)]);
+  const marks = new Set(['Main|old', 'Main|new']);
+  const m = guideModel(g, typed({ marks, dates: { m: { 'Main|old': 1, 'Main|new': 9 } } }));
+  assert.equal(m.stats.find((s) => s.key === 'MINING_FORTUNE').value, '120');
+});
+
+test('rows follow the path order, done rows on top in guide order', () => {
+  const g = mining([coinsOf('poor', 'A', 1), coinsOf('doneA', 'A', 1), coinsOf('good', 'A', 50), coinsOf('doneB', 'A', 1)]);
+  const marks = new Set(['Main|doneA', 'Main|doneB']);
+  assert.deepEqual(guideModel(g, typed({ marks })).rows.map((r) => r.name), ['doneA', 'doneB', 'good', 'poor']);
+});
+
+test('a later price changes the number, not the place, until the next tick', () => {
+  const g = { ...mining([coinsOf('x', 'A', 5), coinsOf('y', 'B', 5), coinsOf('z', 'B', 1)]), id: 'epoch' };
+  const first = guideModel(g, typed({ pathEpoch: 1, products: { A: sold(1e6), B: sold(2e6) } }));
+  assert.deepEqual(first.rows.map((r) => r.name), ['x', 'y', 'z']);
+  const later = guideModel(g, typed({ pathEpoch: 1, products: { A: sold(9e6), B: sold(2e6) } }));
+  assert.deepEqual(later.rows.map((r) => r.name), ['x', 'y', 'z']);
+  assert.notEqual(later.rows[0].card.rate, first.rows[0].card.rate);
+  const ticked = guideModel(g, typed({ pathEpoch: 2, products: { A: sold(9e6), B: sold(2e6) } }));
+  assert.deepEqual(ticked.rows.map((r) => r.name), ['y', 'x', 'z']);
+});
+
+test('a cold resistance step shows its stat and no rate', () => {
+  const g = { ...mining([{ text: 'warm', gain: { COLD_RESISTANCE: 5 }, items: [{ id: 'A', qty: 1 }] }]), order: 'fixed' };
+  const [row] = guideModel(g, typed()).rows;
+  assert.match(row.card.stats[0].text, /Cold Resistance/);
+  assert.equal(row.card.rate, '');
+});
+
+test('extras come last without a rate and can be ticked', () => {
+  const g = { id: 'x', title: 'X', area: 'mining', sections: [{ name: 'Buffs', extra: true, steps: [coinsOf('buff', 'A', 99)] }, { name: 'Main', steps: [coinsOf('a', 'A', 1)] }] };
+  const rows = guideModel(g, typed()).rows;
+  assert.deepEqual(rows.map((r) => r.name), ['a', 'buff']);
+  assert.equal(rows[1].status, 'open');
+  assert.doesNotMatch(rows[1].side, /per 1 %/);
+  assert.match(pathRow(rows[1]), /data-step="Buffs\|buff"/);
+  assert.equal(guideModel(g, typed({ marks: new Set(['Buffs|buff']) })).rows[1].status, 'done');
+  assert.equal(guideModel(g, typed({ marks: new Set(['Main|a']) })).card, null);
+});
+
+test('swapping a score object changes every rate text', () => {
+  const scores = { mining: { gainText: () => 'G', rateText: () => 'R', rateLong: () => 'L' } };
+  const rows = guideModel(mining([coinsOf('a', 'A', 10), coinsOf('b', 'A', 5)]), typed({ scores })).rows;
+  assert.equal(rows[0].card.gain, 'G');
+  assert.equal(rows[0].card.rate, 'L');
+  assert.equal(rows[1].side, 'R');
+});
+
+test('without a sync the piece a new one replaces is sold, as with a sync', () => {
+  const data = { LOW: { category: 'HELMET', tier: 'RARE', stats: {} }, HIGH: { category: 'HELMET', tier: 'EPIC', stats: { MINING_FORTUNE: 30 } } };
+  const g = mining([{ text: 'high', items: [{ id: 'HIGH', qty: 1 }], detect: { kind: 'owned', on: [['HIGH']] } }]);
+  const products = { HIGH: sold(1e6), LOW: { sell_summary: [{ pricePerUnit: 5e5, amount: 10 }], buy_summary: [] } };
+  const m = guideModel(g, typed({ owned: ['LOW'], products, prices: { items: data } }));
+  assert.equal(m.leader.resale, 5e5);
+  assert.equal(m.leader.net, 5e5);
 });

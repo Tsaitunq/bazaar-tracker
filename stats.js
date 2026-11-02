@@ -346,14 +346,17 @@ export function compareStats(calculated, inGame) {
 
 // What the form hands in, as it is stored: only known stats with real numbers, and the slots as numbers.
 // measured: what the app calculates for this setup and the boost settings at saving, null without item data. Left out: no offset is worked out.
-export function statsEntry(area, { armor, equipment, pet, emptyHand, boost, values }, at, measured, previous = null) {
+export function statsEntry(area, { armor, equipment, pet, emptyHand, boost, values, mp: typedMp }, at, measured, previous = null) {
   const slot = (v) => (Number.isInteger(Number(v)) && Number(v) > 0 ? Number(v) : null);
   const kept = AREA_STATS[area].flatMap((stat) => {
     const raw = values?.[stat];
     const n = raw === '' || raw === null || raw === undefined ? NaN : Number(raw);
     return Number.isFinite(n) ? [[stat, n]] : [];
   });
-  const entry = { choice: { armor: slot(armor), equipment: slot(equipment), pet: /^[A-Z_]+:[A-Z_]+$/.test(pet ?? '') ? pet : null, emptyHand: emptyHand === true }, values: Object.fromEntries(kept), boost: boost === true, at };
+  // Magical Power is no line of /stats. Left empty it is unknown; not asked or nonsense keeps the old value.
+  const mpNumber = typedMp === '' || typedMp === undefined ? NaN : Number(typedMp);
+  const mp = typedMp === '' ? undefined : mpNumber >= 0 ? mpNumber : previous?.mp;
+  const entry = { choice: { armor: slot(armor), equipment: slot(equipment), pet: /^[A-Z_]+:[A-Z_]+$/.test(pet ?? '') ? pet : null, emptyHand: emptyHand === true }, values: Object.fromEntries(kept), boost: boost === true, at, ...(mp !== undefined && { mp }) };
   return measured === undefined ? entry : { ...entry, ...offsetOf(entry, measured, previous) };
 }
 
@@ -419,6 +422,7 @@ function manualView(area, entry) {
   return `<section class="stats-area" data-stats-area="${area}"><strong>${AREA_TITLE[area]}</strong>
     <small>Type in what /stats shows in game.</small>
     ${statInputs(area, entry)}
+    ${area === 'blaze' ? `<label>Magical Power<input type="number" step="any" min="0" inputmode="decimal" data-stats-mp value="${entry.mp ?? ''}"></label>` : ''}
     <div class="actions"><button type="button" data-stats-save>Save ${AREA_TITLE[area]} stats</button></div>
     ${entry.at ? '<small role="status">Saved on this device.</small>' : ''}
   </section>`;

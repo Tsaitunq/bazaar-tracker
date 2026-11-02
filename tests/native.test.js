@@ -1,6 +1,6 @@
 import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { alertConfig, plugin, syncAlerts, syncNames, onRoute, requestAlertPermission, canSync, getApiKey, setApiKey, loadProfile, saveProfile, clearProfileData } from '../native.js';
+import { alertConfig, plugin, syncAlerts, syncNames, onRoute, requestAlertPermission, canSync, getApiKey, setApiKey, loadProfile, saveProfile, clearProfileData, clearApiKeyOnly } from '../native.js';
 
 afterEach(() => { delete globalThis.Capacitor; });
 
@@ -125,4 +125,6 @@ test('the profile goes to the plugin as JSON and a broken one reads as none', as
   assert.deepEqual(calls[1], { key: 'K2' });
   assert.equal(await clearProfileData(), true);
   assert.deepEqual(calls.slice(2), ['key', 'profile']);
+  assert.equal(await clearApiKeyOnly(), true);
+  assert.deepEqual(calls.slice(4), ['key']);
 });

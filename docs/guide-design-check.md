@@ -93,7 +93,6 @@ Erzeugt von `npm run guide:shots` auf 390×844 mit Fixtures. Soll aus `docs/desi
 
 Diese Ansichten nutzen dieselben Bausteine und Tokens, es gibt keine Maße zum Abgleich:
 
-- Best value
 - Stats of all guides
 - Settings
 

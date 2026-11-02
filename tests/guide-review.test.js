@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { bestGroups, formEdited, guideModel, typedFields, restoreTyped, settled } from '../guide/model.js';
+import { formEdited, guideModel, typedFields, restoreTyped, settled } from '../guide/model.js';
 import { stepCard } from '../guide/views/parts.js';
 import { guideView } from '../guide/views/guide.js';
 import { settingsView } from '../guide/views/settings.js';
@@ -17,8 +17,8 @@ const guide = (steps) => ({ id: 'm', title: 'Mine', area: 'mining', groups: {}, 
 const step = (text, id = 'A') => ({ text, gain: { MINING_FORTUNE: 8 }, items: [{ id, qty: 2 }] });
 const world = (over = {}) => ({ marks: new Set(), checks: {}, guides: [], state: { summary, syncedAt: 1 }, products: { A: sold(1e6) }, prices: { items }, settings: miningSettings(null), name: (id) => items[id]?.name ?? id, now: 2, ...over });
 
-test('best value never calls a step without a price free', () => {
-  const sides = (w) => bestGroups(guideModel(guide([step('Z', 'Z')]), w)).flatMap((g) => g.rows.map((r) => r.side));
+test('the path never calls a step without a price free', () => {
+  const sides = (w) => guideModel(guide([step('Z', 'Z')]), w).rows.map((r) => r.side);
   assert.deepEqual(sides(world()), ['no price']);
   assert.deepEqual(sides(world({ products: null })), ['…']);
 });
@@ -96,8 +96,7 @@ test('the card shows the net cost beside the net rate', () => {
   const data = { ...items, NEW: { category: 'HELMET', tier: 'LEGENDARY', stats: { MINING_FORTUNE: 20 } }, OLD: { category: 'HELMET', tier: 'COMMON', stats: {} } };
   const state = { summary: { ...summary, items: [...summary.items, helmet], wardrobe: { armor: { equipped: 1, sets: [1] }, equipment: { equipped: 1, sets: [1] } } }, syncedAt: 1 };
   const products = { NEW: sold(20e6), OLD: { sell_summary: [{ pricePerUnit: 8e6, amount: 100 }], buy_summary: [] } };
-  const { card, ranked } = guideModel(g, world({ state, products, prices: { items: data } }));
-  const row = ranked.groups.ranked[0];
+  const { card, leader: row } = guideModel(g, world({ state, products, prices: { items: data } }));
   assert.ok(row.resale > 0 && row.net < row.coins);
   assert.ok(card.cost.startsWith('Net '));
   assert.ok(card.cost.includes(coins(row.net)));

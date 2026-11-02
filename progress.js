@@ -4,6 +4,7 @@
 import { coins } from './format.js';
 import { walkBook } from './prices.js';
 import { validDetect, validGroups } from './detect.js';
+import { impliedDone } from './owned.js';
 
 const INDEX = 'personal/guides/index.json';
 const text = (v) => (typeof v === 'string' && v.trim() ? v : null);
@@ -40,7 +41,8 @@ function validStep(s) {
   if (items.includes(null)) return null;
   const detect = validDetect(s.detect);
   const gain = validGain(s.gain);
-  return { text: s.text, ...(detect && { detect }), ...(gain && { gain }), ...(items.length && { items }), ...(text(s.hint) && { hint: s.hint }), ...(s.table === true && { table: true }), ...(text(s.line) && { line: s.line }), ...(Number.isInteger(s.priority) && s.priority > 0 && { priority: s.priority }) };
+  const after = Array.isArray(s.after) ? s.after.filter(text) : [];
+  return { text: s.text, ...(detect && { detect }), ...(gain && { gain }), ...(items.length && { items }), ...(text(s.hint) && { hint: s.hint }), ...(s.table === true && { table: true }), ...(text(s.line) && { line: s.line }), ...(Number.isInteger(s.priority) && s.priority > 0 && { priority: s.priority }), ...(text(s.group) && { group: s.group }), ...(after.length && { after }) };
 }
 
 // Sections grouped for the ring of the guide app. A name that is no section drops out, and a chapter left empty with it.
@@ -61,12 +63,12 @@ export function validGuide(g) {
     if (!text(s?.name) || !Array.isArray(s.steps)) return null;
     const steps = s.steps.map(validStep);
     if (steps.includes(null)) return null;
-    return { name: s.name, ...(text(s.goal) && { goal: s.goal }), steps };
+    return { name: s.name, ...(text(s.goal) && { goal: s.goal }), ...(s.extra === true && { extra: true }), steps };
   });
   if (sections.includes(null)) return null;
   const groups = validGroups(g.groups);
   const chapters = validChapters(g.chapters, sections);
-  return { title: g.title, ...(/^https?:\/\//i.test(g.source ?? '') && { source: g.source }), ...(['mining', 'blaze', 'farming'].includes(g.area) && { area: g.area }), ...(chapters && { chapters }), ...(groups && { groups }), sections };
+  return { title: g.title, ...(/^https?:\/\//i.test(g.source ?? '') && { source: g.source }), ...(['mining', 'blaze', 'farming'].includes(g.area) && { area: g.area }), ...(['fixed', 'value'].includes(g.order) && { order: g.order }), ...(text(g.preset) && { preset: g.preset }), ...(chapters && { chapters }), ...(groups && { groups }), sections };
 }
 
 const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'guide';
@@ -92,7 +94,7 @@ export function mergeGuides(bundled, imported) {
   return [...bundled.filter((g) => !ids.has(g.id)), ...imported];
 }
 
-export const exportData = (guides, progress) => JSON.stringify({ type: 'bt-progress', guides, progress }, null, 2);
+export const exportData = (guides, progress, owned = []) => JSON.stringify({ type: 'bt-progress', guides, progress, owned }, null, 2);
 
 // Reads an export of the app or one plain guide file. Throws with a message for the player.
 export function importData(raw) {
@@ -110,7 +112,8 @@ export function importData(raw) {
     if (Array.isArray(keys)) progress[id] = keys.filter((k) => typeof k === 'string');
   }
   if (!guides.length && !Object.keys(progress).length) throw new Error('No guides found in that file.');
-  return { guides, progress };
+  const owned = data?.type === 'bt-progress' && Array.isArray(data.owned) ? data.owned.filter((id) => typeof id === 'string') : [];
+  return { guides, progress, owned };
 }
 
 // A checkmark belongs to its section and text, so a changed guide keeps the marks of the steps it kept.
@@ -130,6 +133,7 @@ export function doneSet(guide, marks, auto = null) {
       if (!marks.has(UNDONE + key) && (met(found) || (step.table && !found))) done.add(key);
     }
   }
+  for (const key of impliedDone(guide, done, stepKey)) if (!marks.has(UNDONE + key)) done.add(key);
   return done;
 }
 
@@ -252,7 +256,7 @@ export function stepCost(step, ctx) {
 export function openStep(section, step, ctx) {
   const found = ctx.auto?.get(stepKey(section, step));
   if (!found?.have || !step.items || met(found)) return step;
-  const owned = [step.detect].flat().some((d) => d.kind === 'owned') ? new Set(ctx.profile?.items.map((i) => i.id)) : new Set();
+  const owned = [step.detect].flat().some((d) => d.kind === 'owned') ? new Set([...(ctx.profile?.items ?? []).map((i) => i.id), ...(ctx.owned ?? [])]) : new Set();
   const share = (found.need - found.have) / found.need;
   const items = step.items.filter((i) => !owned.has(i.id)).map((item) => {
     if (item.anyOf) return item;
@@ -298,21 +302,4 @@ export function guideStats(guide, checked, ctx) {
     return left;
   });
   return { done: sections.reduce((n, s) => n + s.done, 0), total: sections.reduce((n, s) => n + s.total, 0), next, sections };
-}
-
-// Per line only its first open step, a step without a line stands alone. Pinned first by weight, then priced by
-// price, then what has no full price: a sum that leaves out an item would look cheaper than the step is.
-export function nextUpgrades(guide, checked, ctx) {
-  ctx.have = haveLevels(guide, checked);
-  const seen = new Set();
-  const rows = [];
-  for (const section of guide.sections) {
-    for (const step of section.steps) {
-      if (checked.has(stepKey(section, step)) || seen.has(step.line)) continue;
-      if (step.line) seen.add(step.line);
-      const cost = stepCost(openStep(section, step, ctx), ctx);
-      rows.push({ section, step, ...cost, priced: cost.coins > 0 && !cost.unpriced });
-    }
-  }
-  return rows.sort((a, b) => (b.step.priority ?? 0) - (a.step.priority ?? 0) || b.priced - a.priced || (a.priced ? a.coins - b.coins : 0));
 }

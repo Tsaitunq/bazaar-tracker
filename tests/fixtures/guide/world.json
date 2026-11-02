@@ -15,9 +15,10 @@
           { "text": "Value unknown", "items": [{ "id": "ITEM_A", "qty": 1 }] },
           { "text": "Lantern", "items": [{ "id": "TEST_GATED", "qty": 1 }] }
         ] },
+        { "name": "Buffs", "extra": true, "steps": [{ "text": "Cake", "hint": "A buff." }] },
         { "name": "The end", "steps": [
-          { "text": "Pristine gem", "gain": { "PRISTINE": 1 }, "items": [{ "id": "ITEM_A", "qty": 3 }] },
-          { "text": "Fortune gem one", "gain": { "MINING_FORTUNE": 3 }, "items": [{ "id": "ITEM_A", "qty": 4 }] },
+          { "text": "Pristine gem", "group": "pair", "gain": { "PRISTINE": 1 }, "items": [{ "id": "ITEM_A", "qty": 3 }] },
+          { "text": "Fortune gem one", "group": "pair", "gain": { "MINING_FORTUNE": 3 }, "items": [{ "id": "ITEM_A", "qty": 4 }] },
           { "text": "Fortune gem two", "gain": { "MINING_FORTUNE": 3 }, "items": [{ "id": "ITEM_A", "qty": 5 }] },
           { "text": "Fortune gem three", "gain": { "MINING_FORTUNE": 3 }, "items": [{ "id": "ITEM_A", "qty": 6 }] },
           { "text": "Fortune gem four", "gain": { "MINING_FORTUNE": 3 }, "items": [{ "id": "ITEM_A", "qty": 7 }] },

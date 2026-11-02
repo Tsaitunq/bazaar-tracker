@@ -1,14 +1,14 @@
 // The guide app: state, routes, sync, prices and events. What it shows is worked out in model.js and views/.
 import { loadItemData, loadStatsPreset, loadForge, loadAh, loadElection, freshBins, fetchBins } from '../data.js';
-import { loadBundled, mergeGuides, exportData, importData, setMark, stepKey, doneSet } from '../progress.js';
+import { loadBundled, mergeGuides, exportData, importData, doneSet } from '../progress.js';
 import { createSync, syncMessage, normalizeUuid, cleanKey } from '../sync.js';
-import { plugin, canSync, getApiKey, setApiKey, loadProfile, saveProfile, clearProfileData } from '../native.js';
+import { plugin, canSync, getApiKey, setApiKey, loadProfile, saveProfile, clearProfileData, clearApiKeyOnly } from '../native.js';
 import { summarize } from '../profile.js';
-import { detectGuide } from '../detect.js';
+import { migrateOwned, resetOwned } from '../owned.js';
 import { fallbackName, loadItems } from '../names.js';
 import { PRESETS, miningSettings } from '../optimizer.js';
 import { computeStats, loadoutOf, offsetStale, statsEntry } from '../stats.js';
-import { parseRoute, syncOutcome, applyImport, stampAll, formEdited, typedFields, restoreTyped, settled, swipeTarget, swipeAxis, swipeLands } from './model.js';
+import { parseRoute, syncOutcome, applyImport, stampAll, formEdited, typedFields, restoreTyped, settled, statsOnly, autoOf, tickStep, swipeTarget, swipeAxis, swipeLands } from './model.js';
 import { homeView } from './views/home.js';
 import { guideView, statsView } from './views/guide.js';
 import { settingsView } from './views/settings.js';
@@ -34,6 +34,7 @@ let bundled = [];
 let imported = load('pg.guides', []);
 let checks = load('pg.checks', {});
 let dates = load('pg.dates', {});
+let owned = load('pg.owned', []);
 const settings = load('pg.settings', {});
 const bins = load('pg.bins', {});
 let state; // undefined until the stored profile is loaded, null when there is none
@@ -59,6 +60,7 @@ let touch = null;
 let settling = false;
 let redrawDue = false;
 let shownRoute = '';
+let pathEpoch = 0; // a new order of the path: on opening a guide, on a tick, on the first prices and when a setting changes
 
 const guides = () => mergeGuides(bundled, imported);
 const route = () => parseRoute(location.hash, guides());
@@ -78,9 +80,9 @@ const boosts = () => ({ godPotion: settings.godPotion ?? preset?.boosts?.godPoti
 const world = () => {
   pending = new Set();
   return {
-    guides: guides(), checks, dates, state: shownState() ?? null, personal: personal(), products, now: Date.now(),
+    guides: guides(), checks, owned, dates, state: shownState() ?? null, personal: personal(), products, now: Date.now(),
     prices: { forge, ah, cofl: freshBins(bins), wants: pending, items, tax: (settings.tax ?? DEFAULT_TAX) / 100, derpy: election?.mayor?.name === 'Derpy' },
-    settings: miningSettings(settings.mining), keepOldGear: settings.keepOldGear === true, boosts: boosts(), preset,
+    settings: miningSettings(settings.mining), keepOldGear: settings.keepOldGear === true, brake: settings.brake > 0 ? settings.brake : 5, pathEpoch, boosts: boosts(), preset,
     name: (id) => names[id] ?? fallbackName(id), uuid: state?.uuid ?? '', hasKey, keyMessage, tax: settings.tax ?? DEFAULT_TAX, importedIds: imported.map((g) => g.id), canSync: canSync(), message: note.message, choices: note.choices,
     profileMessage, dataMessage, dataText, armed, removeArmed,
   };
@@ -89,7 +91,7 @@ const world = () => {
 function screenOf(r, w) {
   if (r.page === 'stats') return statsView(w);
   if (r.page === 'settings') return settingsView(w);
-  if (r.page === 'guide') return guideView(w, r.id, r.tab) ?? homeView(w);
+  if (r.page === 'guide') return guideView(w, r.id) ?? homeView(w);
   return homeView(w);
 }
 
@@ -153,7 +155,7 @@ async function askBins(wants) {
 }
 
 function stamp(firstRun = false) {
-  dates = stampAll(guides(), checks, dates, shownState(), Date.now(), firstRun);
+  dates = stampAll(guides(), checks, dates, shownState(), Date.now(), firstRun, owned);
   save('pg.dates', dates);
 }
 
@@ -162,6 +164,7 @@ async function refreshPrices() {
     const res = await fetch(BAZAAR, { cache: 'no-store' });
     const data = await res.json();
     if (!data.success) return;
+    if (!products) pathEpoch++;
     products = data.products;
     drawInBackground();
   } catch { /* no connection: costs stay as they were, or as … */ }
@@ -172,11 +175,14 @@ function toggle(key) {
   const guide = guides().find((g) => g.id === r.id);
   if (!guide) return;
   const marks = new Set(checks[guide.id] ?? []);
-  const auto = detectGuide(guide, shownState()?.summary ?? null, stepKey);
-  setMark(guide, marks, key, !doneSet(guide, marks, auto).has(key), auto);
+  const summary = shownState()?.summary;
+  const on = !doneSet(guide, marks, autoOf(guide, summary, owned)).has(key);
+  owned = [...tickStep({ guide, key, on, marks, owned, summary })];
   checks = { ...checks, [guide.id]: [...marks] };
   save('pg.checks', checks);
+  save('pg.owned', owned);
   dataText = ''; // an export from before this tick must not come back by accident
+  pathEpoch++;
   stamp();
   draw();
 }
@@ -233,12 +239,19 @@ async function removeProfile() {
   keyField.value = '';
   settled(keyField);
   profileSync.invalidate();
-  profileMessage = await clearProfileData() ? 'Key and profile data removed.' : 'Could not remove them.';
+  // a store that cannot be read right now gives null: what is on screen still holds the typed-in stats
+  const kept = statsOnly(await loadStand() ?? state);
+  let removed;
+  if (!plugin()) removed = await saveStand(kept);
+  else if (kept) removed = await saveStand(kept) && await clearApiKeyOnly();
+  else removed = await clearProfileData();
+  profileMessage = removed ? 'Key and profile data removed.' : 'Could not remove them.';
   await showProfile();
   draw();
 }
 
 function saveSettings() {
+  pathEpoch++;
   save('pg.settings', settings);
   draw();
 }
@@ -249,9 +262,12 @@ const jsonSettled = () => { const box = root.querySelector('[data-json]'); if (b
 function runImport(raw) {
   try {
     const data = importData(raw);
-    ({ imported, checks } = applyImport({ imported, checks, bundled }, data));
+    ({ imported, checks, owned } = applyImport({ imported, checks, bundled, owned }, data));
+    ({ owned, checks } = migrateOwned(guides(), checks, owned));
+    pathEpoch++;
     save('pg.guides', imported);
     save('pg.checks', checks);
+    save('pg.owned', owned);
     stamp();
     dataText = '';
     jsonSettled();
@@ -263,7 +279,7 @@ function runImport(raw) {
 }
 
 async function runExport() {
-  dataText = exportData(guides(), checks);
+  dataText = exportData(guides(), checks, owned);
   let copied = false;
   try { await navigator.clipboard.writeText(dataText); copied = true; } catch { /* the text field holds it */ }
   // the Android WebView has no downloads, so there the text and the clipboard are the export
@@ -284,7 +300,7 @@ async function saveStats(box) {
   const values = Object.fromEntries([...box.querySelectorAll('[data-stats-stat]')].map((input) => [input.dataset.statsStat, input.value]));
   // the typed-in form has no slots and boxes
   const pick = (kind) => box.querySelector(`[data-stats-set="${kind}"]`)?.value;
-  const form = { armor: pick('armor'), equipment: pick('equipment'), pet: pick('pet'), emptyHand: box.querySelector('[data-stats-empty-hand]')?.checked, boost: box.querySelector('[data-stats-boost]')?.checked, values };
+  const form = { armor: pick('armor'), equipment: pick('equipment'), pet: pick('pet'), emptyHand: box.querySelector('[data-stats-empty-hand]')?.checked, boost: box.querySelector('[data-stats-boost]')?.checked, mp: box.querySelector('[data-stats-mp]')?.value, values };
   const stand = await loadStand() ?? {};
   const synced = personal() ? stand.summary : null;
   const { choice } = statsEntry(area, form, 0);
@@ -323,7 +339,10 @@ root.addEventListener('click', (e) => {
   if (yes) {
     armed = null;
     checks = { ...checks, [yes.dataset.resetYes]: [] };
+    owned = [...resetOwned(guides().find((g) => g.id === yes.dataset.resetYes), owned)];
+    pathEpoch++;
     save('pg.checks', checks);
+    save('pg.owned', owned);
     stamp();
     draw();
     return;
@@ -346,7 +365,8 @@ root.addEventListener('change', async (e) => {
   const { dataset } = e.target;
   if (dataset.set === 'uuid') return saveUuid(e.target);
   if (dataset.set === 'key') return saveKey(e.target);
-  if (e.target.matches('[data-tax], [data-flag]')) settled(e.target);
+  if (e.target.matches('[data-tax], [data-flag], [data-brake]')) settled(e.target);
+  if (e.target.matches('[data-brake]')) { settings.brake = Number(e.target.value) > 0 ? Number(e.target.value) : 5; return saveSettings(); }
   if (e.target.matches('[data-tax]')) { settings.tax = Number(e.target.value); return saveSettings(); }
   if (dataset.flag) { settings[dataset.flag] = e.target.checked; return saveSettings(); }
   if (dataset.mining) settled(e.target);
@@ -454,7 +474,7 @@ root.addEventListener('touchend', (e) => {
   settle(to && swipeLands(dx, speed, root.clientWidth) ? to : null);
 }, { passive: true });
 
-window.addEventListener('hashchange', draw);
+window.addEventListener('hashchange', () => { pathEpoch++; draw(); });
 
 if ('serviceWorker' in navigator && !plugin()) navigator.serviceWorker.register('sw.js').catch(() => {});
 
@@ -464,12 +484,20 @@ await Promise.all([
   showProfile(),
   loadStatsPreset().then((p) => { preset = p; }),
 ]);
+// once: ticks from before the shared state. Without a guide loaded there is nothing to move yet.
+pathEpoch++;
+if (!load('pg.ownedV1', false) && guides().length) {
+  ({ owned, checks } = migrateOwned(guides(), checks, owned));
+  save('pg.owned', owned);
+  save('pg.checks', checks);
+  save('pg.ownedV1', true);
+}
 stamp();
 draw();
-loadForge().then((r) => { forge = r; drawInBackground(); });
-loadAh().then((r) => { ah = r; drawInBackground(); });
+loadForge().then((r) => { forge = r; pathEpoch++; drawInBackground(); });
+loadAh().then((r) => { ah = r; pathEpoch++; drawInBackground(); });
 loadElection().then((r) => { election = r; drawInBackground(); });
-loadItemData().then((r) => { items = r; drawInBackground(); });
+loadItemData().then((r) => { items = r; pathEpoch++; drawInBackground(); });
 loadItems().then((r) => { names = r.names; drawInBackground(); });
 refreshPrices();
 setInterval(refreshPrices, PRICE_EVERY);

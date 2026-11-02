@@ -1,7 +1,7 @@
 // Which open guide step brings the most per coin (spec 4 and 5). Pure functions over the guide, the prices and the synced profile.
-import { AREA_STATS, computeStats, miningScore, loadoutOf, withOffset, offsetStale, maxPetStats, petStats, MIN_TRUE_DEFENSE, MIN_MP, TARGET_MP } from './stats.js';
+import { AREA_STATS, computeStats, offsetStale, maxPetStats, petStats, MIN_TRUE_DEFENSE, MIN_MP, TARGET_MP } from './stats.js';
 import { DAGGERS, OFA, ADDITIVE_ENCHANTS, blazeOutput, blazeState, daggersOf, additiveOf } from './blaze.js';
-import { nextUpgrades, stepCost, openStep, bookOf, stepKey } from './progress.js';
+import { stepCost, openStep, bookOf } from './progress.js';
 import { checkStep } from './requires.js';
 import { walkBook, ahNet } from './prices.js';
 import { RARITIES, ENCHANTS, ENCHANTS_NO_STAT, GEMS, GEM_STAT, GEM_SHARED_SLOTS, REFORGES, REFORGES_NO_STAT, COLDFUSED_WISP, ACCESSORY_POWER, PARTS, POLARVOID, COATING } from './optimizer-data.js';
@@ -9,6 +9,7 @@ import { RARITIES, ENCHANTS, ENCHANTS_NO_STAT, GEMS, GEM_STAT, GEM_SHARED_SLOTS,
 // Spec 4.1. Gemstone Fortune applies on gemstones only (wiki Pristine), and the other fortunes are not counted, so mithril and glacite read low.
 export const PRESETS = {
   gemstone: { blockStrength: 3000, wF: 1, wS: 1, wP: 1, gemFortune: true },
+  shafting: { blockStrength: 3000, wF: 1, wS: 1, wP: 1, gemFortune: true },
   mithril: { blockStrength: 500, wF: 1, wS: 1, wP: 0, gemFortune: false },
   glacite: { blockStrength: 6000, wF: 1, wS: 1, wP: 0, gemFortune: false },
 };
@@ -242,6 +243,8 @@ function partOf(d, guide, loadout, profile, items, settings, area = 'mining') {
 
 // What a step adds to the stats of the loadout. null: nothing known about it. {}: known to add nothing of ours.
 export function stepDelta(step, loadout, profile, items, settings, guide) {
+  // a fixed guide states what each step adds on top of the one before; every stat stays for the display
+  if (guide?.order === 'fixed' && step.gain) return { ...step.gain };
   const parts = [step.detect ?? []].flat().map((d) => partOf(d, guide, loadout, profile, items, settings));
   const known = parts.length && !parts.includes(null) ? onlyOf(total(parts), 'mining') : null;
   // the guide's own number stands in only where the data has nothing to say
@@ -399,7 +402,7 @@ export function netCost(step, gross, loadout, other, items, ctx, keepOldGear) {
 }
 
 // Spec 5.3: from the first open step of a line up to the first one that brings something. What stands in the way decides.
-function walkLine(chain, ctx, rules) {
+export function walkLine(chain, ctx, rules) {
   const steps = [];
   let unknown = false;
   const notes = [];
@@ -420,14 +423,14 @@ function walkLine(chain, ctx, rules) {
 }
 
 // A line of books pays only for its last one: that price is the cheapest way there, so the levels between are in it.
-function chainCost({ steps, target }, ctx) {
+export function chainCost({ steps, target }, ctx) {
   const list = bookOf(target.step) ? [target] : steps;
   const costs = list.map(({ section, step }) => stepCost(openStep(section, step, ctx), ctx));
   return { coins: costs.reduce((n, c) => n + c.coins, 0), unpriced: costs.reduce((n, c) => n + c.unpriced, 0) };
 }
 
 // Spec 4.2 and 4.3: gain in damage per second, and what a step does to the limits. An unread value locks nothing and helps nothing.
-function blazeRules(state, loadout, ctx, settings, guide) {
+export function blazeRules(state, loadout, ctx, settings, guide) {
   const now = blazeOutput(state);
   const td = ctx.profile.missing?.inventory ? null : state.common.TRUE_DEFENSE ?? 0;
   const mp = ctx.profile.mp ?? null;
@@ -448,94 +451,14 @@ function blazeRules(state, loadout, ctx, settings, guide) {
   };
 }
 
-// Spec 5.1. score and gain are shares: 0.012 is 1.2 %. A sum missing a price never gets a rank, it would look cheaper than it is.
-export function rankUpgrades(guide, checked, ctx, loadout, settings, base, { area = 'mining', other = null, keepOldGear = false, state = null } = {}) {
-  const groups = { requirements: [], free: [], ranked: [], noPrice: [], noGain: [], zero: [], locked: [] };
-  const rules = area === 'blaze' ? blazeRules(state, loadout, ctx, settings, guide) : {
-    deltaOf: (step) => stepDelta(step, loadout, ctx.profile, ctx.items, settings, guide),
-    gainOf: (delta) => miningScore(base, delta, settings),
-  };
-  const firsts = nextUpgrades(guide, checked, ctx);
-  const rest = (line) => guide.sections.flatMap((section) => section.steps.filter((step) => step.line === line && !checked.has(stepKey(section, step))).map((step) => ({ section, step })));
-  const nt = new Set(guide.sections.flatMap((s) => s.steps.flatMap((step) => (step.items ?? []).filter((i) => i.nt && i.id).map((i) => i.id))));
-  const sellCtx = { ...ctx, guide, nt };
-  for (const first of firsts) {
-    const row = { section: first.section, step: first.step, coins: first.coins, unpriced: first.unpriced, status: 'ok', reasons: [] };
-    const walked = walkLine(first.step.line ? rest(first.step.line) : [first], ctx, rules);
-    if (walked.unknown) row.status = 'unknown';
-    if (walked.group) {
-      groups[walked.group].push(walked.group === 'locked' ? { ...row, status: 'locked', reasons: walked.reasons } : { ...row, notes: walked.notes ?? [] });
-      continue;
-    }
-    const { coins, unpriced } = chainCost(walked, ctx);
-    const { net, resale } = netCost(walked.target.step, coins, loadout, other, ctx.items, sellCtx, keepOldGear);
-    const rated = { ...row, coins, unpriced, delta: walked.delta, gain: walked.gain, net, resale, helps: walked.helps, notes: walked.notes, ahead: walked.target === walked.steps[0] ? null : walked.target.step };
-    if (walked.helps.length) {
-      const paid = !unpriced && (coins > 0 || walked.target.step.table);
-      groups.requirements.push({ ...rated, ...(paid && net > 0 && { perMillion: walked.gain / (net / 1e6) }), pace: !paid ? -1 : net > 0 ? walked.progress / (net / 1e6) : Infinity });
-    } else if (unpriced) groups.noPrice.push(rated);
-    else if (net > 0) groups.ranked.push({ ...rated, perMillion: walked.gain / (net / 1e6) });
-    else if (coins > 0 || walked.target.step.table) groups.free.push({ ...rated, net: 0 });
-    else groups.noPrice.push(rated);
-  }
-  groups.requirements.sort((a, b) => b.pace - a.pace || (b.perMillion ?? 0) - (a.perMillion ?? 0));
-  groups.ranked.sort((a, b) => b.perMillion - a.perMillion);
-  groups.free.sort((a, b) => b.gain - a.gain);
-  return groups;
-}
-
-const SLOT_GROUPS = [['HELMET'], ['CHESTPLATE'], ['LEGGINGS'], ['BOOTS'], ['NECKLACE'], ['CLOAK'], ['BELT'], ['GLOVES', 'BRACELET'], ['DRILL', 'PICKAXE', 'GAUNTLET']];
-
-// Greedy per slot from everything owned, each pick on top of the ones before. The pet stays as picked: abilities are not in the tables.
-export function bestLoadout(profile, items, loadout, base, settings) {
-  const slots = [];
-  let stats = plus({}, base);
-  for (const group of SLOT_GROUPS) {
-    const of = (i) => group.includes(items[i.id]?.category);
-    const current = worn(loadout).find(of) ?? null;
-    const without = difference(stats, current?.lore);
-    const score = (i) => miningScore(without, i?.lore ?? {}, settings);
-    let best = current;
-    for (const i of profile.items.filter((item) => of(item) && item.where !== 'accessory')) if (score(i) > score(best) + 1e-12) best = i;
-    stats = plus(without, best?.lore);
-    if (best !== current) slots.push({ slot: group[0], current, best });
-  }
-  return { slots, gain: slots.length ? miningScore(base, difference(stats, base), settings) : 0 };
-}
-
 const share = (v) => { const p = v * 100; return Math.abs(p) >= 0.1 ? p.toFixed(1) : p.toPrecision(1); };
-const RAW = { MINING_FORTUNE: 'Fortune', GEMSTONE_FORTUNE: 'Gemstone Fortune', ORE_FORTUNE: 'Ore Fortune', BLOCK_FORTUNE: 'Block Fortune', MINING_SPEED: 'Speed', PRISTINE: 'Pristine',
-  DAMAGE: 'Damage', STRENGTH: 'Strength', CRITICAL_DAMAGE: 'Crit Damage', CRITICAL_CHANCE: 'Crit Chance', ATTACK_SPEED: 'Attack Speed', HEALTH: 'Health', DEFENSE: 'Defense', TRUE_DEFENSE: 'True Defense' };
-const rawLine = (delta) => Object.entries(delta).filter(([k, v]) => v && RAW[k]).map(([k, v]) => `${v > 0 ? '+' : ''}${Math.round(v * 100) / 100} ${RAW[k]}`).join(', ');
-
 const NOTES = {
   boost: 'Your /stats do not match the God Potion / Booster Cookie settings, so they are left out.',
   noitems: 'Save your /stats again: item data was missing, so they are left out.',
   setup: 'Measure /stats again: the slot or pet changed, so they are left out.',
 };
 
-// Spec 2.5 for Blaze: per slot what brings the most damage, and never a swap that drops True Defense under its limit while it is met.
-export function bestBlaze(profile, items, loadout, state) {
-  const slots = [];
-  let now = state;
-  for (const group of SLOT_GROUPS.slice(0, -1)) {
-    const of = (i) => group.includes(items[i.id]?.category);
-    const current = worn(loadout).find(of) ?? null;
-    const without = difference(now.common, current?.lore);
-    const after = (i) => ({ ...now, common: plus({ ...without }, i?.lore), armorIds: [...now.armorIds.filter((id) => id !== current?.id), ...(i && isArmor(items[i.id]?.category) ? [i.id] : [])] });
-    const td = now.common.TRUE_DEFENSE ?? 0;
-    const allowed = (i) => td < MIN_TRUE_DEFENSE || (after(i).common.TRUE_DEFENSE ?? 0) >= MIN_TRUE_DEFENSE;
-    let best = current;
-    for (const i of profile.items.filter((item) => of(item) && item.where !== 'accessory')) {
-      if (allowed(i) && blazeOutput(after(i)) > blazeOutput(after(best)) + 1e-9) best = i;
-    }
-    now = after(best);
-    if (best !== current) slots.push({ slot: group[0], current, best });
-  }
-  return { slots, gain: slots.length ? blazeOutput(now) / blazeOutput(state) - 1 : 0 };
-}
-
-const offsetNotes = (entry, state, loadout) => [
+export const offsetNotes = (entry, state, loadout) => [
   ...(entry?.offset && NOTES[entry.offsetNote] ? [NOTES[entry.offsetNote]] : []),
   ...(!entry?.offset ? ['Save your /stats in Settings to include what the app cannot read.'] : []),
   ...(offsetStale(entry, entry?.choice) ? ['Measure /stats again: the slot or pet changed.'] : []),
@@ -543,10 +466,10 @@ const offsetNotes = (entry, state, loadout) => [
   ...loadout.gaps,
 ];
 
-const LEFT_OUT = 'Estimate: compares upgrades, says nothing about real kill time. Not modelled: Thunderlord, Fire Aspect, Crimson swipe, Burning Vengeance, Venomous, demon phases, pillars.';
+export const LEFT_OUT = 'Estimate: compares upgrades, says nothing about real kill time. Not modelled: Thunderlord, Fire Aspect, Crimson swipe, Burning Vengeance, Venomous, demon phases, pillars.';
 
 // Spec 4.3 as data.
-function limitsOf(profile, state) {
+export function limitsOf(profile, state) {
   const trueDefense = profile.missing?.inventory ? null : state.common.TRUE_DEFENSE ?? 0;
   const mp = profile.mp ?? null;
   return {
@@ -559,7 +482,7 @@ function limitsOf(profile, state) {
 }
 
 // One For All against the guide's enchants (spec 4.2) as data.
-function pathsOf(state) {
+export function pathsOf(state) {
   const lines = Object.values(state.daggers).filter(Boolean);
   const factor = (path) => (lines.length ? lines.reduce((sum, d) => sum + 1 + additiveOf(d, state.armorIds, path) / 100, 0) / lines.length : 1 + additiveOf(null, state.armorIds, path) / 100);
   const [guideOut, ofaOut] = [blazeOutput(state, 'guide'), blazeOutput(state, 'ofa')];
@@ -572,50 +495,16 @@ function pathsOf(state) {
 }
 
 // How a bare value reads. Swap this per area when the measure changes, for example to coins per hour: views only ever print these.
-const scoreOf = (unit, shortUnit) => ({
+// rate: share per million coins. Two decimals always, the short coin format would hide a difference here.
+const perOne = (rate) => {
+  const v = 1e4 / rate;
+  if (v >= 1e9) return `${(v / 1e9).toFixed(2)}B`;
+  if (v >= 1e6) return `${(v / 1e6).toFixed(2)}M`;
+  return v >= 1e3 ? `${(v / 1e3).toFixed(2)}k` : `${Math.round(v)}`;
+};
+const scoreOf = (unit) => ({
   gainText: (gain) => `+${share(gain)} % ${unit}`,
-  rateText: (rate) => `${share(rate)} % / 1M`,
-  rateLong: (rate) => `${share(rate)} % ${shortUnit}per 1M`,
+  rateText: (rate) => `${perOne(rate)} per 1 %`,
+  rateLong: (rate) => `${perOne(rate)} per 1 % ${unit}`,
 });
-export const SCORES = { mining: scoreOf('yield', ''), blaze: scoreOf('damage', 'dmg ') };
-
-const rankMining = ({ guide, checked, ctx, state: synced, settings, keepOldGear, boosts, preset }) => {
-  const profile = synced.summary;
-  const entry = synced.statsInput?.mining ?? preset?.mining ?? null;
-  const loadout = loadoutOf(profile, ctx.items, 'mining', entry?.choice, settings);
-  // without a picked Blaze slot both areas fall back to what is worn, which says nothing about what Blaze still needs
-  const blazeChoice = synced.statsInput?.blaze?.choice ?? preset?.blaze?.choice;
-  const other = blazeChoice ? loadoutOf(profile, ctx.items, 'blaze', blazeChoice) : null;
-  const computed = computeStats(profile, ctx.items, loadout, 'mining', boosts);
-  const base = withOffset(computed.total, entry);
-  const groups = rankUpgrades(guide, checked, ctx, loadout, settings, base, { other, keepOldGear });
-  const notes = [
-    ...(settings.gemFortune ? [] : ['Gemstone Fortune does not count here, and Ore, Block and Dwarven Metal Fortune are not counted, so fortune steps read low.']),
-    ...offsetNotes(entry, synced, loadout),
-  ];
-  return { area: 'mining', groups, loadout, base, entry, notes, best: bestLoadout(profile, ctx.items, loadout, base, settings), leftOut: null, stays: 'Pet stays as picked. Set bonuses are not counted.' };
-};
-
-const rankBlaze = ({ guide, checked, ctx, state: synced, settings, keepOldGear, boosts, preset }) => {
-  const profile = synced.summary;
-  const entry = synced.statsInput?.blaze ?? preset?.blaze ?? null;
-  const picked = loadoutOf(profile, ctx.items, 'blaze', entry?.choice);
-  const daggers = daggersOf(profile);
-  const loadout = { ...picked, daggers };
-  const base = withOffset(computeStats(profile, ctx.items, picked, 'blaze', boosts).total, entry);
-  const state = blazeState(base, loadout, daggers);
-  const miningChoice = synced.statsInput?.mining?.choice ?? preset?.mining?.choice;
-  const other = miningChoice ? loadoutOf(profile, ctx.items, 'mining', miningChoice, settings) : null;
-  const groups = rankUpgrades(guide, checked, ctx, loadout, settings, base, { area: 'blaze', other, keepOldGear, state });
-  return { area: 'blaze', groups, loadout, base, entry, notes: offsetNotes(entry, synced, picked), best: bestBlaze(profile, ctx.items, loadout, state), limits: limitsOf(profile, state), paths: pathsOf(state), daggerMissing: Object.values(daggers).includes(null), leftOut: LEFT_OUT, stays: 'Pet and daggers stay as they are. Set bonuses other than Dominus are not counted. True Defense stays at its limit.' };
-};
-
-// The ranking of a guide as data, for any view. missing says what stands in the way.
-export function rankArea(args, scores = SCORES) {
-  if (!args.state?.summary) return { missing: 'profile' };
-  if (!args.ctx.items) return { missing: 'items' };
-  const area = args.guide.area;
-  if (!scores[area]) return { missing: 'score' };
-  return { ...(area === 'blaze' ? rankBlaze : rankMining)({ boosts: {}, preset: null, ...args }), score: scores[area] };
-}
-
+export const SCORES = { mining: scoreOf('yield'), blaze: scoreOf('damage') };

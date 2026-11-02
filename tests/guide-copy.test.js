@@ -93,3 +93,7 @@ test('the android project keeps to its own id, shares the store and has no alert
   const methods = [...plugin.matchAll(/public void (\w+)\(PluginCall/g)].map((m) => m[1]).sort();
   assert.deepEqual(methods, ['clearApiKey', 'clearProfile', 'getApiKey', 'loadProfile', 'saveProfile', 'setApiKey']);
 });
+
+test('the build carries no private sources', () => {
+  assert.equal(fs.existsSync(path.join(out, 'personal', 'sources')), false);
+});

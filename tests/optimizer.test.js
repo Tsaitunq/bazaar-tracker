@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { blazeOutput, blazeState, OFA } from '../blaze.js';
-import { SCORES, rankArea, bestBlaze, blazeDelta, applyBlaze, accessoryPower, stepDelta, PRESETS, miningSettings, rankUpgrades, netCost, bestLoadout } from '../optimizer.js';
+import { SCORES, blazeDelta, applyBlaze, accessoryPower, stepDelta, PRESETS, miningSettings, netCost } from '../optimizer.js';
+import { pathOf } from '../path.js';
 import { summarize } from '../profile.js';
 import { GEMSTONE, miningScore, loadoutOf } from '../stats.js';
 import { guideStats, validGuide, exportData } from '../progress.js';
@@ -228,6 +229,13 @@ const speed = (n, extra = {}) => ({ detect: { kind: 'perk', perk: 'mining_speed'
 const bought = (id) => ({ items: [{ id, qty: 1 }] });
 const sold = (price) => ({ buy_summary: [{ pricePerUnit: price, amount: 100 }] });
 const rankGuide = (...steps) => ({ groups: guide.groups, sections: [{ name: 'Main', steps: steps.map((s, i) => ({ text: s.text ?? `step ${i}`, ...s })) }] });
+// The path sorted into its tiers, with no brake: what the rules below say about a step does not depend on the budget.
+function rankUpgrades(guide, checked, ctx, loadout, settings, base, { area, ...opts } = {}) {
+  const { order } = pathOf({ guide, checked, ctx: { ...ctx }, profile: ctx.profile, loadout, base, settings, brake: 1e12, ...opts });
+  const of = (...tiers) => order.filter((e) => tiers.includes(e.tier) && (e.units || !['value', 'free', 'requirement', 'priority', 'overCap'].includes(e.tier))).map((e) => ({ ...e, ...(e.net > 0 && { perMillion: e.gain / (e.net / 1e6) }) }));
+  return { requirements: of('requirement'), free: of('free'), ranked: of('value', 'overCap', 'priority'), noPrice: of('noPrice'), noGain: of('noGain'), zero: of('zero'), locked: of('locked') };
+}
+
 const rank = (g, { products = {}, base = { MINING_SPEED: 1000 }, checked = new Set(), prof = profile(), data = items, opts } = {}) =>
   rankUpgrades(g, checked, { products, profile: prof, items: data }, setup(), GEMSTONE, base, opts);
 const texts = (rows) => rows.map((r) => r.step.text);
@@ -314,12 +322,12 @@ test('a line of books counts the last book only', () => {
 
 test('a locked step ahead in the line locks the row', () => {
   const g = rankGuide({ text: 'first', line: 'L', detect: enchant('experience', 1), ...bought('A') }, { text: 'second', line: 'L', ...gainOf({ MINING_SPEED: 1 }), ...bought('HARD') });
-  assert.deepEqual(texts(rank(g, { products: { A: sold(1), HARD: sold(1) }, data: lockedData }).locked), ['first']);
+  assert.deepEqual(texts(rank(g, { products: { A: sold(1), HARD: sold(1) }, data: lockedData }).locked), ['first', 'second']);
 });
 
 test('a line with no gain at all goes to zero', () => {
   const g = rankGuide({ text: 'first', line: 'L', detect: enchant('experience', 1) }, { text: 'second', line: 'L', detect: enchant('compact', 1) });
-  assert.deepEqual(texts(rank(g).zero), ['first']);
+  assert.deepEqual(texts(rank(g).zero), ['first', 'second']);
 });
 
 test('the score uses the base with the offset', () => {
@@ -329,11 +337,6 @@ test('the score uses the base with the offset', () => {
   const offset = { MINING_SPEED: 10000, MINING_FORTUNE: 0 }; // what /stats added makes fortune lead
   assert.equal(rank(g, { products, base: low }).ranked[0].step.text, 'spd');
   assert.equal(rank(g, { products, base: { MINING_SPEED: low.MINING_SPEED + offset.MINING_SPEED, MINING_FORTUNE: 900 } }).ranked[0].step.text, 'fort');
-});
-
-test('priority does not change the order', () => {
-  const g = rankGuide({ text: 'pinned', priority: 5, ...gainOf({ MINING_SPEED: 1 }), ...bought('A') }, { text: 'good', ...gainOf({ MINING_SPEED: 100 }), ...bought('A') });
-  assert.deepEqual(texts(rank(g, { products: { A: sold(1e6) } }).ranked), ['good', 'pinned']);
 });
 
 test('a new tick moves the line on to its next step', () => {
@@ -411,44 +414,15 @@ test('By slot sums stay gross', () => {
 const armorItems = { H1: { category: 'HELMET' }, H2: { category: 'HELMET' }, B1: { category: 'BOOTS' }, B2: { category: 'BOOTS' }, RING: { category: 'ACCESSORY' }, HELM_ACC: { category: 'HELMET' } };
 const stat = (id, lore, where = 'armor') => piece(id, { where, lore });
 
-test('bestLoadout picks per slot the owned item with the highest score', () => {
-  const h1 = stat('H1', { MINING_FORTUNE: 10 });
-  const h2 = stat('H2', { MINING_FORTUNE: 40 }, 'ender_chest');
-  const out = bestLoadout({ items: [h1, h2] }, armorItems, setup({ armor: [h1], held: null }), { MINING_FORTUNE: 100, MINING_SPEED: 1000 }, GEMSTONE);
-  assert.deepEqual(out.slots, [{ slot: 'HELMET', current: h1, best: h2 }]);
-  assert.ok(Math.abs(out.gain - 30 / 200) < 1e-9);
-});
-
-test('each pick builds on the ones before it', () => {
-  const h = stat('H2', { MINING_SPEED: 1000 }, 'backpack');
-  const b = stat('B1', { MINING_SPEED: 500 }, 'backpack');
-  const b2 = stat('B2', { MINING_FORTUNE: 5 }, 'backpack');
-  // with 1000 speed from the helmet the softcap makes the boots with speed worth nothing
-  const out = bestLoadout({ items: [h, b, b2] }, armorItems, setup({ armor: [], held: null }), { MINING_SPEED: 19000, MINING_FORTUNE: 0 }, GEMSTONE);
-  assert.equal(out.slots.find((s) => s.slot === 'BOOTS').best.id, 'B2');
-});
-
-test('a slot already best is not listed and the gain is 0', () => {
-  const h1 = stat('H1', { MINING_FORTUNE: 40 });
-  const out = bestLoadout({ items: [h1, stat('H2', { MINING_FORTUNE: 40 }, 'backpack')] }, armorItems, setup({ armor: [h1], held: null }), { MINING_FORTUNE: 40 }, GEMSTONE);
-  assert.deepEqual(out, { slots: [], gain: 0 });
-});
-
-test('an item in the chest or a backpack counts, an accessory does not', () => {
-  const inBag = stat('HELM_ACC', { MINING_FORTUNE: 99 }, 'accessory');
-  assert.equal(bestLoadout({ items: [inBag] }, armorItems, setup({ armor: [], held: null }), {}, GEMSTONE).slots.length, 0);
-  assert.equal(bestLoadout({ items: [stat('H1', { MINING_FORTUNE: 9 }, 'ender_chest')] }, armorItems, setup({ armor: [], held: null }), {}, GEMSTONE).slots.length, 1);
-});
-
 const mineGuide = (over = {}) => ({ id: 'm', title: 'Mine', area: 'mining', groups: guide.groups, sections: [{ name: 'Main', steps: [{ text: 'cheap', gain: { MINING_FORTUNE: 10, MINING_SPEED: 40 }, items: [{ id: 'A', qty: 1 }] }] }], ...over });
 const summary = () => ({ ...profile([piece(DRILL, { where: 'inventory', lore: { MINING_SPEED: 1000 } })]), wardrobe: { armor: { equipped: 1, sets: [1] }, equipment: { equipped: 1, sets: [1] } } });
-const bestHtml = (g, state, products, data, settings = miningSettings(null)) => guideView({ guides: [g], checks: {}, state, products, prices: { items: data }, name: (id) => id, settings }, g.id, 'best');
+const bestHtml = (g, state, products, data, settings = miningSettings(null)) => guideView({ guides: [g], checks: {}, state, products, prices: { items: data }, name: (id) => id, settings }, g.id);
 const view = (g, { state = { summary: summary(), syncedAt: 1 }, products = { A: sold(5e6) }, data = items } = {}) => bestHtml(g, state, products, data);
 
-test('without a sync the mode says what is missing and links to the settings', () => {
+test('without a sync and without typed stats the path says what is missing and links to the stats', () => {
   const html = view(mineGuide(), { state: null });
-  assert.match(html, /profile sync/);
-  assert.match(html, /href="#\/settings"/);
+  assert.match(html, /Type in your \/stats/);
+  assert.match(html, /href="#\/stats"/);
 });
 
 test('without item data the mode waits and does not throw', () => {
@@ -461,31 +435,20 @@ test('the row shows yield, per million, raw stats and the net line', () => {
     state: { summary: { ...profile([piece('OLD_HELMET', { sets: ['armor:1'] })]), wardrobe: { armor: { equipped: 1, sets: [1] }, equipment: { equipped: 1, sets: [1] } } }, syncedAt: 1 },
   });
   assert.match(html, /\+\d+(\.\d+)? % yield/);
-  assert.match(html, /\d+(\.\d+)? % \/ 1M/);
-  assert.match(html, /\+20 ☘ Mining Fortune · \+5 ⸕ Mining Speed/);
+  assert.match(html, /[\d.]+[kMB]? per 1 %/);
+  assert.match(html, /\+20 ☘ Mining Fortune/);
+  assert.match(html, /\+5 ⸕ Mining Speed/);
   assert.match(html, /Net .* \(buy .* − resale .*\)/);
-  assert.match(view(mineGuide()), /\+10 ☘ Mining Fortune · \+40 ⸕ Mining Speed/);
+  assert.match(view(mineGuide()), /\+10 ☘ Mining Fortune/);
 });
 
 test('locked rows stand under the ranking with their reason, no rank', () => {
   const html = view(mineGuide({ sections: [{ name: 'Main', steps: [{ text: 'open', gain: { MINING_SPEED: 10 }, items: [{ id: 'A', qty: 1 }] }, { text: 'hard', gain: { MINING_SPEED: 10 }, items: [{ id: 'HARD', qty: 1 }] }] }] }), { products: { A: sold(1e6), HARD: sold(1e6) }, data: lockedData });
-  const best = html.indexOf('<h2>Best value</h2>');
-  const locked = html.indexOf('<h2>Locked</h2>');
-  assert.ok(best > 0 && locked > best);
+  const locked = html.indexOf('row-locked');
+  assert.ok(html.indexOf('open') < locked);
   assert.match(html.slice(locked), /hard/);
   assert.match(html.slice(locked), /HOTM 7 needed/);
-  assert.doesNotMatch(html.slice(locked), /% \/ 1M/);
-  assert.doesNotMatch(html.slice(best, locked), /hard/);
-});
-
-test('the best card names the slot of the wardrobe and what stays out', () => {
-  const worn1 = piece('OLD_HELMET', { sets: ['armor:1'], lore: { MINING_FORTUNE: 1 } });
-  const spare = piece('NEW_HELMET', { where: 'ender_chest', lore: { MINING_FORTUNE: 100 } });
-  const state = { summary: { ...profile([worn1, spare]), wardrobe: { armor: { equipped: 1, sets: [1] }, equipment: { equipped: 1, sets: [1] } } }, syncedAt: 1 };
-  const html = view(mineGuide(), { state });
-  assert.match(html, /Best possible/);
-  assert.match(html, /OLD_HELMET → NEW_HELMET/);
-  assert.match(html, /Pet stays as picked/);
+  assert.doesNotMatch(html.slice(locked), /per 1 %/);
 });
 
 test('the notes say when the offset is not in use', () => {
@@ -816,7 +779,7 @@ const sharpStep = { text: 'sharp', detect: onDaggers('sharpness', 7), items: [{ 
 test('the row says damage, marks the estimate and shows the raw stats', () => {
   const html = blazeHtml(blazeG([{ text: 'x', detect: onDaggers('critical', 7), items: [{ id: 'A', qty: 1 }] }]));
   assert.match(html, /\+\d+(\.\d+)? % damage/);
-  assert.match(html, /\d+(\.\d+)? % \/ 1M/);
+  assert.match(html, /[\d.]+[kMB]? per 1 %/);
   assert.match(html, /Ashen: \+100 ☠ Crit Damage/);
   assert.match(html, /Estimate/);
 });
@@ -834,11 +797,7 @@ test('steps that close a gap stand first, the rest keeps its rank', () => {
   const summary = blazeProfile();
   summary.items = summary.items.map((i) => (i.id === 'PLATE' ? { ...i, lore: { TRUE_DEFENSE: 100 } } : i));
   const html = blazeHtml(blazeG([sharpStep, { text: 'gem', detect: { kind: 'gem', on: [['PLATE']], type: 'OPAL', quality: 'PERFECT', need: 1 }, items: [{ id: 'A', qty: 1 }] }]), { state: { summary, syncedAt: 1 } });
-  const req = html.indexOf('<h2>Requirements first</h2>');
-  const best = html.indexOf('<h2>Best value</h2>');
-  assert.ok(req > 0 && best > req);
-  assert.match(html.slice(req, best), /gem/);
-  assert.match(html.slice(best), /sharp/);
+  assert.ok(html.indexOf('>gem<') > 0 && html.indexOf('>gem<') < html.indexOf('>sharp<'));
 });
 
 test('magical power under the target of 1100 is no missed limit', () => {
@@ -850,7 +809,7 @@ test('magical power under the target of 1100 is no missed limit', () => {
 test('a missing value shows unknown in its chip and ranks on', () => {
   const html = blazeHtml(blazeG([sharpStep]), { state: { summary: blazeProfile({ mp: null, missing: { inventory: true } }), syncedAt: 1 } });
   assert.match(html, /chip-value">unknown/);
-  assert.match(html, /<h2>Best value<\/h2>/);
+  assert.match(html, /per 1 %/);
 });
 
 test('the path line compares enchants and one for all', () => {
@@ -865,31 +824,12 @@ test('the active path is named and never changes by itself', () => {
   const html = blazeHtml(blazeG([sharpStep]), { state: { summary, syncedAt: 1 } });
   assert.match(html, /In use: One For All/);
   assert.match(html, /Not used with One For All/);
-  assert.match(html, /<h2>No gain<\/h2>/);
 });
 
 test('the offset moves the blaze base, also in the limits', () => {
   const entry = { choice: { armor: 1, equipment: 1, pet: null }, values: {}, offset: { TRUE_DEFENSE: -120 }, offsetFor: { armor: 1, equipment: 1, pet: null }, offsetNote: null, at: 2 };
   const html = blazeHtml(blazeG([sharpStep]), { state: { summary: blazeProfile(), syncedAt: 1, statsInput: { blaze: entry } } });
   assert.match(html, /c-red">80 ✗/);
-});
-
-test('best possible keeps true defense at the limit', () => {
-  const armor = piece('PLATE', { lore: { TRUE_DEFENSE: 150 } });
-  const glass = piece('INFERNAL_CRIMSON_CHESTPLATE', { where: 'backpack', lore: { STRENGTH: 500 } });
-  const tank = piece('OTHER_PLATE', { where: 'backpack', lore: { STRENGTH: 200, TRUE_DEFENSE: 150 } });
-  const data = { ...blazeItems, OTHER_PLATE: { category: 'CHESTPLATE' } };
-  const loadout = { armor: [armor], equipment: [], held: null, daggers: { ashen: null, spirit: null } };
-  const s = { common: { TRUE_DEFENSE: 150, STRENGTH: 0 }, daggers: loadout.daggers, armorIds: [armor.id], path: 'guide' };
-  const out = bestBlaze({ items: [armor, glass, tank] }, data, loadout, s);
-  assert.equal(out.slots[0].best.id, 'OTHER_PLATE');
-  assert.ok(out.gain > 0);
-});
-
-test('best possible does not list a dagger swap between the lines', () => {
-  const html = blazeHtml(blazeG([sharpStep]));
-  assert.doesNotMatch(html, /FIREDUST_DAGGER →|MAWDUST_DAGGER →/);
-  assert.match(html, /Pet and daggers stay/);
 });
 
 test('the page names what the model leaves out', () => {
@@ -916,7 +856,7 @@ test('a guide without any dagger still draws', () => {
   const summary = { ...blazeProfile(), items: [piece('PLATE', { sets: ['armor:1'], lore: { TRUE_DEFENSE: 200 } })] };
   const html = blazeHtml(blazeG([{ text: 'maw', detect: { kind: 'owned', on: [[MAW]] }, items: [{ id: 'A', qty: 1 }] }]), { state: { summary, syncedAt: 1 } });
   assert.match(html, /Dagger pair incomplete/);
-  assert.match(html, /<h2>Requirements first<\/h2>/);
+  assert.match(html, /maw/);
 });
 
 const BLAZE = 'personal/guides/blaze-slayer.json';
@@ -929,39 +869,9 @@ test('the real blaze guide ranks without error', { skip: !(existsSync(FIXTURE) &
   assert.doesNotMatch(html, /NaN/);
 });
 
-const rankArgs = (g, state, data, products = { A: sold(5e6) }) => ({ guide: g, checked: new Set(), ctx: { products, profile: state?.summary ?? null, items: data }, name: String, state, settings: miningSettings(null) });
 
-test('rankArea gives the same groups as the view for mining and blaze', () => {
-  const m = rankArea(rankArgs(mineGuide(), { summary: summary(), syncedAt: 1 }, items));
-  assert.equal(m.area, 'mining');
-  assert.deepEqual(m.groups.ranked.map((r) => r.step.text), ['cheap']);
-  const b = rankArea(rankArgs(blazeG([sharpStep]), { summary: blazeProfile(), syncedAt: 1 }, blazeItems));
-  assert.equal(b.area, 'blaze');
-  assert.deepEqual(b.groups.ranked.map((r) => r.step.text), ['sharp']);
-});
-
-test('rankArea says what is missing without profile or item data', () => {
-  assert.deepEqual(rankArea(rankArgs(mineGuide(), null, items)), { missing: 'profile' });
-  assert.deepEqual(rankArea(rankArgs(mineGuide(), { summary: summary() }, null)), { missing: 'items' });
-  assert.deepEqual(rankArea(rankArgs(mineGuide({ area: 'farming' }), { summary: summary() }, items)), { missing: 'score' });
-});
-
-test('limits and paths are data', () => {
-  const { limits, paths } = rankArea(rankArgs(blazeG([sharpStep]), { summary: blazeProfile({ mp: 900 }), syncedAt: 1 }, blazeItems));
-  assert.equal(limits.mp, 900);
-  assert.equal(limits.underTarget, true);
-  assert.equal(limits.lowTrueDefense, false);
-  assert.equal(paths.leader, 'One For All');
-  assert.equal(paths.ofa, 6);
-  assert.equal(paths.inUse, 'Enchants');
-});
-
-test('each area has its score texts, and a swapped score changes the unit in the result', () => {
-  assert.equal(SCORES.mining.gainText(0.024), '+2.4 % yield');
-  assert.equal(SCORES.mining.rateText(0.0033), '0.3 % / 1M');
-  assert.equal(SCORES.mining.rateLong(0.0061), '0.6 % per 1M');
-  assert.equal(SCORES.blaze.gainText(0.034), '+3.4 % damage');
-  assert.equal(SCORES.blaze.rateLong(0.0009), '0.09 % dmg per 1M');
-  const coinsPerHour = { mining: { gainText: () => 'x coins/h', rateText: () => 'y', rateLong: () => 'z' } };
-  assert.equal(rankArea(rankArgs(mineGuide(), { summary: summary(), syncedAt: 1 }, items), coinsPerHour).score.gainText(1), 'x coins/h');
+test('an attribute without a value in the tables stays without one', () => {
+  const profile = { items: [], attrs: {}, hotm: null };
+  const change = blazeDelta({ text: 'x', detect: { kind: 'attr', attr: 'no_such_attribute', need: 10 } }, { common: {}, daggers: { ashen: null, spirit: null }, armorIds: [], path: 'guide' }, { armor: [], equipment: [], held: null, accessories: [], gaps: [], daggers: { ashen: null, spirit: null } }, profile, {}, miningSettings(null), {});
+  assert.equal(change, null);
 });
