@@ -8,7 +8,7 @@ import { detectGuide } from '../detect.js';
 import { fallbackName, loadItems } from '../names.js';
 import { PRESETS, miningSettings } from '../optimizer.js';
 import { computeStats, loadoutOf, offsetStale, statsEntry } from '../stats.js';
-import { parseRoute, syncOutcome, applyImport, stampAll, formEdited } from './model.js';
+import { parseRoute, syncOutcome, applyImport, stampAll, formEdited, typedFields, restoreTyped, settled, swipeTarget } from './model.js';
 import { homeView } from './views/home.js';
 import { guideView, statsView } from './views/guide.js';
 import { settingsView } from './views/settings.js';
@@ -32,7 +32,7 @@ let checks = load('pg.checks', {});
 let dates = load('pg.dates', {});
 const settings = load('pg.settings', {});
 const bins = load('pg.bins', {});
-let state = null;
+let state; // undefined until the stored profile is loaded, null when there is none
 let products = null;
 let forge = null;
 let ah = {};
@@ -51,6 +51,8 @@ let removeArmed = false;
 let binsBusy = false;
 let binsFailed = 0;
 let pending = new Set();
+let touch = null;
+let slide = '';
 
 const guides = () => mergeGuides(bundled, imported);
 const route = () => parseRoute(location.hash, guides());
@@ -59,7 +61,7 @@ const boosts = () => ({ godPotion: settings.godPotion ?? preset?.boosts?.godPoti
 const world = () => {
   pending = new Set();
   return {
-    guides: guides(), checks, dates, state, products, now: Date.now(),
+    guides: guides(), checks, dates, state: state ?? null, products, now: Date.now(),
     prices: { forge, ah, cofl: freshBins(bins), wants: pending, items, tax: (settings.tax ?? DEFAULT_TAX) / 100, derpy: election?.mayor?.name === 'Derpy' },
     settings: miningSettings(settings.mining), keepOldGear: settings.keepOldGear === true, boosts: boosts(), preset,
     name: (id) => names[id] ?? fallbackName(id), uuid: state?.uuid ?? '', hasKey, keyMessage, tax: settings.tax ?? DEFAULT_TAX, importedIds: imported.map((g) => g.id), canSync: canSync(), message: note.message, choices: note.choices,
@@ -81,9 +83,20 @@ function draw() {
   const list = scroller?.className;
   const focused = document.activeElement?.dataset?.step;
   const focusClass = document.activeElement?.className;
+  const fields = () => [...root.querySelectorAll('input:not([type="file"]), select, textarea')];
+  const typed = typedFields(fields());
+  const activeField = fields().indexOf(document.activeElement);
+  const shownPage = root.firstElementChild?.dataset.page;
   const w = world();
   root.innerHTML = screenOf(route(), w);
+  // the same form again: what is typed stays, and so does the field being typed in
+  if (root.firstElementChild?.dataset.page === shownPage) {
+    restoreTyped(fields(), typed);
+    if (activeField >= 0) fields()[activeField]?.focus({ preventScroll: true });
+  }
   document.documentElement.dataset.theme = root.firstElementChild?.dataset.theme ?? 'home';
+  if (slide) root.firstElementChild?.classList.add(slide);
+  slide = '';
   const after = root.querySelector('.path, .scroll');
   if (after && after.className === list) after.scrollTop = top;
   if (focused !== undefined) {
@@ -162,8 +175,9 @@ async function showProfile() {
   [hasKey, keyMessage] = await getApiKey().then((key) => [!!key, null], () => [false, syncMessage('keyread')]);
 }
 
-async function saveUuid(value) {
-  const uuid = normalizeUuid(value);
+async function saveUuid(input) {
+  const uuid = normalizeUuid(input.value);
+  if (uuid) settled(input);
   if (!uuid) profileMessage = syncMessage('input');
   else if ((await loadProfile())?.uuid !== uuid) {
     // another player's stand must not stay behind under a new UUID
@@ -177,6 +191,7 @@ async function saveUuid(value) {
 async function saveKey(input) {
   const key = cleanKey(input.value);
   input.value = '';
+  settled(input);
   if (key) profileMessage = await setApiKey(key) ? 'Saved.' : 'Could not save the key on this phone.';
   await showProfile();
   draw();
@@ -186,6 +201,9 @@ async function removeProfile() {
   if (!removeArmed) { removeArmed = true; return draw(); }
   removeArmed = false;
   note = { message: '', choices: [] };
+  const keyField = root.querySelector('[data-set="key"]');
+  keyField.value = '';
+  settled(keyField);
   profileSync.invalidate();
   profileMessage = await clearProfileData() ? 'Key and profile data removed.' : 'Could not remove them.';
   await showProfile();
@@ -197,6 +215,9 @@ function saveSettings() {
   draw();
 }
 
+// What the box holds is dealt with, so the next redraw shows the app's text.
+const jsonSettled = () => { const box = root.querySelector('[data-json]'); if (box) settled(box); };
+
 function runImport(raw) {
   try {
     const data = importData(raw);
@@ -205,6 +226,7 @@ function runImport(raw) {
     save('pg.checks', checks);
     stamp();
     dataText = '';
+    jsonSettled();
     dataMessage = `Imported ${data.guides.length} ${data.guides.length === 1 ? 'guide' : 'guides'}.`;
   } catch (e) {
     dataMessage = e.message;
@@ -224,6 +246,7 @@ async function runExport() {
     link.click();
     URL.revokeObjectURL(link.href);
   }
+  jsonSettled();
   dataMessage = copied ? 'Copied to the clipboard.' : 'Copy the text above.';
   draw();
 }
@@ -239,7 +262,10 @@ async function saveStats(box) {
   const measured = items && stand.summary ? { total: computeStats(stand.summary, items, loadoutOf(stand.summary, items, area, choice, miningSettings(settings.mining)), area, boosts()).total, boosts: boosts() } : null;
   const entry = statsEntry(area, form, Date.now(), measured, stand.statsInput?.[area] ?? null);
   const next = { ...stand, statsInput: { ...stand.statsInput, [area]: entry } };
-  if (await saveProfile(next)) state = next;
+  if (await saveProfile(next)) {
+    state = next;
+    box.querySelectorAll('input, select').forEach(settled);
+  }
   draw();
 }
 
@@ -288,10 +314,12 @@ root.addEventListener('click', (e) => {
 
 root.addEventListener('change', async (e) => {
   const { dataset } = e.target;
-  if (dataset.set === 'uuid') return saveUuid(e.target.value);
+  if (dataset.set === 'uuid') return saveUuid(e.target);
   if (dataset.set === 'key') return saveKey(e.target);
+  if (e.target.matches('[data-tax], [data-flag]')) settled(e.target);
   if (e.target.matches('[data-tax]')) { settings.tax = Number(e.target.value); return saveSettings(); }
   if (dataset.flag) { settings[dataset.flag] = e.target.checked; return saveSettings(); }
+  if (dataset.mining) settled(e.target);
   if (dataset.mining === 'preset') {
     const { gemFortune, ...values } = PRESETS[e.target.value];
     settings.mining = { preset: e.target.value, ...values };
@@ -313,6 +341,30 @@ root.addEventListener('change', async (e) => {
   }
   return undefined;
 });
+
+// A list that scrolls sideways keeps its own swipe.
+function scrollsSideways(el) {
+  for (; el && el !== root; el = el.parentElement) {
+    if (el.scrollWidth > el.clientWidth && /auto|scroll/.test(getComputedStyle(el).overflowX)) return true;
+  }
+  return false;
+}
+
+root.addEventListener('touchstart', (e) => {
+  const [first] = e.touches;
+  touch = e.touches.length === 1 && !scrollsSideways(e.target) ? { x: first.clientX, y: first.clientY } : null;
+}, { passive: true });
+root.addEventListener('touchcancel', () => { touch = null; }, { passive: true });
+root.addEventListener('touchend', (e) => {
+  if (!touch) return;
+  const [last] = e.changedTouches;
+  const tabs = [...root.querySelectorAll('.bar [data-tab]')].map((b) => b.dataset.tab);
+  const to = swipeTarget(route(), last.clientX - touch.x, last.clientY - touch.y, tabs);
+  touch = null;
+  if (!to) return;
+  slide = to.back ? 'slide-back' : 'slide-next';
+  location.hash = to.hash;
+}, { passive: true });
 
 window.addEventListener('hashchange', draw);
 

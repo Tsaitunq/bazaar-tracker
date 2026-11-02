@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { copyWeb } from '../scripts/copy-web.mjs';
+import { copyWeb, copyPersonal } from '../scripts/copy-web.mjs';
 
 test('copyWeb copies the app shell and icons, nothing else', () => {
   const out = fs.mkdtempSync(path.join(os.tmpdir(), 'bt-www-'));
@@ -21,7 +21,7 @@ test('copyWeb copies the app shell and icons, nothing else', () => {
   }
 });
 
-test('copyWeb takes private guides along with an index, and needs none', () => {
+test('copyPersonal takes private guides along with an index and needs none; copyWeb leaves them out', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'bt-root-'));
   const out = path.join(root, 'www');
   try {
@@ -33,18 +33,20 @@ test('copyWeb takes private guides along with an index, and needs none', () => {
     fs.mkdirSync(path.join(root, 'personal', 'guides'), { recursive: true });
     fs.writeFileSync(path.join(root, 'personal', 'guides', 'g.json'), '{}');
     fs.writeFileSync(path.join(root, 'personal', 'guides', 'note.txt'), 'x');
-    copyWeb(root, out);
+    copyPersonal(root, out);
     assert.deepEqual(JSON.parse(fs.readFileSync(path.join(out, 'personal', 'guides', 'index.json'))), ['g.json']);
     assert.ok(fs.existsSync(path.join(out, 'personal', 'guides', 'g.json')));
     assert.ok(!fs.existsSync(path.join(out, 'personal', 'guides', 'note.txt')));
     assert.ok(!fs.existsSync(path.join(out, 'personal', 'items.json')));
     fs.writeFileSync(path.join(root, 'personal', 'items.json'), '{}');
-    copyWeb(root, out);
+    copyPersonal(root, out);
     assert.ok(fs.existsSync(path.join(out, 'personal', 'items.json')));
     assert.ok(!fs.existsSync(path.join(out, 'personal', 'stats-preset.json')));
     fs.writeFileSync(path.join(root, 'personal', 'stats-preset.json'), '{}');
-    copyWeb(root, out);
+    copyPersonal(root, out);
     assert.ok(fs.existsSync(path.join(out, 'personal', 'stats-preset.json')));
+    copyWeb(root, out);
+    assert.ok(!fs.existsSync(path.join(out, 'personal')));
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

@@ -2,12 +2,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { bestGroups, formEdited, guideModel } from '../guide/model.js';
+import { bestGroups, formEdited, guideModel, typedFields, restoreTyped, settled } from '../guide/model.js';
 import { stepCard } from '../guide/views/parts.js';
 import { guideView } from '../guide/views/guide.js';
 import { settingsView } from '../guide/views/settings.js';
-import { miningSettings, bestValueView } from '../optimizer.js';
-import { progressView } from '../progress.js';
+import { miningSettings } from '../optimizer.js';
+import { coins } from '../format.js';
 
 const sold = (price) => ({ buy_summary: [{ pricePerUnit: price, amount: 100 }] });
 const DRILL = 'TITANIUM_DRILL_4';
@@ -21,12 +21,6 @@ test('best value never calls a step without a price free', () => {
   const sides = (w) => bestGroups(guideModel(guide([step('Z', 'Z')]), w)).flatMap((g) => g.rows.map((r) => r.side));
   assert.deepEqual(sides(world()), ['no price']);
   assert.deepEqual(sides(world({ products: null })), ['…']);
-});
-
-test('the bazaar app offers no best value for a guide without a score', () => {
-  const g = { ...guide([step('a')]), area: 'farming' };
-  const html = progressView({ guides: [g], current: 'm', checked: new Set(), products: {}, prices: { items }, name: String, mode: 'best', bestValue: (v) => bestValueView({ ...v, state: { summary }, settings: miningSettings(null) }) });
-  assert.doesNotMatch(html, /data-guide-mode="best"/);
 });
 
 test('a key that cannot be read is not called missing', () => {
@@ -93,4 +87,43 @@ test('the screen keeps clear of the system bars', () => {
 
 test('the font licence comes along', () => {
   assert.match(readFileSync(new URL('../guide/sw.js', import.meta.url), 'utf8'), /'fonts\/LICENSE'/);
+});
+
+test('the card shows the net cost beside the net rate', () => {
+  const helmet = { id: 'OLD', where: 'armor', sets: ['armor:1'], gems: [], enchants: {}, parts: {}, reforge: null, recomb: false, lore: {} };
+  const g = guide([{ text: 'new', detect: { kind: 'owned', on: [['NEW']] }, items: [{ id: 'NEW', qty: 1 }] }]);
+  g.groups = { armor: [['NEW', 'OLD']] };
+  const data = { ...items, NEW: { category: 'HELMET', tier: 'LEGENDARY', stats: { MINING_FORTUNE: 20 } }, OLD: { category: 'HELMET', tier: 'COMMON', stats: {} } };
+  const state = { summary: { ...summary, items: [...summary.items, helmet], wardrobe: { armor: { equipped: 1, sets: [1] }, equipment: { equipped: 1, sets: [1] } } }, syncedAt: 1 };
+  const products = { NEW: sold(20e6), OLD: { sell_summary: [{ pricePerUnit: 8e6, amount: 100 }], buy_summary: [] } };
+  const { card, ranked } = guideModel(g, world({ state, products, prices: { items: data } }));
+  const row = ranked.groups.ranked[0];
+  assert.ok(row.resale > 0 && row.net < row.coins);
+  assert.ok(card.cost.startsWith('Net '));
+  assert.ok(card.cost.includes(coins(row.net)));
+  const plain = guideModel(guide([step('a')]), world()).card;
+  assert.doesNotMatch(plain.cost, /Net/);
+});
+
+const field = (dataset, value, saved = value) => ({ tagName: 'INPUT', type: 'text', dataset, value, defaultValue: saved });
+
+test('a redraw keeps what is typed and only that', () => {
+  const typed = typedFields([field({ set: 'uuid' }, 'typed', ''), field({ mining: 'wF' }, '5')]);
+  assert.deepEqual([...typed.values()], ['typed']);
+  const after = [field({ set: 'uuid' }, ''), field({ mining: 'wF' }, '7')];
+  restoreTyped(after, typed);
+  assert.deepEqual(after.map((f) => f.value), ['typed', '7']);
+});
+
+test('an unsaved tick and a picker survive too, a settled field does not', () => {
+  const box = { tagName: 'INPUT', type: 'checkbox', dataset: { flag: 'x' }, checked: true, defaultChecked: false };
+  const pick = { tagName: 'SELECT', dataset: { s: 'a' }, value: '2', options: [{ selected: false, defaultSelected: true }, { selected: true, defaultSelected: false }] };
+  const typed = typedFields([box, pick]);
+  assert.deepEqual([...typed.values()], [true, '2']);
+  settled(box);
+  settled(pick);
+  assert.equal(typedFields([box, pick]).size, 0);
+  const done = field({ json: '' }, 'text', '');
+  settled(done);
+  assert.equal(typedFields([done]).size, 0);
 });

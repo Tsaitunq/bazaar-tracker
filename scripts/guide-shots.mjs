@@ -13,8 +13,8 @@ const fixture = JSON.parse(fs.readFileSync('tests/fixtures/guide/world.json', 'u
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.woff2': 'font/woff2', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
 
 const SHOTS = [
-  ['home', '#/'], ['mining-path', '#/guide/mining/path'], ['mining-best', '#/guide/mining/best'], ['mining-stats', '#/guide/mining/stats'],
-  ['blaze-path', '#/guide/blaze-slayer/path'], ['blaze-best', '#/guide/blaze-slayer/best'], ['blaze-stats', '#/guide/blaze-slayer/stats'],
+  ['home', '#/'], ['mining-path', '#/guide/mining/path'], ['mining-best', '#/guide/mining/best'],
+  ['blaze-path', '#/guide/blaze-slayer/path'], ['blaze-best', '#/guide/blaze-slayer/best'],
   ['farming', '#/guide/farming/path'], ['settings', '#/settings'], ['stats', '#/stats'],
 ];
 
@@ -45,7 +45,7 @@ const MEASURES = [
   ]],
   ['Farming', '#/guide/farming/path', [['.screen', 'padding', '18px 20px 12px'], ['.ring-title h1', 'font-size', '22px'], ['.bar', 'height', '56px']]],
 ];
-const NO_TEMPLATE = ['Best value', 'Stats of a guide', 'Stats of all guides', 'Settings'];
+const NO_TEMPLATE = ['Best value', 'Stats of all guides', 'Settings'];
 
 const server = http.createServer((req, res) => {
   const file = path.join(WEB, decodeURIComponent(new URL(req.url, 'http://x').pathname.replace(/\/$/, '/index.html')));
@@ -139,6 +139,49 @@ async function keepsPlace(page, base) {
   if (Math.abs(after - before) > 1) fail(`a tick moved the list from ${before} to ${after}`);
 }
 
+// Saving one setting must not throw away what is typed in another field.
+async function keepsTyped(page, base) {
+  await open(page, base, '#/settings');
+  await page.locator('[data-json]').fill('still here');
+  await page.locator('[data-tax]').selectOption('1');
+  await page.waitForFunction(() => document.querySelector('[data-tax]').value === '1');
+  const text = await page.locator('[data-json]').inputValue();
+  if (text !== 'still here') fail(`a settings redraw changed the typed text to "${text}"`);
+  await page.locator('[data-tax]').selectOption('1.25');
+}
+
+// A real swipe through the DOM: the screens change, the slide stays within 250 ms, and reduced motion has none.
+async function swipes(page, base) {
+  const swipe = (dx) => page.evaluate((move) => {
+    const el = document.querySelector('.screen');
+    const fire = (type, x) => {
+      const touch = { clientX: x, clientY: 300 };
+      el.dispatchEvent(Object.assign(new Event(type, { bubbles: true }), { touches: type === 'touchend' ? [] : [touch], changedTouches: [touch] }));
+    };
+    fire('touchstart', 200);
+    fire('touchend', 200 + move);
+  }, dx);
+  const landed = async (want) => {
+    await page.waitForFunction((hash) => location.hash === hash, want).catch(() => fail(`a swipe did not lead to ${want}`));
+    return page.evaluate(() => document.getAnimations().map((a) => a.effect.getTiming().duration));
+  };
+  await open(page, base, '#/guide/mining/path');
+  await swipe(-120);
+  const next = await landed('#/guide/mining/best');
+  await page.screenshot({ path: path.join(OUT, 'swipe-mid.png') });
+  if (!next.length || next.some((ms) => ms > 250)) fail(`the slide took ${next.join(', ') || 'no'} ms`);
+  await swipe(120);
+  await landed('#/guide/mining/path');
+  await swipe(120);
+  await landed('#/');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await open(page, base, '#/guide/mining/path');
+  await swipe(-120);
+  const still = await landed('#/guide/mining/best');
+  if (still.length) fail('reduced motion still slides');
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+}
+
 await new Promise((resolve) => { server.listen(0, 'localhost', resolve); });
 const base = `http://localhost:${server.address().port}`;
 copyGuide('.', WEB);
@@ -157,6 +200,8 @@ try {
     await layoutChecks(page, name);
   }
   await keepsPlace(page, base);
+  await swipes(page, base);
+  await keepsTyped(page, base);
   await measureTable(page, base);
   await context.close();
 

@@ -1,8 +1,8 @@
-// A guide: path, best value and stats. Also the stats of all guides, which use the same form.
+// A guide: path and best value. Also the stats of all guides, reached through the profile button.
 import { esc, number } from '../../format.js';
-import { statsView as allStats, areaView } from '../../stats.js';
+import { statsView as allStats } from '../../stats.js';
 import { guideModel, worldFor, bestGroups } from '../model.js';
-import { ring, legend, statGrid, pathRow, stepCard, chips, bottomBar, backLink, icon } from './parts.js';
+import { ring, legend, statGrid, pathRow, stepCard, chips, bottomBar, backLink, profileLink, icon } from './parts.js';
 import { HOME_TABS } from './home.js';
 
 const FARMING = { id: 'farming', title: 'Farming', area: 'farming', sections: [] };
@@ -10,22 +10,12 @@ const SETTINGS_LINK = '<a href="#/settings">Settings</a>';
 
 const head = (m) => `<div class="ring-head">${ring({ chapters: m.chapters, total: m.total, size: 116 })}<div class="ring-text"><div class="ring-title">${icon(m.theme)}<h1>${esc(m.name)}</h1></div>${legend(m.chapters)}</div></div>`;
 
-function limitWarning(limits) {
-  if (!limits) return '';
-  const low = [limits.lowTrueDefense && `True Defense ${number(limits.trueDefense)} / ${number(limits.minTrueDefense)}`, limits.lowMp && `Magical Power ${number(limits.mp)} / ${number(limits.minMp)}`].filter(Boolean);
-  return [
-    low.length ? `<p class="warn" role="alert">Below the limit: ${low.join(' · ')}. The damage numbers assume you survive.</p>` : '',
-    limits.unknown ? '<p class="warn" role="alert">A limit could not be read. The ranking goes on without it.</p>' : '',
-    limits.underTarget ? `<p class="note">Magical Power is under the target of ${number(limits.targetMp)}.</p>` : '',
-  ].join('');
-}
-
 function missingNote(m) {
   if (m.missing === 'profile') return `<p class="note">Sync your profile in ${SETTINGS_LINK} to see your stats and rank the steps.</p>`;
   return m.missing === 'items' ? '<p class="note">Loading item data…</p>' : '';
 }
 
-const pathTab = (m) => `${statGrid(m.stats, m.stats.length > 4 ? 3 : 2)}${missingNote(m)}${m.chips ? chips(m.chips) : ''}${limitWarning(m.chips)}<div class="path">${m.rows.map((row) => (row.card ? stepCard(row.card) : pathRow(row))).join('')}</div>`;
+const pathTab = (m) => `${statGrid(m.stats, m.stats.length > 4 ? 3 : 2)}${missingNote(m)}${m.chips ? chips(m.chips) : ''}<div class="path">${m.rows.map((row) => (row.card ? stepCard(row.card) : pathRow(row))).join('')}</div>`;
 
 const groupPanel = (group) => `<section class="panel"><h2>${esc(group.title)}</h2>${group.note ? `<small>${esc(group.note)}</small>` : ''}${group.rows.map((r) => `<button type="button" class="row" data-step="${esc(r.key)}"><span class="row-text"><span class="row-name">${esc(r.name)}</span>${r.sub ? `<span class="row-sub">${esc(r.sub)}</span>` : ''}${r.extra.map((x) => `<span class="row-sub">${esc(x)}</span>`).join('')}</span><span class="row-side">${esc(r.side)}</span></button>`).join('')}</section>`;
 
@@ -42,12 +32,8 @@ function bestTab(m, world) {
   const r = m.ranked;
   const paths = r.paths ? `<p class="note">Enchants: ×${r.paths.guide.toFixed(2)} · One For All: ×${r.paths.ofa.toFixed(2)} · ${r.paths.leader} leads by ${r.paths.lead.toFixed(1)} % (estimate). In use: ${r.paths.inUse}.</p>` : '';
   const groups = bestGroups(m);
-  return `<div class="scroll">${r.leftOut ? `<p class="note">${esc(r.leftOut)}</p>` : ''}${limitWarning(m.chips)}${paths}${r.daggerMissing ? '<p class="warn" role="alert">Dagger pair incomplete: the Hellion Shield needs one dagger of each line.</p>' : ''}${r.notes.map((n) => `<p class="note">${esc(n)}</p>`).join('')}${bestPanel(r, world, m.score)}${groups.length ? groups.map(groupPanel).join('') : '<p class="note">All steps are done.</p>'}</div>`;
+  return `<div class="scroll">${m.chips ? chips(m.chips) : ''}${r.leftOut ? `<p class="note">${esc(r.leftOut)}</p>` : ''}${paths}${r.daggerMissing ? '<p class="warn" role="alert">Dagger pair incomplete: the Hellion Shield needs one dagger of each line.</p>' : ''}${r.notes.map((n) => `<p class="note">${esc(n)}</p>`).join('')}${bestPanel(r, world, m.score)}${groups.length ? groups.map(groupPanel).join('') : '<p class="note">All steps are done.</p>'}</div>`;
 }
-
-const statsTab = (m, world) => (world.state?.summary
-  ? `<div class="scroll">${areaView(m.area, world.state, world.prices.items, esc, world.boosts, world.preset)}</div>`
-  : `<div class="scroll">${missingNote({ missing: 'profile' })}</div>`);
 
 const screenClass = (theme) => `screen${theme === 'blaze' ? ' screen-blaze' : ''}`;
 
@@ -59,9 +45,9 @@ export function guideView(world, id, tab) {
   const open = m.tabs.some((t) => t.id === tab) ? tab : 'path';
   const body = empty
     ? '<div class="empty"><strong>Guide coming soon</strong></div>'
-    : open === 'best' ? bestTab(m, world) : open === 'stats' ? statsTab(m, world) : pathTab(m);
+    : open === 'best' ? bestTab(m, world) : pathTab(m);
   const credit = m.usedCofl ? '<p class="note">Prices: <a href="https://sky.coflnet.com" rel="noopener">SkyCofl</a></p>' : '';
-  return `<div class="${screenClass(m.theme)}" data-theme="${esc(m.theme)}">${backLink()}${head(m)}${body}${credit}${bottomBar(m.tabs, open)}</div>`;
+  return `<div class="${screenClass(m.theme)}" data-theme="${esc(m.theme)}"><div class="top">${backLink()}${m.source ? `<a class="source" href="${esc(m.source)}" rel="noopener">Source</a>` : ''}${profileLink()}</div>${head(m)}${body}${credit}${bottomBar(m.tabs, open)}</div>`;
 }
 
-export const statsView = (world) => `<div class="screen screen-home" data-theme="home"><div class="home-title"><h1>Stats</h1></div><div class="scroll">${allStats(world.state, world.prices.items, esc, world.boosts, world.preset)}</div>${bottomBar(HOME_TABS, 'stats')}</div>`;
+export const statsView = (world) => `<div class="screen screen-home" data-theme="home" data-page="stats"><div class="home-title"><h1>Stats</h1></div><div class="scroll">${allStats(world.state, world.prices.items, esc, world.boosts, world.preset)}</div>${bottomBar(HOME_TABS, null)}</div>`;

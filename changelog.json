@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.14.1",
+      "date": "2026-11-02",
+      "entries": [
+        { "title": "Guides have their own app now", "text": "The Progress area is gone from this app, which now is only about trading." }
+      ]
+    },
+    {
       "version": "0.14.0",
       "date": "2026-11-01",
       "entries": [

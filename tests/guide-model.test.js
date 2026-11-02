@@ -193,7 +193,7 @@ test('without a sync the path still shows, with no stats and no ranking', () => 
   assert.deepEqual(m.stats, []);
   assert.equal(m.card.cost, '1M coins');
   assert.equal(m.card.gain, '');
-  assert.deepEqual(m.tabs.map((t) => t.id), ['path', 'best', 'stats']);
+  assert.deepEqual(m.tabs.map((t) => t.id), ['path', 'best']);
 });
 
 test('a guide without a score has only the path tab', () => {
@@ -201,4 +201,23 @@ test('a guide without a score has only the path tab', () => {
   assert.equal(m.theme, 'farming');
   assert.deepEqual(m.tabs.map((t) => t.id), ['path']);
   assert.deepEqual(m.rows, []);
+});
+
+test('left counts the coins up to the end of the section and the chapter', () => {
+  const buy = (id) => ({ text: id, items: [{ id, qty: 1 }] });
+  const g = { id: 'g', title: 'G', source: 'https://example.com/g', chapters: [{ name: 'One', sections: ['A', 'B'] }, { name: 'Two', sections: ['C'] }], sections: [{ name: 'A', steps: [buy('P'), buy('Q')] }, { name: 'B', steps: [buy('P'), buy('NONE')] }, { name: 'C', steps: [buy('Q')] }] };
+  const book = (price) => ({ buy_summary: [{ pricePerUnit: price, amount: 100 }] });
+  const m = guideModel(g, { marks: new Set(['A|P']), products: { P: book(1e6), Q: book(2e6) }, name: String });
+  assert.equal(m.source, 'https://example.com/g');
+  assert.equal(m.card.left, 'Left 2M');
+  assert.equal(m.chapters[0].leftText, 'Left 3M + 1 unpriced');
+  assert.equal(m.chapters[1].leftText, '');
+  const waiting = guideModel(g, { marks: new Set(), products: null, name: String });
+  assert.equal(waiting.card.left, 'Left …');
+});
+
+test('a section with nothing left to pay says nothing', () => {
+  const g = { id: 'g', title: 'G', sections: [{ name: 'A', steps: [{ text: 'free' }] }] };
+  const m = guideModel(g, { marks: new Set(), products: {}, name: String });
+  assert.equal(m.card.left, '');
 });

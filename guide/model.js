@@ -33,11 +33,12 @@ function chapterGroups(guide) {
 }
 
 // The chapters of the ring: how far each is, and which holds the first open step.
-export function chaptersOf(guide, checked) {
+export function chaptersOf(guide, checked, costs = null) {
   const chapters = chapterGroups(guide).map(({ name, sections }) => {
     const keys = sections.flatMap((s) => s.steps.map((step) => stepKey(s, step)));
     const done = keys.filter((k) => checked.has(k)).length;
-    return { name, done, total: keys.length, share: keys.length ? done / keys.length : 0, current: false };
+    const left = costs ? sections.map((s) => costs.sections[guide.sections.indexOf(s)]) : [];
+    return { name, done, total: keys.length, share: keys.length ? done / keys.length : 0, current: false, left: { coins: left.reduce((n, l) => n + l.coins, 0), unpriced: left.reduce((n, l) => n + l.unpriced, 0) } };
   });
   const open = chapters.find((c) => c.done < c.total) ?? chapters[chapters.length - 1];
   if (open) open.current = true;
@@ -109,9 +110,17 @@ export const stepStatus = ({ done, locked, first }) => {
   return first ? 'current' : 'open';
 };
 
+// With a resale the rate beside it is per net coin, so the cost says net too.
+// What is still to pay up to the end of a chapter or section; steps without a price stay counted, so it never just reads lower.
+function leftText({ coins: left, unpriced }, products) {
+  if (!products) return 'Left …';
+  return [left > 0 && `Left ${coins(left)}`, unpriced > 0 && `+ ${unpriced} unpriced`].filter(Boolean).join(' ');
+}
+
 function costText(step, cost, ctx) {
   if (!ctx.products && step.items?.length) return '…';
   if (cost.unpriced) return 'No price';
+  if (cost.resale > 0) return `Net ${coins(cost.net)} coins`;
   return cost.coins > 0 ? `${coins(cost.coins)} coins` : 'No coins';
 }
 
@@ -151,7 +160,7 @@ export function guideModel(guide, world) {
   const auto = detectGuide(guide, profile, stepKey);
   const ctx = { ...world.prices, products: world.products, auto, profile, marks: world.marks };
   const checked = doneSet(guide, world.marks, auto);
-  guideStats(guide, checked, ctx); // sets what the cost of a book line needs
+  const costs = guideStats(guide, checked, ctx); // also sets what the cost of a book line needs
   const ranked = rankArea({ guide, checked, ctx, state: world.state, settings: world.settings, keepOldGear: world.keepOldGear, boosts: world.boosts, preset: world.preset }, scores);
   const score = scores[guide.area];
   const ranks = new Map();
@@ -181,9 +190,9 @@ export function guideModel(guide, world) {
       const open = openStep(section, step, ctx);
       const price = rank ?? stepCost(open, ctx);
       row.card = card = {
-        key, name: step.text, where: section.name, stats: lines, hint: step.hint ?? '', items: itemLines(open, ctx, world.name ?? String),
+        key, name: step.text, where: section.name, left: leftText(costs.sections[guide.sections.indexOf(section)], world.products), stats: lines, hint: step.hint ?? '', items: itemLines(open, ctx, world.name ?? String),
         gain: rank?.gain === undefined ? '' : score.gainText(rank.gain),
-        cost: costText(open, price, ctx), coins: price.coins, unpriced: price.unpriced,
+        cost: costText(open, price, ctx),
         rate: rank?.perMillion === undefined ? '' : score.rateLong(rank.perMillion),
         badge: !!leader && leader.step === step,
         delta: rank?.delta ?? null,
@@ -201,21 +210,31 @@ export function guideModel(guide, world) {
     if (row.card) Object.assign(row.card, { railTop: row.railTop, railBottom: row.railBottom });
   });
 
-  const chapters = chaptersOf(guide, checked);
+  const chapters = chaptersOf(guide, checked, costs).map((c) => ({ ...c, leftText: c.current && c.done < c.total ? leftText(c.left, world.products) : '' }));
   const grid = ranked.base ? (GRIDS[guide.area] ?? []).map((k) => ({ key: k, icon: STATS[k].icon, label: STATS[k].short ?? STATS[k].label, color: STATS[k].color, value: number(ranked.base[k] ?? 0), delta: '' })) : [];
   return {
-    id: guide.id, products: world.products, area: guide.area, theme: guide.area ?? 'home', name: guide.title, chapters, total: totalShare(chapters),
+    id: guide.id, source: guide.source ?? '', products: world.products, area: guide.area, theme: guide.area ?? 'home', name: guide.title, chapters, total: totalShare(chapters),
     stats: statDelta(grid, card?.delta ?? null), chips: ranked.limits ?? null, rows, card, ranked, score, leader, missing: ranked.missing ?? null, usedCofl: !!ctx.usedCofl,
-    tabs: score ? [{ id: 'path', label: 'Path' }, { id: 'best', label: 'Best value' }, { id: 'stats', label: 'Stats' }] : [{ id: 'path', label: 'Path' }],
+    tabs: score ? [{ id: 'path', label: 'Path' }, { id: 'best', label: 'Best value' }] : [{ id: 'path', label: 'Path' }],
   };
 }
 
-const GUIDE_TABS = ['path', 'best', 'stats'];
+const GUIDE_TABS = ['path', 'best'];
 export function parseRoute(hash, guides) {
   const [, page, id, tab] = String(hash).split('/');
   if (page === 'stats' || page === 'settings') return { page };
   if (page === 'guide' && (id === 'farming' || guides.some((g) => g.id === id))) return { page, id, tab: GUIDE_TABS.includes(tab) ? tab : 'path' };
   return { page: 'home' };
+}
+
+// Where a sideways swipe leads from a guide: the next tab, the one before, and from the first tab home. tabs: those on screen.
+// It has to be long enough and clearly sideways, so scrolling a list never switches.
+const SWIPE_MIN_PX = 60;
+export function swipeTarget(r, dx, dy, tabs) {
+  if (r.page !== 'guide' || Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < 2 * Math.abs(dy)) return null;
+  const at = Math.max(tabs.indexOf(r.tab), 0);
+  if (dx > 0) return { hash: at > 0 ? `#/guide/${r.id}/${tabs[at - 1]}` : '#/', back: true };
+  return at + 1 < tabs.length ? { hash: `#/guide/${r.id}/${tabs[at + 1]}`, back: false } : null;
 }
 
 // What a sync run means for the screen. Anything but success keeps the last state.
@@ -233,7 +252,9 @@ export function applyImport({ imported, checks, bundled }, data) {
 }
 
 // firstRun: what is done now is older than the app. That holds per guide too, and for what the first sync finds.
+// state undefined: the profile is not loaded yet, so what the sync found cannot be told from what is new. Nothing gets a date.
 export function stampAll(guides, checks, dates, state, now, firstRun = false) {
+  if (state === undefined) return dates;
   const out = { ...dates };
   for (const guide of guides) {
     const done = doneSet(guide, new Set(checks[guide.id] ?? []), detectGuide(guide, state?.summary ?? null, stepKey));
@@ -242,12 +263,34 @@ export function stampAll(guides, checks, dates, state, now, firstRun = false) {
   return out;
 }
 
-// Is someone filling in this form? Then a redraw from outside would throw away what they typed.
-export const formEdited = (fields, active) => fields.some((f) => {
-  if (f === active) return true;
+const edited = (f) => {
   if (f.tagName === 'SELECT') return [...f.options].some((o) => o.selected !== o.defaultSelected);
   return f.type === 'checkbox' ? f.checked !== f.defaultChecked : f.value !== f.defaultValue;
-});
+};
+
+// Is someone filling in this form? Then a redraw from outside would throw away what they typed.
+export const formEdited = (fields, active) => fields.some((f) => f === active || edited(f));
+
+// A field is known by its data attributes, which stay the same over a redraw.
+const fieldKey = (f) => `${f.tagName}${JSON.stringify(f.dataset)}`;
+
+// What is typed but not saved yet, to survive a redraw of the same form.
+export const typedFields = (fields) => new Map(fields.filter(edited).map((f) => [fieldKey(f), f.type === 'checkbox' ? f.checked : f.value]));
+
+export function restoreTyped(fields, typed) {
+  for (const f of fields) {
+    if (!typed.has(fieldKey(f))) continue;
+    if (f.type === 'checkbox') f.checked = typed.get(fieldKey(f));
+    else f.value = typed.get(fieldKey(f));
+  }
+}
+
+// From here on the field counts as saved: the next redraw shows what the app holds.
+export function settled(f) {
+  if (f.tagName === 'SELECT') for (const o of f.options) o.defaultSelected = o.selected;
+  else if (f.type === 'checkbox') f.defaultChecked = f.checked;
+  else f.defaultValue = f.value;
+}
 
 // The app keeps the checks per guide; a guide model sees only its own.
 export const worldFor = (world, guide) => ({ ...world, marks: new Set(world.checks?.[guide.id] ?? []) });
@@ -257,15 +300,6 @@ export const bestPerGuide = (models) => models.filter((m) => m.leader).map((m) =
   area: m.area, name: m.name, step: m.leader.step.text,
   text: m.leader.perMillion === undefined ? m.score.gainText(m.leader.gain) : m.score.rateText(m.leader.perMillion),
 }));
-
-// What the next step of every guide costs together. Steps without a price stay counted, so the sum never just reads lower.
-export function coinsForNext(models) {
-  const cards = models.map((m) => m.card).filter(Boolean);
-  return {
-    text: cards.some((c) => c.cost === '…') ? '…' : coins(cards.reduce((sum, c) => sum + c.coins, 0)),
-    unpriced: cards.reduce((n, c) => n + c.unpriced, 0),
-  };
-}
 
 function bestRow(row, model, products) {
   const lines = statLines(row.delta ?? null).map((l) => l.text);

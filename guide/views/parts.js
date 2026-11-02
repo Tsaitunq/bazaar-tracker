@@ -29,7 +29,7 @@ export function ring({ chapters, total, size, label = 'Chapter progress', showTo
   return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="${esc(label)}">${arcs}${showTotal ? `<text class="ring-pct" x="${mid}" y="${textY}" text-anchor="middle" font-size="${font}">${percent(total)}</text>` : ''}</svg>`;
 }
 
-export const legend = (chapters) => chapters.map((c, i) => `<div class="legend"><i class="dot-${(i % 3) + 1}"></i><span${c.current ? ' class="legend-now"' : ''}>${esc(c.name)}</span><b>${percent(c.share)}</b></div>`).join('');
+export const legend = (chapters) => chapters.map((c, i) => `<div class="legend"><i class="dot-${(i % 3) + 1}"></i><span${c.current ? ' class="legend-now"' : ''}>${esc(c.name)}</span><b>${percent(c.share)}</b></div>${c.leftText ? `<div class="legend-left">${esc(c.leftText)} to chapter end</div>` : ''}`).join('');
 
 export const statGrid = (stats, columns) => `<div class="stats${columns === 3 ? ' stats-3' : ''}">${stats.map((s) => `<div class="stat"><div class="stat-label"><span class="c-${s.color}">${esc(s.icon)}</span> ${esc(s.label)}</div><div class="stat-row"><span class="stat-value c-${s.color}">${esc(s.value)}</span><span class="stat-delta">${esc(s.delta)}</span></div></div>`).join('')}</div>`;
 
@@ -48,17 +48,23 @@ export function stepCard(card) {
   const box = card.stats.length || card.gain
     ? `<div class="card-box">${card.stats.map((s) => `<span class="card-stat c-${s.color}">${esc(s.text)}</span>`).join('')}${shown('card-gain', card.gain)}</div>`
     : '';
-  return `<div class="step">${rail('current', card.railTop, card.railBottom)}<div class="card"><div class="card-head"><span class="card-name">${esc(card.name)}</span>${card.badge ? '<span class="card-badge">★ BEST VALUE</span>' : ''}${shown('card-where', card.where)}</div>${box}${(card.items ?? []).map((i) => shown('card-item', i.text)).join('')}<div class="card-foot"><span class="card-cost">${esc(card.cost)}</span>${shown('card-rate', card.rate)}</div>${shown('card-where', card.hint)}<button type="button" class="primary" data-step="${esc(card.key)}">Mark done</button></div></div>`;
+  return `<div class="step">${rail('current', card.railTop, card.railBottom)}<div class="card"><div class="card-head"><span class="card-name">${esc(card.name)}</span>${card.badge ? '<span class="card-badge">★ BEST VALUE</span>' : ''}${shown('card-where', card.where)}</div>${box}${(card.items ?? []).map((i) => shown('card-item', i.text)).join('')}<div class="card-foot"><span class="card-cost">${esc(card.cost)}</span>${shown('card-rate', card.rate)}</div>${shown('card-where', card.hint)}${card.left ? `<span class="card-where">${esc(card.left)} to section end</span>` : ''}<button type="button" class="primary" data-step="${esc(card.key)}">Mark done</button></div></div>`;
 }
 
 const limitValue = (v) => (v === null ? 'unknown' : number(v));
 
+// A missed limit stays in its chip: the value turns red and gets a mark, so colour is not the only sign.
+const missed = (v) => `<span class="c-red">${number(v)} ✗</span>`;
+
 export function chips(limits) {
   const { trueDefense: td, mp } = limits;
-  const value = td !== null && !limits.lowTrueDefense ? `<span class="c-gain">${number(td)} ✓</span>` : limitValue(td);
-  return `<div class="chips"><div class="chip${limits.lowTrueDefense ? ' chip-low' : ''}"><span class="c-white">❂ True Def ≥ ${number(limits.minTrueDefense)}</span><span class="chip-value">${value}</span></div><div class="chip${limits.lowMp ? ' chip-low' : ''}"><span class="c-cyan">✦ Power</span><span class="chip-value">${limitValue(mp)} / ${number(limits.targetMp)}</span></div></div>`;
+  const defense = limits.lowTrueDefense ? missed(td) : td === null ? limitValue(td) : `<span class="c-gain">${number(td)} ✓</span>`;
+  const power = limits.lowMp ? `${missed(mp)} / ${number(limits.minMp)}` : `${limitValue(mp)} / ${number(limits.targetMp)}`;
+  return `<div class="chips"><div class="chip${limits.lowTrueDefense ? ' chip-low' : ''}"><span class="c-white">❂ True Def ≥ ${number(limits.minTrueDefense)}</span><span class="chip-value">${defense}</span></div><div class="chip${limits.lowMp ? ' chip-low' : ''}"><span class="c-cyan">✦ Power</span><span class="chip-value">${power}</span></div></div>`;
 }
 
 export const bottomBar = (tabs, active) => `<nav class="bar">${tabs.map((t) => `<button type="button" data-tab="${esc(t.id)}"${t.id === active ? ' aria-current="page"' : ''}>${esc(t.label)}</button>`).join('')}</nav>`;
+
+export const profileLink = () => `<a class="profile" href="#/stats" aria-label="Your stats">${icon('profile', 22)}</a>`;
 
 export const backLink = () => `<a class="back" href="#/"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Guides</a>`;

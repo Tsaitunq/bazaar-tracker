@@ -31,7 +31,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.security.GeneralSecurityException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -190,71 +189,6 @@ public class AlertsPlugin extends Plugin {
             call.resolve();
         } catch (IOException e) {
             call.reject("could not store item names", e);
-        }
-    }
-
-    // The errors below carry a fixed text only, never the exception: nothing of the key or profile may reach the web app's errors.
-    @PluginMethod
-    public void setApiKey(PluginCall call) {
-        String key = call.getString("key");
-        if (key == null || key.isEmpty()) {
-            call.reject("no key");
-            return;
-        }
-        try {
-            ProfileStore.setKey(getContext(), key);
-            call.resolve();
-        } catch (GeneralSecurityException | IOException | RuntimeException e) {
-            call.reject("could not store the key");
-        }
-    }
-
-    @PluginMethod
-    public void getApiKey(PluginCall call) {
-        try {
-            call.resolve(new JSObject().put("key", ProfileStore.getKey(getContext())));
-        } catch (GeneralSecurityException | IOException | RuntimeException e) {
-            call.reject("could not read the key");
-        }
-    }
-
-    @PluginMethod
-    public void clearApiKey(PluginCall call) {
-        try {
-            ProfileStore.clearKey(getContext());
-            call.resolve();
-        } catch (IOException e) {
-            call.reject("could not remove the key");
-        }
-    }
-
-    @PluginMethod
-    public void saveProfile(PluginCall call) {
-        String json = call.getString("json");
-        if (json == null) {
-            call.reject("no profile");
-            return;
-        }
-        try {
-            ProfileStore.saveProfile(getContext(), json);
-            call.resolve();
-        } catch (IOException e) {
-            call.reject("could not store the profile");
-        }
-    }
-
-    @PluginMethod
-    public void loadProfile(PluginCall call) {
-        call.resolve(new JSObject().put("json", ProfileStore.loadProfile(getContext())));
-    }
-
-    @PluginMethod
-    public void clearProfile(PluginCall call) {
-        try {
-            ProfileStore.clearProfile(getContext());
-            call.resolve();
-        } catch (IOException e) {
-            call.reject("could not remove the profile");
         }
     }
 
