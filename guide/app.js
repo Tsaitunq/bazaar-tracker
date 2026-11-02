@@ -309,7 +309,7 @@ root.addEventListener('change', async (e) => {
 
 window.addEventListener('hashchange', draw);
 
-if ('serviceWorker' in navigator && !plugin()) navigator.serviceWorker.register('sw.js');
+if ('serviceWorker' in navigator && !plugin()) navigator.serviceWorker.register('sw.js').catch(() => {});
 
 draw();
 await Promise.all([

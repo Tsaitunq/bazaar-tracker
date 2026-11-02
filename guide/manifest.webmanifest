@@ -8,5 +8,5 @@
   "display": "standalone",
   "background_color": "#0B0A10",
   "theme_color": "#0B0A10",
-  "icons": []
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
 }

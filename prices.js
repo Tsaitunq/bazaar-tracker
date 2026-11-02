@@ -11,7 +11,7 @@ export function bookPrices(product) {
 // The Hypixel API names the two sides of a book after the player's action, which reads backwards:
 //   buy_summary  = the sell offers, cheapest first. Someone who buys at once pays these.
 //   sell_summary = the buy orders, highest first. Someone who sells at once is paid these.
-// The Bazaar product API gives about 30 levels per side. bookPrices() (flips.js) reads the top of each:
+// The Bazaar product API gives about 30 levels per side. bookPrices() reads the top of each:
 // .buy = sell_summary[0] (the buy order you would have to beat), .sell = buy_summary[0] (the offer to beat).
 // walkBook adds up what qty items cost (or pay) when they go through the levels in order; null when the
 // shown levels hold less than qty, which is a price nobody can say.
