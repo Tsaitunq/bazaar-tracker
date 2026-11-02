@@ -109,9 +109,11 @@ export const stepStatus = ({ done, locked, first }) => {
   return first ? 'current' : 'open';
 };
 
+// With a resale the rate beside it is per net coin, so the cost says net too.
 function costText(step, cost, ctx) {
   if (!ctx.products && step.items?.length) return '…';
   if (cost.unpriced) return 'No price';
+  if (cost.resale > 0) return `Net ${coins(cost.net)} coins`;
   return cost.coins > 0 ? `${coins(cost.coins)} coins` : 'No coins';
 }
 

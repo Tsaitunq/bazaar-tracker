@@ -7,6 +7,7 @@ import { stepCard } from '../guide/views/parts.js';
 import { guideView } from '../guide/views/guide.js';
 import { settingsView } from '../guide/views/settings.js';
 import { miningSettings } from '../optimizer.js';
+import { coins } from '../format.js';
 
 const sold = (price) => ({ buy_summary: [{ pricePerUnit: price, amount: 100 }] });
 const DRILL = 'TITANIUM_DRILL_4';
@@ -86,4 +87,20 @@ test('the screen keeps clear of the system bars', () => {
 
 test('the font licence comes along', () => {
   assert.match(readFileSync(new URL('../guide/sw.js', import.meta.url), 'utf8'), /'fonts\/LICENSE'/);
+});
+
+test('the card shows the net cost beside the net rate', () => {
+  const helmet = { id: 'OLD', where: 'armor', sets: ['armor:1'], gems: [], enchants: {}, parts: {}, reforge: null, recomb: false, lore: {} };
+  const g = guide([{ text: 'new', detect: { kind: 'owned', on: [['NEW']] }, items: [{ id: 'NEW', qty: 1 }] }]);
+  g.groups = { armor: [['NEW', 'OLD']] };
+  const data = { ...items, NEW: { category: 'HELMET', tier: 'LEGENDARY', stats: { MINING_FORTUNE: 20 } }, OLD: { category: 'HELMET', tier: 'COMMON', stats: {} } };
+  const state = { summary: { ...summary, items: [...summary.items, helmet], wardrobe: { armor: { equipped: 1, sets: [1] }, equipment: { equipped: 1, sets: [1] } } }, syncedAt: 1 };
+  const products = { NEW: sold(20e6), OLD: { sell_summary: [{ pricePerUnit: 8e6, amount: 100 }], buy_summary: [] } };
+  const { card, ranked } = guideModel(g, world({ state, products, prices: { items: data } }));
+  const row = ranked.groups.ranked[0];
+  assert.ok(row.resale > 0 && row.net < row.coins);
+  assert.ok(card.cost.startsWith('Net '));
+  assert.ok(card.cost.includes(coins(row.net)));
+  const plain = guideModel(guide([step('a')]), world()).card;
+  assert.doesNotMatch(plain.cost, /Net/);
 });
