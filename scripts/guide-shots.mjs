@@ -126,6 +126,35 @@ async function measureTable(page, base) {
   fs.writeFileSync('docs/guide-design-check.md', lines.join('\n'));
 }
 
+// A guide opens with its open step just below the head, and no redraw after that moves the list.
+async function opensOnCard(page, base) {
+  const list = page.locator('.path');
+  const gap = () => page.evaluate(() => document.querySelector('.card').getBoundingClientRect().top - document.querySelector('.path').getBoundingClientRect().top);
+  const onCard = async (what) => {
+    const got = await gap();
+    if (Math.abs(got - 8) > 1) fail(`${what}: the card is ${got} px below the head, should be 8`);
+  };
+  const scrolled = () => list.evaluate((el) => el.scrollTop);
+  await open(page, base, '#/');
+  await open(page, base, '#/guide/mining/path');
+  await onCard('from home');
+  if (await scrolled() <= 0) fail('the card already was on top, the check says nothing');
+  await list.evaluate((el) => { el.scrollTop += 100; });
+  const moved = await scrolled();
+  await page.evaluate(() => window.dispatchEvent(new HashChangeEvent('hashchange')));
+  if (await scrolled() !== moved) fail('a redraw moved the list back to the card');
+  await open(page, base, '#/guide/mining/best');
+  await open(page, base, '#/guide/mining/path');
+  await onCard('from the other tab');
+  const key = await page.locator('.card .primary').getAttribute('data-step');
+  const before = await scrolled();
+  await page.locator('.card .primary').click();
+  await page.waitForFunction((k) => document.activeElement?.dataset?.step === k || !document.querySelector(`.card [data-step="${k}"]`), key);
+  if (Math.abs(await scrolled() - before) > 1) fail('marking a step done moved the list');
+  await page.locator(`.path [data-step="${key}"]`).first().click();
+  await page.locator(`.card [data-step="${key}"]`).waitFor();
+}
+
 async function keepsPlace(page, base) {
   await open(page, base, '#/guide/mining/path');
   // not the last rows: a done row is lower, and at the very end the browser would have to move the list
@@ -241,6 +270,7 @@ try {
     await page.screenshot({ path: path.join(OUT, `${name}.png`) });
     await layoutChecks(page, name);
   }
+  await opensOnCard(page, base);
   await keepsPlace(page, base);
   await keepsTyped(page, base);
   await measureTable(page, base);

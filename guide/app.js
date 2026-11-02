@@ -20,6 +20,7 @@ const DEFAULT_TAX = 1.25;
 const SETTLE_MS = 220; // as in guide.css
 const EDGE_PULL = 0.25;
 const FLICK_FRESH_MS = 80;
+const CARD_GAP = 8;
 
 const load = (key, fallback) => {
   try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
@@ -57,6 +58,7 @@ let pending = new Set();
 let touch = null;
 let settling = false;
 let redrawDue = false;
+let shownRoute = '';
 
 const guides = () => mergeGuides(bundled, imported);
 const route = () => parseRoute(location.hash, guides());
@@ -78,6 +80,13 @@ function screenOf(r, w) {
   if (r.page === 'settings') return settingsView(w);
   if (r.page === 'guide') return guideView(w, r.id, r.tab) ?? homeView(w);
   return homeView(w);
+}
+
+// A guide opens on its current step, just below the fixed head.
+function showCard(box) {
+  const path = box.querySelector('.path');
+  const card = path?.querySelector('.card');
+  if (card) path.scrollTop += card.getBoundingClientRect().top - path.getBoundingClientRect().top - CARD_GAP;
 }
 
 // A redraw keeps the scroll position of the list and the keyboard on the same step.
@@ -103,6 +112,9 @@ function draw() {
   document.documentElement.dataset.theme = root.firstElementChild?.dataset.theme ?? 'home';
   const after = root.querySelector('.path, .scroll');
   if (after && after.className === list) after.scrollTop = top;
+  const shown = JSON.stringify(route());
+  if (shown !== shownRoute) showCard(root);
+  shownRoute = shown;
   if (focused !== undefined) {
     const same = [...root.querySelectorAll('[data-step]')].filter((el) => el.dataset.step === focused);
     (same.find((el) => el.className === focusClass) ?? same[0])?.focus({ preventScroll: true });
@@ -368,6 +380,7 @@ function showPeek(to) {
   peek.style.setProperty('--peek-at', `${(to.back ? -1 : 1) * root.clientWidth}px`);
   peek.innerHTML = screenOf(parseRoute(to.hash, guides()), world());
   root.append(peek);
+  showCard(peek);
 }
 
 function landed(to) {
