@@ -14,7 +14,7 @@ const percent = (share) => `${Math.round(share * 100)}%`;
 // r, stroke, gap, text position and size of the two rings of the mockups
 const RINGS = { 116: { r: 47, stroke: 11, gap: 15, textY: 64, font: 22 }, 70: { r: 28, stroke: 7, gap: 10, textY: 40, font: 14 } };
 
-export function ring({ chapters, total, size, label = 'Chapter progress' }) {
+export function ring({ chapters, total, size, label = 'Chapter progress', showTotal = true }) {
   const { r, stroke, gap, textY, font } = RINGS[size];
   const mid = size / 2;
   const C = 2 * Math.PI * r;
@@ -26,7 +26,7 @@ export function ring({ chapters, total, size, label = 'Chapter progress' }) {
     return circle('arc-track', `${L.toFixed(1)} ${(C - L).toFixed(1)}`, off)
       + circle(`arc-${(i % 3) + 1}`, `${Math.max(0.1, L * c.share).toFixed(1)} ${(C - L * c.share).toFixed(1)}`, off);
   }).join('');
-  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="${esc(label)}">${arcs}<text class="ring-pct" x="${mid}" y="${textY}" text-anchor="middle" font-size="${font}">${percent(total)}</text></svg>`;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="${esc(label)}">${arcs}${showTotal ? `<text class="ring-pct" x="${mid}" y="${textY}" text-anchor="middle" font-size="${font}">${percent(total)}</text>` : ''}</svg>`;
 }
 
 export const legend = (chapters) => chapters.map((c, i) => `<div class="legend"><i class="dot-${(i % 3) + 1}"></i><span${c.current ? ' class="legend-now"' : ''}>${esc(c.name)}</span><b>${percent(c.share)}</b></div>`).join('');

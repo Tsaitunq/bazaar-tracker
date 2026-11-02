@@ -412,7 +412,7 @@ function petPicker(pets, picked, esc) {
   return `<label>Pet<select data-stats-set="pet">${options.join('')}</select></label>`;
 }
 
-function areaView(area, state, items, esc, boosts, preset) {
+export function areaView(area, state, items, esc, boosts, preset) {
   const profile = state.summary;
   const entry = state.statsInput?.[area] ?? preset?.[area] ?? {};
   const loadout = loadoutOf(profile, items, area, entry.choice);

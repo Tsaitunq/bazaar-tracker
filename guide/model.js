@@ -164,10 +164,11 @@ export function guideModel(guide, world) {
     };
     if (status === 'current') {
       const open = openStep(section, step, ctx);
+      const price = rank ?? stepCost(open, ctx);
       row.card = card = {
         key, name: step.text, where: section.name, stats: lines, hint: step.hint ?? '',
         gain: rank?.gain === undefined ? '' : score.gainText(rank.gain),
-        cost: costText(open, rank ?? stepCost(open, ctx), ctx),
+        cost: costText(open, price, ctx), coins: price.coins, unpriced: price.unpriced,
         rate: rank?.perMillion === undefined ? '' : score.rateLong(rank.perMillion),
         badge: !!leader && leader.step === step,
         delta: rank?.delta ?? null,
@@ -188,8 +189,56 @@ export function guideModel(guide, world) {
   const chapters = chaptersOf(guide, checked);
   const grid = ranked.base ? (GRIDS[guide.area] ?? []).map((k) => ({ key: k, icon: STATS[k].icon, label: STATS[k].short ?? STATS[k].label, color: STATS[k].color, value: number(ranked.base[k] ?? 0), delta: '' })) : [];
   return {
-    theme: guide.area ?? 'home', name: guide.title, chapters, total: totalShare(chapters),
-    stats: statDelta(grid, card?.delta ?? null), chips: ranked.limits ?? null, rows, card, ranked, score, missing: ranked.missing ?? null,
+    id: guide.id, area: guide.area, theme: guide.area ?? 'home', name: guide.title, chapters, total: totalShare(chapters),
+    stats: statDelta(grid, card?.delta ?? null), chips: ranked.limits ?? null, rows, card, ranked, score, leader, missing: ranked.missing ?? null,
     tabs: score ? [{ id: 'path', label: 'Path' }, { id: 'best', label: 'Best value' }, { id: 'stats', label: 'Stats' }] : [{ id: 'path', label: 'Path' }],
   };
+}
+
+// The app keeps the checks per guide; a guide model sees only its own.
+export const worldFor = (world, guide) => ({ ...world, marks: new Set(world.checks?.[guide.id] ?? []) });
+
+// Each guide's own best step in its own unit: the units do not compare, so nothing ranks across guides.
+export const bestPerGuide = (models) => models.filter((m) => m.leader).map((m) => ({
+  area: m.area, name: m.name, step: m.leader.step.text,
+  text: m.leader.perMillion === undefined ? m.score.gainText(m.leader.gain) : m.score.rateText(m.leader.perMillion),
+}));
+
+// What the next step of every guide costs together. Steps without a price stay counted, so the sum never just reads lower.
+export function coinsForNext(models) {
+  const cards = models.map((m) => m.card).filter(Boolean);
+  return {
+    text: cards.some((c) => c.cost === '…') ? '…' : coins(cards.reduce((sum, c) => sum + c.coins, 0)),
+    unpriced: cards.reduce((n, c) => n + c.unpriced, 0),
+  };
+}
+
+function bestRow(row, model) {
+  const lines = statLines(row.delta ?? null).map((l) => l.text);
+  const extra = [
+    ...new Set(row.notes ?? []),
+    ...(row.resale > 0 ? [`Net ${coins(row.net)} (buy ${coins(row.coins)} − resale ${coins(row.resale)})`] : []),
+    ...(row.ahead ? [`Counted up to: ${row.ahead.text}`] : []),
+    ...(row.status === 'unknown' ? ['Requirements could not be checked.'] : []),
+    ...(row.status === 'locked' ? [row.reasons.join(' · ')] : []),
+  ];
+  const side = row.perMillion !== undefined ? model.score.rateText(row.perMillion) : row.status === 'locked' ? 'locked' : row.net === 0 ? 'free' : '';
+  return {
+    key: stepKey(row.section, row.step), name: row.step.text, side,
+    sub: [row.gain === undefined ? '' : model.score.gainText(row.gain), ...lines].filter(Boolean).join(' · '),
+    extra: extra.filter(Boolean),
+  };
+}
+
+// The groups of the Best value tab, in the order of the existing view. Empty ones stay out.
+export function bestGroups(model) {
+  const g = model.ranked.groups;
+  return [
+    ['Requirements first', g.requirements, 'These close a missed limit. Sorted by how much of the gap they close per coin.'],
+    ['Best value', [...g.free, ...g.ranked], ''],
+    ['Locked', g.locked, ''],
+    ['No price', g.noPrice, 'A sum that leaves out an item would look cheaper than it is.'],
+    ['No gain data', g.noGain, 'Nothing known gives this step a fixed value.'],
+    ['No gain', g.zero, 'These add nothing in this model right now.'],
+  ].filter(([, list]) => list.length).map(([title, list, note]) => ({ title, note, rows: list.map((row) => bestRow(row, model)) }));
 }
