@@ -1,5 +1,6 @@
 // What the screens of the guide app show, worked out from the shared logic. No markup in here.
-import { stepKey, doneSet, guideStats, openStep, stepCost, mergeGuides, priceItem } from '../progress.js';
+import { stepKey, doneSet, setMark, guideStats, openStep, stepCost, mergeGuides, priceItem } from '../progress.js';
+import { isItemStep, idsOfStep, idsToOwn, ownedAuto, mergeAuto, impliedDone } from '../owned.js';
 import { syncMessage } from '../sync.js';
 import { rankArea, SCORES } from '../optimizer.js';
 import { detectGuide } from '../detect.js';
@@ -148,20 +149,38 @@ function openSide(step, rank, score, ctx) {
   return rank?.group === 'noPrice' ? 'no price' : '';
 }
 
-function subOf(status, rank, reasons, lines, fromSync) {
-  if (status === 'done') return { sub: fromSync ? 'from sync' : '', subColor: '' };
+function subOf(status, rank, reasons, lines, fromSync, skipped) {
+  if (status === 'done') return { sub: skipped ? 'skipped' : fromSync ? 'from sync' : '', subColor: '' };
   if (status === 'locked') return { sub: reasons.join(' · '), subColor: '' };
   if (rank?.group === 'locked') return { sub: rank.reasons.join(' · '), subColor: '' };
   return { sub: lines.map((l) => l.text).join(' · '), subColor: lines[0]?.color ?? '' };
+}
+
+// What the sync found and what is ticked as owned, for one guide.
+export const autoOf = (guide, summary, owned) => mergeAuto(detectGuide(guide, summary ?? null, stepKey), ownedAuto(guide, new Set(owned ?? []), stepKey));
+
+// One tick. An item step goes to the state of all guides, anything else stays a mark of this guide. Gives the new owned state.
+export function tickStep({ guide, key, on, marks, owned, summary }) {
+  const step = guide.sections.flatMap((s) => s.steps.filter((one) => stepKey(s, one) === key))[0];
+  const next = new Set(owned);
+  const item = step && isItemStep(step);
+  if (item && on) for (const id of idsToOwn(step, guide, next)) next.add(id);
+  if (item && !on) for (const id of idsOfStep(step, guide)) next.delete(id);
+  setMark(guide, marks, key, on, autoOf(guide, summary, next));
+  if (item) marks.delete(key);
+  return next;
 }
 
 // The world holds what the app knows: marks, the synced state, prices and settings. rows is the whole path in guide order.
 export function guideModel(guide, world) {
   const scores = world.scores ?? SCORES;
   const profile = world.state?.summary ?? null;
-  const auto = detectGuide(guide, profile, stepKey);
-  const ctx = { ...world.prices, products: world.products, auto, profile, marks: world.marks };
+  const owned = new Set(world.owned ?? []);
+  const auto = autoOf(guide, profile, owned);
+  const ctx = { ...world.prices, products: world.products, auto, profile, marks: world.marks, owned };
   const checked = doneSet(guide, world.marks, auto);
+  const implied = impliedDone(guide, checked, stepKey);
+  const held = new Set([...(profile?.items ?? []).map((i) => i.id), ...owned]);
   const costs = guideStats(guide, checked, ctx); // also sets what the cost of a book line needs
   const ranked = rankArea({ guide, checked, ctx, state: world.state, settings: world.settings, keepOldGear: world.keepOldGear, boosts: world.boosts, preset: world.preset }, scores);
   const score = scores[guide.area];
@@ -179,13 +198,15 @@ export function guideModel(guide, world) {
     const lines = statLines(rank?.delta ?? null);
     const found = auto.get(key);
     const met = !!found && found.have >= found.need;
-    const fromSync = met && done && !world.marks.has(key);
+    const fromSync = met && done && !world.marks.has(key) && !found.ticked;
+    // done without the player having the piece itself: something better replaced it
+    const skipped = done && !world.marks.has(key) && (implied.has(key) || (met && isItemStep(step) && !idsOfStep(step, guide).some((id) => held.has(id))));
     const row = {
       key, name: step.text, status,
-      ...subOf(status, rank, reasons, lines, fromSync),
+      ...subOf(status, rank, reasons, lines, fromSync, skipped),
       side: status === 'done' || status === 'locked' ? status : openSide(step, rank, score, ctx),
       progress: found?.have && !met ? `${number(found.have)} / ${number(found.need)}` : '',
-      api: !!found?.have && (!met || fromSync),
+      api: !!found?.have && !found.ticked && (!met || fromSync),
       undo: fromSync,
     };
     if (status === 'current') {
@@ -261,18 +282,18 @@ export function syncOutcome(result, last) {
 }
 
 // A shipped guide coming back unchanged stays shipped, so a later app update can still change it.
-export function applyImport({ imported, checks, bundled }, data) {
+export function applyImport({ imported, checks, bundled, owned = [] }, data) {
   const same = (g) => JSON.stringify(g) === JSON.stringify(bundled.find((b) => b.id === g.id));
-  return { imported: mergeGuides(imported, data.guides).filter((g) => !same(g)), checks: { ...checks, ...data.progress } };
+  return { imported: mergeGuides(imported, data.guides).filter((g) => !same(g)), checks: { ...checks, ...data.progress }, owned: [...new Set([...owned, ...(data.owned ?? [])])] };
 }
 
 // firstRun: what is done now is older than the app. That holds per guide too, and for what the first sync finds.
 // state undefined: the profile is not loaded yet, so what the sync found cannot be told from what is new. Nothing gets a date.
-export function stampAll(guides, checks, dates, state, now, firstRun = false) {
+export function stampAll(guides, checks, dates, state, now, firstRun = false, owned = []) {
   if (state === undefined) return dates;
   const out = { ...dates };
   for (const guide of guides) {
-    const done = doneSet(guide, new Set(checks[guide.id] ?? []), detectGuide(guide, state?.summary ?? null, stepKey));
+    const done = doneSet(guide, new Set(checks[guide.id] ?? []), autoOf(guide, state?.summary, owned));
     out[guide.id] = stampDone(dates[guide.id], [...done].filter((k) => !k.startsWith('undone:')), now, firstRun || dates[guide.id] === undefined);
   }
   return out;

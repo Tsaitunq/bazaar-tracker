@@ -39,7 +39,7 @@ test('an imported guide replaces the shipped one with its id', () => {
 
 test('export and import round trip, also for a plain guide file', () => {
   const back = importData(exportData([{ id: 'a', ...guide }], { a: ['First|One'] }));
-  assert.deepEqual(back, { guides: [{ id: 'a', ...guide }], progress: { a: ['First|One'] } });
+  assert.deepEqual(back, { guides: [{ id: 'a', ...guide }], progress: { a: ['First|One'] }, owned: [] });
   assert.equal(importData(JSON.stringify(guide)).guides[0].id, 'test-guide');
 });
 

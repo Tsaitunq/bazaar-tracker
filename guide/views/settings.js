@@ -14,7 +14,7 @@ function resetRow(guide, armed, removable) {
   const name = esc(guide.title);
   const id = esc(guide.id);
   return armed === guide.id
-    ? `<div class="actions"><span class="note">Clear all checkmarks of ${name}?</span><button type="button" class="primary" data-reset-yes="${id}">Reset</button><button type="button" class="ghost" data-reset-no>Cancel</button></div>`
+    ? `<div class="actions"><span class="note">Clear all checkmarks of ${name}? Items you ticked also clear in your other guides.</span><button type="button" class="primary" data-reset-yes="${id}">Reset</button><button type="button" class="ghost" data-reset-no>Cancel</button></div>`
     : `<div class="actions"><button type="button" class="ghost" data-reset="${id}">Reset ${name}</button>${removable ? `<button type="button" class="ghost" data-remove-guide="${id}">Remove imported copy</button>` : ''}</div>`;
 }
 

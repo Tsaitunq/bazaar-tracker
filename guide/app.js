@@ -1,14 +1,14 @@
 // The guide app: state, routes, sync, prices and events. What it shows is worked out in model.js and views/.
 import { loadItemData, loadStatsPreset, loadForge, loadAh, loadElection, freshBins, fetchBins } from '../data.js';
-import { loadBundled, mergeGuides, exportData, importData, setMark, stepKey, doneSet } from '../progress.js';
+import { loadBundled, mergeGuides, exportData, importData, doneSet } from '../progress.js';
 import { createSync, syncMessage, normalizeUuid, cleanKey } from '../sync.js';
 import { plugin, canSync, getApiKey, setApiKey, loadProfile, saveProfile, clearProfileData, clearApiKeyOnly } from '../native.js';
 import { summarize } from '../profile.js';
-import { detectGuide } from '../detect.js';
+import { migrateOwned, resetOwned } from '../owned.js';
 import { fallbackName, loadItems } from '../names.js';
 import { PRESETS, miningSettings } from '../optimizer.js';
 import { computeStats, loadoutOf, offsetStale, statsEntry } from '../stats.js';
-import { parseRoute, syncOutcome, applyImport, stampAll, formEdited, typedFields, restoreTyped, settled, statsOnly, swipeTarget, swipeAxis, swipeLands } from './model.js';
+import { parseRoute, syncOutcome, applyImport, stampAll, formEdited, typedFields, restoreTyped, settled, statsOnly, autoOf, tickStep, swipeTarget, swipeAxis, swipeLands } from './model.js';
 import { homeView } from './views/home.js';
 import { guideView, statsView } from './views/guide.js';
 import { settingsView } from './views/settings.js';
@@ -34,6 +34,7 @@ let bundled = [];
 let imported = load('pg.guides', []);
 let checks = load('pg.checks', {});
 let dates = load('pg.dates', {});
+let owned = load('pg.owned', []);
 const settings = load('pg.settings', {});
 const bins = load('pg.bins', {});
 let state; // undefined until the stored profile is loaded, null when there is none
@@ -78,7 +79,7 @@ const boosts = () => ({ godPotion: settings.godPotion ?? preset?.boosts?.godPoti
 const world = () => {
   pending = new Set();
   return {
-    guides: guides(), checks, dates, state: shownState() ?? null, personal: personal(), products, now: Date.now(),
+    guides: guides(), checks, owned, dates, state: shownState() ?? null, personal: personal(), products, now: Date.now(),
     prices: { forge, ah, cofl: freshBins(bins), wants: pending, items, tax: (settings.tax ?? DEFAULT_TAX) / 100, derpy: election?.mayor?.name === 'Derpy' },
     settings: miningSettings(settings.mining), keepOldGear: settings.keepOldGear === true, boosts: boosts(), preset,
     name: (id) => names[id] ?? fallbackName(id), uuid: state?.uuid ?? '', hasKey, keyMessage, tax: settings.tax ?? DEFAULT_TAX, importedIds: imported.map((g) => g.id), canSync: canSync(), message: note.message, choices: note.choices,
@@ -153,7 +154,7 @@ async function askBins(wants) {
 }
 
 function stamp(firstRun = false) {
-  dates = stampAll(guides(), checks, dates, shownState(), Date.now(), firstRun);
+  dates = stampAll(guides(), checks, dates, shownState(), Date.now(), firstRun, owned);
   save('pg.dates', dates);
 }
 
@@ -172,10 +173,12 @@ function toggle(key) {
   const guide = guides().find((g) => g.id === r.id);
   if (!guide) return;
   const marks = new Set(checks[guide.id] ?? []);
-  const auto = detectGuide(guide, shownState()?.summary ?? null, stepKey);
-  setMark(guide, marks, key, !doneSet(guide, marks, auto).has(key), auto);
+  const summary = shownState()?.summary;
+  const on = !doneSet(guide, marks, autoOf(guide, summary, owned)).has(key);
+  owned = [...tickStep({ guide, key, on, marks, owned, summary })];
   checks = { ...checks, [guide.id]: [...marks] };
   save('pg.checks', checks);
+  save('pg.owned', owned);
   dataText = ''; // an export from before this tick must not come back by accident
   stamp();
   draw();
@@ -255,9 +258,11 @@ const jsonSettled = () => { const box = root.querySelector('[data-json]'); if (b
 function runImport(raw) {
   try {
     const data = importData(raw);
-    ({ imported, checks } = applyImport({ imported, checks, bundled }, data));
+    ({ imported, checks, owned } = applyImport({ imported, checks, bundled, owned }, data));
+    ({ owned, checks } = migrateOwned(guides(), checks, owned));
     save('pg.guides', imported);
     save('pg.checks', checks);
+    save('pg.owned', owned);
     stamp();
     dataText = '';
     jsonSettled();
@@ -269,7 +274,7 @@ function runImport(raw) {
 }
 
 async function runExport() {
-  dataText = exportData(guides(), checks);
+  dataText = exportData(guides(), checks, owned);
   let copied = false;
   try { await navigator.clipboard.writeText(dataText); copied = true; } catch { /* the text field holds it */ }
   // the Android WebView has no downloads, so there the text and the clipboard are the export
@@ -329,7 +334,9 @@ root.addEventListener('click', (e) => {
   if (yes) {
     armed = null;
     checks = { ...checks, [yes.dataset.resetYes]: [] };
+    owned = [...resetOwned(guides().find((g) => g.id === yes.dataset.resetYes), owned)];
     save('pg.checks', checks);
+    save('pg.owned', owned);
     stamp();
     draw();
     return;
@@ -470,6 +477,13 @@ await Promise.all([
   showProfile(),
   loadStatsPreset().then((p) => { preset = p; }),
 ]);
+// once: ticks from before the shared state. Without a guide loaded there is nothing to move yet.
+if (!load('pg.ownedV1', false) && guides().length) {
+  ({ owned, checks } = migrateOwned(guides(), checks, owned));
+  save('pg.owned', owned);
+  save('pg.checks', checks);
+  save('pg.ownedV1', true);
+}
 stamp();
 draw();
 loadForge().then((r) => { forge = r; drawInBackground(); });
