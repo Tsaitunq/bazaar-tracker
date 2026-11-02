@@ -104,10 +104,14 @@ test('best value shows best possible, the notes and for blaze the path compariso
   assert.match(fire, /Estimate: compares upgrades/);
 });
 
-test('below a limit the screen warns', () => {
+test('below a limit the chip row says so, on both tabs and without a block', () => {
   const low = world({ state: { summary: profile({ mp: 700 }), syncedAt: 1 } });
-  for (const tab of ['path', 'best']) assert.match(guideView(low, 'fire', tab), /class="warn" role="alert">Below the limit: Magical Power 700 \/ 800/);
-  assert.doesNotMatch(guideView(world(), 'fire', 'path'), /class="warn"/);
+  for (const tab of ['path', 'best']) {
+    const html = guideView(low, 'fire', tab);
+    assert.match(html, /chip-low/);
+    assert.match(html, /c-red">700 ✗<\/span> \/ 800/);
+    assert.doesNotMatch(html, /class="warn"[^>]*>Below|Below the limit/);
+  }
 });
 
 test('stats shows the slots, the /stats form, the difference and the offset notes', () => {

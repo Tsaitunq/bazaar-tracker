@@ -53,10 +53,14 @@ export function stepCard(card) {
 
 const limitValue = (v) => (v === null ? 'unknown' : number(v));
 
+// A missed limit stays in its chip: the value turns red and gets a mark, so colour is not the only sign.
+const missed = (v) => `<span class="c-red">${number(v)} ✗</span>`;
+
 export function chips(limits) {
   const { trueDefense: td, mp } = limits;
-  const value = td !== null && !limits.lowTrueDefense ? `<span class="c-gain">${number(td)} ✓</span>` : limitValue(td);
-  return `<div class="chips"><div class="chip${limits.lowTrueDefense ? ' chip-low' : ''}"><span class="c-white">❂ True Def ≥ ${number(limits.minTrueDefense)}</span><span class="chip-value">${value}</span></div><div class="chip${limits.lowMp ? ' chip-low' : ''}"><span class="c-cyan">✦ Power</span><span class="chip-value">${limitValue(mp)} / ${number(limits.targetMp)}</span></div></div>`;
+  const defense = limits.lowTrueDefense ? missed(td) : td === null ? limitValue(td) : `<span class="c-gain">${number(td)} ✓</span>`;
+  const power = limits.lowMp ? `${missed(mp)} / ${number(limits.minMp)}` : `${limitValue(mp)} / ${number(limits.targetMp)}`;
+  return `<div class="chips"><div class="chip${limits.lowTrueDefense ? ' chip-low' : ''}"><span class="c-white">❂ True Def ≥ ${number(limits.minTrueDefense)}</span><span class="chip-value">${defense}</span></div><div class="chip${limits.lowMp ? ' chip-low' : ''}"><span class="c-cyan">✦ Power</span><span class="chip-value">${power}</span></div></div>`;
 }
 
 export const bottomBar = (tabs, active) => `<nav class="bar">${tabs.map((t) => `<button type="button" data-tab="${esc(t.id)}"${t.id === active ? ' aria-current="page"' : ''}>${esc(t.label)}</button>`).join('')}</nav>`;

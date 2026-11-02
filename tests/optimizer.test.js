@@ -821,12 +821,13 @@ test('the row says damage, marks the estimate and shows the raw stats', () => {
   assert.match(html, /Estimate/);
 });
 
-test('below a limit the page warns and shows both values', () => {
+test('below a limit both chips turn red with their values', () => {
   const summary = blazeProfile({ mp: 700 });
   summary.items = summary.items.map((i) => (i.id === 'PLATE' ? { ...i, lore: { TRUE_DEFENSE: 100 } } : i));
   const html = blazeHtml(blazeG([sharpStep]), { state: { summary, syncedAt: 1 } });
-  assert.match(html, /Below the limit: True Defense 100 \/ 140 · Magical Power 700 \/ 800/);
-  assert.match(html, /role="alert"/);
+  assert.match(html, /c-red">100 ✗/);
+  assert.match(html, /c-red">700 ✗<\/span> \/ 800/);
+  assert.doesNotMatch(html, /role="alert"/);
 });
 
 test('steps that close a gap stand first, the rest keeps its rank', () => {
@@ -840,15 +841,15 @@ test('steps that close a gap stand first, the rest keeps its rank', () => {
   assert.match(html.slice(best), /sharp/);
 });
 
-test('magical power under the target of 1100 is a note only', () => {
+test('magical power under the target of 1100 is no missed limit', () => {
   const html = blazeHtml(blazeG([sharpStep]), { state: { summary: blazeProfile({ mp: 900 }), syncedAt: 1 } });
-  assert.match(html, /under the target of 1[,.]?100/);
-  assert.doesNotMatch(html, /Below the limit/);
+  assert.match(html, /900 \/ 1,100/);
+  assert.doesNotMatch(html, /chip-low/);
 });
 
-test('a missing value shows unknown with a warning and ranks on', () => {
+test('a missing value shows unknown in its chip and ranks on', () => {
   const html = blazeHtml(blazeG([sharpStep]), { state: { summary: blazeProfile({ mp: null, missing: { inventory: true } }), syncedAt: 1 } });
-  assert.match(html, /could not be read/);
+  assert.match(html, /chip-value">unknown/);
   assert.match(html, /<h2>Best value<\/h2>/);
 });
 
@@ -870,8 +871,7 @@ test('the active path is named and never changes by itself', () => {
 test('the offset moves the blaze base, also in the limits', () => {
   const entry = { choice: { armor: 1, equipment: 1, pet: null }, values: {}, offset: { TRUE_DEFENSE: -120 }, offsetFor: { armor: 1, equipment: 1, pet: null }, offsetNote: null, at: 2 };
   const html = blazeHtml(blazeG([sharpStep]), { state: { summary: blazeProfile(), syncedAt: 1, statsInput: { blaze: entry } } });
-  assert.match(html, /True Defense 80 \/ 140/);
-  assert.match(html, /Below the limit/);
+  assert.match(html, /c-red">80 ✗/);
 });
 
 test('best possible keeps true defense at the limit', () => {
