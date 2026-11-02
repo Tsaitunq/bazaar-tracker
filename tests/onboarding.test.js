@@ -364,13 +364,12 @@ test('"Show me" follows the radar to the Market area and keeps every other route
   for (const e of real.versions.flatMap((v) => v.entries)) if (e.target) assert.ok(pages.includes(newsRoute(e)), e.title);
 });
 
-test('entries about the private area show only with a guide', () => {
+test('old entries about the guides stay hidden, an emptied version too', () => {
   const versions = [
     { version: '0.2.0', date: 'x', entries: [{ title: 'Public', text: 't' }, { title: 'Mine', text: 't', personal: true }] },
     { version: '0.1.0', date: 'x', entries: [{ title: 'Only mine', text: 't', personal: true }] },
   ];
-  assert.deepEqual(visibleNews(versions, true), versions);
-  const hidden = visibleNews(versions, false);
-  assert.deepEqual(hidden.map((v) => v.version), ['0.2.0']);
-  assert.deepEqual(hidden[0].entries.map((e) => e.title), ['Public']);
+  const shown = visibleNews(versions);
+  assert.deepEqual(shown.map((v) => v.version), ['0.2.0']);
+  assert.deepEqual(shown[0].entries.map((e) => e.title), ['Public']);
 });

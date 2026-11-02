@@ -34,7 +34,6 @@ export function copyWeb(root, out) {
     fs.copyFileSync(path.join(root, f), path.join(out, f));
   }
   fs.cpSync(path.join(root, 'icons'), path.join(out, 'icons'), { recursive: true });
-  copyPersonal(root, out);
   return files.length;
 }
 

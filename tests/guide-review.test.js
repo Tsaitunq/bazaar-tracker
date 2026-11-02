@@ -6,8 +6,7 @@ import { bestGroups, formEdited, guideModel } from '../guide/model.js';
 import { stepCard } from '../guide/views/parts.js';
 import { guideView } from '../guide/views/guide.js';
 import { settingsView } from '../guide/views/settings.js';
-import { miningSettings, bestValueView } from '../optimizer.js';
-import { progressView } from '../progress.js';
+import { miningSettings } from '../optimizer.js';
 
 const sold = (price) => ({ buy_summary: [{ pricePerUnit: price, amount: 100 }] });
 const DRILL = 'TITANIUM_DRILL_4';
@@ -21,12 +20,6 @@ test('best value never calls a step without a price free', () => {
   const sides = (w) => bestGroups(guideModel(guide([step('Z', 'Z')]), w)).flatMap((g) => g.rows.map((r) => r.side));
   assert.deepEqual(sides(world()), ['no price']);
   assert.deepEqual(sides(world({ products: null })), ['…']);
-});
-
-test('the bazaar app offers no best value for a guide without a score', () => {
-  const g = { ...guide([step('a')]), area: 'farming' };
-  const html = progressView({ guides: [g], current: 'm', checked: new Set(), products: {}, prices: { items }, name: String, mode: 'best', bestValue: (v) => bestValueView({ ...v, state: { summary }, settings: miningSettings(null) }) });
-  assert.doesNotMatch(html, /data-guide-mode="best"/);
 });
 
 test('a key that cannot be read is not called missing', () => {

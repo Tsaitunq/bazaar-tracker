@@ -259,7 +259,7 @@ test('syncView escapes profile names', () => {
 test('export after a sync has no key, uuid or profile data', () => {
   const out = JSON.parse(exportData([{ id: 'g', title: 'G', sections: [] }], { g: ['a'] }));
   assert.deepEqual(Object.keys(out), ['type', 'guides', 'progress']);
-  assert.match(readFileSync('app.js', 'utf8'), /exportData\(guides\(\), guideChecks\)/);
+  assert.match(readFileSync('guide/app.js', 'utf8'), /exportData\(guides\(\), checks\)/);
 });
 
 test('the key header exists only in sync.js and nothing logs or stores there', () => {

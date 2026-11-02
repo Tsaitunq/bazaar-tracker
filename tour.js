@@ -275,7 +275,7 @@ export async function initOnboarding(context) {
     else if (act === 'hints-reset') { seen = seen.filter((id) => !HINT_IDS.includes(id)); saveSeen(); closeSheet(); }
     else if (act === 'news-show') startNewsTour(shownNews);
     else if (act === 'setup') showSetup();
-    else if (act === 'news') showNews(visibleNews(log.versions, ctx.hasGuides()), { history: true });
+    else if (act === 'news') showNews(visibleNews(log.versions), { history: true });
     else if (act === 'setup-next') { readSetupForm(); sheet(setupSummaryHtml(setupRows()), 'setup'); }
     else if (act === 'setup-back') showSetup();
     else if (act === 'setup-apply') {
@@ -304,9 +304,8 @@ export async function initOnboarding(context) {
 
   $('open-help').addEventListener('click', () => sheet(helpHtml({ pro: ctx.pro() }), 'help'));
 
-  await ctx.guidesKnown;
   const action = startupAction(readState(), log, hadData);
-  shownNews = visibleNews(action.news ?? [], ctx.hasGuides());
+  shownNews = visibleNews(action.news ?? []);
   if (action.type === 'welcome') showWelcome();
   else if (action.type === 'tourOffer') showNews(shownNews, { offerTour: true });
   else if (action.type === 'whatsNew' && (shownNews.length || action.advanced)) showNews(shownNews, { offerAdvanced: action.advanced && ctx.pro() });

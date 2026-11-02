@@ -1,10 +1,9 @@
-// The private Progress area: guides with checkboxes. Guides come from personal/guides (copied into the
-// app by scripts/copy-web.mjs, never in git) or from an imported file.
+// The guides and what their steps cost. Guides come from personal/guides (copied into the guide app by
+// scripts/guide-copy.mjs, never in git) or from an imported file.
 
-import { esc, coins } from './format.js';
+import { coins } from './format.js';
 import { walkBook } from './prices.js';
-import { detectGuide, validDetect, validGroups } from './detect.js';
-import { checkStep } from './requires.js';
+import { validDetect, validGroups } from './detect.js';
 
 const INDEX = 'personal/guides/index.json';
 const text = (v) => (typeof v === 'string' && v.trim() ? v : null);
@@ -93,16 +92,6 @@ export function mergeGuides(bundled, imported) {
   return [...bundled.filter((g) => !ids.has(g.id)), ...imported];
 }
 
-// What the settings show: import after the hidden unlock or with a guide, the switch only with a guide.
-export const personalVisibility = (guideCount, unlocked) => ({ section: guideCount > 0 || unlocked, toggle: guideCount > 0 });
-
-// The hidden way in: true on the fifth tap in a row, each within the given time of the one before.
-export function secretTap(taps, now, need = 5, gap = 1500) {
-  const last = taps[taps.length - 1];
-  const next = last !== undefined && now - last <= gap ? [...taps, now] : [now];
-  return { taps: next.length >= need ? [] : next, open: next.length >= need };
-}
-
 export const exportData = (guides, progress) => JSON.stringify({ type: 'bt-progress', guides, progress }, null, 2);
 
 // Reads an export of the app or one plain guide file. Throws with a message for the player.
@@ -151,8 +140,6 @@ export function setMark(guide, marks, key, on, auto = null) {
   if (on) marks.add(key);
   else if (isTable || met(auto?.get(key))) marks.add(UNDONE + key);
 }
-
-export const pushRecent = (recent, key) => [key, ...recent.filter((k) => k !== key)].slice(0, 10);
 
 // Shards and enchanted books only trade on the bazaar, so asking the auction side for them is wasted.
 const BAZAAR_ONLY = /^(ENCHANTMENT_|SHARD_)/;
@@ -328,119 +315,4 @@ export function nextUpgrades(guide, checked, ctx) {
     }
   }
   return rows.sort((a, b) => (b.step.priority ?? 0) - (a.step.priority ?? 0) || b.priced - a.priced || (a.priced ? a.coins - b.coins : 0));
-}
-
-const SOURCES = { bazaar: 'Bazaar', forge: 'Forge', ah: 'AH', nt: 'not tradeable' };
-const badge = (source) => `<span class="guide-src" data-src="${source}">${SOURCES[source]}</span>`;
-
-function itemLine(item, ctx, name) {
-  const label = `${item.qty}× ${esc(item.name ?? name(item.id))}`;
-  const p = priceItem(item, ctx);
-  const way = p.picked ? p.picked.map(name).join(', ') : p.note;
-  if (p.source === 'nt') return `<small class="guide-item">${label} ${badge('nt')}</small>`;
-  if (!p.source) return `<small class="guide-item">${label} · <strong>${ctx.products ? 'no price' : '…'}</strong></small>`;
-  return `<small class="guide-item">${label} · <strong>${coins(p.coins)}</strong> ${badge(p.source)}${p.nt ? ` ${badge('nt')}` : ''}${way ? `<span class="guide-way">${esc(way)}</span>` : ''}</small>`;
-}
-
-// Open and partly found: how far it is. Done by the sync alone: the badge and a way to take it back.
-function apiBadge(key, checked, ctx) {
-  const found = ctx.auto?.get(key);
-  if (!found?.have) return '';
-  const api = '<span class="guide-src" data-src="api">API</span>';
-  if (!met(found)) return `<span class="guide-src guide-partial">${found.have} / ${found.need}</span>${api}`;
-  return checked.has(key) && !ctx.marks?.has(key) ? `${api}<button type="button" class="guide-auto-undo" data-guide-undo="${esc(key)}" aria-label="Undo the API check">Undo</button>` : '';
-}
-
-// Only proof locks a step; a done step has nothing left to unlock. It stays checkable, the game may know better.
-function lockBadge(step, ctx) {
-  const { status, reasons } = checkStep(step, ctx.items, ctx.profile);
-  return status === 'locked' ? `<span class="guide-src" data-src="locked">locked</span><small class="guide-hint">${esc(reasons.join(' · '))}</small>` : '';
-}
-
-export const stepRow = (section, step, checked, ctx, name, extra = '') => {
-  const key = stepKey(section, step);
-  const shown = checked.has(key) ? step : openStep(section, step, ctx);
-  // a finished step needs no price from the network
-  const itemCtx = checked.has(key) ? { ...ctx, wants: null } : ctx;
-  return `<li class="guide-step"><label>
-    <input type="checkbox" data-step="${esc(key)}"${checked.has(key) ? ' checked' : ''}>
-    <span><span class="guide-text">${esc(step.text)}</span>${step.table ? '<span class="guide-src" data-src="table">table</span>' : ''}${apiBadge(key, checked, ctx)}${checked.has(key) ? '' : lockBadge(step, ctx)}${extra}${(shown.items ?? []).map((i) => itemLine(i, itemCtx, name)).join('')}${step.hint ? `<small class="guide-hint">${esc(step.hint)}</small>` : ''}</span>
-  </label></li>`;
-};
-
-function restNote(s, products) {
-  if (s.done === s.total) return '';
-  if (!products) return 'Left …';
-  return [s.coins > 0 && `Left ${coins(s.coins)}`, s.unpriced > 0 && `+ ${s.unpriced} unpriced`].filter(Boolean).join(' ');
-}
-
-function noPriceNote(row) {
-  if (row.step.table) return 'No coins: enchanting table';
-  if (row.unpriced) return `${row.unpriced} of its items without a price`;
-  return row.step.items ? 'Not tradeable, no coins to buy' : 'Nothing to buy listed';
-}
-
-const stepText = (guide, key) => {
-  for (const section of guide.sections) for (const step of section.steps) if (stepKey(section, step) === key) return step.text;
-  return null;
-};
-
-function recentView(guide, recent, undo) {
-  const known = recent.filter((key) => stepText(guide, key) !== null);
-  const bar = undo && stepText(guide, undo) !== null ? `<p class="guide-undo" role="status"><span>Checked: ${esc(stepText(guide, undo))}</span><button type="button" data-guide-undo="${esc(undo)}">Undo</button></p>` : '';
-  if (!known.length) return bar;
-  return `${bar}<section class="guide-recent" aria-label="Recently checked"><h2>Recently checked</h2><ul class="guide-steps">${known.map((key) => `<li class="guide-recent-row"><span>${esc(stepText(guide, key))}</span><button type="button" data-guide-undo="${esc(key)}">Undo</button></li>`).join('')}</ul></section>`;
-}
-
-// Next upgrades hides done steps, so what the sync checked stays reachable here.
-function autoView(guide, checked, ctx, autoOpen) {
-  const rows = guide.sections.flatMap((section) => section.steps.map((step) => stepKey(section, step))).filter((key) => met(ctx.auto?.get(key)) && checked.has(key) && !ctx.marks.has(key));
-  if (!rows.length) return '';
-  return `<details class="guide-section" data-auto-list${autoOpen ? ' open' : ''}><summary><span class="guide-name">Checked by sync</span><span class="muted">${rows.length}</span></summary><ul class="guide-steps">${rows.map((key) => `<li class="guide-recent-row"><span>${esc(stepText(guide, key))}</span><button type="button" data-guide-undo="${esc(key)}">Undo</button></li>`).join('')}</ul></details>`;
-}
-
-function nextView(guide, checked, ctx, name, products, recent, undo, autoOpen) {
-  const rows = nextUpgrades(guide, checked, ctx);
-  const after = recentView(guide, recent, undo) + autoView(guide, checked, ctx, autoOpen);
-  if (!rows.length) return `<p class="muted">All steps are done.</p>${after}`;
-  const top = rows.slice(0, 5);
-  const unpriced = top.filter((r) => !r.priced && r.unpriced).length;
-  const total = `Next ${top.length} upgrade${top.length === 1 ? '' : 's'} cost ${products ? coins(top.reduce((sum, r) => sum + r.coins, 0)) : '…'}${unpriced ? ` + ${unpriced} unpriced` : ''}`;
-  return `<section class="guide-next" aria-label="Next upgrades"><h2>${total}</h2><ul class="guide-steps">${rows.map((r) => {
-    const pin = r.step.priority ? '<span class="guide-src" data-src="pin">priority</span>' : '';
-    const where = `<small class="guide-hint">${esc(r.section.name)}${r.priced ? ' · ' + coins(r.coins) : products ? ' · ' + noPriceNote(r) : ''}</small>`;
-    return stepRow(r.section, r.step, checked, ctx, name, pin + where);
-  }).join('')}</ul></section>${after}`;
-}
-
-// open: the unfolded sections' names, or null at first, when the first one with open steps unfolds.
-export function progressView({ guides, current, checked: marks, products, prices = {}, name, open = null, armed = false, removable = false, mode = 'slot', recent = [], undo = null, syncBar = '', profile = null, autoOpen = false, bestValue = null }) {
-  const guide = guides.find((g) => g.id === current) ?? guides[0];
-  const auto = detectGuide(guide, profile, stepKey);
-  const ctx = { ...prices, products, auto, profile, marks };
-  const checked = doneSet(guide, marks, auto);
-  const stats = guideStats(guide, checked, ctx);
-  const ranks = !!guide.area && guide.area !== 'farming' && !!bestValue; // farming has no score yet
-  const shown = mode === 'best' && !ranks ? 'slot' : mode;
-  const first = open ? null : guide.sections.find((_, i) => stats.sections[i].done < stats.sections[i].total)?.name;
-  const page = `${syncBar}<div class="bar ranges guide-switch" role="group" aria-label="Guide">${guides.map((g) => `<button type="button" data-guide="${esc(g.id)}" aria-pressed="${g.id === guide.id}">${esc(g.title)}</button>`).join('')}</div>
-  <p class="guide-count"><strong>${stats.done} / ${stats.total}</strong>${guide.source ? ` <a class="muted" href="${esc(guide.source)}" rel="noopener">Source</a>` : ''}</p>
-  <div class="bar ranges guide-switch" role="group" aria-label="View">${[['slot', 'By slot'], ['next', 'Next upgrades'], ...(ranks ? [['best', 'Best value']] : [])].map(([m, label]) => `<button type="button" data-guide-mode="${m}" aria-pressed="${m === shown}">${label}</button>`).join('')}</div>
-  ${shown === 'next' ? nextView(guide, checked, ctx, name, products, recent, undo, autoOpen) : shown === 'best' ? bestValue({ guide, checked, ctx, name, products }) + recentView(guide, recent, undo) + autoView(guide, checked, ctx, autoOpen) : `<section class="guide-next" aria-label="Next step"><h2>Next step</h2>${stats.next
-    ? `<small class="guide-hint">${esc(stats.next.section.name)}</small><ul class="guide-steps">${stepRow(stats.next.section, stats.next.step, checked, ctx, name)}</ul>`
-    : '<p class="muted">All steps are done.</p>'}</section>
-  ${guide.sections.map((section, i) => {
-    const s = stats.sections[i];
-    const isOpen = open ? open.has(section.name) : section.name === first;
-    const note = restNote(s, products);
-    return `<details class="guide-section" data-section="${esc(section.name)}"${isOpen ? ' open' : ''}>
-      <summary><span class="guide-name">${esc(section.name)}</span>${s.total ? `<span class="muted">${s.done} / ${s.total}</span>` : ''}${note ? `<small class="guide-rest">${note}</small>` : ''}</summary>
-      ${section.goal ? `<p class="guide-goal">${esc(section.goal)}</p>` : ''}
-      ${s.total ? `<ul class="guide-steps">${section.steps.map((step) => stepRow(section, step, checked, ctx, name)).join('')}</ul>` : ''}
-    </details>`;
-  }).join('')}`}
-  <div class="actions guide-foot">${armed
-    ? '<span class="muted">Clear all checkmarks of this guide?</span><button type="button" data-guide-act="reset-yes" class="primary">Reset</button><button type="button" data-guide-act="reset-no">Cancel</button>'
-    : `${removable ? '<button type="button" data-guide-act="remove">Remove imported copy</button>' : ''}<button type="button" data-guide-act="reset">Reset guide</button>`}</div>`;
-  return `${page}${ctx.usedCofl ? '<p class="muted guide-credit">Prices: <a href="https://sky.coflnet.com" rel="noopener">SkyCofl</a></p>' : ''}`;
 }

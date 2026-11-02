@@ -4,20 +4,14 @@ import { craftFlips, craftHints, CRAFT_RUNS } from './craft.js';
 import { forgeFlips, forgeFlip } from './forge.js';
 import { minionRows, minionDetail, FUELS, UPGRADES, MAX_TIER } from './minions.js';
 import { loadItems, fallbackName } from './names.js';
-import { loadItemData, loadStatsPreset, loadStats, loadRecipes, loadForge, loadAh, loadElection, loadTiming, loadWindows, loadHistory, freshBins, fetchBins } from './data.js';
-import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission, loadHeld, storeHeld, canSync, getApiKey, setApiKey, loadProfile, saveProfile, clearProfileData } from './native.js';
-import { esc, PERSONAL, flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, trendsView, todayView, windowBanners, minionCard, minionSheet, parseRoute, detailView, portfolioView, warningsView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, viewsFor, areaOf, coins, percent, PLACEHOLDER_ICON } from './render.js';
+import { loadStats, loadRecipes, loadForge, loadAh, loadElection, loadTiming, loadWindows, loadHistory } from './data.js';
+import { plugin, syncAlerts, syncNames, onRoute, requestAlertPermission, loadHeld, storeHeld } from './native.js';
+import { esc, flipCard, npcCard, craftCard, forgeCard, forgeFilter, searchCard, radarView, trendsView, todayView, windowBanners, minionCard, minionSheet, parseRoute, detailView, portfolioView, warningsView, FILTERS, activeFilters, filterChips, swipeTab, dragOffset, tabsFor, viewsFor, areaOf, coins, percent, PLACEHOLDER_ICON } from './render.js';
 import { chartHit, when } from './chart.js';
 import { level } from './trends.js';
 import { activePerks, upcoming, electionWindow, eventItems, flipRisks, planElection, taxAdvice } from './events.js';
 import { buyNow, itemWindows, readWindowAlerts, windowAlerts, MIN_ALERT_RUNS } from './timing.js';
 import { bindSheet, openSheet } from './sheet.js';
-import { loadBundled, mergeGuides, exportData, importData, progressView, personalVisibility, secretTap, setMark, pushRecent, stepKey } from './progress.js';
-import { createSync, syncMessage, syncView, normalizeUuid, cleanKey } from './sync.js';
-import { summarize } from './profile.js';
-import { statsView, statsEntry, loadoutOf, computeStats, offsetStale } from './stats.js';
-import { PRESETS, miningSettings, bestValueView } from './optimizer.js';
-import { detectGuide } from './detect.js';
 import { initOnboarding, refreshHints, offerAdvanced, returning } from './tour.js';
 
 const API = 'https://api.hypixel.net/v2/skyblock/bazaar';
@@ -28,7 +22,7 @@ const CARDS = { flips: flipCard, opps: flipCard, npc: npcCard, craft: craftCard,
 const DEFAULTS = { tax: 1.25, minVolume: 100000, maxCapital: 5000000, interval: 2, share: 5, sort: 'profitHour', favOnly: false, alerts: false, alertMargin: 5,
   marketAlerts: false, marketMargin: 10, marketMinVolume: 100000, marketMinProfit: 100000, marketCooldown: 6, eventAlerts: false, mayorAlerts: false,
   portfolioCapital: 50000000, portfolioSlots: MAX_SLOTS, portfolioMargin: 3, portfolioTurnover: 1000000000, hotm: 10, forgeAh: true, craftMode: 0, craftRuns: CRAFT_RUNS,
-  portfolioDrop: 5, portfolioCooldown: 6, personalTab: false, planPriceAlerts: false, planSuspiciousAlerts: false, planElectionAlerts: false, planLeavingAlerts: false,
+  portfolioDrop: 5, portfolioCooldown: 6, planPriceAlerts: false, planSuspiciousAlerts: false, planElectionAlerts: false, planLeavingAlerts: false,
   windowBuy: false, windowSell: false, windowAvoid: false, windowFavOnly: false, windowMinSpread: 5, windowMinRuns: MIN_ALERT_RUNS, windowMaxPerDay: 5, quietStart: 23, quietEnd: 8 };
 const WINDOW_ALERTS = ['windowBuy', 'windowSell', 'windowAvoid'];
 const PLAN_ALERTS = ['planPriceAlerts', 'planSuspiciousAlerts', 'planElectionAlerts', 'planLeavingAlerts'];
@@ -69,7 +63,6 @@ function sanitize() {
   if (!(settings.portfolioDrop > 0 && settings.portfolioDrop <= 90)) settings.portfolioDrop = DEFAULTS.portfolioDrop;
   if (!(settings.portfolioCooldown > 0 && settings.portfolioCooldown <= 168)) settings.portfolioCooldown = DEFAULTS.portfolioCooldown;
   for (const key of PLAN_ALERTS) settings[key] = settings[key] === true;
-  settings.personalTab = settings.personalTab === true;
   for (const key of [...WINDOW_ALERTS, 'windowFavOnly']) settings[key] = settings[key] === true;
   if (!(settings.windowMinSpread >= 0 && settings.windowMinSpread <= 1000)) settings.windowMinSpread = DEFAULTS.windowMinSpread;
   settings.windowMinRuns = Math.floor(settings.windowMinRuns);
@@ -90,19 +83,9 @@ if (settings.mode !== 'simple' && settings.mode !== 'pro') {
 }
 const simple = () => settings.mode === 'simple';
 const tabs = () => tabsFor(settings.mode);
-// The private guides: the shipped ones (null until loaded) and imported ones, plus the checkmarks per guide.
-let bundled = null;
-const storedGuides = load('bt.guides', []);
-let imported = Array.isArray(storedGuides) ? storedGuides : [];
-const storedChecks = load('bt.guideChecks', {});
-const guideChecks = storedChecks && typeof storedChecks === 'object' ? storedChecks : {};
-const guides = () => mergeGuides(bundled ?? [], imported);
-// While the shipped guides load the route stays, so an app left on Progress opens there again.
-const progressOn = () => settings.personalTab && (bundled === null || guides().length > 0);
 // a page that Simple mode does not show opens as Flips
 function readRoute() {
   const r = parseRoute(location.hash);
-  if (r.view === PERSONAL) return progressOn() ? r : { view: 'flips' };
   return r.view !== 'item' && !viewsFor(settings.mode).includes(r.view) ? { view: 'flips' } : r;
 }
 // Without an address the app opens where it was left; the very first time that is Today.
@@ -442,7 +425,6 @@ const weekVolume = (id) => { const q = products?.[id]?.quick_status; return q ? 
 // The areas that are one page each. Trade is drawn by renderPage itself.
 function renderArea() {
   $('tax-note').innerHTML = taxNote();
-  if (area() === PERSONAL) renderProgress();
   if (area() === 'minions' && products) {
     const rows = minionRows(products, npc, { ...minionSetup, upgrades: [minionSetup.up1, minionSetup.up2], hide: minionSetup.hide === 1 }, { tax: settings.tax / 100, stats });
     $('minion-note').textContent = `${rows.length} minions, ${minionSetup.sort === 'payback' ? 'shortest payback first' : 'best first'} · coins per day for ${minionSetup.count === 1 ? '1 minion' : `${minionSetup.count} minions`} · Bazaar = sold at once to buy orders, after tax`;
@@ -523,7 +505,6 @@ function renderPage() {
     else a.removeAttribute('aria-current');
   }
   document.querySelector('#areas [data-area="trade"]').setAttribute('href', `#/${lastTab}`);
-  $('area-progress').hidden = !(settings.personalTab && guides().length);
   if (item) return renderDetail();
   $('detail').innerHTML = '';
   renderArea();
@@ -661,345 +642,6 @@ $('settings').addEventListener('click', (e) => {
   applySettings();
   if (!simple()) offerAdvanced();
 });
-// The Progress page. What is unfolded is kept per guide while the app runs.
-let guideId = load('bt.guide', null);
-let guideMode = load('bt.guideMode', 'slot');
-const guideRecent = load('bt.guideRecent', {});
-let undoKey = null;
-let profileState = null;
-let syncNote = {};
-let undoTimer = 0;
-const UNDO_MS = 5000;
-let resetArmed = false;
-const guideOpen = {};
-function currentGuide() {
-  const all = guides();
-  return all.find((g) => g.id === guideId) ?? all[0];
-}
-const checksOf = (id) => new Set(Array.isArray(guideChecks[id]) ? guideChecks[id] : []);
-// Lowest BINs missing from ah.json come from SkyCofl, only for the open steps of the guide on screen.
-const bins = load('bt.bins', {});
-let binsBusy = false;
-let binsFailed = 0;
-const BIN_RETRY = 600e3;
-async function askBins(wants) {
-  if (binsBusy || !wants.size || Date.now() - binsFailed < BIN_RETRY) return;
-  binsBusy = true;
-  let answers = 0;
-  const ok = await fetchBins([...wants], bins, (last) => {
-    if (!last && ++answers % 20) return;
-    const fresh = freshBins(bins);
-    save('bt.bins', Object.fromEntries(Object.entries(bins).filter(([id]) => id in fresh)));
-    if (area() === PERSONAL) renderProgress();
-  });
-  binsBusy = false;
-  if (!ok) binsFailed = Date.now();
-  // the guide on screen can have changed during the run, and what it still wants is asked now
-  else if (area() === PERSONAL) renderProgress();
-}
-let guideAutoOpen = false;
-function markStep(guide, key, on) {
-  const marks = checksOf(guide.id);
-  setMark(guide, marks, key, on, detectGuide(guide, profileState?.summary, stepKey));
-  guideChecks[guide.id] = [...marks];
-  save('bt.guideChecks', guideChecks);
-  const recent = (guideRecent[guide.id] ?? []).filter((k) => k !== key);
-  guideRecent[guide.id] = on && guideMode !== 'slot' ? pushRecent(recent, key) : recent;
-  save('bt.guideRecent', guideRecent);
-  clearTimeout(undoTimer);
-  undoKey = on && guideMode !== 'slot' ? key : null;
-  if (undoKey) undoTimer = setTimeout(() => { undoKey = null; if (area() === PERSONAL) renderProgress(); }, UNDO_MS);
-}
-// Game data of all items, large, so only asked once a guide is on screen. Until then requirements are unknown.
-let itemData = null;
-let itemDataAsked = false;
-function askItemData() {
-  if (itemDataAsked) return;
-  itemDataAsked = true;
-  loadItemData().then((r) => { itemData = r; if (!r) return; renderStats(); if (area() === PERSONAL) renderProgress(); });
-}
-function renderProgress() {
-  const guide = currentGuide();
-  if (!guide) { $('progress').innerHTML = '<p class="count muted">Loading…</p>'; return; }
-  askItemData();
-  const wants = new Set();
-  $('progress').innerHTML = progressView({ guides: guides(), current: guide.id, checked: checksOf(guide.id), products, prices: { forge, ah, cofl: freshBins(bins), wants, items: itemData, tax: settings.tax / 100, derpy: election?.mayor?.name === 'Derpy' }, name: nameOf, open: guideOpen[guide.id] ?? null, armed: resetArmed, removable: imported.some((g) => g.id === guide.id), mode: guideMode, recent: guideRecent[guide.id] ?? [], undo: undoKey, syncBar: canSync() ? syncView(profileState, Date.now(), esc, syncNote) : '', profile: profileState?.summary ?? null, autoOpen: guideAutoOpen, bestValue: (view) => bestValueView({ ...view, state: profileState, settings: miningSettings(settings.mining), keepOldGear: settings.keepOldGear === true, boosts: boostsNow(), preset: statsPreset }) });
-  askBins(wants);
-}
-$('progress').addEventListener('change', (e) => {
-  const key = e.target.dataset?.step;
-  if (key === undefined) return;
-  markStep(currentGuide(), key, e.target.checked);
-  renderProgress();
-  // the page was redrawn: the keyboard stays on the same step
-  const boxes = [...$('progress').querySelectorAll('[data-step]')];
-  // in Next upgrades the checked step is gone: the first row takes over
-  (boxes.find((b) => b.dataset.step === key) ?? boxes[0])?.focus({ preventScroll: true });
-});
-$('progress').addEventListener('click', (e) => {
-  if (e.target.closest('[data-sync="run"]')) return runProfileSync();
-  if (e.target.closest('[data-open-settings]')) {
-    openPanel();
-    return $('hypixel-profile').scrollIntoView({ block: 'center' });
-  }
-  const syncPick = e.target.closest('[data-sync-pick]')?.dataset.syncPick;
-  if (syncPick) return runProfileSync(syncPick);
-  const pick = e.target.closest('[data-guide]')?.dataset.guide;
-  if (pick) {
-    guideId = pick;
-    resetArmed = false;
-    undoKey = null;
-    save('bt.guide', guideId);
-    return renderProgress();
-  }
-  const back = e.target.closest('[data-guide-undo]')?.dataset.guideUndo;
-  if (back !== undefined) {
-    markStep(currentGuide(), back, false);
-    renderProgress();
-    return [...$('progress').querySelectorAll('[data-step]')].find((b) => b.dataset.step === back)?.focus({ preventScroll: true });
-  }
-  const mode = e.target.closest('[data-guide-mode]')?.dataset.guideMode;
-  if (mode) {
-    guideMode = mode;
-    save('bt.guideMode', guideMode);
-    return renderProgress();
-  }
-  const act = e.target.closest('[data-guide-act]')?.dataset.guideAct;
-  if (!act) return;
-  const id = currentGuide().id;
-  resetArmed = act === 'reset';
-  if (act === 'reset-yes') {
-    delete guideChecks[id];
-    save('bt.guideChecks', guideChecks);
-    delete guideRecent[id];
-    save('bt.guideRecent', guideRecent);
-    undoKey = null;
-  }
-  if (act === 'remove') {
-    imported = imported.filter((g) => g.id !== id);
-    save('bt.guides', imported);
-    return refreshProgress();
-  }
-  renderProgress();
-});
-// toggle does not bubble
-$('progress').addEventListener('toggle', (e) => {
-  if (e.target.matches?.('[data-auto-list]')) { guideAutoOpen = e.target.open; return; }
-  const guide = currentGuide();
-  if (guide) guideOpen[guide.id] = new Set([...$('progress').querySelectorAll('details[open]')].map((d) => d.dataset.section));
-}, true);
-
-// After a change to the switch or the guides: the bar shows the area or not, and an open page leaves when it is gone.
-function refreshProgress() {
-  const shown = personalVisibility(guides().length, importUnlocked);
-  $('personal-settings').hidden = !shown.section;
-  $('personal-switch').hidden = !shown.toggle;
-  $('hypixel-profile').hidden = !shown.toggle || !canSync();
-  // the address can already say Progress, so no hashchange comes when the area appears
-  if (parseRoute(location.hash).view === PERSONAL) {
-    if (!progressOn()) history.replaceState(null, '', '#/flips');
-    route = readRoute();
-    noteRoute();
-    recompute();
-  }
-  render();
-}
-// Five quick taps on the version number open the import where no guide exists yet (the website).
-let importUnlocked = false;
-let versionTaps = [];
-$('version').addEventListener('click', () => {
-  const tap = secretTap(versionTaps, Date.now());
-  versionTaps = tap.taps;
-  if (!tap.open) return;
-  importUnlocked = true;
-  refreshProgress();
-  openPanel();
-  $('personal-settings').scrollIntoView({ block: 'center' });
-});
-$('personalTab').checked = settings.personalTab;
-$('personalTab').addEventListener('change', (e) => {
-  settings.personalTab = e.target.checked;
-  applySettings();
-  refreshProgress();
-});
-function guideMessage(text) {
-  $('guide-msg').textContent = text;
-  $('guide-msg').hidden = false;
-}
-function runImport(raw) {
-  try {
-    const data = importData(raw);
-    // a shipped guide coming back unchanged stays shipped, so a later app update can still change it
-    const same = (g) => JSON.stringify(g) === JSON.stringify((bundled ?? []).find((b) => b.id === g.id));
-    imported = mergeGuides(imported, data.guides).filter((g) => !same(g));
-    Object.assign(guideChecks, data.progress);
-    save('bt.guides', imported);
-    save('bt.guideChecks', guideChecks);
-    guideMessage(`Imported ${data.guides.length} ${data.guides.length === 1 ? 'guide' : 'guides'}.`);
-    refreshProgress();
-  } catch (e) {
-    guideMessage(e.message);
-  }
-}
-$('guide-file').addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (file) runImport(await file.text());
-  e.target.value = '';
-});
-$('personal-settings').addEventListener('click', async (e) => {
-  const act = e.target.closest('[data-guides]')?.dataset.guides;
-  if (act === 'paste') return runImport($('guide-json').value);
-  if (act !== 'export') return;
-  const json = exportData(guides(), guideChecks);
-  $('guide-json').value = json;
-  let copied = false;
-  try { await navigator.clipboard.writeText(json); copied = true; } catch {}
-  // the Android WebView has no downloads, so there the text and the clipboard are the export
-  if (!plugin()) {
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
-    link.download = 'progress-guides.json';
-    link.click();
-    URL.revokeObjectURL(link.href);
-  }
-  guideMessage(copied ? 'Copied to the clipboard.' : 'Copy the text above.');
-});
-const profileSync = createSync({ store: { getApiKey, loadProfile, saveProfile }, summarize });
-let removeArmed = false;
-const hpStatus = (text) => { $('hp-status').textContent = text; };
-let statsPreset = null;
-// A setting wins once it is made; before that a local preset may say what was active.
-const boostsNow = () => ({ godPotion: settings.godPotion ?? statsPreset?.boosts?.godPotion ?? false, boosterCookie: settings.boosterCookie ?? statsPreset?.boosts?.boosterCookie ?? false });
-function renderStats() {
-  if (!canSync()) return;
-  askItemData();
-  const boosts = boostsNow();
-  $('hp-god-potion').checked = boosts.godPotion;
-  $('hp-booster-cookie').checked = boosts.boosterCookie;
-  $('hp-stats').innerHTML = statsView(profileState, itemData, esc, boosts, statsPreset);
-}
-loadStatsPreset().then((p) => { statsPreset = p; if (p) renderStats(); });
-async function showProfile() {
-  if (!canSync()) return;
-  profileState = await loadProfile();
-  $('hp-uuid').value = profileState?.uuid ?? '';
-  $('hp-key-state').textContent = await getApiKey().then((key) => (key ? 'Key saved.' : 'No key saved.'), () => syncMessage('keyread'));
-  renderStats();
-  if (area() === PERSONAL) renderProgress();
-}
-async function runProfileSync(pick) {
-  syncNote = { message: 'Syncing…' };
-  renderProgress();
-  const result = await profileSync.run(pick);
-  if (result.status === 'busy') return;
-  syncNote = result.status === 'error' ? { message: syncMessage(result.error, result.retryIn) }
-    : result.status === 'choose' ? { message: 'Pick your profile.', choices: result.choices }
-    : result.status === 'stale' ? {}
-    : { message: 'Synced.' };
-  if (result.status === 'ok') {
-    profileState = result.state;
-    renderStats();
-  }
-  if (area() === PERSONAL) renderProgress();
-}
-async function saveProfileFields() {
-  const uuid = normalizeUuid($('hp-uuid').value);
-  if (!uuid) return hpStatus(syncMessage('input'));
-  const state = await loadProfile();
-  // another player's stand must not stay behind under a new UUID
-  if (state?.uuid !== uuid) {
-    profileSync.invalidate();
-    if (!await saveProfile({ uuid })) return hpStatus(syncMessage('store'));
-  }
-  const key = cleanKey($('hp-key').value);
-  $('hp-key').value = '';
-  if (key && !await setApiKey(key)) return hpStatus('Could not save the key on this phone.');
-  await showProfile();
-  hpStatus('Saved.');
-}
-$('hypixel-profile').addEventListener('click', async (e) => {
-  const act = e.target.closest('[data-hp]')?.dataset.hp;
-  if (!act) return;
-  const remove = $('hypixel-profile').querySelector('[data-hp="remove"]');
-  if (act === 'save') {
-    removeArmed = false;
-    remove.textContent = 'Remove key and profile data';
-    return saveProfileFields();
-  }
-  if (!removeArmed) {
-    removeArmed = true;
-    remove.textContent = 'Tap again to remove';
-    return;
-  }
-  removeArmed = false;
-  remove.textContent = 'Remove key and profile data';
-  syncNote = {};
-  $('hp-key').value = '';
-  profileSync.invalidate();
-  hpStatus(await clearProfileData() ? 'Key and profile data removed.' : 'Could not remove them.');
-  await showProfile();
-});
-for (const [id, key] of [['hp-god-potion', 'godPotion'], ['hp-booster-cookie', 'boosterCookie']]) {
-  $(id).addEventListener('change', (e) => {
-    settings[key] = e.target.checked;
-    save('bt.settings', settings);
-    renderStats();
-  });
-}
-$('hp-stats').addEventListener('click', async (e) => {
-  if (!e.target.closest('[data-stats-save]')) return;
-  const box = e.target.closest('[data-stats-area]');
-  const { statsArea } = box.dataset;
-  const values = Object.fromEntries([...box.querySelectorAll('[data-stats-stat]')].map((input) => [input.dataset.statsStat, input.value]));
-  const pick = (kind) => box.querySelector(`[data-stats-set="${kind}"]`).value;
-  const form = { armor: pick('armor'), equipment: pick('equipment'), pet: pick('pet'), emptyHand: box.querySelector('[data-stats-empty-hand]').checked, boost: box.querySelector('[data-stats-boost]').checked, values };
-  const state = await loadProfile();
-  if (!state) return;
-  const { choice } = statsEntry(statsArea, form, 0);
-  const boosts = boostsNow();
-  const measured = itemData && state.summary ? { total: computeStats(state.summary, itemData, loadoutOf(state.summary, itemData, statsArea, choice, miningSettings(settings.mining)), statsArea, boosts).total, boosts } : null;
-  const entry = statsEntry(statsArea, form, Date.now(), measured, state.statsInput?.[statsArea] ?? null);
-  const next = { ...state, statsInput: { ...state.statsInput, [statsArea]: entry } };
-  if (!await saveProfile(next)) return hpStatus(syncMessage('store'));
-  profileState = next;
-  renderStats();
-});
-const MINING_FIELDS = ['wF', 'wS', 'wP', 'blockStrength'];
-function showMining() {
-  const now = miningSettings(settings.mining);
-  $('hp-preset').value = now.preset;
-  for (const key of MINING_FIELDS) $(`hp-${key}`).value = now[key];
-  $('hp-keep-gear').checked = settings.keepOldGear === true;
-}
-function saveMining(mining) {
-  settings.mining = mining;
-  save('bt.settings', settings);
-  showMining();
-  renderStats();
-  if (area() === PERSONAL) renderProgress();
-}
-$('hp-preset').addEventListener('change', (e) => {
-  const { gemFortune, ...values } = PRESETS[e.target.value];
-  saveMining({ preset: e.target.value, ...values });
-});
-for (const key of MINING_FIELDS) $(`hp-${key}`).addEventListener('change', (e) => saveMining({ ...miningSettings(settings.mining), [key]: e.target.value }));
-$('hp-mining-reset').addEventListener('click', () => saveMining(null));
-$('hp-keep-gear').addEventListener('change', (e) => {
-  settings.keepOldGear = e.target.checked;
-  save('bt.settings', settings);
-  if (area() === PERSONAL) renderProgress();
-});
-showMining();
-// A picker that moves away from the measured setup says so before anything is saved.
-$('hp-stats').addEventListener('change', (e) => {
-  if (!e.target.matches('[data-stats-set]')) return;
-  const box = e.target.closest('[data-stats-area]');
-  if (!box.dataset.offsetFor) return;
-  const was = JSON.parse(box.dataset.offsetFor);
-  const picked = (kind) => (was[kind] === null ? null : box.querySelector(`[data-stats-set="${kind}"]`).value);
-  box.querySelector('[data-stats-setup-hint]').hidden = !offsetStale({ offsetFor: was }, { armor: was.armor === null ? null : Number(picked('armor')), equipment: was.equipment === null ? null : Number(picked('equipment')), pet: picked('pet') });
-});
-showProfile();
 $('search').addEventListener('input', render);
 $('refresh').addEventListener('click', refresh);
 $('fav-only').addEventListener('click', () => {
@@ -1283,11 +925,7 @@ loadItems().then((items) => {
 });
 loadRecipes().then((r) => { recipes = r; recompute(); render(); });
 loadForge().then((r) => { forge = r; recompute(); render(); });
-// Known before the start window: what's new depends on whether a guide exists.
-const guidesKnown = loadBundled().then((list) => { bundled = list; refreshProgress(); });
 initOnboarding({
-  guidesKnown,
-  hasGuides: () => guides().length > 0,
   native: !!plugin(),
   ready,
   forge: () => ({ hotm: settings.hotm, ah: settings.forgeAh }),
@@ -1305,8 +943,6 @@ initOnboarding({
     applySettings();
   },
 });
-
-refreshProgress();
 
 // The Android app ships its files inside the APK and needs no service worker.
 if ('serviceWorker' in navigator && !window.Capacitor?.isNativePlatform?.()) navigator.serviceWorker.register('sw.js');

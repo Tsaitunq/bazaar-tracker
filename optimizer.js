@@ -1,8 +1,7 @@
 // Which open guide step brings the most per coin (spec 4 and 5). Pure functions over the guide, the prices and the synced profile.
 import { AREA_STATS, computeStats, miningScore, loadoutOf, withOffset, offsetStale, maxPetStats, petStats, MIN_TRUE_DEFENSE, MIN_MP, TARGET_MP } from './stats.js';
 import { DAGGERS, OFA, ADDITIVE_ENCHANTS, blazeOutput, blazeState, daggersOf, additiveOf } from './blaze.js';
-import { nextUpgrades, stepCost, openStep, bookOf, stepKey, stepRow } from './progress.js';
-import { esc, coins } from './format.js';
+import { nextUpgrades, stepCost, openStep, bookOf, stepKey } from './progress.js';
 import { checkStep } from './requires.js';
 import { walkBook, ahNet } from './prices.js';
 import { RARITIES, ENCHANTS, ENCHANTS_NO_STAT, GEMS, GEM_STAT, GEM_SHARED_SLOTS, REFORGES, REFORGES_NO_STAT, COLDFUSED_WISP, ACCESSORY_POWER, PARTS, POLARVOID, COATING } from './optimizer-data.js';
@@ -508,35 +507,6 @@ const share = (v) => { const p = v * 100; return Math.abs(p) >= 0.1 ? p.toFixed(
 const RAW = { MINING_FORTUNE: 'Fortune', GEMSTONE_FORTUNE: 'Gemstone Fortune', ORE_FORTUNE: 'Ore Fortune', BLOCK_FORTUNE: 'Block Fortune', MINING_SPEED: 'Speed', PRISTINE: 'Pristine',
   DAMAGE: 'Damage', STRENGTH: 'Strength', CRITICAL_DAMAGE: 'Crit Damage', CRITICAL_CHANCE: 'Crit Chance', ATTACK_SPEED: 'Attack Speed', HEALTH: 'Health', DEFENSE: 'Defense', TRUE_DEFENSE: 'True Defense' };
 const rawLine = (delta) => Object.entries(delta).filter(([k, v]) => v && RAW[k]).map(([k, v]) => `${v > 0 ? '+' : ''}${Math.round(v * 100) / 100} ${RAW[k]}`).join(', ');
-const words = (s) => s[0].toUpperCase() + s.slice(1).toLowerCase();
-
-// What a Blaze step moves, in the words of the stats: shared, then per dagger line.
-function rawChange(c) {
-  const lines = ['ashen', 'spirit'].map((line) => {
-    const text = rawLine(plus(plus({}, c.swaps[line]?.lore), c.lines[line]));
-    return text && `${words(line)}: ${text}`;
-  });
-  return [rawLine(c.common), ...lines, c.mp ? `${c.mp > 0 ? '+' : ''}${c.mp} Magical Power` : '', c.ofa ? 'One For All' : ''].filter(Boolean).join(' · ');
-}
-
-const HELP = { trueDefense: 'True Defense', mp: 'Magical Power', dagger: 'Dagger pair incomplete' };
-
-function rowExtra(row, ctx, unit = 'yield') {
-  const parts = [];
-  if (row.helps?.length) parts.push(row.helps.map((h) => `<span class="guide-src" data-src="locked">${HELP[h]}</span>`).join(''));
-  if (row.gain !== undefined) {
-    const rate = row.perMillion === undefined ? '' : ` · ${share(row.perMillion)} %/1M`;
-    const raw = unit === 'yield' ? rawLine(row.delta) : rawChange(row.delta);
-    parts.push(`<small class="guide-hint"><strong>+${share(row.gain)} % ${unit}${rate}</strong></small><small class="guide-hint">${esc(raw)}</small>`);
-  }
-  for (const note of new Set(row.notes ?? [])) parts.push(`<small class="guide-hint">${esc(note)}</small>`);
-  if (row.resale > 0) parts.push(`<small class="guide-hint">Net ${coins(row.net)} (buy ${coins(row.coins)} − resale ${coins(row.resale)})</small>`);
-  if (row.ahead) parts.push(`<small class="guide-hint">Counted up to: ${esc(row.ahead.text)}</small>`);
-  if (row.status === 'unknown') parts.push('<small class="guide-hint">Requirements could not be checked.</small>');
-  // stepRow shows the reason of its own step, not one further along the line
-  if (row.status === 'locked' && checkStep(row.step, ctx.items, ctx.profile).status !== 'locked') parts.push(`<small class="guide-hint">${esc(row.reasons.join(' · '))}</small>`);
-  return parts.join('');
-}
 
 const NOTES = {
   boost: 'Your /stats do not match the God Potion / Booster Cookie settings, so they are left out.',
@@ -565,14 +535,6 @@ export function bestBlaze(profile, items, loadout, state) {
   return { slots, gain: slots.length ? blazeOutput(now) / blazeOutput(state) - 1 : 0 };
 }
 
-function bestCard(best, name, unit = 'yield', stays = 'Pet stays as picked. Set bonuses are not counted.') {
-  const pick = (i) => (i ? esc(name(i.id)) : 'nothing');
-  const body = best.slots.length
-    ? `<strong>+${share(best.gain)} % ${unit} compared with your wardrobe slot</strong><ul class="stats-gaps">${best.slots.map((s) => `<li>${esc(words(s.slot))}: ${pick(s.current)} → ${pick(s.best)}</li>`).join('')}</ul>`
-    : '<small class="guide-hint">Your wardrobe slot already is the best of what you own.</small>';
-  return `<section class="guide-next" aria-label="Best possible"><h2>Best possible from what you own</h2>${body}<small class="guide-hint">${stays}</small></section>`;
-}
-
 const offsetNotes = (entry, state, loadout) => [
   ...(entry?.offset && NOTES[entry.offsetNote] ? [NOTES[entry.offsetNote]] : []),
   ...(!entry?.offset ? ['Save your /stats in Settings to include what the app cannot read.'] : []),
@@ -580,8 +542,6 @@ const offsetNotes = (entry, state, loadout) => [
   ...(entry?.at && entry.at < state.syncedAt ? ['Your /stats values are older than the last sync.'] : []),
   ...loadout.gaps,
 ];
-
-const noSync = '<section class="guide-next" aria-label="Best value"><h2>Best value</h2><p class="muted">Sync your profile to rank the upgrades against what you have.</p><div class="actions"><button type="button" data-open-settings>Open settings</button></div></section>';
 
 const LEFT_OUT = 'Estimate: compares upgrades, says nothing about real kill time. Not modelled: Thunderlord, Fire Aspect, Crimson swipe, Burning Vengeance, Venomous, demon phases, pillars.';
 
@@ -598,17 +558,6 @@ function limitsOf(profile, state) {
   };
 }
 
-function limitsView(limits) {
-  const fmt = (v) => (v === null ? 'unknown' : String(Math.round(v * 10) / 10));
-  const { trueDefense: td, mp } = limits;
-  const low = [limits.lowTrueDefense && `True Defense ${fmt(td)} / ${MIN_TRUE_DEFENSE}`, limits.lowMp && `Magical Power ${fmt(mp)} / ${MIN_MP}`].filter(Boolean);
-  const lines = [`<p class="guide-hint">True Defense ${fmt(td)} / ${MIN_TRUE_DEFENSE} · Magical Power ${fmt(mp)} / ${MIN_MP}</p>`];
-  if (low.length) lines.push(`<p class="guide-limit" role="alert">Below the limit: ${low.join(' · ')}. The damage numbers assume you survive.</p>`);
-  if (limits.underTarget) lines.push(`<small class="guide-hint">Magical Power is under the target of ${TARGET_MP}.</small>`);
-  if (limits.unknown) lines.push('<p class="guide-limit" role="alert">A limit could not be read. The ranking goes on without it.</p>');
-  return lines.join('');
-}
-
 // One For All against the guide's enchants (spec 4.2) as data.
 function pathsOf(state) {
   const lines = Object.values(state.daggers).filter(Boolean);
@@ -621,8 +570,6 @@ function pathsOf(state) {
     inUse: state.path === 'ofa' ? 'One For All' : 'Enchants',
   };
 }
-
-const pathsView = (p) => `<p class="guide-hint">Enchants: ×${p.guide.toFixed(2)} · One For All: ×${p.ofa.toFixed(2)} · ${p.leader} leads by ${p.lead.toFixed(1)} % (estimate). In use: ${p.inUse}.</p>`;
 
 // How a bare value reads. Swap this per area when the measure changes, for example to coins per hour: views only ever print these.
 const scoreOf = (unit, shortUnit) => ({
@@ -672,44 +619,3 @@ export function rankArea(args, scores = SCORES) {
   return { ...(area === 'blaze' ? rankBlaze : rankMining)({ boosts: {}, preset: null, ...args }), score: scores[area] };
 }
 
-const groupedList = (checked, ctx, name, unit) => (title, rows, note = '', label = () => '') => (rows.length
-  ? `<section class="guide-next" aria-label="${title}"><h2>${title}</h2>${note ? `<small class="guide-hint">${note}</small>` : ''}<ul class="guide-steps">${rows.map((r) => stepRow(r.section, r.step, checked, ctx, name, label(r) + rowExtra(r, ctx, unit))).join('')}</ul></section>` : '');
-const freeBadge = (r) => (r.perMillion === undefined ? '<span class="guide-src" data-src="free">free</span>' : '');
-const notesList = (notes) => (notes.length ? `<ul class="stats-gaps">${notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : '');
-
-function blazeValueView(r, { checked, ctx, name }) {
-  const list = groupedList(checked, ctx, name, 'damage');
-  const open = Object.values(r.groups).reduce((n, rows) => n + rows.length, 0);
-  return `<p class="guide-hint">${r.leftOut}</p>
-  ${limitsView(r.limits)}
-  ${pathsView(r.paths)}
-  ${r.daggerMissing ? '<p class="guide-limit" role="alert">Dagger pair incomplete: the Hellion Shield needs one dagger of each line.</p>' : ''}
-  ${notesList(r.notes)}
-  ${bestCard(r.best, name, 'damage', r.stays)}
-  ${open ? '' : '<p class="muted">All steps are done.</p>'}
-  ${list('Requirements first', r.groups.requirements, 'These close a missed limit. Sorted by how much of the gap they close per coin.')}
-  ${list('Best value', [...r.groups.free, ...r.groups.ranked], '', freeBadge)}
-  ${list('Locked', r.groups.locked)}
-  ${list('No price', r.groups.noPrice, 'A sum that leaves out an item would look cheaper than it is.')}
-  ${list('No gain data', r.groups.noGain, 'Nothing known gives this step a fixed value.')}
-  ${list('No damage gain', r.groups.zero, 'These add no damage in this model right now.')}`;
-}
-
-export function bestValueView(args) {
-  const r = rankArea(args);
-  if (r.missing === 'profile') return noSync;
-  if (r.missing === 'items') return '<p class="muted">Loading item data…</p>';
-  if (r.area === 'blaze') return blazeValueView(r, args);
-  const { checked, ctx, name, settings } = args;
-  const list = groupedList(checked, ctx, name, 'yield');
-  const open = Object.values(r.groups).reduce((n, rows) => n + rows.length, 0);
-  return `<p class="guide-hint">Target: ${words(settings.preset)}</p>
-  ${notesList(r.notes)}
-  ${bestCard(r.best, name)}
-  ${open ? '' : '<p class="muted">All steps are done.</p>'}
-  ${list('Best value', [...r.groups.free, ...r.groups.ranked], '', freeBadge)}
-  ${list('Locked', r.groups.locked)}
-  ${list('No price', r.groups.noPrice, 'A sum that leaves out an item would look cheaper than it is.')}
-  ${list('No gain data', r.groups.noGain, 'Nothing known gives this step a fixed value.')}
-  ${list('No mining gain', r.groups.zero, 'These add none of the stats counted here right now.')}`;
-}

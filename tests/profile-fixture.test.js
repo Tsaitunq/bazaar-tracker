@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { summarize } from '../profile.js';
 import { detectGuide } from '../detect.js';
-import { validGuide, progressView, stepKey } from '../progress.js';
+import { validGuide, stepKey } from '../progress.js';
+import { guideModel } from '../guide/model.js';
 
 const FILE = 'personal/fixtures/profile-fixture.json';
 
@@ -39,10 +40,7 @@ test('the real guides survive validation and draw against the real test copy', {
     const guide = { id: file, ...validGuide(raw) };
     const rules = (g) => g.sections.flatMap((s) => s.steps).filter((s) => s.detect).length;
     assert.equal(rules(guide), rules(raw), 'no rule lost');
-    for (const mode of ['slot', 'next']) {
-      const html = progressView({ guides: [guide], current: file, checked: new Set(), products: {}, name: (x) => x, mode, profile });
-      assert.ok(html.includes('data-step='));
-    }
+    assert.ok(guideModel(guide, { marks: new Set(), products: {}, name: (x) => x, state: { summary: profile } }).rows.length > 0);
     assert.ok(detectGuide(guide, profile, stepKey).size > 0);
   }
 });
@@ -50,10 +48,9 @@ test('the real guides survive validation and draw against the real test copy', {
 test('the shards at full level in the real test copy are checked', { skip: !existsSync(FILE) || !existsSync(GUIDES) }, async () => {
   const profile = await summarize(JSON.parse(readFileSync(FILE, 'utf8')).members.self);
   const guide = { id: 'b', ...validGuide(JSON.parse(readFileSync(`${GUIDES}/blaze-slayer.json`, 'utf8'))) };
-  const html = progressView({ guides: [guide], current: 'b', checked: new Set(), products: {}, name: (x) => x, profile });
-  const row = (text) => { const at = html.search(new RegExp(`data-step="[^"]*\\|${text}"`)); return html.slice(at, html.indexOf('</li>', at)); };
+  const { rows } = guideModel(guide, { marks: new Set(), products: {}, name: (x) => x, state: { summary: profile } });
   for (const text of ['Blazing Resistance', 'Infernal Ruler', 'Warrior', 'Shell', 'Veil', 'Elite']) {
-    assert.match(row(text), /" checked>/, text);
-    assert.match(row(text), /data-src="api"/, text);
+    const row = rows.find((r) => r.key.endsWith(`|${text}`));
+    assert.deepEqual([row.status, row.api], ['done', true], text);
   }
 });

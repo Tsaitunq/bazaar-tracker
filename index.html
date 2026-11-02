@@ -205,52 +205,6 @@
       <p id="alert-hint" class="hint" role="alert" hidden>Notifications for this app are blocked in the Android settings.</p>
     </fieldset>
 
-    <fieldset id="personal-settings" hidden>
-      <legend>Personal tab</legend>
-      <div id="personal-switch" hidden>
-        <label class="check"><input id="personalTab" type="checkbox"> Personal tab</label>
-        <small>Adds a Progress area to the bar when at least one guide is present.</small>
-      </div>
-      <div class="actions guide-actions">
-        <button type="button" data-guides="export">Export JSON</button>
-        <label class="file-button">Import file<input id="guide-file" type="file" accept=".json,application/json"></label>
-      </div>
-      <p class="intro">Export puts the guides and checkmarks in this box and copies them. To import, paste them here.</p>
-      <textarea id="guide-json" rows="4" spellcheck="false" aria-label="Guides as JSON"></textarea>
-      <div class="actions"><button type="button" data-guides="paste">Import text</button></div>
-      <p id="guide-msg" class="hint" role="status" hidden></p>
-      <div id="hypixel-profile" hidden>
-        <strong>Hypixel profile</strong>
-        <small>Your key and profile stay on this phone. They are sent only to Hypixel, and only when you tap Sync profile in Progress.</small>
-        <label>Minecraft UUID
-          <input id="hp-uuid" type="text" autocomplete="off" autocapitalize="off" spellcheck="false">
-        </label>
-        <label>API key
-          <input id="hp-key" type="password" autocomplete="off" autocapitalize="off" spellcheck="false">
-        </label>
-        <small id="hp-key-state"></small>
-        <div class="actions">
-          <button type="button" data-hp="save">Save</button>
-          <button type="button" data-hp="remove">Remove key and profile data</button>
-        </div>
-        <small id="hp-status" role="status"></small>
-        <label class="check"><input id="hp-god-potion" type="checkbox"> God Potion active</label>
-        <label class="check"><input id="hp-booster-cookie" type="checkbox"> Booster Cookie active</label>
-        <div id="hp-mining" class="stats-area">
-          <strong>Best value for Mining</strong>
-          <label>Target
-            <select id="hp-preset"><option value="gemstone">Gemstone</option><option value="mithril">Mithril</option><option value="glacite">Glacite</option></select>
-          </label>
-          <label>Fortune weight<input id="hp-wF" type="number" step="any" min="0" inputmode="decimal"></label>
-          <label>Speed weight<input id="hp-wS" type="number" step="any" min="0" inputmode="decimal"></label>
-          <label>Pristine weight<input id="hp-wP" type="number" step="any" min="0" inputmode="decimal"></label>
-          <label>Block strength<input id="hp-blockStrength" type="number" step="any" min="1" inputmode="numeric"></label>
-          <div class="actions"><button type="button" id="hp-mining-reset">Reset</button></div>
-          <label class="check"><input id="hp-keep-gear" type="checkbox"> I keep old gear</label>
-        </div>
-        <div id="hp-stats"></div>
-      </div>
-    </fieldset>
 
     <fieldset id="timing-alert-settings" class="pro" hidden>
       <legend>Event alerts</legend>
@@ -319,7 +273,6 @@
       <p id="minion-note" class="count muted">Loading…</p>
       <ul id="minion-list" class="list"></ul>
     </div>
-    <div id="progress"></div>
     <div id="market">
       <div id="radar" class="pro"></div>
       <div id="trends"></div>
@@ -339,7 +292,6 @@
     <a href="#/flips" data-area="trade"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h14M14 4l4 4-4 4M20 16H6M10 12l-4 4 4 4"/></svg>Trade</a>
     <a href="#/minions" data-area="minions" class="pro"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="4" width="10" height="9" rx="2"/><path d="M10 8v1M14 8v1M9 13v7M15 13v7M5 14l2-1M19 14l-2-1"/></svg>Minions</a>
     <a href="#/market" data-area="market" class="pro"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="6" width="16" height="14" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>Market</a>
-    <a id="area-progress" href="#/progress" data-area="progress" hidden><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 12l3 3 5-6"/></svg>Progress</a>
   </nav>
 
   <dialog id="sheet" class="sheet"></dialog>
