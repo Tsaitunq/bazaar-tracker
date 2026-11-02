@@ -182,3 +182,11 @@ test('no sync shows what is missing and links to settings', () => {
 test('an unknown guide id gives no screen', () => {
   assert.equal(guideView(world(), 'nope', 'path'), null);
 });
+
+test('the head links the source of a guide, with its text escaped, and only if it has one', () => {
+  const w = world();
+  assert.doesNotMatch(guideView(w, 'fire', 'path'), /class="source"/);
+  w.guides = w.guides.map((g) => (g.id === 'fire' ? { ...g, source: 'https://example.com/?a="b' } : g));
+  const html = guideView(w, 'fire', 'path');
+  assert.match(html, /class="source" href="https:\/\/example\.com\/\?a=&#34;b" rel="noopener">Source</);
+});

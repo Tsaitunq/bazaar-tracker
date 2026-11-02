@@ -33,11 +33,12 @@ function chapterGroups(guide) {
 }
 
 // The chapters of the ring: how far each is, and which holds the first open step.
-export function chaptersOf(guide, checked) {
+export function chaptersOf(guide, checked, costs = null) {
   const chapters = chapterGroups(guide).map(({ name, sections }) => {
     const keys = sections.flatMap((s) => s.steps.map((step) => stepKey(s, step)));
     const done = keys.filter((k) => checked.has(k)).length;
-    return { name, done, total: keys.length, share: keys.length ? done / keys.length : 0, current: false };
+    const left = costs ? sections.map((s) => costs.sections[guide.sections.indexOf(s)]) : [];
+    return { name, done, total: keys.length, share: keys.length ? done / keys.length : 0, current: false, left: { coins: left.reduce((n, l) => n + l.coins, 0), unpriced: left.reduce((n, l) => n + l.unpriced, 0) } };
   });
   const open = chapters.find((c) => c.done < c.total) ?? chapters[chapters.length - 1];
   if (open) open.current = true;
@@ -110,6 +111,12 @@ export const stepStatus = ({ done, locked, first }) => {
 };
 
 // With a resale the rate beside it is per net coin, so the cost says net too.
+// What is still to pay up to the end of a chapter or section; steps without a price stay counted, so it never just reads lower.
+function leftText({ coins: left, unpriced }, products) {
+  if (!products) return 'Left …';
+  return [left > 0 && `Left ${coins(left)}`, unpriced > 0 && `+ ${unpriced} unpriced`].filter(Boolean).join(' ');
+}
+
 function costText(step, cost, ctx) {
   if (!ctx.products && step.items?.length) return '…';
   if (cost.unpriced) return 'No price';
@@ -153,7 +160,7 @@ export function guideModel(guide, world) {
   const auto = detectGuide(guide, profile, stepKey);
   const ctx = { ...world.prices, products: world.products, auto, profile, marks: world.marks };
   const checked = doneSet(guide, world.marks, auto);
-  guideStats(guide, checked, ctx); // sets what the cost of a book line needs
+  const costs = guideStats(guide, checked, ctx); // also sets what the cost of a book line needs
   const ranked = rankArea({ guide, checked, ctx, state: world.state, settings: world.settings, keepOldGear: world.keepOldGear, boosts: world.boosts, preset: world.preset }, scores);
   const score = scores[guide.area];
   const ranks = new Map();
@@ -183,7 +190,7 @@ export function guideModel(guide, world) {
       const open = openStep(section, step, ctx);
       const price = rank ?? stepCost(open, ctx);
       row.card = card = {
-        key, name: step.text, where: section.name, stats: lines, hint: step.hint ?? '', items: itemLines(open, ctx, world.name ?? String),
+        key, name: step.text, where: section.name, left: leftText(costs.sections[guide.sections.indexOf(section)], world.products), stats: lines, hint: step.hint ?? '', items: itemLines(open, ctx, world.name ?? String),
         gain: rank?.gain === undefined ? '' : score.gainText(rank.gain),
         cost: costText(open, price, ctx),
         rate: rank?.perMillion === undefined ? '' : score.rateLong(rank.perMillion),
@@ -203,10 +210,10 @@ export function guideModel(guide, world) {
     if (row.card) Object.assign(row.card, { railTop: row.railTop, railBottom: row.railBottom });
   });
 
-  const chapters = chaptersOf(guide, checked);
+  const chapters = chaptersOf(guide, checked, costs).map((c) => ({ ...c, leftText: c.current && c.done < c.total ? leftText(c.left, world.products) : '' }));
   const grid = ranked.base ? (GRIDS[guide.area] ?? []).map((k) => ({ key: k, icon: STATS[k].icon, label: STATS[k].short ?? STATS[k].label, color: STATS[k].color, value: number(ranked.base[k] ?? 0), delta: '' })) : [];
   return {
-    id: guide.id, products: world.products, area: guide.area, theme: guide.area ?? 'home', name: guide.title, chapters, total: totalShare(chapters),
+    id: guide.id, source: guide.source ?? '', products: world.products, area: guide.area, theme: guide.area ?? 'home', name: guide.title, chapters, total: totalShare(chapters),
     stats: statDelta(grid, card?.delta ?? null), chips: ranked.limits ?? null, rows, card, ranked, score, leader, missing: ranked.missing ?? null, usedCofl: !!ctx.usedCofl,
     tabs: score ? [{ id: 'path', label: 'Path' }, { id: 'best', label: 'Best value' }] : [{ id: 'path', label: 'Path' }],
   };
