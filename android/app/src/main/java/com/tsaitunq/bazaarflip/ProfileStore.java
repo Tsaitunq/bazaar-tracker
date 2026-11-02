@@ -26,7 +26,7 @@ import javax.crypto.spec.GCMParameterSpec;
  * its backups although the app allows them; the key is also encrypted with a key that only the Keystore holds.
  * Nothing here logs, and no exception message leaves this class with data in it.
  */
-final class ProfileStore {
+public final class ProfileStore {
     private static final String KEYSTORE = "AndroidKeyStore";
     private static final String ALIAS = "hypixel_key";
     private static final String CIPHER = "AES/GCM/NoPadding";
@@ -94,7 +94,7 @@ final class ProfileStore {
         return generator.generateKey();
     }
 
-    static void setKey(Context context, String key) throws GeneralSecurityException, IOException {
+    public static void setKey(Context context, String key) throws GeneralSecurityException, IOException {
         Cipher cipher = Cipher.getInstance(CIPHER);
         cipher.init(Cipher.ENCRYPT_MODE, secret(true));
         byte[] body = cipher.doFinal(key.getBytes(StandardCharsets.UTF_8));
@@ -108,7 +108,7 @@ final class ProfileStore {
      * Null without a key. A key that can never be read again (Keystore key gone or invalidated, bad tag, broken file)
      * counts as none and is removed. Any other error may pass, so it is thrown and the file stays.
      */
-    static String getKey(Context context) throws GeneralSecurityException, IOException {
+    public static String getKey(Context context) throws GeneralSecurityException, IOException {
         File file = file(context, KEY_FILE);
         if (!file.exists()) return null;
         byte[] all = read(file);
@@ -127,16 +127,16 @@ final class ProfileStore {
         }
     }
 
-    static void clearKey(Context context) throws IOException {
+    public static void clearKey(Context context) throws IOException {
         remove(file(context, KEY_FILE));
     }
 
-    static void saveProfile(Context context, String json) throws IOException {
+    public static void saveProfile(Context context, String json) throws IOException {
         write(file(context, PROFILE_FILE), json.getBytes(StandardCharsets.UTF_8));
     }
 
     /** Null without a stored profile. */
-    static String loadProfile(Context context) {
+    public static String loadProfile(Context context) {
         try {
             File file = file(context, PROFILE_FILE);
             return file.exists() ? new String(read(file), StandardCharsets.UTF_8) : null;
@@ -145,7 +145,7 @@ final class ProfileStore {
         }
     }
 
-    static void clearProfile(Context context) throws IOException {
+    public static void clearProfile(Context context) throws IOException {
         remove(file(context, PROFILE_FILE));
     }
 }

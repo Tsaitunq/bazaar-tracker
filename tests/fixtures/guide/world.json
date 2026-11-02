@@ -1,0 +1,70 @@
+{
+  "guides": {
+    "mining": {
+      "title": "Mining", "area": "mining", "groups": { "drill": [["TEST_DRILL"]], "helmet": [["TEST_HELMET"]] },
+      "sections": [
+        { "name": "Beginning", "steps": [
+          { "text": "First tank", "detect": { "kind": "owned", "on": "drill", "need": 1 } },
+          { "text": "First gem", "gain": { "MINING_FORTUNE": 8 }, "items": [{ "id": "ITEM_A", "qty": 1 }] },
+          { "text": "Second gem", "gain": { "MINING_FORTUNE": 12 }, "items": [{ "id": "ITEM_B", "qty": 1 }] }
+        ] },
+        { "name": "The middle", "steps": [
+          { "text": "New engine", "gain": { "MINING_SPEED": 100 }, "items": [{ "id": "ITEM_B", "qty": 2 }] },
+          { "text": "Better book", "gain": { "GEMSTONE_FORTUNE": 50 }, "items": [{ "id": "ITEM_A", "qty": 2 }] },
+          { "text": "No price yet", "gain": { "MINING_FORTUNE": 4 }, "items": [{ "id": "ITEM_UNKNOWN", "qty": 1 }] },
+          { "text": "Value unknown", "items": [{ "id": "ITEM_A", "qty": 1 }] },
+          { "text": "Lantern", "items": [{ "id": "TEST_GATED", "qty": 1 }] }
+        ] },
+        { "name": "The end", "steps": [
+          { "text": "Pristine gem", "gain": { "PRISTINE": 1 }, "items": [{ "id": "ITEM_A", "qty": 3 }] },
+          { "text": "Fortune gem one", "gain": { "MINING_FORTUNE": 3 }, "items": [{ "id": "ITEM_A", "qty": 4 }] },
+          { "text": "Fortune gem two", "gain": { "MINING_FORTUNE": 3 }, "items": [{ "id": "ITEM_A", "qty": 5 }] },
+          { "text": "Fortune gem three", "gain": { "MINING_FORTUNE": 3 }, "items": [{ "id": "ITEM_A", "qty": 6 }] },
+          { "text": "Fortune gem four", "gain": { "MINING_FORTUNE": 3 }, "items": [{ "id": "ITEM_A", "qty": 7 }] },
+          { "text": "Fortune gem five", "gain": { "MINING_FORTUNE": 3 }, "items": [{ "id": "ITEM_A", "qty": 8 }] }
+        ] }
+      ]
+    },
+    "blaze-slayer": {
+      "title": "Blaze Slayer", "area": "blaze", "groups": {},
+      "chapters": [
+        { "name": "Start", "sections": ["Start"] },
+        { "name": "Crimson", "sections": ["Crimson"] },
+        { "name": "Late", "sections": ["Late"] }
+      ],
+      "sections": [
+        { "name": "Start", "steps": [
+          { "text": "Starter set", "table": true },
+          { "text": "Strong boots", "gain": { "STRENGTH": 20, "CRITICAL_DAMAGE": 15 }, "items": [{ "id": "ITEM_A", "qty": 1 }] }
+        ] },
+        { "name": "Crimson", "steps": [
+          { "text": "Crimson plate", "gain": { "STRENGTH": 40 }, "items": [{ "id": "ITEM_B", "qty": 3 }] },
+          { "text": "Recomb", "gain": { "CRITICAL_CHANCE": 5 }, "items": [{ "id": "ITEM_A", "qty": 2 }] }
+        ] },
+        { "name": "Late", "steps": [
+          { "text": "Top dagger", "items": [{ "id": "TEST_GATED", "qty": 1 }] }
+        ] }
+      ]
+    }
+  },
+  "profile": {
+    "uuid": "test-player", "profileId": "test-profile", "profileName": "Test", "syncedAt": 1,
+    "summary": {
+      "items": [
+        { "id": "TEST_DRILL", "where": "inventory", "gems": [], "enchants": {}, "parts": {}, "reforge": null, "recomb": false, "polarvoid": 0, "coating": false, "lore": { "MINING_SPEED": 3459, "MINING_FORTUNE": 645, "PRISTINE": 4.4, "GEMSTONE_FORTUNE": 54 } },
+        { "id": "TEST_HELMET", "where": "armor", "sets": ["armor:1"], "gems": [], "enchants": {}, "parts": {}, "reforge": null, "recomb": false, "polarvoid": 0, "coating": false, "lore": { "STRENGTH": 145, "CRITICAL_DAMAGE": 1229, "CRITICAL_CHANCE": 154, "ATTACK_SPEED": 100, "HEALTH": 4782, "DEFENSE": 1137, "TRUE_DEFENSE": 164 } }
+      ],
+      "pets": [], "hotm": { "experience": 0, "nodes": {} }, "skills": null, "collTiers": null, "attrs": {}, "slayer": null, "mp": 820, "missing": {},
+      "wardrobe": { "armor": { "equipped": 1, "sets": [1] }, "equipment": { "equipped": 1, "sets": [1] } }
+    }
+  },
+  "items": {
+    "TEST_DRILL": { "category": "DRILL", "tier": "LEGENDARY", "stats": {} },
+    "TEST_HELMET": { "category": "HELMET", "tier": "LEGENDARY", "stats": {} },
+    "TEST_GATED": { "category": "BOOTS", "tier": "RARE", "stats": {}, "requirements": [{ "type": "HEART_OF_THE_MOUNTAIN", "tier": 7 }] }
+  },
+  "products": {
+    "ITEM_A": { "buy_summary": [{ "pricePerUnit": 3900000, "amount": 100 }], "sell_summary": [{ "pricePerUnit": 3800000, "amount": 100 }] },
+    "ITEM_B": { "buy_summary": [{ "pricePerUnit": 1200000, "amount": 100 }], "sell_summary": [{ "pricePerUnit": 1100000, "amount": 100 }] }
+  }
+}

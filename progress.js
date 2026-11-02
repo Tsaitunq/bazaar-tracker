@@ -1,8 +1,8 @@
 // The private Progress area: guides with checkboxes. Guides come from personal/guides (copied into the
 // app by scripts/copy-web.mjs, never in git) or from an imported file.
 
-import { esc, coins } from './render.js';
-import { walkBook } from './craft.js';
+import { esc, coins } from './format.js';
+import { walkBook } from './prices.js';
 import { detectGuide, validDetect, validGroups } from './detect.js';
 import { checkStep } from './requires.js';
 
@@ -44,6 +44,17 @@ function validStep(s) {
   return { text: s.text, ...(detect && { detect }), ...(gain && { gain }), ...(items.length && { items }), ...(text(s.hint) && { hint: s.hint }), ...(s.table === true && { table: true }), ...(text(s.line) && { line: s.line }), ...(Number.isInteger(s.priority) && s.priority > 0 && { priority: s.priority }) };
 }
 
+// Sections grouped for the ring of the guide app. A name that is no section drops out, and a chapter left empty with it.
+function validChapters(list, sections) {
+  if (!Array.isArray(list)) return null;
+  const known = new Set(sections.map((s) => s.name));
+  const kept = list.flatMap((c) => {
+    const names = Array.isArray(c?.sections) ? c.sections.filter((n) => known.has(n)) : [];
+    return text(c?.name) && names.length ? [{ name: c.name, sections: names }] : [];
+  });
+  return kept.length ? kept : null;
+}
+
 // A guide from a file is outside data: only the known fields come through, and a link only as http(s).
 export function validGuide(g) {
   if (!text(g?.title) || !Array.isArray(g.sections) || !g.sections.length) return null;
@@ -55,7 +66,8 @@ export function validGuide(g) {
   });
   if (sections.includes(null)) return null;
   const groups = validGroups(g.groups);
-  return { title: g.title, ...(/^https?:\/\//i.test(g.source ?? '') && { source: g.source }), ...(['mining', 'blaze'].includes(g.area) && { area: g.area }), ...(groups && { groups }), sections };
+  const chapters = validChapters(g.chapters, sections);
+  return { title: g.title, ...(/^https?:\/\//i.test(g.source ?? '') && { source: g.source }), ...(['mining', 'blaze', 'farming'].includes(g.area) && { area: g.area }), ...(chapters && { chapters }), ...(groups && { groups }), sections };
 }
 
 const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'guide';
@@ -408,7 +420,7 @@ export function progressView({ guides, current, checked: marks, products, prices
   const ctx = { ...prices, products, auto, profile, marks };
   const checked = doneSet(guide, marks, auto);
   const stats = guideStats(guide, checked, ctx);
-  const ranks = !!guide.area && !!bestValue;
+  const ranks = !!guide.area && guide.area !== 'farming' && !!bestValue; // farming has no score yet
   const shown = mode === 'best' && !ranks ? 'slot' : mode;
   const first = open ? null : guide.sections.find((_, i) => stats.sections[i].done < stats.sections[i].total)?.name;
   const page = `${syncBar}<div class="bar ranges guide-switch" role="group" aria-label="Guide">${guides.map((g) => `<button type="button" data-guide="${esc(g.id)}" aria-pressed="${g.id === guide.id}">${esc(g.title)}</button>`).join('')}</div>

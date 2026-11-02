@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Blaze guide – ember</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#FFB37A}a:hover{color:#FFD2AE}
+button{font:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: {{t.bg}}; color: #F6F0EE; font-family: 'Space Grotesk', system-ui, sans-serif; display: flex; flex-direction: column; gap: 12px; padding: 18px 20px 12px;">
+  <a href="App-Home.dc.html" style="align-self: flex-start; height: 36px; display: flex; align-items: center; gap: 4px; font-size: 13px; color: {{t.muted}}; text-decoration: none;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Guides</a>
+  <div style="display: flex; align-items: center; gap: 16px;">
+    <svg width="110" height="110" viewBox="0 0 116 116" role="img" aria-label="Chapter progress">
+      <sc-for list="{{arcs}}" as="r" hint-placeholder-count="3">
+        <circle cx="58" cy="58" r="47" fill="none" stroke="{{t.track}}" stroke-width="11" stroke-linecap="round" stroke-dasharray="{{r.bg}}" stroke-dashoffset="{{r.off}}" transform="rotate(-90 58 58)"></circle>
+        <circle cx="58" cy="58" r="47" fill="none" stroke="{{r.color}}" stroke-width="11" stroke-linecap="round" stroke-dasharray="{{r.fill}}" stroke-dashoffset="{{r.off}}" transform="rotate(-90 58 58)"></circle>
+      </sc-for>
+      <text x="58" y="64" text-anchor="middle" fill="#F6F0EE" font-size="22" font-weight="700" font-family="Space Grotesk, sans-serif">57%</text>
+    </svg>
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{t.area}}" stroke-width="2" aria-hidden="true"><path d="M12 3c1 4 5 5 5 10a5 5 0 01-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-6 1-9z"/></svg>
+        <h1 style="margin: 0; font-size: 22px; font-weight: 700;">Blaze Slayer</h1>
+      </div>
+      <sc-for list="{{legend}}" as="l" hint-placeholder-count="3">
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
+          <span style="width: 9px; height: 9px; border-radius: 5px; background: {{l.color}};"></span>
+          <span style="color: {{l.text}}; font-weight: {{l.weight}};">{{l.name}}</span>
+          <span style="color: {{t.muted}};">{{l.pct}}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  <div style="padding: 12px 14px; border-radius: 20px; background: {{t.surface}}; border: 1px solid {{t.line}}; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 10px; column-gap: 8px;">
+    <sc-for list="{{stats}}" as="st" hint-placeholder-count="6">
+      <div style="display: flex; flex-direction: column; gap: 1px;">
+        <div style="font-size: 11px; color: {{t.muted}};"><span style="color: {{st.color}};">{{st.icon}}</span> {{st.label}}</div>
+        <div style="display: flex; align-items: baseline; gap: 4px;">
+          <span style="font-size: 18px; font-weight: 700; color: {{st.color}};">{{st.value}}</span>
+          <span style="font-size: 12px; font-weight: 700; color: #55FF55;">{{st.delta}}</span>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+  <div style="display: flex; gap: 8px; font-size: 12px;">
+    <div style="flex-grow: 1; padding: 8px 12px; border-radius: 14px; background: {{t.surface}}; border: 1px solid {{t.line}}; display: flex; justify-content: space-between;"><span style="color: #FFFFFF;">❂ True Def ≥ 140</span><span style="color: #55FF55;">164 ✓</span></div>
+    <div style="flex-grow: 1; padding: 8px 12px; border-radius: 14px; background: {{t.surface}}; border: 1px solid {{t.line}}; display: flex; justify-content: space-between;"><span style="color: #55FFFF;">✦ Power</span><span style="color: {{t.soft}};">820 / 1,100</span></div>
+  </div>
+  <div style="flex-grow: 1; overflow: hidden; display: flex; flex-direction: column;">
+    <sc-for list="{{steps}}" as="s" hint-placeholder-count="4">
+      <div style="display: flex; gap: 14px;">
+        <div style="width: 28px; display: flex; flex-direction: column; align-items: center;">
+          <div style="width: 3px; height: 12px; border-radius: 2px; background: {{s.lineTop}};"></div>
+          <div style="width: 22px; height: 22px; border-radius: 11px; background: {{s.dot}}; border: 2px solid {{s.dotBorder}}; box-shadow: {{s.glow}}; color: {{t.bg}}; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">{{s.mark}}</div>
+          <div style="width: 3px; flex-grow: 1; border-radius: 2px; background: {{s.lineBottom}};"></div>
+        </div>
+        <sc-if value="{{s.current}}" hint-placeholder-val="{{false}}">
+          <div style="flex-grow: 1; margin: 4px 0 8px; padding: 12px 14px; border-radius: 18px; background: {{t.raised}}; border: 1px solid {{t.area}}; display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;"><span style="font-size: 16px; font-weight: 700;">Infernal Crimson Boots</span><span style="font-size: 11px; color: {{t.area}}; font-weight: 700;">★ BEST VALUE</span></div>
+            <div style="padding: 8px 12px; border-radius: 12px; background: {{t.deep}}; display: flex; flex-direction: column; gap: 2px; font-size: 14px;">
+              <span style="color: #FF5555; font-weight: 700;">+20 ❁ Strength</span>
+              <span style="color: #8C96FF; font-weight: 700;">+15 ☠ Crit Damage</span>
+              <span style="color: #55FF55; font-size: 13px;">+3.4 % damage · Dominus up to 10 stacks</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 13px;"><span style="color: {{t.soft}};">38M after resale</span><span style="color: {{t.area}}; font-weight: 700;">0.09 % dmg per 1M</span></div>
+            <button style="height: 44px; border-radius: 22px; background: {{t.area}}; border: none; color: {{t.bg}}; font-size: 14px; font-weight: 700;">Mark done</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{s.plain}}" hint-placeholder-val="{{true}}">
+          <div style="flex-grow: 1; padding: 10px 0 9px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+            <div style="display: flex; flex-direction: column;">
+              <div style="font-size: 15px; font-weight: 500; color: {{s.text}};">{{s.name}}</div>
+              <div style="font-size: 12px; color: {{t.muted}};">{{s.sub}}</div>
+            </div>
+            <div style="font-size: 12px; color: {{s.pillColor}}; text-align: right;">{{s.pill}}</div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-for>
+  </div>
+  <div style="height: 56px; border-radius: 28px; background: {{t.surface}}; border: 1px solid {{t.line}}; display: flex; align-items: center; padding: 0 6px;">
+    <button style="flex-grow: 1; height: 44px; border-radius: 22px; background: {{t.raised}}; border: none; color: #F6F0EE; font-size: 13px; font-weight: 700;">Path</button>
+    <button style="flex-grow: 1; height: 44px; border-radius: 22px; background: none; border: none; color: {{t.muted}}; font-size: 13px;">Best value</button>
+    <button style="flex-grow: 1; height: 44px; border-radius: 22px; background: none; border: none; color: {{t.muted}}; font-size: 13px;">Stats</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const t = { area: '#FF8A3D', bg: '#0D0908', surface: '#1A1210', raised: '#22160F', deep: '#120C0A', line: '#33221F', track: '#2A1C1A', muted: '#B8A39C', soft: '#DCCBC5', dim: '#4A3330', text: '#F6F0EE' };
+    const C = 2 * Math.PI * 47, third = C / 3, gap = 15, L = third - gap;
+    const ch = [['Early', 1, '#FFC27A'], ['Mid · Crimson', 0.6, t.area], ['Late · Infernal', 0.1, '#C24A1F']];
+    const arcs = ch.map(([n, p, color], i) => ({ color, off: (-(i * third) - gap / 2).toFixed(1), bg: L.toFixed(1) + ' ' + (C - L).toFixed(1), fill: Math.max(0.1, L * p).toFixed(1) + ' ' + (C - L * p).toFixed(1) }));
+    const legend = ch.map(([name, p, color], i) => ({ name, color, pct: Math.round(p * 100) + '%', text: i === 1 ? t.text : t.soft, weight: i === 1 ? '700' : '400' }));
+    const stats = [
+      { icon: '❁', label: 'Strength', value: '145', delta: '+20', color: '#FF5555' },
+      { icon: '☠', label: 'Crit Dmg', value: '1,229', delta: '+15', color: '#8C96FF' },
+      { icon: '☣', label: 'Crit Ch.', value: '154', delta: '', color: '#8C96FF' },
+      { icon: '⚔', label: 'Atk Speed', value: '100', delta: '', color: '#FFFF55' },
+      { icon: '❤', label: 'Health', value: '4,782', delta: '', color: '#FF5555' },
+      { icon: '❈', label: 'Defense', value: '1,137', delta: '', color: '#55FF55' }
+    ];
+    const raw = [
+      { name: '3/4 Crimson', sub: 'from sync', st: 'd', pill: 'done' },
+      { name: 'Infernal Crimson Boots', st: 'c' },
+      { name: 'Crimson Recomb', sub: '+1 rarity on all pieces', st: 'o', pill: '0.29 % / 1M' },
+      { name: 'Pyrochaos Dagger', sub: 'Slayer 7 needed, you have 6', st: 'l', pill: 'locked' }
+    ];
+    const steps = raw.map((r, i) => {
+      const st = r.st, next = raw[i + 1] && raw[i + 1].st;
+      return Object.assign({}, r, {
+        current: st === 'c', plain: st !== 'c', mark: st === 'd' ? '✓' : '',
+        dot: st === 'd' ? t.area : t.bg,
+        dotBorder: st === 'd' || st === 'c' ? t.area : st === 'l' ? t.line : t.dim,
+        glow: st === 'c' ? '0 0 14px ' + t.area : 'none',
+        text: st === 'l' ? t.muted : t.text,
+        pillColor: st === 'd' ? '#55FF55' : st === 'l' ? t.muted : t.soft,
+        lineTop: st === 'd' || st === 'c' ? t.area : t.line,
+        lineBottom: st === 'd' && (next === 'd' || next === 'c') ? t.area : t.line
+      });
+    });
+    return { t, arcs, legend, stats, steps };
+  }
+}
+</script>
+</body>
+</html>

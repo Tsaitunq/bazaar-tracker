@@ -14,6 +14,17 @@ function copyGuides(root, out) {
   fs.writeFileSync(path.join(to, 'index.json'), JSON.stringify(names));
 }
 
+export function copyPersonal(root, out) {
+  copyGuides(root, out);
+  // for a local test build, also outside git: public game data and the player's own /stats values
+  for (const name of ['items.json', 'stats-preset.json']) {
+    const from = path.join(root, 'personal', name);
+    if (!fs.existsSync(from)) continue;
+    fs.mkdirSync(path.join(out, 'personal'), { recursive: true });
+    fs.copyFileSync(from, path.join(out, 'personal', name));
+  }
+}
+
 export function copyWeb(root, out) {
   const shell = fs.readFileSync(path.join(root, 'sw.js'), 'utf8').match(/const SHELL = \[([^\]]*)\]/)[1];
   const files = [...shell.matchAll(/'([^']+)'/g)].map((m) => m[1]).filter((f) => f !== './');
@@ -23,14 +34,7 @@ export function copyWeb(root, out) {
     fs.copyFileSync(path.join(root, f), path.join(out, f));
   }
   fs.cpSync(path.join(root, 'icons'), path.join(out, 'icons'), { recursive: true });
-  copyGuides(root, out);
-  // for a local test build, also outside git: public game data and the player's own /stats values
-  for (const name of ['items.json', 'stats-preset.json']) {
-    const from = path.join(root, 'personal', name);
-    if (!fs.existsSync(from)) continue;
-    fs.mkdirSync(path.join(out, 'personal'), { recursive: true });
-    fs.copyFileSync(from, path.join(out, 'personal', name));
-  }
+  copyPersonal(root, out);
   return files.length;
 }
 

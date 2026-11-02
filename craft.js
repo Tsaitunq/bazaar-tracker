@@ -1,23 +1,7 @@
-import { bookPrices, bySort, statOf, computeFlip } from './flips.js';
+import { bySort, statOf, computeFlip } from './flips.js';
+import { bookPrices, walkBook } from './prices.js';
 
-// The Hypixel API names the two sides of a book after the player's action, which reads backwards:
-//   buy_summary  = the sell offers, cheapest first. Someone who buys at once pays these.
-//   sell_summary = the buy orders, highest first. Someone who sells at once is paid these.
-// The Bazaar product API gives about 30 levels per side. bookPrices() (flips.js) reads the top of each:
-// .buy = sell_summary[0] (the buy order you would have to beat), .sell = buy_summary[0] (the offer to beat).
-// walkBook adds up what qty items cost (or pay) when they go through the levels in order; null when the
-// shown levels hold less than qty, which is a price nobody can say.
-export function walkBook(levels, qty, cheapestFirst) {
-  const sorted = [...(levels ?? [])].sort((x, y) => (cheapestFirst ? x.pricePerUnit - y.pricePerUnit : y.pricePerUnit - x.pricePerUnit));
-  let left = qty, total = 0;
-  for (const l of sorted) {
-    const take = Math.min(left, l.amount);
-    total += take * l.pricePerUnit;
-    left -= take;
-    if (left <= 0) return total;
-  }
-  return left <= 0 ? total : null;
-}
+export { walkBook };
 
 // How a craft is bought and sold: orders = open orders it needs, per ingredient and for the result.
 export const CRAFT_MODES = [

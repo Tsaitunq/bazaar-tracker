@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { validGuide, loadBundled, mergeGuides, exportData, importData, stepKey, stepCost, priceItem, guideStats, nextUpgrades, doneSet, setMark, pushRecent, progressView, personalVisibility, secretTap } from '../progress.js';
 
 const guide = { title: 'Test guide', source: 'https://example.com/x', sections: [
@@ -481,4 +482,18 @@ test('validGuide keeps area and numeric gain and drops anything else', () => {
   assert.deepEqual(g.sections[0].steps[0].gain, { MINING_SPEED: 5 });
   assert.equal(g.sections[0].steps[1].gain, undefined);
   assert.equal(validGuide({ title: 't', area: 'nether', sections: [{ name: 's', steps: [] }] }).area, undefined);
+});
+
+test('progress.js does not pull the market views', () => {
+  const src = readFileSync('progress.js', 'utf8');
+  assert.doesNotMatch(src, /from '\.\/render\.js'/);
+  assert.match(src, /from '\.\/format\.js'/);
+});
+
+test('validGuide keeps area farming and valid chapters, drops broken ones', () => {
+  const sections = [{ name: 'a', steps: [] }, { name: 'b', steps: [] }];
+  const g = validGuide({ title: 't', area: 'farming', sections, chapters: [{ name: 'One', sections: ['a', 'nope'] }, { name: 'Empty', sections: ['nope'] }, { sections: ['b'] }, 'x'] });
+  assert.equal(g.area, 'farming');
+  assert.deepEqual(g.chapters, [{ name: 'One', sections: ['a'] }]);
+  assert.equal(validGuide({ title: 't', sections, chapters: 'x' }).chapters, undefined);
 });
