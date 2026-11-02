@@ -65,4 +65,6 @@ export function chips(limits) {
 
 export const bottomBar = (tabs, active) => `<nav class="bar">${tabs.map((t) => `<button type="button" data-tab="${esc(t.id)}"${t.id === active ? ' aria-current="page"' : ''}>${esc(t.label)}</button>`).join('')}</nav>`;
 
+export const profileLink = () => `<a class="profile" href="#/stats" aria-label="Your stats">${icon('profile', 22)}</a>`;
+
 export const backLink = () => `<a class="back" href="#/"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Guides</a>`;

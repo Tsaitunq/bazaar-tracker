@@ -17,7 +17,7 @@ test('parseRoute reads each route, an unknown guide goes home', () => {
   assert.deepEqual(parseRoute('#/stats', guides), { page: 'stats' });
   assert.deepEqual(parseRoute('#/settings', guides), { page: 'settings' });
   assert.deepEqual(parseRoute('#/guide/mine/best', guides), { page: 'guide', id: 'mine', tab: 'best' });
-  assert.deepEqual(parseRoute('#/guide/mine/stats', guides), { page: 'guide', id: 'mine', tab: 'stats' });
+  assert.deepEqual(parseRoute('#/guide/mine/stats', guides), { page: 'guide', id: 'mine', tab: 'path' });
   assert.deepEqual(parseRoute('#/guide/mine/nope', guides), { page: 'guide', id: 'mine', tab: 'path' });
   assert.deepEqual(parseRoute('#/guide/farming/path', guides), { page: 'guide', id: 'farming', tab: 'path' });
   assert.deepEqual(parseRoute('#/guide/other/path', guides), { page: 'home' });

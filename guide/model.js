@@ -206,11 +206,11 @@ export function guideModel(guide, world) {
   return {
     id: guide.id, products: world.products, area: guide.area, theme: guide.area ?? 'home', name: guide.title, chapters, total: totalShare(chapters),
     stats: statDelta(grid, card?.delta ?? null), chips: ranked.limits ?? null, rows, card, ranked, score, leader, missing: ranked.missing ?? null, usedCofl: !!ctx.usedCofl,
-    tabs: score ? [{ id: 'path', label: 'Path' }, { id: 'best', label: 'Best value' }, { id: 'stats', label: 'Stats' }] : [{ id: 'path', label: 'Path' }],
+    tabs: score ? [{ id: 'path', label: 'Path' }, { id: 'best', label: 'Best value' }] : [{ id: 'path', label: 'Path' }],
   };
 }
 
-const GUIDE_TABS = ['path', 'best', 'stats'];
+const GUIDE_TABS = ['path', 'best'];
 export function parseRoute(hash, guides) {
   const [, page, id, tab] = String(hash).split('/');
   if (page === 'stats' || page === 'settings') return { page };

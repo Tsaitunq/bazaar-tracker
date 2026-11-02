@@ -114,19 +114,18 @@ test('below a limit the chip row says so, on both tabs and without a block', () 
   }
 });
 
-test('stats shows the slots, the /stats form, the difference and the offset notes', () => {
-  const entry = { choice: { armor: 1 }, values: { STRENGTH: 50 }, offset: {}, offsetNote: 'boost', at: 1 };
+test('stats open from the profile button only: no bar names them', () => {
+  const entry = { choice: { armor: 1, equipment: 1, pet: null }, values: { STRENGTH: '1' }, offset: {}, offsetFor: { armor: 1, equipment: 1, pet: null }, at: 2 };
   const s = world({ state: { summary: profile(), syncedAt: 1, statsInput: { blaze: entry } } });
-  const html = guideView(s, 'fire', 'stats');
-  assert.match(html, /data-stats-set="armor"/);
-  assert.match(html, /data-stats-stat="STRENGTH"/);
-  assert.match(html, /class="stats-table"/);
-  assert.match(html, /does not match the settings/);
-  assert.doesNotMatch(html, /data-stats-area="mining"/);
   const all = statsView(s);
   assert.match(all, /data-stats-area="mining"/);
   assert.match(all, /data-stats-area="blaze"/);
-  assert.match(all, /data-tab="stats" aria-current="page"/);
+  assert.match(all, /data-stats-set="armor"/);
+  assert.match(all, /data-stats-stat="STRENGTH"/);
+  assert.match(all, /class="stats-table"/);
+  for (const html of [all, homeView(s), settingsView(s), guideView(s, 'fire', 'path'), guideView(s, 'fire', 'best')]) assert.doesNotMatch(html, /data-tab="stats"/);
+  for (const html of [homeView(s), guideView(s, 'fire', 'path'), guideView(s, 'fire', 'best')]) assert.match(html, /class="profile" href="#\/stats"/);
+  assert.doesNotMatch(guideView(s, 'fire', 'stats'), /data-stats-area/);
 });
 
 test('settings holds uuid, key state, weights, presets, keep gear, boosts, import, export, reset', () => {

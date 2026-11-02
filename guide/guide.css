@@ -26,6 +26,7 @@ a { color: var(--area); }
 .screen-blaze { gap: 12px; }
 .scroll { flex: 1 1 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
 
+.top { flex: none; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .back { align-self: flex-start; height: 44px; display: flex; align-items: center; gap: 4px; font-size: 13px; color: var(--muted); text-decoration: none; }
 
 .icon { flex: none; color: var(--area); }

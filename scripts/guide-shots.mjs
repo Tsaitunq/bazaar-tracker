@@ -13,8 +13,8 @@ const fixture = JSON.parse(fs.readFileSync('tests/fixtures/guide/world.json', 'u
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.woff2': 'font/woff2', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
 
 const SHOTS = [
-  ['home', '#/'], ['mining-path', '#/guide/mining/path'], ['mining-best', '#/guide/mining/best'], ['mining-stats', '#/guide/mining/stats'],
-  ['blaze-path', '#/guide/blaze-slayer/path'], ['blaze-best', '#/guide/blaze-slayer/best'], ['blaze-stats', '#/guide/blaze-slayer/stats'],
+  ['home', '#/'], ['mining-path', '#/guide/mining/path'], ['mining-best', '#/guide/mining/best'],
+  ['blaze-path', '#/guide/blaze-slayer/path'], ['blaze-best', '#/guide/blaze-slayer/best'],
   ['farming', '#/guide/farming/path'], ['settings', '#/settings'], ['stats', '#/stats'],
 ];
 
@@ -45,7 +45,7 @@ const MEASURES = [
   ]],
   ['Farming', '#/guide/farming/path', [['.screen', 'padding', '18px 20px 12px'], ['.ring-title h1', 'font-size', '22px'], ['.bar', 'height', '56px']]],
 ];
-const NO_TEMPLATE = ['Best value', 'Stats of a guide', 'Stats of all guides', 'Settings'];
+const NO_TEMPLATE = ['Best value', 'Stats of all guides', 'Settings'];
 
 const server = http.createServer((req, res) => {
   const file = path.join(WEB, decodeURIComponent(new URL(req.url, 'http://x').pathname.replace(/\/$/, '/index.html')));
