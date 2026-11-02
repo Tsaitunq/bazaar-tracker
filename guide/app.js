@@ -32,7 +32,7 @@ let checks = load('pg.checks', {});
 let dates = load('pg.dates', {});
 const settings = load('pg.settings', {});
 const bins = load('pg.bins', {});
-let state = null;
+let state; // undefined until the stored profile is loaded, null when there is none
 let products = null;
 let forge = null;
 let ah = {};
@@ -61,7 +61,7 @@ const boosts = () => ({ godPotion: settings.godPotion ?? preset?.boosts?.godPoti
 const world = () => {
   pending = new Set();
   return {
-    guides: guides(), checks, dates, state, products, now: Date.now(),
+    guides: guides(), checks, dates, state: state ?? null, products, now: Date.now(),
     prices: { forge, ah, cofl: freshBins(bins), wants: pending, items, tax: (settings.tax ?? DEFAULT_TAX) / 100, derpy: election?.mayor?.name === 'Derpy' },
     settings: miningSettings(settings.mining), keepOldGear: settings.keepOldGear === true, boosts: boosts(), preset,
     name: (id) => names[id] ?? fallbackName(id), uuid: state?.uuid ?? '', hasKey, keyMessage, tax: settings.tax ?? DEFAULT_TAX, importedIds: imported.map((g) => g.id), canSync: canSync(), message: note.message, choices: note.choices,

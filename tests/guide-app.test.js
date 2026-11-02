@@ -106,3 +106,15 @@ test('a short or slanted swipe and other screens stay where they are', () => {
   assert.equal(swipeTarget({ page: 'settings' }, 80, 0, []), null);
   assert.equal(swipeTarget({ page: 'home' }, 80, 0, []), null);
 });
+
+test('a tick before the profile is loaded gets no date, and what the sync found stays old', () => {
+  const g = { id: 'g', title: 'G', sections: [{ name: 'S', steps: [{ text: 'owned', detect: { kind: 'owned', on: [['X']] } }, { text: 'tick' }] }] };
+  const summary = { items: [{ id: 'X', enchants: {}, gems: [], parts: {} }], pets: [] };
+  const known = stampAll([g], {}, {}, { summary }, 100);
+  assert.equal(known.g['S|owned'], 0);
+  const checks = { g: ['S|tick'] };
+  assert.equal(stampAll([g], checks, known, undefined, 200), known);
+  const after = stampAll([g], checks, known, { summary }, 300);
+  assert.equal(after.g['S|owned'], 0);
+  assert.equal(after.g['S|tick'], 300);
+});

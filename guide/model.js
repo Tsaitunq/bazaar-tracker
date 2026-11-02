@@ -245,7 +245,9 @@ export function applyImport({ imported, checks, bundled }, data) {
 }
 
 // firstRun: what is done now is older than the app. That holds per guide too, and for what the first sync finds.
+// state undefined: the profile is not loaded yet, so what the sync found cannot be told from what is new. Nothing gets a date.
 export function stampAll(guides, checks, dates, state, now, firstRun = false) {
+  if (state === undefined) return dates;
   const out = { ...dates };
   for (const guide of guides) {
     const done = doneSet(guide, new Set(checks[guide.id] ?? []), detectGuide(guide, state?.summary ?? null, stepKey));
