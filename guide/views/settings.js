@@ -44,5 +44,5 @@ export function settingsView(world) {
     <small role="status">${esc(world.dataMessage ?? '')}</small>
     ${world.guides.map((g) => resetRow(g, world.armed, world.importedIds?.includes(g.id))).join('')}
   </section>`;
-  return `<div class="screen screen-home" data-theme="home"><div class="home-title"><h1>Settings</h1></div><div class="scroll">${profile}${mining}${data}</div>${bottomBar(HOME_TABS, 'settings')}</div>`;
+  return `<div class="screen screen-home" data-theme="home" data-page="settings"><div class="home-title"><h1>Settings</h1></div><div class="scroll">${profile}${mining}${data}</div>${bottomBar(HOME_TABS, 'settings')}</div>`;
 }

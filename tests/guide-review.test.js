@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { bestGroups, formEdited, guideModel } from '../guide/model.js';
+import { bestGroups, formEdited, guideModel, typedFields, restoreTyped, settled } from '../guide/model.js';
 import { stepCard } from '../guide/views/parts.js';
 import { guideView } from '../guide/views/guide.js';
 import { settingsView } from '../guide/views/settings.js';
@@ -103,4 +103,32 @@ test('the card shows the net cost beside the net rate', () => {
   assert.ok(card.cost.includes(coins(row.net)));
   const plain = guideModel(guide([step('a')]), world()).card;
   assert.doesNotMatch(plain.cost, /Net/);
+});
+
+const field = (dataset, value, saved = value) => ({ tagName: 'INPUT', type: 'text', dataset, value, defaultValue: saved });
+
+test('a redraw keeps what is typed and only that', () => {
+  const typed = typedFields([field({ set: 'uuid' }, 'typed', ''), field({ mining: 'wF' }, '5')]);
+  assert.deepEqual([...typed.values()], ['typed']);
+  const after = [field({ set: 'uuid' }, ''), field({ mining: 'wF' }, '7')];
+  restoreTyped(after, typed);
+  assert.deepEqual(after.map((f) => f.value), ['typed', '7']);
+});
+
+test('an unsaved tick and a picker survive too, a settled field does not', () => {
+  const box = { tagName: 'INPUT', type: 'checkbox', dataset: { flag: 'x' }, checked: true, defaultChecked: false };
+  const pick = { tagName: 'SELECT', dataset: { s: 'a' }, value: '2', options: [{ selected: false, defaultSelected: true }, { selected: true, defaultSelected: false }] };
+  const typed = typedFields([box, pick]);
+  assert.deepEqual([...typed.values()], [true, '2']);
+  settled(box);
+  settled(pick);
+  assert.equal(typedFields([box, pick]).size, 0);
+  const done = field({ json: '' }, 'text', '');
+  settled(done);
+  assert.equal(typedFields([done]).size, 0);
+});
+
+test('every settings write in the app keeps or settles its field', () => {
+  const app = readFileSync(new URL('../guide/app.js', import.meta.url), 'utf8');
+  assert.match(app, /restoreTyped\(fields\(\), typed\)/);
 });

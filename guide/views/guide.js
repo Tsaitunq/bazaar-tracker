@@ -50,4 +50,4 @@ export function guideView(world, id, tab) {
   return `<div class="${screenClass(m.theme)}" data-theme="${esc(m.theme)}"><div class="top">${backLink()}${profileLink()}</div>${head(m)}${body}${credit}${bottomBar(m.tabs, open)}</div>`;
 }
 
-export const statsView = (world) => `<div class="screen screen-home" data-theme="home"><div class="home-title"><h1>Stats</h1></div><div class="scroll">${allStats(world.state, world.prices.items, esc, world.boosts, world.preset)}</div>${bottomBar(HOME_TABS, null)}</div>`;
+export const statsView = (world) => `<div class="screen screen-home" data-theme="home" data-page="stats"><div class="home-title"><h1>Stats</h1></div><div class="scroll">${allStats(world.state, world.prices.items, esc, world.boosts, world.preset)}</div>${bottomBar(HOME_TABS, null)}</div>`;

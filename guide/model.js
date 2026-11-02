@@ -254,12 +254,34 @@ export function stampAll(guides, checks, dates, state, now, firstRun = false) {
   return out;
 }
 
-// Is someone filling in this form? Then a redraw from outside would throw away what they typed.
-export const formEdited = (fields, active) => fields.some((f) => {
-  if (f === active) return true;
+const edited = (f) => {
   if (f.tagName === 'SELECT') return [...f.options].some((o) => o.selected !== o.defaultSelected);
   return f.type === 'checkbox' ? f.checked !== f.defaultChecked : f.value !== f.defaultValue;
-});
+};
+
+// Is someone filling in this form? Then a redraw from outside would throw away what they typed.
+export const formEdited = (fields, active) => fields.some((f) => f === active || edited(f));
+
+// A field is known by its data attributes, which stay the same over a redraw.
+const fieldKey = (f) => `${f.tagName}${JSON.stringify(f.dataset)}`;
+
+// What is typed but not saved yet, to survive a redraw of the same form.
+export const typedFields = (fields) => new Map(fields.filter(edited).map((f) => [fieldKey(f), f.type === 'checkbox' ? f.checked : f.value]));
+
+export function restoreTyped(fields, typed) {
+  for (const f of fields) {
+    if (!typed.has(fieldKey(f))) continue;
+    if (f.type === 'checkbox') f.checked = typed.get(fieldKey(f));
+    else f.value = typed.get(fieldKey(f));
+  }
+}
+
+// From here on the field counts as saved: the next redraw shows what the app holds.
+export function settled(f) {
+  if (f.tagName === 'SELECT') for (const o of f.options) o.defaultSelected = o.selected;
+  else if (f.type === 'checkbox') f.defaultChecked = f.checked;
+  else f.defaultValue = f.value;
+}
 
 // The app keeps the checks per guide; a guide model sees only its own.
 export const worldFor = (world, guide) => ({ ...world, marks: new Set(world.checks?.[guide.id] ?? []) });
