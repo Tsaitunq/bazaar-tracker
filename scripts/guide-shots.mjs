@@ -150,36 +150,78 @@ async function keepsTyped(page, base) {
   await page.locator('[data-tax]').selectOption('1.25');
 }
 
-// A real swipe through the DOM: the screens change, the slide stays within 250 ms, and reduced motion has none.
-async function swipes(page, base) {
-  const swipe = (dx) => page.evaluate((move) => {
-    const el = document.querySelector('.screen');
-    const fire = (type, x) => {
-      const touch = { clientX: x, clientY: 300 };
-      el.dispatchEvent(Object.assign(new Event(type, { bubbles: true }), { touches: type === 'touchend' ? [] : [touch], changedTouches: [touch] }));
-    };
-    fire('touchstart', 200);
-    fire('touchend', 200 + move);
-  }, dx);
-  const landed = async (want) => {
-    await page.waitForFunction((hash) => location.hash === hash, want).catch(() => fail(`a swipe did not lead to ${want}`));
-    return page.evaluate(() => document.getAnimations().map((a) => a.effect.getTiming().duration));
+// Real touches: the screen follows the finger, a short drag springs back, a long one or a flick lands, a scroll never swipes, reduced motion has no movement.
+async function swipes(browser, base) {
+  const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2, hasTouch: true });
+  await stubs(context, true);
+  const page = await context.newPage();
+  page.on('pageerror', (e) => fail(`swipe: ${e.message}`));
+  const cdp = await context.newCDPSession(page);
+  const finger = (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] });
+  const wait = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
+  const pull = async (dx, dy = 0) => {
+    await finger('touchStart', 195, 500);
+    for (let step = 1; step <= 4; step += 1) await finger('touchMove', 195 + (dx * step) / 4, 500 + (dy * step) / 4);
   };
-  await open(page, base, '#/guide/mining/path');
-  await swipe(-120);
-  const next = await landed('#/guide/mining/best');
+  const lift = async (restMs) => {
+    await wait(restMs);
+    await finger('touchEnd');
+    await wait(300);
+  };
+  const slow = async (dx, dy) => { await pull(dx, dy); await lift(150); };
+  const at = async (want, what) => {
+    const hash = await page.evaluate(() => location.hash);
+    if (hash !== want) fail(`${what}: at ${hash}, should be at ${want}`);
+    if (await page.locator('.peek').count()) fail(`${what}: the next screen stayed behind`);
+  };
+  const shift = (selector) => page.locator(selector).first().evaluate((el) => new DOMMatrix(getComputedStyle(el).transform).m41);
+  const MINING = '#/guide/mining/path';
+
+  await open(page, base, MINING);
+  await page.locator('.ring-head').waitFor();
+  await pull(-100);
+  await wait(50);
+  if (Math.abs(await shift('.ring-head') + 100) > 1) fail('the head does not follow the finger');
+  if (await shift('.screen > .bar') !== 0) fail('the bar moves between tabs');
+  if (await page.locator('.peek .screen').count() !== 1) fail('no next screen beside this one');
   await page.screenshot({ path: path.join(OUT, 'swipe-mid.png') });
-  if (!next.length || next.some((ms) => ms > 250)) fail(`the slide took ${next.join(', ') || 'no'} ms`);
-  await swipe(120);
-  await landed('#/guide/mining/path');
-  await swipe(120);
-  await landed('#/');
+  await lift(150);
+  await at(MINING, 'under 30 %');
+  await slow(-200);
+  await at('#/guide/mining/best', 'over 30 %');
+  await pull(-200);
+  await wait(50);
+  if (Math.abs(await shift('.ring-head') + 50) > 1) fail('the last tab does not hold back the pull');
+  await lift(150);
+  await at('#/guide/mining/best', 'past the last tab');
+  await slow(200);
+  await at(MINING, 'back a tab');
+
+  // a quick flick lands though it is short
+  await pull(-100); // under 30 %
+  await lift(0);
+  await at('#/guide/mining/best', 'flick');
+  await open(page, base, MINING);
+  await slow(200);
+  await at('#/', 'home from the first tab');
+
+  await open(page, base, MINING);
+  const top = () => page.locator('.path').evaluate((el) => el.scrollTop);
+  await page.locator('.path').evaluate((el) => { el.scrollTop = 0; });
+  await slow(10, -240);
+  await at(MINING, 'a scroll');
+  if (await top() <= 0) fail('a real scroll did not move the list');
+  await slow(70, 60);
+  await at(MINING, 'a slanted drag');
+
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await open(page, base, '#/guide/mining/path');
-  await swipe(-120);
-  const still = await landed('#/guide/mining/best');
-  if (still.length) fail('reduced motion still slides');
-  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await open(page, base, MINING);
+  await pull(-200);
+  await wait(50);
+  if (await page.locator('.swiping').count()) fail('reduced motion still follows the finger');
+  await lift(150);
+  await at('#/guide/mining/best', 'reduced motion');
+  await context.close();
 }
 
 await new Promise((resolve) => { server.listen(0, 'localhost', resolve); });
@@ -200,10 +242,10 @@ try {
     await layoutChecks(page, name);
   }
   await keepsPlace(page, base);
-  await swipes(page, base);
   await keepsTyped(page, base);
   await measureTable(page, base);
   await context.close();
+  await swipes(browser, base);
 
   const empty = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2 });
   await stubs(empty, false);
