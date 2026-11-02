@@ -315,7 +315,7 @@ export function guideModel(guide, world) {
         badge: !!leader && leader.step === step && ['value', 'free'].includes(rank?.group),
         delta: rank?.delta ?? null,
         group: row.group,
-        notes: [...new Set(rank?.notes ?? []), ...(rank?.resale > 0 ? [`Net ${coins(rank.net)} (buy ${coins(rank.coins)} − resale ${coins(rank.resale)})`] : []), ...(rank?.ahead ? [`Counted up to: ${rank.ahead.text}`] : []), ...(rank?.status === 'unknown' ? ['Requirements could not be checked.'] : [])],
+        notes: [...new Set(rank?.notes ?? []), ...(rank?.resale > 0 ? [`Net ${coins(rank.net)} (buy ${coins(rank.coins)} − resale ${coins(rank.resale)})`] : []), ...(rank?.ahead ? [`Counted up to: ${rank.ahead.text}`] : []), ...(rank?.status === 'unknown' && !plan.typed ? ['Requirements could not be checked.'] : [])],
       };
     }
     return row;

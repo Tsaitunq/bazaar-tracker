@@ -115,7 +115,7 @@ test('no price, no gain and zero stand after the ranked steps in guide order', (
 test('a locked line head stays last and takes its line along', () => {
   const items = { A: { requirements: [{ type: 'SKILL', skill: 'MINING', level: 99 }] } };
   const g = guideOf([step('locked', 'A', 50, { line: 'L' }), step('behind', 'B', 50, { line: 'L' }), step('free', 'C', 1)]);
-  const profile = { ...virtualProfile(g, new Set(), new Set(), {}), skills: { MINING: 1 } };
+  const profile = { ...virtualProfile(g, new Set(), new Set(), {}), virtual: false, skills: { MINING: 1 } };
   const path = pathOf({ guide: g, checked: new Set(), ctx: { products: { A: sold(1e6), B: sold(1e6), C: sold(1e6) }, items, tax: 0 }, profile, loadout: virtualLoadout(profile, {}, 'mining'), base: { MINING_FORTUNE: 100 }, settings: miningSettings(null), brake: 5, keepOldGear: true });
   assert.equal(path.order[0].step.text, 'free');
   assert.ok(texts(path).indexOf('locked') < texts(path).indexOf('behind'));
@@ -246,4 +246,13 @@ test('of a line of books only the highest level done counts as spent', () => {
   const g = guideOf([book(1), book(2), book(3), step('dear', 'D', 50)]);
   const products = { ENCHANTMENT_X_1: sold(1e6), ENCHANTMENT_X_2: sold(2e6), ENCHANTMENT_X_3: sold(4e6), D: sold(30e6) };
   assert.equal(run(g, products, { done: ['b1', 'b2', 'b3'] }).order[0].tier, 'overCap');
+});
+
+test('a profile worked out of the ticks locks nothing: it does not know the requirements', () => {
+  const items = { A: { requirements: [{ type: 'HEART_OF_THE_MOUNTAIN', tier: 7 }] } };
+  const g = guideOf([step('needs', 'A', 50), step('other', 'C', 1)]);
+  const profile = virtualProfile(g, new Set(), new Set(), {});
+  const path = pathOf({ guide: g, checked: new Set(), ctx: { products: { A: sold(1e6), C: sold(1e6) }, items, tax: 0 }, profile, loadout: virtualLoadout(profile, {}, 'mining'), base: { MINING_FORTUNE: 100 }, settings: miningSettings(null), brake: 5, keepOldGear: true });
+  assert.equal(path.order[0].step.text, 'needs');
+  assert.equal(path.order[0].tier, 'value');
 });
