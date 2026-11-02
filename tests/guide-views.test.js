@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { homeView } from '../guide/views/home.js';
 import { guideView, statsView } from '../guide/views/guide.js';
 import { settingsView } from '../guide/views/settings.js';
-import { bestPerGuide, guideModel, worldFor } from '../guide/model.js';
+import { nextPerGuide, guideModel, worldFor } from '../guide/model.js';
 import { miningSettings } from '../optimizer.js';
 
 const sold = (price) => ({ buy_summary: [{ pricePerUnit: price, amount: 100 }] });
@@ -24,12 +24,13 @@ const world = (over = {}) => ({
   personal: true, settings: miningSettings(null), keepOldGear: false, boosts: {}, now: NOW, hasKey: false, uuid: '', canSync: true, message: '', choices: [], armed: null, name: String, ...over,
 });
 
-test('home shows one line per guide with its best step, value and unit, and no shared best deal card', () => {
+test('home shows one line per guide with its next step, value and unit, and no shared best deal card', () => {
   const html = homeView(world());
   assert.doesNotMatch(html, /BEST DEAL/);
+  assert.match(html, /NEXT STEP PER GUIDE/);
   assert.match(html, /<b>Mining:<\/b> Jade <span>· [\d.]+ % \/ 1M<\/span>/);
   assert.match(html, /<b>Blaze Slayer:<\/b> Boots <span>· [\d.]+ % \/ 1M<\/span>/);
-  const lines = bestPerGuide(world().guides.map((g) => guideModel(g, worldFor(world(), g))));
+  const lines = nextPerGuide(world().guides.map((g) => guideModel(g, worldFor(world(), g))));
   assert.deepEqual(lines.map((l) => l.area), ['mining', 'blaze']);
   assert.equal(lines[0].step, 'Jade');
 });
@@ -73,36 +74,12 @@ test('the path has its card, its rows and the bar', () => {
   assert.match(html, /data-tab="path" aria-current="page"/);
 });
 
-test('best value lists requirements, ranked, locked, no price, no gain data, no gain', () => {
-  const g = { ...mining, sections: [{ name: 'Main', steps: [step('Good'), { text: 'Gated', items: [{ id: 'GATE', qty: 1 }] }, step('Unpriced', 'Z'), { text: 'Unknown', items: [{ id: 'A', qty: 1 }] }, step('Nothing', 'A', { MINING_FORTUNE: 0 })] }] };
-  const html = guideView(world({ guides: [g] }), 'mine', 'best');
-  for (const title of ['Best value', 'Locked', 'No price', 'No gain data', 'No gain']) assert.match(html, new RegExp(`<h2>${title}</h2>`), title);
-  assert.doesNotMatch(html, /<h2>Requirements first<\/h2>/);
-  const low = profile();
-  low.items = low.items.map((i) => (i.id === 'PLATE' ? { ...i, lore: { TRUE_DEFENSE: 100 } } : i));
-  const gem = { ...blaze, sections: [{ name: 'Start', steps: [{ text: 'Gem', detect: { kind: 'gem', on: [['PLATE']], type: 'OPAL', quality: 'PERFECT', need: 1 }, items: [{ id: 'A', qty: 1 }] }] }] };
-  const slotted = { ...items, PLATE: { ...items.PLATE, gemstone_slots: [{ slot_type: 'DEFENSIVE' }] } };
-  assert.match(guideView(world({ guides: [gem], prices: { items: slotted }, state: { summary: low, syncedAt: 1 } }), 'fire', 'best'), /<h2>Requirements first<\/h2>/);
-});
-
-test('best value shows best possible, the notes and for blaze the path comparison', () => {
-  const mine = guideView(world(), 'mine', 'best');
-  assert.match(mine, /Best possible from what you own/);
-  assert.match(mine, /Save your \/stats/);
-  assert.doesNotMatch(mine, /One For All/);
-  const fire = guideView(world(), 'fire', 'best');
-  assert.match(fire, /Enchants: ×[\d.]+ · One For All: ×[\d.]+/);
-  assert.match(fire, /Estimate: compares upgrades/);
-});
-
-test('below a limit the chip row says so, on both tabs and without a block', () => {
+test('below a limit the chip row says so, and without a block', () => {
   const low = world({ state: { summary: profile({ mp: 700 }), syncedAt: 1 } });
-  for (const tab of ['path', 'best']) {
-    const html = guideView(low, 'fire', tab);
-    assert.match(html, /chip-low/);
-    assert.match(html, /c-red">700 ✗<\/span> \/ 800/);
-    assert.doesNotMatch(html, /class="warn"[^>]*>Below|Below the limit/);
-  }
+  const html = guideView(low, 'fire', 'path');
+  assert.match(html, /chip-low/);
+  assert.match(html, /c-red">700 ✗<\/span> \/ 800/);
+  assert.doesNotMatch(html, /class="warn"[^>]*>Below|Below the limit/);
 });
 
 test('stats open from the profile button only: no bar names them', () => {
@@ -114,8 +91,8 @@ test('stats open from the profile button only: no bar names them', () => {
   assert.match(all, /data-stats-set="armor"/);
   assert.match(all, /data-stats-stat="STRENGTH"/);
   assert.match(all, /class="stats-table"/);
-  for (const html of [all, homeView(s), settingsView(s), guideView(s, 'fire', 'path'), guideView(s, 'fire', 'best')]) assert.doesNotMatch(html, /data-tab="stats"/);
-  for (const html of [homeView(s), guideView(s, 'fire', 'path'), guideView(s, 'fire', 'best')]) assert.match(html, /class="profile" href="#\/stats"/);
+  for (const html of [all, homeView(s), settingsView(s), guideView(s, 'fire', 'path')]) assert.doesNotMatch(html, /data-tab="stats"/);
+  for (const html of [homeView(s), guideView(s, 'fire', 'path')]) assert.match(html, /class="profile" href="#\/stats"/);
   assert.doesNotMatch(guideView(s, 'fire', 'stats'), /data-stats-area/);
 });
 
@@ -186,15 +163,16 @@ test('typed-in stats fill the grid without a sync, and an empty field stays unkn
 test('no sync shows what is missing and links to settings', () => {
   const off = world({ state: null });
   assert.match(homeView(off), /Not synced yet/);
-  assert.match(homeView(off), /href="#\/settings"/);
-  const best = guideView(off, 'mine', 'best');
-  assert.match(best, /profile sync/);
-  assert.match(best, /href="#\/stats"/);
-  assert.match(best, /href="#\/settings"/);
   const path = guideView(off, 'mine', 'path');
   assert.match(path, /class="card"/);
+  assert.match(path, /profile sync/);
+  assert.match(path, /href="#\/stats"/);
   assert.match(path, /href="#\/settings"/);
-  assert.match(guideView(world({ prices: {} }), 'mine', 'best'), /Loading item data/);
+  assert.match(guideView(world({ prices: {} }), 'mine', 'path'), /Loading item data/);
+});
+
+test('the old best route shows the path and no bar offers it', () => {
+  assert.doesNotMatch(guideView(world(), 'mine', 'best'), /data-tab="best"|Best possible/);
 });
 
 test('an unknown guide id gives no screen', () => {

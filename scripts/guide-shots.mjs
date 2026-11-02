@@ -13,8 +13,8 @@ const fixture = JSON.parse(fs.readFileSync('tests/fixtures/guide/world.json', 'u
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.woff2': 'font/woff2', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
 
 const SHOTS = [
-  ['home', '#/'], ['mining-path', '#/guide/mining/path'], ['mining-best', '#/guide/mining/best'],
-  ['blaze-path', '#/guide/blaze-slayer/path'], ['blaze-best', '#/guide/blaze-slayer/best'],
+  ['home', '#/'], ['mining-path', '#/guide/mining/path'],
+  ['blaze-path', '#/guide/blaze-slayer/path'],
   ['farming', '#/guide/farming/path'], ['settings', '#/settings'], ['stats', '#/stats'],
 ];
 
@@ -45,7 +45,7 @@ const MEASURES = [
   ]],
   ['Farming', '#/guide/farming/path', [['.screen', 'padding', '18px 20px 12px'], ['.ring-title h1', 'font-size', '22px'], ['.bar', 'height', '56px']]],
 ];
-const NO_TEMPLATE = ['Best value', 'Stats of all guides', 'Settings'];
+const NO_TEMPLATE = ['Stats of all guides', 'Settings'];
 
 const server = http.createServer((req, res) => {
   const file = path.join(WEB, decodeURIComponent(new URL(req.url, 'http://x').pathname.replace(/\/$/, '/index.html')));
@@ -143,9 +143,9 @@ async function opensOnCard(page, base) {
   const moved = await scrolled();
   await page.evaluate(() => window.dispatchEvent(new HashChangeEvent('hashchange')));
   if (await scrolled() !== moved) fail('a redraw moved the list back to the card');
-  await open(page, base, '#/guide/mining/best');
+  await open(page, base, '#/');
   await open(page, base, '#/guide/mining/path');
-  await onCard('from the other tab');
+  await onCard('from home again');
   const key = await page.locator('.card .primary').getAttribute('data-step');
   const before = await scrolled();
   await page.locator('.card .primary').click();
@@ -248,31 +248,26 @@ async function swipes(browser, base) {
 
   await open(page, base, MINING);
   await page.locator('.ring-head').waitFor();
-  await pull(-100);
+  await pull(100);
   await wait(50);
-  if (Math.abs(await shift('.ring-head') + 100) > 1) fail('the head does not follow the finger');
-  if (await shift('.screen > .bar') !== 0) fail('the bar moves between tabs');
+  if (Math.abs(await shift('.ring-head') - 100) > 1) fail('the head does not follow the finger');
   if (await page.locator('.peek .screen').count() !== 1) fail('no next screen beside this one');
   await page.screenshot({ path: path.join(OUT, 'swipe-mid.png') });
   await lift(150);
   await at(MINING, 'under 30 %');
-  await slow(-200);
-  await at('#/guide/mining/best', 'over 30 %');
   await pull(-200);
   await wait(50);
-  if (Math.abs(await shift('.ring-head') + 50) > 1) fail('the last tab does not hold back the pull');
+  if (Math.abs(await shift('.ring-head') + 50) > 1) fail('the only tab does not hold back the pull');
   await lift(150);
-  await at('#/guide/mining/best', 'past the last tab');
-  await slow(200);
-  await at(MINING, 'back a tab');
+  await at(MINING, 'past the only tab');
 
   // a quick flick lands though it is short
-  await pull(-100); // under 30 %
+  await pull(100); // under 30 %
   await lift(0);
-  await at('#/guide/mining/best', 'flick');
+  await at('#/', 'flick');
   await open(page, base, MINING);
   await slow(200);
-  await at('#/', 'home from the first tab');
+  await at('#/', 'home from the only tab');
 
   await open(page, base, MINING);
   const top = () => page.locator('.path').evaluate((el) => el.scrollTop);
@@ -285,11 +280,11 @@ async function swipes(browser, base) {
 
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await open(page, base, MINING);
-  await pull(-200);
+  await pull(200);
   await wait(50);
   if (await page.locator('.swiping').count()) fail('reduced motion still follows the finger');
   await lift(150);
-  await at('#/guide/mining/best', 'reduced motion');
+  await at('#/', 'reduced motion');
   await context.close();
 }
 

@@ -24,25 +24,27 @@ function splitInto(sections, parts) {
   return out;
 }
 
+// An extra section has no rank, so it stays out of the ring.
 function chapterGroups(guide) {
+  const ranked = guide.sections.filter((s) => !s.extra);
   if (guide.chapters?.length) {
-    return guide.chapters.map((c) => ({ name: c.name, sections: guide.sections.filter((s) => c.sections.includes(s.name)) }));
+    return guide.chapters.map((c) => ({ name: c.name, sections: ranked.filter((s) => c.sections.includes(s.name)) }));
   }
-  if (guide.sections.length === ARCS) return guide.sections.map((s) => ({ name: s.name, sections: [s] }));
-  return splitInto(guide.sections, ARCS).map((sections, i) => ({ name: sections[0]?.name ?? `Part ${i + 1}`, sections }));
+  if (ranked.length === ARCS) return ranked.map((s) => ({ name: s.name, sections: [s] }));
+  return splitInto(ranked, ARCS).map((sections, i) => ({ name: sections[0]?.name ?? `Part ${i + 1}`, sections }));
 }
 
-// The chapters of the ring: how far each is, and which holds the first open step.
-export function chaptersOf(guide, checked, costs = null) {
+// The chapters of the ring: how far each is, and which holds the current step. Without one, the first open step.
+export function chaptersOf(guide, checked, costs = null, currentKey = null) {
   const chapters = chapterGroups(guide).map(({ name, sections }) => {
     const keys = sections.flatMap((s) => s.steps.map((step) => stepKey(s, step)));
     const done = keys.filter((k) => checked.has(k)).length;
     const left = costs ? sections.map((s) => costs.sections[guide.sections.indexOf(s)]) : [];
-    return { name, done, total: keys.length, share: keys.length ? done / keys.length : 0, current: false, left: { coins: left.reduce((n, l) => n + l.coins, 0), unpriced: left.reduce((n, l) => n + l.unpriced, 0) } };
+    return { name, keys, done, total: keys.length, share: keys.length ? done / keys.length : 0, current: false, left: { coins: left.reduce((n, l) => n + l.coins, 0), unpriced: left.reduce((n, l) => n + l.unpriced, 0) } };
   });
-  const open = chapters.find((c) => c.done < c.total) ?? chapters[chapters.length - 1];
+  const open = chapters.find((c) => c.keys.includes(currentKey)) ?? chapters.find((c) => c.done < c.total) ?? chapters[chapters.length - 1];
   if (open) open.current = true;
-  return chapters;
+  return chapters.map(({ keys, ...chapter }) => chapter);
 }
 
 export function totalShare(chapters) {
@@ -210,7 +212,7 @@ export function guideModel(guide, world) {
     if (row.card) Object.assign(row.card, { railTop: row.railTop, railBottom: row.railBottom });
   });
 
-  const chapters = chaptersOf(guide, checked, costs).map((c) => ({ ...c, leftText: c.current && c.done < c.total ? leftText(c.left, world.products) : '' }));
+  const chapters = chaptersOf(guide, checked, costs, card?.key).map((c) => ({ ...c, leftText: c.current && c.done < c.total ? leftText(c.left, world.products) : '' }));
   // without a ranking the typed-in /stats are what is known; a field left empty is unknown, not 0
   const typed = ranked.base ? null : (world.state?.statsInput?.[guide.area] ?? world.preset?.[guide.area])?.values;
   const shown = ranked.base ?? (Object.keys(typed ?? {}).length ? typed : null);
@@ -218,11 +220,11 @@ export function guideModel(guide, world) {
   return {
     id: guide.id, source: guide.source ?? '', products: world.products, area: guide.area, theme: guide.area ?? 'home', name: guide.title, chapters, total: totalShare(chapters),
     stats: statDelta(grid, card?.delta ?? null), chips: ranked.limits ?? null, rows, card, ranked, score, leader, missing: ranked.missing ?? null, usedCofl: !!ctx.usedCofl,
-    tabs: score ? [{ id: 'path', label: 'Path' }, { id: 'best', label: 'Best value' }] : [{ id: 'path', label: 'Path' }],
+    tabs: [{ id: 'path', label: 'Path' }],
   };
 }
 
-const GUIDE_TABS = ['path', 'best'];
+const GUIDE_TABS = ['path'];
 export function parseRoute(hash, guides) {
   const [, page, id, tab] = String(hash).split('/');
   if (page === 'stats' || page === 'settings') return { page };
@@ -315,10 +317,9 @@ export function statsOnly(stand) {
 // The app keeps the checks per guide; a guide model sees only its own.
 export const worldFor = (world, guide) => ({ ...world, marks: new Set(world.checks?.[guide.id] ?? []) });
 
-// Each guide's own best step in its own unit: the units do not compare, so nothing ranks across guides.
-export const bestPerGuide = (models) => models.filter((m) => m.leader).map((m) => ({
-  area: m.area, name: m.name, step: m.leader.step.text,
-  text: m.leader.perMillion === undefined ? m.score.gainText(m.leader.gain) : m.score.rateText(m.leader.perMillion),
+// Each guide's own next step in its own unit: the units do not compare, so nothing ranks across guides.
+export const nextPerGuide = (models) => models.filter((m) => m.card).map((m) => ({
+  area: m.area, name: m.name, step: m.card.name, text: m.rows.find((r) => r.card).side,
 }));
 
 function bestRow(row, model, products) {

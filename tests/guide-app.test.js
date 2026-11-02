@@ -16,7 +16,7 @@ test('parseRoute reads each route, an unknown guide goes home', () => {
   assert.deepEqual(parseRoute('#/', guides), { page: 'home' });
   assert.deepEqual(parseRoute('#/stats', guides), { page: 'stats' });
   assert.deepEqual(parseRoute('#/settings', guides), { page: 'settings' });
-  assert.deepEqual(parseRoute('#/guide/mine/best', guides), { page: 'guide', id: 'mine', tab: 'best' });
+  assert.deepEqual(parseRoute('#/guide/mine/best', guides), { page: 'guide', id: 'mine', tab: 'path' });
   assert.deepEqual(parseRoute('#/guide/mine/stats', guides), { page: 'guide', id: 'mine', tab: 'path' });
   assert.deepEqual(parseRoute('#/guide/mine/nope', guides), { page: 'guide', id: 'mine', tab: 'path' });
   assert.deepEqual(parseRoute('#/guide/farming/path', guides), { page: 'guide', id: 'farming', tab: 'path' });
@@ -135,6 +135,6 @@ test('a tick before the profile is loaded gets no date, and what the sync found 
 
 test('removing the profile saves the typed stats before the key goes, and survives a failed read', () => {
   const body = app.slice(app.indexOf('async function removeProfile'), app.indexOf('function saveSettings'));
-  assert.match(body, /statsOnly(await loadStand() ?? state)/);
+  assert.ok(body.includes('statsOnly(await loadStand() ?? state)'));
   assert.ok(body.indexOf('saveStand(kept)') < body.indexOf('clearApiKeyOnly()'));
 });

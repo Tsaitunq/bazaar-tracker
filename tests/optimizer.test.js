@@ -6,7 +6,7 @@ import { SCORES, rankArea, bestBlaze, blazeDelta, applyBlaze, accessoryPower, st
 import { summarize } from '../profile.js';
 import { GEMSTONE, miningScore, loadoutOf } from '../stats.js';
 import { guideStats, validGuide, exportData } from '../progress.js';
-import { guideView } from '../guide/views/guide.js';
+import { bestValueHtml } from '../guide/views/guide.js';
 
 const piece = (id, extra = {}) => ({ id, where: 'armor', gems: [], enchants: {}, parts: {}, reforge: null, recomb: false, polarvoid: 0, coating: false, lore: {}, ...extra });
 const DRILL = 'TITANIUM_DRILL_4';
@@ -442,7 +442,7 @@ test('an item in the chest or a backpack counts, an accessory does not', () => {
 
 const mineGuide = (over = {}) => ({ id: 'm', title: 'Mine', area: 'mining', groups: guide.groups, sections: [{ name: 'Main', steps: [{ text: 'cheap', gain: { MINING_FORTUNE: 10, MINING_SPEED: 40 }, items: [{ id: 'A', qty: 1 }] }] }], ...over });
 const summary = () => ({ ...profile([piece(DRILL, { where: 'inventory', lore: { MINING_SPEED: 1000 } })]), wardrobe: { armor: { equipped: 1, sets: [1] }, equipment: { equipped: 1, sets: [1] } } });
-const bestHtml = (g, state, products, data, settings = miningSettings(null)) => guideView({ guides: [g], checks: {}, state, products, prices: { items: data }, name: (id) => id, settings }, g.id, 'best');
+const bestHtml = (g, state, products, data, settings = miningSettings(null)) => bestValueHtml({ guides: [g], checks: {}, state, products, prices: { items: data }, name: (id) => id, settings }, g.id);
 const view = (g, { state = { summary: summary(), syncedAt: 1 }, products = { A: sold(5e6) }, data = items } = {}) => bestHtml(g, state, products, data);
 
 test('without a sync the mode says what is missing and links to the settings', () => {

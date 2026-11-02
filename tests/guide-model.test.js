@@ -193,7 +193,7 @@ test('without a sync the path still shows, with no stats and no ranking', () => 
   assert.deepEqual(m.stats, []);
   assert.equal(m.card.cost, '1M coins');
   assert.equal(m.card.gain, '');
-  assert.deepEqual(m.tabs.map((t) => t.id), ['path', 'best']);
+  assert.deepEqual(m.tabs.map((t) => t.id), ['path']);
 });
 
 test('a guide without a score has only the path tab', () => {
@@ -230,4 +230,15 @@ test('statsOnly keeps typed stats and drops what came from the sync', () => {
 test('statsOnly without typed stats is null', () => {
   assert.equal(statsOnly({ uuid: 'u' }), null);
   assert.equal(statsOnly(null), null);
+});
+
+test('a section marked extra stays out of the ring', () => {
+  const g = guide([1, 1], {});
+  g.sections[1].extra = true;
+  assert.equal(chaptersOf(g, new Set()).reduce((n, c) => n + c.total, 0), 1);
+});
+
+test('the current chapter follows the current step, not the first open one', () => {
+  const out = chaptersOf(guide([1, 1, 1]), new Set(), null, 'S2|s2-0');
+  assert.deepEqual(out.map((c) => c.current), [false, false, true]);
 });

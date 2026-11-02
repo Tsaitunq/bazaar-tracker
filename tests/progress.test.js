@@ -410,3 +410,14 @@ test('validGuide keeps area farming and valid chapters, drops broken ones', () =
   assert.deepEqual(g.chapters, [{ name: 'One', sections: ['a'] }]);
   assert.equal(validGuide({ title: 't', sections, chapters: 'x' }).chapters, undefined);
 });
+
+test('a guide keeps its order, preset, extra sections, groups and after, and drops wrong types', () => {
+  const g = validGuide({ title: 'T', order: 'fixed', preset: 'shafting', sections: [{ name: 'S', extra: true, steps: [{ text: 'a', group: 'g', after: ['b', 1] }] }] });
+  assert.equal(g.order, 'fixed');
+  assert.equal(g.preset, 'shafting');
+  assert.equal(g.sections[0].extra, true);
+  assert.equal(g.sections[0].steps[0].group, 'g');
+  assert.deepEqual(g.sections[0].steps[0].after, ['b']);
+  const bad = validGuide({ title: 'T', order: 'random', preset: 3, sections: [{ name: 'S', extra: 'yes', steps: [{ text: 'a', group: 2, after: 'b' }] }] });
+  assert.deepEqual([bad.order, bad.preset, bad.sections[0].extra, bad.sections[0].steps[0].group, bad.sections[0].steps[0].after], [undefined, undefined, undefined, undefined, undefined]);
+});

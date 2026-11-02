@@ -1,4 +1,4 @@
-// A guide: path and best value. Also the stats of all guides, reached through the profile button.
+// A guide: its path. Also the stats of all guides, reached through the profile button.
 import { esc, number } from '../../format.js';
 import { statsView as allStats } from '../../stats.js';
 import { guideModel, worldFor, bestGroups } from '../model.js';
@@ -35,19 +35,22 @@ function bestTab(m, world) {
   return `<div class="scroll">${m.chips ? chips(m.chips) : ''}${r.leftOut ? `<p class="note">${esc(r.leftOut)}</p>` : ''}${paths}${r.daggerMissing ? '<p class="warn" role="alert">Dagger pair incomplete: the Hellion Shield needs one dagger of each line.</p>' : ''}${r.notes.map((n) => `<p class="note">${esc(n)}</p>`).join('')}${bestPanel(r, world, m.score)}${groups.length ? groups.map(groupPanel).join('') : '<p class="note">All steps are done.</p>'}</div>`;
 }
 
+// shortcut: no route leads here any more, it only keeps the tests of the old ranking running. Goes with rankArea in the last task.
+export function bestValueHtml(world, id) {
+  const guide = world.guides.find((g) => g.id === id);
+  return bestTab(guideModel(guide, worldFor(world, guide)), world);
+}
+
 const screenClass = (theme) => `screen${theme === 'blaze' ? ' screen-blaze' : ''}`;
 
-export function guideView(world, id, tab) {
+export function guideView(world, id) {
   const guide = world.guides.find((g) => g.id === id) ?? (id === FARMING.id ? FARMING : null);
   if (!guide) return null;
   const m = guideModel(guide, worldFor(world, guide));
   const empty = !guide.sections.length;
-  const open = m.tabs.some((t) => t.id === tab) ? tab : 'path';
-  const body = empty
-    ? '<div class="empty"><strong>Guide coming soon</strong></div>'
-    : open === 'best' ? bestTab(m, world) : pathTab(m);
+  const body = empty ? '<div class="empty"><strong>Guide coming soon</strong></div>' : pathTab(m);
   const credit = m.usedCofl ? '<p class="note">Prices: <a href="https://sky.coflnet.com" rel="noopener">SkyCofl</a></p>' : '';
-  return `<div class="${screenClass(m.theme)}" data-theme="${esc(m.theme)}"><div class="top">${backLink()}${m.source ? `<a class="source" href="${esc(m.source)}" rel="noopener">Source</a>` : ''}${profileLink()}</div>${head(m)}${body}${credit}${bottomBar(m.tabs, open)}</div>`;
+  return `<div class="${screenClass(m.theme)}" data-theme="${esc(m.theme)}"><div class="top">${backLink()}${m.source ? `<a class="source" href="${esc(m.source)}" rel="noopener">Source</a>` : ''}${profileLink()}</div>${head(m)}${body}${credit}${bottomBar(m.tabs, 'path')}</div>`;
 }
 
 export const statsView = (world) => `<div class="screen screen-home" data-theme="home" data-page="stats"><div class="home-title"><h1>Stats</h1></div><div class="scroll">${allStats(world.state, world.prices.items, esc, world.boosts, world.preset)}</div>${bottomBar(HOME_TABS, null)}</div>`;

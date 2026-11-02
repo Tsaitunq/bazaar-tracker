@@ -89,7 +89,7 @@ const world = () => {
 function screenOf(r, w) {
   if (r.page === 'stats') return statsView(w);
   if (r.page === 'settings') return settingsView(w);
-  if (r.page === 'guide') return guideView(w, r.id, r.tab) ?? homeView(w);
+  if (r.page === 'guide') return guideView(w, r.id) ?? homeView(w);
   return homeView(w);
 }
 

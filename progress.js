@@ -40,7 +40,8 @@ function validStep(s) {
   if (items.includes(null)) return null;
   const detect = validDetect(s.detect);
   const gain = validGain(s.gain);
-  return { text: s.text, ...(detect && { detect }), ...(gain && { gain }), ...(items.length && { items }), ...(text(s.hint) && { hint: s.hint }), ...(s.table === true && { table: true }), ...(text(s.line) && { line: s.line }), ...(Number.isInteger(s.priority) && s.priority > 0 && { priority: s.priority }) };
+  const after = Array.isArray(s.after) ? s.after.filter(text) : [];
+  return { text: s.text, ...(detect && { detect }), ...(gain && { gain }), ...(items.length && { items }), ...(text(s.hint) && { hint: s.hint }), ...(s.table === true && { table: true }), ...(text(s.line) && { line: s.line }), ...(Number.isInteger(s.priority) && s.priority > 0 && { priority: s.priority }), ...(text(s.group) && { group: s.group }), ...(after.length && { after }) };
 }
 
 // Sections grouped for the ring of the guide app. A name that is no section drops out, and a chapter left empty with it.
@@ -61,12 +62,12 @@ export function validGuide(g) {
     if (!text(s?.name) || !Array.isArray(s.steps)) return null;
     const steps = s.steps.map(validStep);
     if (steps.includes(null)) return null;
-    return { name: s.name, ...(text(s.goal) && { goal: s.goal }), steps };
+    return { name: s.name, ...(text(s.goal) && { goal: s.goal }), ...(s.extra === true && { extra: true }), steps };
   });
   if (sections.includes(null)) return null;
   const groups = validGroups(g.groups);
   const chapters = validChapters(g.chapters, sections);
-  return { title: g.title, ...(/^https?:\/\//i.test(g.source ?? '') && { source: g.source }), ...(['mining', 'blaze', 'farming'].includes(g.area) && { area: g.area }), ...(chapters && { chapters }), ...(groups && { groups }), sections };
+  return { title: g.title, ...(/^https?:\/\//i.test(g.source ?? '') && { source: g.source }), ...(['mining', 'blaze', 'farming'].includes(g.area) && { area: g.area }), ...(['fixed', 'value'].includes(g.order) && { order: g.order }), ...(text(g.preset) && { preset: g.preset }), ...(chapters && { chapters }), ...(groups && { groups }), sections };
 }
 
 const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'guide';

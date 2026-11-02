@@ -1,6 +1,6 @@
 // The start page: one card per guide, each guide's best step, and what was unlocked this week.
 import { esc, number } from '../../format.js';
-import { guideModel, worldFor, bestPerGuide, unlockedThisWeek } from '../model.js';
+import { guideModel, worldFor, nextPerGuide, unlockedThisWeek } from '../model.js';
 import { ring, bottomBar, profileLink } from './parts.js';
 
 export const HOME_TABS = [{ id: 'home', label: 'Home' }, { id: 'settings', label: 'Settings' }];
@@ -27,11 +27,10 @@ export function homeView(world) {
   const bar = bottomBar(HOME_TABS, 'home');
   if (!world.guides.length) return `<div class="screen screen-home" data-theme="home">${head}<div class="empty"><strong>No guide yet</strong><p>Add a guide file in <a href="#/settings">Settings</a>.</p></div>${bar}</div>`;
   const models = world.guides.map((g) => guideModel(g, worldFor(world, g)));
-  const lines = bestPerGuide(models);
-  const bests = lines.length ? `<section class="bests"><div class="bests-title">BEST STEP PER GUIDE</div>${lines.map((l) => `<div class="best-line"><b>${esc(l.name)}:</b> ${esc(l.step)} <span>· ${esc(l.text)}</span></div>`).join('')}</section>` : '';
-  const noSync = world.state?.summary ? '' : '<p class="note">The best steps need the profile sync in <a href="#/settings">Settings</a>.</p>';
+  const lines = nextPerGuide(models);
+  const bests = lines.length ? `<section class="bests"><div class="bests-title">NEXT STEP PER GUIDE</div>${lines.map((l) => `<div class="best-line"><b>${esc(l.name)}:</b> ${esc(l.step)}${l.text ? ` <span>· ${esc(l.text)}</span>` : ''}</div>`).join('')}</section>` : '';
   const week = Object.values(world.dates ?? {}).reduce((n, stamps) => n + unlockedThisWeek(stamps, world.now), 0);
   const tiles = `<div class="tile"><small>Unlocked this week</small><strong>${number(week)} <em>step${week === 1 ? '' : 's'}</em></strong></div>`;
   const hasFarming = world.guides.some((g) => g.area === 'farming');
-  return `<div class="screen screen-home" data-theme="home">${head}<div class="scroll">${bests}${noSync}${models.map(guideCard).join('')}${hasFarming ? '' : farmingCard}${tiles}</div>${bar}</div>`;
+  return `<div class="screen screen-home" data-theme="home">${head}<div class="scroll">${bests}${models.map(guideCard).join('')}${hasFarming ? '' : farmingCard}${tiles}</div>${bar}</div>`;
 }
