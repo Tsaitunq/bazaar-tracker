@@ -28,6 +28,8 @@ a { color: var(--area); }
 
 .back { align-self: flex-start; height: 44px; display: flex; align-items: center; gap: 4px; font-size: 13px; color: var(--muted); text-decoration: none; }
 
+.icon { flex: none; color: var(--area); }
+
 /* ring and legend */
 .ring-head { display: flex; align-items: center; gap: 16px; }
 .ring-text { display: flex; flex-direction: column; gap: 6px; min-width: 0; }

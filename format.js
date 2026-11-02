@@ -2,7 +2,8 @@
 export const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 const plain = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
-const UNITS = [[1e9, 'B'], [1e6, 'M'], [1e3, 'k']];
+export const number = (v) => plain.format(v);
+const UNITS =[[1e9, 'B'], [1e6, 'M'], [1e3, 'k']];
 // Hypixel style: 1,234.5 below ten thousand, then 350k, 1.2M, 3.4B
 export function coins(v) {
   if (!Number.isFinite(v)) return '–';

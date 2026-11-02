@@ -1,5 +1,9 @@
 // What the screens of the guide app show, worked out from the shared logic. No markup in here.
-import { stepKey } from '../progress.js';
+import { stepKey, doneSet, guideStats, openStep, stepCost } from '../progress.js';
+import { rankArea, SCORES } from '../optimizer.js';
+import { detectGuide } from '../detect.js';
+import { checkStep } from '../requires.js';
+import { coins, number } from '../format.js';
 
 const DAY = 24 * 3600e3;
 const WEEK = 7 * DAY;
@@ -52,3 +56,140 @@ export function stampDone(prev, doneKeys, now, firstRun = false) {
 }
 
 export const unlockedThisWeek = (stamps, now) => Object.values(stamps ?? {}).filter((at) => at > 0 && now - at < WEEK).length;
+
+const STATS = {
+  MINING_FORTUNE: { icon: '☘', label: 'Mining Fortune', color: 'orange' },
+  MINING_SPEED: { icon: '⸕', label: 'Mining Speed', color: 'orange' },
+  PRISTINE: { icon: '✧', label: 'Pristine', color: 'pink' },
+  GEMSTONE_FORTUNE: { icon: '☘', label: 'Gemstone Fortune', color: 'orange' },
+  ORE_FORTUNE: { icon: '☘', label: 'Ore Fortune', color: 'orange' },
+  BLOCK_FORTUNE: { icon: '☘', label: 'Block Fortune', color: 'orange' },
+  DAMAGE: { icon: '❁', label: 'Damage', color: 'red' },
+  STRENGTH: { icon: '❁', label: 'Strength', color: 'red' },
+  CRITICAL_DAMAGE: { icon: '☠', label: 'Crit Damage', short: 'Crit Dmg', color: 'blue' },
+  CRITICAL_CHANCE: { icon: '☣', label: 'Crit Chance', short: 'Crit Ch.', color: 'blue' },
+  ATTACK_SPEED: { icon: '⚔', label: 'Attack Speed', short: 'Atk Speed', color: 'yellow' },
+  HEALTH: { icon: '❤', label: 'Health', color: 'red' },
+  DEFENSE: { icon: '❈', label: 'Defense', color: 'green' },
+  TRUE_DEFENSE: { icon: '❂', label: 'True Defense', color: 'white' },
+};
+const GRIDS = {
+  mining: ['MINING_FORTUNE', 'MINING_SPEED', 'PRISTINE', 'GEMSTONE_FORTUNE'],
+  blaze: ['STRENGTH', 'CRITICAL_DAMAGE', 'CRITICAL_CHANCE', 'ATTACK_SPEED', 'HEALTH', 'DEFENSE'],
+};
+const signed = (v) => `${v > 0 ? '+' : ''}${number(v)}`;
+const linesOf = (delta, prefix = '') => Object.entries(delta).filter(([k, v]) => v && STATS[k]).map(([k, v]) => ({ text: `${prefix}${signed(v)} ${STATS[k].icon} ${STATS[k].label}`, color: STATS[k].color }));
+
+// What a step moves in the words of the game. A Blaze change holds shared stats and per dagger line, a mining one is flat.
+function statLines(delta) {
+  if (!delta) return [];
+  if (!delta.common) return linesOf(delta);
+  const line = (name) => {
+    const out = { ...delta.swaps[name]?.lore };
+    for (const [k, v] of Object.entries(delta.lines[name])) out[k] = (out[k] ?? 0) + v;
+    return linesOf(out, `${name[0].toUpperCase()}${name.slice(1)}: `);
+  };
+  return [
+    ...linesOf(delta.common), ...line('ashen'), ...line('spirit'),
+    ...(delta.mp ? [{ text: `${signed(delta.mp)} ✦ Magical Power`, color: 'cyan' }] : []),
+    ...(delta.ofa ? [{ text: 'One For All', color: 'white' }] : []),
+  ];
+}
+
+// The grid holds what is worn, without the daggers, so only the shared part of a Blaze change previews there.
+export function statDelta(stats, delta) {
+  const flat = delta?.common ?? delta ?? {};
+  return stats.map((s) => ({ ...s, delta: flat[s.key] ? signed(flat[s.key]) : '' }));
+}
+
+export const stepStatus = ({ done, locked, first }) => {
+  if (done) return 'done';
+  if (locked) return 'locked';
+  return first ? 'current' : 'open';
+};
+
+function costText(step, cost, ctx) {
+  if (!ctx.products && step.items?.length) return '…';
+  if (cost.unpriced) return 'No price';
+  return cost.coins > 0 ? `${coins(cost.coins)} coins` : 'No coins';
+}
+
+function openSide(step, rank, score, ctx) {
+  if (rank?.group === 'locked') return 'locked';
+  if (rank?.perMillion !== undefined) return score.rateText(rank.perMillion);
+  if (rank?.group === 'free') return 'free';
+  if (!ctx.products && step.items?.length) return '…';
+  return rank?.group === 'noPrice' ? 'no price' : '';
+}
+
+function subOf(status, rank, reasons, lines, fromSync) {
+  if (status === 'done') return { sub: fromSync ? 'from sync' : '', subColor: '' };
+  if (status === 'locked') return { sub: reasons.join(' · '), subColor: '' };
+  if (rank?.group === 'locked') return { sub: rank.reasons.join(' · '), subColor: '' };
+  return { sub: lines.map((l) => l.text).join(' · '), subColor: lines[0]?.color ?? '' };
+}
+
+// The world holds what the app knows: marks, the synced state, prices and settings. rows is the whole path in guide order.
+export function guideModel(guide, world) {
+  const scores = world.scores ?? SCORES;
+  const profile = world.state?.summary ?? null;
+  const auto = detectGuide(guide, profile, stepKey);
+  const ctx = { ...world.prices, products: world.products, auto, profile, marks: world.marks };
+  const checked = doneSet(guide, world.marks, auto);
+  guideStats(guide, checked, ctx); // sets what the cost of a book line needs
+  const ranked = rankArea({ guide, checked, ctx, state: world.state, settings: world.settings, keepOldGear: world.keepOldGear, boosts: world.boosts, preset: world.preset }, scores);
+  const score = scores[guide.area];
+  const ranks = new Map();
+  for (const [group, list] of Object.entries(ranked.groups ?? {})) for (const row of list) ranks.set(row.step, { ...row, group });
+  const leader = ranked.groups && [...ranked.groups.free, ...ranked.groups.ranked][0];
+
+  let card = null;
+  const rows = guide.sections.flatMap((section) => section.steps.map((step) => {
+    const key = stepKey(section, step);
+    const done = checked.has(key);
+    const { status: check, reasons } = checkStep(step, ctx.items, ctx.profile);
+    const status = stepStatus({ done, locked: check === 'locked', first: !card });
+    const rank = ranks.get(step);
+    const lines = statLines(rank?.delta ?? null);
+    const found = auto.get(key);
+    const met = !!found && found.have >= found.need;
+    const fromSync = met && done && !world.marks.has(key);
+    const row = {
+      key, name: step.text, status,
+      ...subOf(status, rank, reasons, lines, fromSync),
+      side: status === 'done' || status === 'locked' ? status : openSide(step, rank, score, ctx),
+      progress: found?.have && !met ? `${number(found.have)} / ${number(found.need)}` : '',
+      api: !!found?.have && (!met || fromSync),
+      undo: fromSync,
+    };
+    if (status === 'current') {
+      const open = openStep(section, step, ctx);
+      row.card = card = {
+        key, name: step.text, where: section.name, stats: lines, hint: step.hint ?? '',
+        gain: rank?.gain === undefined ? '' : score.gainText(rank.gain),
+        cost: costText(open, rank ?? stepCost(open, ctx), ctx),
+        rate: rank?.perMillion === undefined ? '' : score.rateLong(rank.perMillion),
+        badge: !!leader && leader.step === step,
+        delta: rank?.delta ?? null,
+      };
+    }
+    return row;
+  }));
+
+  // The line runs up to the current step, without one up to the last step done.
+  const end = rows.findIndex((r) => r.status === 'current');
+  const limit = end >= 0 ? end : rows.map((r) => r.status).lastIndexOf('done');
+  rows.forEach((row, i) => {
+    row.railTop = i <= limit;
+    row.railBottom = i < limit;
+    if (row.card) Object.assign(row.card, { railTop: row.railTop, railBottom: row.railBottom });
+  });
+
+  const chapters = chaptersOf(guide, checked);
+  const grid = ranked.base ? (GRIDS[guide.area] ?? []).map((k) => ({ key: k, icon: STATS[k].icon, label: STATS[k].short ?? STATS[k].label, color: STATS[k].color, value: number(ranked.base[k] ?? 0), delta: '' })) : [];
+  return {
+    theme: guide.area ?? 'home', name: guide.title, chapters, total: totalShare(chapters),
+    stats: statDelta(grid, card?.delta ?? null), chips: ranked.limits ?? null, rows, card, ranked, score, missing: ranked.missing ?? null,
+    tabs: score ? [{ id: 'path', label: 'Path' }, { id: 'best', label: 'Best value' }, { id: 'stats', label: 'Stats' }] : [{ id: 'path', label: 'Path' }],
+  };
+}
