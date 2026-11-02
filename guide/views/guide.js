@@ -60,7 +60,8 @@ export function guideView(world, id, tab) {
   const body = empty
     ? '<div class="empty"><strong>Guide coming soon</strong></div>'
     : open === 'best' ? bestTab(m, world) : open === 'stats' ? statsTab(m, world) : pathTab(m);
-  return `<div class="${screenClass(m.theme)}" data-theme="${esc(m.theme)}">${backLink()}${head(m)}${body}${bottomBar(m.tabs, open)}</div>`;
+  const credit = m.usedCofl ? '<p class="note">Prices: <a href="https://sky.coflnet.com" rel="noopener">SkyCofl</a></p>' : '';
+  return `<div class="${screenClass(m.theme)}" data-theme="${esc(m.theme)}">${backLink()}${head(m)}${body}${credit}${bottomBar(m.tabs, open)}</div>`;
 }
 
 export const statsView = (world) => `<div class="screen screen-home" data-theme="home"><div class="home-title"><h1>Stats</h1></div><div class="scroll">${allStats(world.state, world.prices.items, esc, world.boosts, world.preset)}</div>${bottomBar(HOME_TABS, 'stats')}</div>`;

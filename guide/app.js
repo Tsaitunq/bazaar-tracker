@@ -5,10 +5,10 @@ import { createSync, syncMessage, normalizeUuid, cleanKey } from '../sync.js';
 import { plugin, canSync, getApiKey, setApiKey, loadProfile, saveProfile, clearProfileData } from '../native.js';
 import { summarize } from '../profile.js';
 import { detectGuide } from '../detect.js';
-import { fallbackName } from '../names.js';
+import { fallbackName, loadItems } from '../names.js';
 import { PRESETS, miningSettings } from '../optimizer.js';
 import { computeStats, loadoutOf, offsetStale, statsEntry } from '../stats.js';
-import { parseRoute, syncOutcome, applyImport, stampAll } from './model.js';
+import { parseRoute, syncOutcome, applyImport, stampAll, formEdited } from './model.js';
 import { homeView } from './views/home.js';
 import { guideView, statsView } from './views/guide.js';
 import { settingsView } from './views/settings.js';
@@ -16,7 +16,7 @@ import { settingsView } from './views/settings.js';
 const BAZAAR = 'https://api.hypixel.net/v2/skyblock/bazaar';
 const PRICE_EVERY = 300e3;
 const BIN_RETRY = 600e3;
-const DEFAULT_TAX = 0.0125;
+const DEFAULT_TAX = 1.25;
 
 const load = (key, fallback) => {
   try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
@@ -40,6 +40,8 @@ let items = null;
 let election = null;
 let preset = null;
 let hasKey = false;
+let keyMessage = null;
+let names = {};
 let note = { message: '', choices: [] };
 let profileMessage = '';
 let dataMessage = '';
@@ -58,9 +60,9 @@ const world = () => {
   pending = new Set();
   return {
     guides: guides(), checks, dates, state, products, now: Date.now(),
-    prices: { forge, ah, cofl: freshBins(bins), wants: pending, items, tax: settings.tax ?? DEFAULT_TAX, derpy: election?.mayor?.name === 'Derpy' },
+    prices: { forge, ah, cofl: freshBins(bins), wants: pending, items, tax: (settings.tax ?? DEFAULT_TAX) / 100, derpy: election?.mayor?.name === 'Derpy' },
     settings: miningSettings(settings.mining), keepOldGear: settings.keepOldGear === true, boosts: boosts(), preset,
-    name: fallbackName, uuid: state?.uuid ?? '', hasKey, canSync: canSync(), message: note.message, choices: note.choices,
+    name: (id) => names[id] ?? fallbackName(id), uuid: state?.uuid ?? '', hasKey, keyMessage, tax: settings.tax ?? DEFAULT_TAX, importedIds: imported.map((g) => g.id), canSync: canSync(), message: note.message, choices: note.choices,
     profileMessage, dataMessage, dataText, armed, removeArmed,
   };
 };
@@ -93,9 +95,7 @@ function draw() {
 
 // New prices must not wipe what is being typed into a form.
 function drawInBackground() {
-  const r = route();
-  if (r.page === 'settings' || r.page === 'stats' || r.tab === 'stats') return;
-  draw();
+  if (!formEdited([...root.querySelectorAll('input, select, textarea')], document.activeElement)) draw();
 }
 
 async function askBins(wants) {
@@ -136,6 +136,7 @@ function toggle(key) {
   setMark(guide, marks, key, !doneSet(guide, marks, auto).has(key), auto);
   checks = { ...checks, [guide.id]: [...marks] };
   save('pg.checks', checks);
+  dataText = ''; // an export from before this tick must not come back by accident
   stamp();
   draw();
 }
@@ -157,7 +158,8 @@ async function runSync(pick) {
 
 async function showProfile() {
   state = await loadProfile();
-  hasKey = await getApiKey().then((key) => !!key, () => false);
+  // a key that cannot be read right now is not a missing key
+  [hasKey, keyMessage] = await getApiKey().then((key) => [!!key, null], () => [false, syncMessage('keyread')]);
 }
 
 async function saveUuid(value) {
@@ -202,6 +204,7 @@ function runImport(raw) {
     save('pg.guides', imported);
     save('pg.checks', checks);
     stamp();
+    dataText = '';
     dataMessage = `Imported ${data.guides.length} ${data.guides.length === 1 ? 'guide' : 'guides'}.`;
   } catch (e) {
     dataMessage = e.message;
@@ -273,10 +276,13 @@ root.addEventListener('click', (e) => {
   if (act === 'remove') removeProfile();
   if (act === 'mining-reset') { settings.mining = null; saveSettings(); }
   if (act === 'export') runExport();
-  if (act === 'import') {
-    const text = root.querySelector('[data-json]').value.trim();
-    if (text) runImport(text);
-    else root.querySelector('[data-import-file]').click();
+  if (act === 'import') runImport(root.querySelector('[data-json]').value);
+  if (act === 'import-file') root.querySelector('[data-import-file]').click();
+  const removeGuide = el('[data-remove-guide]');
+  if (removeGuide) {
+    imported = imported.filter((g) => g.id !== removeGuide.dataset.removeGuide);
+    save('pg.guides', imported);
+    draw();
   }
 });
 
@@ -284,6 +290,7 @@ root.addEventListener('change', async (e) => {
   const { dataset } = e.target;
   if (dataset.set === 'uuid') return saveUuid(e.target.value);
   if (dataset.set === 'key') return saveKey(e.target);
+  if (e.target.matches('[data-tax]')) { settings.tax = Number(e.target.value); return saveSettings(); }
   if (dataset.flag) { settings[dataset.flag] = e.target.checked; return saveSettings(); }
   if (dataset.mining === 'preset') {
     const { gemFortune, ...values } = PRESETS[e.target.value];
@@ -323,5 +330,6 @@ loadForge().then((r) => { forge = r; drawInBackground(); });
 loadAh().then((r) => { ah = r; drawInBackground(); });
 loadElection().then((r) => { election = r; drawInBackground(); });
 loadItemData().then((r) => { items = r; drawInBackground(); });
+loadItems().then((r) => { names = r.names; drawInBackground(); });
 refreshPrices();
 setInterval(refreshPrices, PRICE_EVERY);

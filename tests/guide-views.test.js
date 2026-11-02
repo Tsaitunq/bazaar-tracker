@@ -131,6 +131,7 @@ test('settings holds uuid, key state, weights, presets, keep gear, boosts, impor
   assert.match(html, /No key saved/);
   for (const key of ['wF', 'wS', 'wP', 'blockStrength']) assert.match(html, new RegExp(`data-mining="${key}"`));
   for (const preset of ['gemstone', 'mithril', 'glacite']) assert.match(html, new RegExp(`<option value="${preset}"`));
+  assert.match(html, /data-act="import-file"/);
   for (const flag of ['keepOldGear', 'godPotion', 'boosterCookie']) assert.match(html, new RegExp(`data-flag="${flag}"`));
   assert.match(html, /data-act="import"/);
   assert.match(html, /data-act="export"/);

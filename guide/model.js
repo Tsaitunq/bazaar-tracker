@@ -1,5 +1,5 @@
 // What the screens of the guide app show, worked out from the shared logic. No markup in here.
-import { stepKey, doneSet, guideStats, openStep, stepCost, mergeGuides } from '../progress.js';
+import { stepKey, doneSet, guideStats, openStep, stepCost, mergeGuides, priceItem } from '../progress.js';
 import { syncMessage } from '../sync.js';
 import { rankArea, SCORES } from '../optimizer.js';
 import { detectGuide } from '../detect.js';
@@ -115,6 +115,20 @@ function costText(step, cost, ctx) {
   return cost.coins > 0 ? `${coins(cost.coins)} coins` : 'No coins';
 }
 
+const SOURCES = { bazaar: 'Bazaar', forge: 'Forge', ah: 'AH' };
+
+// What to buy for a step: amount, name, price and where from.
+function itemLines(step, ctx, name) {
+  return (step.items ?? []).map((item) => {
+    const label = `${item.qty}× ${item.name ?? name(item.id)}`;
+    const p = priceItem(item, ctx);
+    if (p.source === 'nt') return { text: `${label} · not tradeable` };
+    if (!p.source) return { text: `${label} · ${ctx.products ? 'no price' : '…'}` };
+    const way = p.picked ? p.picked.map(name).join(', ') : p.note;
+    return { text: `${label} · ${coins(p.coins)} · ${SOURCES[p.source]}${way ? ` · ${way}` : ''}` };
+  });
+}
+
 function openSide(step, rank, score, ctx) {
   if (rank?.group === 'locked') return 'locked';
   if (rank?.perMillion !== undefined) return score.rateText(rank.perMillion);
@@ -167,7 +181,7 @@ export function guideModel(guide, world) {
       const open = openStep(section, step, ctx);
       const price = rank ?? stepCost(open, ctx);
       row.card = card = {
-        key, name: step.text, where: section.name, stats: lines, hint: step.hint ?? '',
+        key, name: step.text, where: section.name, stats: lines, hint: step.hint ?? '', items: itemLines(open, ctx, world.name ?? String),
         gain: rank?.gain === undefined ? '' : score.gainText(rank.gain),
         cost: costText(open, price, ctx), coins: price.coins, unpriced: price.unpriced,
         rate: rank?.perMillion === undefined ? '' : score.rateLong(rank.perMillion),
@@ -190,8 +204,8 @@ export function guideModel(guide, world) {
   const chapters = chaptersOf(guide, checked);
   const grid = ranked.base ? (GRIDS[guide.area] ?? []).map((k) => ({ key: k, icon: STATS[k].icon, label: STATS[k].short ?? STATS[k].label, color: STATS[k].color, value: number(ranked.base[k] ?? 0), delta: '' })) : [];
   return {
-    id: guide.id, area: guide.area, theme: guide.area ?? 'home', name: guide.title, chapters, total: totalShare(chapters),
-    stats: statDelta(grid, card?.delta ?? null), chips: ranked.limits ?? null, rows, card, ranked, score, leader, missing: ranked.missing ?? null,
+    id: guide.id, products: world.products, area: guide.area, theme: guide.area ?? 'home', name: guide.title, chapters, total: totalShare(chapters),
+    stats: statDelta(grid, card?.delta ?? null), chips: ranked.limits ?? null, rows, card, ranked, score, leader, missing: ranked.missing ?? null, usedCofl: !!ctx.usedCofl,
     tabs: score ? [{ id: 'path', label: 'Path' }, { id: 'best', label: 'Best value' }, { id: 'stats', label: 'Stats' }] : [{ id: 'path', label: 'Path' }],
   };
 }
@@ -228,6 +242,13 @@ export function stampAll(guides, checks, dates, state, now, firstRun = false) {
   return out;
 }
 
+// Is someone filling in this form? Then a redraw from outside would throw away what they typed.
+export const formEdited = (fields, active) => fields.some((f) => {
+  if (f === active) return true;
+  if (f.tagName === 'SELECT') return [...f.options].some((o) => o.selected !== o.defaultSelected);
+  return f.type === 'checkbox' ? f.checked !== f.defaultChecked : f.value !== f.defaultValue;
+});
+
 // The app keeps the checks per guide; a guide model sees only its own.
 export const worldFor = (world, guide) => ({ ...world, marks: new Set(world.checks?.[guide.id] ?? []) });
 
@@ -246,7 +267,7 @@ export function coinsForNext(models) {
   };
 }
 
-function bestRow(row, model) {
+function bestRow(row, model, products) {
   const lines = statLines(row.delta ?? null).map((l) => l.text);
   const extra = [
     ...new Set(row.notes ?? []),
@@ -255,7 +276,7 @@ function bestRow(row, model) {
     ...(row.status === 'unknown' ? ['Requirements could not be checked.'] : []),
     ...(row.status === 'locked' ? [row.reasons.join(' · ')] : []),
   ];
-  const side = row.perMillion !== undefined ? model.score.rateText(row.perMillion) : row.status === 'locked' ? 'locked' : row.net === 0 ? 'free' : '';
+  const side = row.perMillion !== undefined ? model.score.rateText(row.perMillion) : row.status === 'locked' ? 'locked' : row.unpriced ? (products ? 'no price' : '…') : row.free ? 'free' : '';
   return {
     key: stepKey(row.section, row.step), name: row.step.text, side,
     sub: [row.gain === undefined ? '' : model.score.gainText(row.gain), ...lines].filter(Boolean).join(' · '),
@@ -266,6 +287,7 @@ function bestRow(row, model) {
 // The groups of the Best value tab, in the order of the existing view. Empty ones stay out.
 export function bestGroups(model) {
   const g = model.ranked.groups;
+  const free = new Set(g.free);
   return [
     ['Requirements first', g.requirements, 'These close a missed limit. Sorted by how much of the gap they close per coin.'],
     ['Best value', [...g.free, ...g.ranked], ''],
@@ -273,5 +295,5 @@ export function bestGroups(model) {
     ['No price', g.noPrice, 'A sum that leaves out an item would look cheaper than it is.'],
     ['No gain data', g.noGain, 'Nothing known gives this step a fixed value.'],
     ['No gain', g.zero, 'These add nothing in this model right now.'],
-  ].filter(([, list]) => list.length).map(([title, list, note]) => ({ title, note, rows: list.map((row) => bestRow(row, model)) }));
+  ].filter(([, list]) => list.length).map(([title, list, note]) => ({ title, note, rows: list.map((row) => bestRow({ ...row, free: free.has(row) }, model, model.products)) }));
 }

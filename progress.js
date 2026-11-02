@@ -420,7 +420,7 @@ export function progressView({ guides, current, checked: marks, products, prices
   const ctx = { ...prices, products, auto, profile, marks };
   const checked = doneSet(guide, marks, auto);
   const stats = guideStats(guide, checked, ctx);
-  const ranks = !!guide.area && !!bestValue;
+  const ranks = !!guide.area && guide.area !== 'farming' && !!bestValue; // farming has no score yet
   const shown = mode === 'best' && !ranks ? 'slot' : mode;
   const first = open ? null : guide.sections.find((_, i) => stats.sections[i].done < stats.sections[i].total)?.name;
   const page = `${syncBar}<div class="bar ranges guide-switch" role="group" aria-label="Guide">${guides.map((g) => `<button type="button" data-guide="${esc(g.id)}" aria-pressed="${g.id === guide.id}">${esc(g.title)}</button>`).join('')}</div>

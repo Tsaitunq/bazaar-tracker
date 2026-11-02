@@ -48,7 +48,7 @@ export function stepCard(card) {
   const box = card.stats.length || card.gain
     ? `<div class="card-box">${card.stats.map((s) => `<span class="card-stat c-${s.color}">${esc(s.text)}</span>`).join('')}${shown('card-gain', card.gain)}</div>`
     : '';
-  return `<div class="step">${rail('current', card.railTop, card.railBottom)}<div class="card"><div class="card-head"><span class="card-name">${esc(card.name)}</span>${card.badge ? '<span class="card-badge">★ BEST VALUE</span>' : ''}${shown('card-where', card.where)}</div>${box}<div class="card-foot"><span class="card-cost">${esc(card.cost)}</span>${shown('card-rate', card.rate)}</div>${shown('card-where', card.hint)}<button type="button" class="primary" data-step="${esc(card.key)}">Mark done</button></div></div>`;
+  return `<div class="step">${rail('current', card.railTop, card.railBottom)}<div class="card"><div class="card-head"><span class="card-name">${esc(card.name)}</span>${card.badge ? '<span class="card-badge">★ BEST VALUE</span>' : ''}${shown('card-where', card.where)}</div>${box}${(card.items ?? []).map((i) => shown('card-item', i.text)).join('')}<div class="card-foot"><span class="card-cost">${esc(card.cost)}</span>${shown('card-rate', card.rate)}</div>${shown('card-where', card.hint)}<button type="button" class="primary" data-step="${esc(card.key)}">Mark done</button></div></div>`;
 }
 
 const limitValue = (v) => (v === null ? 'unknown' : number(v));
