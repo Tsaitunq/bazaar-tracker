@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { parseRoute, syncOutcome, applyImport, stampAll } from '../guide/model.js';
+import { parseRoute, syncOutcome, applyImport, stampAll, swipeTarget } from '../guide/model.js';
 import { exportData, importData, stepKey } from '../progress.js';
 import { homeView } from '../guide/views/home.js';
 import { settingsView } from '../guide/views/settings.js';
@@ -86,4 +86,23 @@ test('settings can remove the key and profile data, after a second tap', () => {
   const world = { guides: [], settings: miningSettings(null), canSync: true, state: null, now: 1, choices: [], message: '' };
   assert.match(settingsView(world), /data-act="remove">Remove key and profile data</);
   assert.match(settingsView({ ...world, removeArmed: true }), /data-act="remove">Tap again to remove</);
+});
+
+test('a swipe moves between the tabs of a guide and from the first one home', () => {
+  const tabs = ['path', 'best'];
+  const at = (tab) => ({ page: 'guide', id: 'mine', tab });
+  assert.deepEqual(swipeTarget(at('path'), -80, 0, tabs), { hash: '#/guide/mine/best', back: false });
+  assert.deepEqual(swipeTarget(at('best'), 80, 0, tabs), { hash: '#/guide/mine/path', back: true });
+  assert.deepEqual(swipeTarget(at('path'), 80, 0, tabs), { hash: '#/', back: true });
+  assert.equal(swipeTarget(at('best'), -80, 0, tabs), null);
+  assert.deepEqual(swipeTarget(at('path'), 80, 0, ['path']), { hash: '#/', back: true });
+  assert.equal(swipeTarget(at('path'), -80, 0, ['path']), null);
+});
+
+test('a short or slanted swipe and other screens stay where they are', () => {
+  const r = { page: 'guide', id: 'mine', tab: 'path' };
+  assert.equal(swipeTarget(r, 59, 0, ['path']), null);
+  assert.equal(swipeTarget(r, 80, 41, ['path']), null);
+  assert.equal(swipeTarget({ page: 'settings' }, 80, 0, []), null);
+  assert.equal(swipeTarget({ page: 'home' }, 80, 0, []), null);
 });

@@ -218,6 +218,16 @@ export function parseRoute(hash, guides) {
   return { page: 'home' };
 }
 
+// Where a sideways swipe leads from a guide: the next tab, the one before, and from the first tab home. tabs: those on screen.
+// It has to be long enough and clearly sideways, so scrolling a list never switches.
+const SWIPE_MIN_PX = 60;
+export function swipeTarget(r, dx, dy, tabs) {
+  if (r.page !== 'guide' || Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < 2 * Math.abs(dy)) return null;
+  const at = Math.max(tabs.indexOf(r.tab), 0);
+  if (dx > 0) return { hash: at > 0 ? `#/guide/${r.id}/${tabs[at - 1]}` : '#/', back: true };
+  return at + 1 < tabs.length ? { hash: `#/guide/${r.id}/${tabs[at + 1]}`, back: false } : null;
+}
+
 // What a sync run means for the screen. Anything but success keeps the last state.
 export function syncOutcome(result, last) {
   if (result.status === 'ok') return { state: result.state, message: 'Synced.', choices: [] };

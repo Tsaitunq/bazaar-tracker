@@ -176,3 +176,12 @@ a { color: var(--area); }
 .empty { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; }
 .empty strong { font-size: 20px; color: var(--area); }
 .empty p { margin: 0; font-size: 14px; color: var(--muted); }
+
+/* a swipe slides the new screen in; the bar stays put */
+.slide-next, .slide-back { overflow: hidden; }
+@media (prefers-reduced-motion: no-preference) {
+  .slide-next > :not(.bar) { animation: slide-next 200ms ease-out; }
+  .slide-back > :not(.bar) { animation: slide-back 200ms ease-out; }
+}
+@keyframes slide-next { from { transform: translateX(32px); opacity: 0; } }
+@keyframes slide-back { from { transform: translateX(-32px); opacity: 0; } }

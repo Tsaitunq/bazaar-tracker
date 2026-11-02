@@ -8,7 +8,7 @@ import { detectGuide } from '../detect.js';
 import { fallbackName, loadItems } from '../names.js';
 import { PRESETS, miningSettings } from '../optimizer.js';
 import { computeStats, loadoutOf, offsetStale, statsEntry } from '../stats.js';
-import { parseRoute, syncOutcome, applyImport, stampAll, formEdited } from './model.js';
+import { parseRoute, syncOutcome, applyImport, stampAll, formEdited, swipeTarget } from './model.js';
 import { homeView } from './views/home.js';
 import { guideView, statsView } from './views/guide.js';
 import { settingsView } from './views/settings.js';
@@ -51,6 +51,8 @@ let removeArmed = false;
 let binsBusy = false;
 let binsFailed = 0;
 let pending = new Set();
+let touch = null;
+let slide = '';
 
 const guides = () => mergeGuides(bundled, imported);
 const route = () => parseRoute(location.hash, guides());
@@ -84,6 +86,8 @@ function draw() {
   const w = world();
   root.innerHTML = screenOf(route(), w);
   document.documentElement.dataset.theme = root.firstElementChild?.dataset.theme ?? 'home';
+  if (slide) root.firstElementChild?.classList.add(slide);
+  slide = '';
   const after = root.querySelector('.path, .scroll');
   if (after && after.className === list) after.scrollTop = top;
   if (focused !== undefined) {
@@ -313,6 +317,30 @@ root.addEventListener('change', async (e) => {
   }
   return undefined;
 });
+
+// A list that scrolls sideways keeps its own swipe.
+function scrollsSideways(el) {
+  for (; el && el !== root; el = el.parentElement) {
+    if (el.scrollWidth > el.clientWidth && /auto|scroll/.test(getComputedStyle(el).overflowX)) return true;
+  }
+  return false;
+}
+
+root.addEventListener('touchstart', (e) => {
+  const [first] = e.touches;
+  touch = e.touches.length === 1 && !scrollsSideways(e.target) ? { x: first.clientX, y: first.clientY } : null;
+}, { passive: true });
+root.addEventListener('touchcancel', () => { touch = null; }, { passive: true });
+root.addEventListener('touchend', (e) => {
+  if (!touch) return;
+  const [last] = e.changedTouches;
+  const tabs = [...root.querySelectorAll('.bar [data-tab]')].map((b) => b.dataset.tab);
+  const to = swipeTarget(route(), last.clientX - touch.x, last.clientY - touch.y, tabs);
+  touch = null;
+  if (!to) return;
+  slide = to.back ? 'slide-back' : 'slide-next';
+  location.hash = to.hash;
+}, { passive: true });
 
 window.addEventListener('hashchange', draw);
 
