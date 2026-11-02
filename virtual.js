@@ -33,7 +33,7 @@ function addGems(d, guide, profile, items) {
   if (!d.type) return;
   const list = targets(d, guide, profile);
   const rank = (q) => QUALITY.indexOf(q);
-  const reached = list.flatMap((t) => t.gems).filter((g) => g.type === d.type && rank(g.quality) >= rank(d.quality)).length;
+  const reached = list.flatMap((t) => (t.gems ??= [])).filter((g) => g.type === d.type && rank(g.quality) >= rank(d.quality)).length;
   let left = (d.need ?? list.length) - reached;
   for (const t of list) {
     for (const g of t.gems) if (left > 0 && g.type === d.type && rank(g.quality) < rank(d.quality)) { g.quality = d.quality; left--; }
@@ -54,18 +54,19 @@ function applyPart(p, d, guide, items) {
     case 'reforge': for (const t of on()) if (!d.value.includes(t.reforge)) t.reforge = d.value[0]; break;
     case 'recomb': for (const t of on()) t.recomb = true; break;
     case 'coating': for (const t of on()) t.coating = true; break;
-    case 'polarvoid': for (const t of on()) t.polarvoid = Math.max(t.polarvoid, Math.min(d.need ?? POLARVOID.max, POLARVOID.max)); break;
-    case 'scroll': for (const t of targets(d, guide, p)) if (!t.scrolls.includes(d.value)) t.scrolls.push(d.value); break;
+    case 'polarvoid': for (const t of on()) t.polarvoid = Math.max(t.polarvoid ?? 0, Math.min(d.need ?? POLARVOID.max, POLARVOID.max)); break;
+    case 'scroll': for (const t of targets(d, guide, p)) if (!(t.scrolls ??= []).includes(d.value)) t.scrolls.push(d.value); break;
     case 'part': for (const t of targets(d, guide, p)) if (PARTS[d.ids[0]]) t.parts[PARTS[d.ids[0]].kind] = d.ids[0]; break;
     case 'pet':
+      p.pets ??= [];
       for (const pet of p.pets) pet.active = false;
       p.pets = [...p.pets.filter((pet) => pet.type !== d.types[0]), { type: d.types[0], tier: d.tier ?? 'LEGENDARY', exp: PET_TOP_XP, active: true }];
       break;
-    case 'attr': p.attrs[d.attr] = Math.max(p.attrs[d.attr] ?? 0, d.need); break;
+    case 'attr': if (p.attrs) p.attrs[d.attr] = Math.max(p.attrs[d.attr] ?? 0, d.need); break;
     case 'power': p.selectedPower = d.value; break;
     case 'perk':
-      p.hotm.nodes[d.perk] = Math.max(p.hotm.nodes[d.perk] ?? 0, d.level);
-      p.perks[d.perk] = Math.max(p.perks[d.perk] ?? 0, d.level);
+      if (p.hotm) p.hotm.nodes[d.perk] = Math.max(p.hotm.nodes?.[d.perk] ?? 0, d.level);
+      if (p.perks) p.perks[d.perk] = Math.max(p.perks[d.perk] ?? 0, d.level);
       break;
     default: // held, coll, skill: nothing the ranking reads
   }

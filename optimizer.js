@@ -549,7 +549,7 @@ const offsetNotes = (entry, state, loadout) => [
 const LEFT_OUT = 'Estimate: compares upgrades, says nothing about real kill time. Not modelled: Thunderlord, Fire Aspect, Crimson swipe, Burning Vengeance, Venomous, demon phases, pillars.';
 
 // Spec 4.3 as data.
-function limitsOf(profile, state) {
+export function limitsOf(profile, state) {
   const trueDefense = profile.missing?.inventory ? null : state.common.TRUE_DEFENSE ?? 0;
   const mp = profile.mp ?? null;
   return {
