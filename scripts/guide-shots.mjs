@@ -139,6 +139,17 @@ async function keepsPlace(page, base) {
   if (Math.abs(after - before) > 1) fail(`a tick moved the list from ${before} to ${after}`);
 }
 
+// Saving one setting must not throw away what is typed in another field.
+async function keepsTyped(page, base) {
+  await open(page, base, '#/settings');
+  await page.locator('[data-json]').fill('still here');
+  await page.locator('[data-tax]').selectOption('1');
+  await page.waitForFunction(() => document.querySelector('[data-tax]').value === '1');
+  const text = await page.locator('[data-json]').inputValue();
+  if (text !== 'still here') fail(`a settings redraw changed the typed text to "${text}"`);
+  await page.locator('[data-tax]').selectOption('1.25');
+}
+
 // A real swipe through the DOM: the screens change, the slide stays within 250 ms, and reduced motion has none.
 async function swipes(page, base) {
   const swipe = (dx) => page.evaluate((move) => {
@@ -190,6 +201,7 @@ try {
   }
   await keepsPlace(page, base);
   await swipes(page, base);
+  await keepsTyped(page, base);
   await measureTable(page, base);
   await context.close();
 

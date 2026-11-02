@@ -127,8 +127,3 @@ test('an unsaved tick and a picker survive too, a settled field does not', () =>
   settled(done);
   assert.equal(typedFields([done]).size, 0);
 });
-
-test('every settings write in the app keeps or settles its field', () => {
-  const app = readFileSync(new URL('../guide/app.js', import.meta.url), 'utf8');
-  assert.match(app, /restoreTyped\(fields\(\), typed\)/);
-});

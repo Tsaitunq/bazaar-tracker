@@ -1,6 +1,16 @@
 {
   "versions": [
     {
+      "version": "0.2.0",
+      "date": "2026-11-02",
+      "entries": [
+        { "title": "Swipe through a guide", "text": "Swipe sideways to change tabs, and from the first tab back to your guides." },
+        { "title": "Stats behind the profile button", "text": "Your stats now open from the profile button at the top of the start page and of every guide." },
+        { "title": "Limits in the chips", "text": "A missed True Defense or Magical Power limit now shows as a red value in its chip." },
+        { "title": "Source and coins left", "text": "Each guide links its source again and shows the coins left to the end of the chapter and section." }
+      ]
+    },
+    {
       "version": "0.1.0",
       "date": "2026-11-02",
       "entries": [

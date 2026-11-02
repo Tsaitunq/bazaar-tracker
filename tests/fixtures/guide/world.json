@@ -1,7 +1,7 @@
 {
   "guides": {
     "mining": {
-      "title": "Mining", "area": "mining", "groups": { "drill": [["TEST_DRILL"]], "helmet": [["TEST_HELMET"]] },
+      "title": "Mining", "source": "https://example.com/mining-guide", "area": "mining", "groups": { "drill": [["TEST_DRILL"]], "helmet": [["TEST_HELMET"]] },
       "sections": [
         { "name": "Beginning", "steps": [
           { "text": "First tank", "detect": { "kind": "owned", "on": "drill", "need": 1 } },
