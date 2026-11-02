@@ -1,17 +1,11 @@
+import { bookPrices } from './prices.js';
+
+export { bookPrices };
 // The Android background check repeats this maths in AlertLogic.java. Change both together.
 const HOURS_PER_WEEK = 168;
 export const MEDIAN_SPIKE = 0.3;      // sell price this far above its 7 day median is suspicious
 export const PROVISIONAL_HOURS = 24;  // less price history than this: no score, no opportunity
 export const STABLE = 70;
-
-// A flipper trades at the top of the book, so the price is always the best order, however small it is.
-// Looking deeper into the book can only widen the spread and overstate the margin.
-// API names are from the instant buyer's view: sell_summary holds buy orders, buy_summary holds sell offers.
-export function bookPrices(product) {
-  const buy = product.sell_summary?.[0]?.pricePerUnit;
-  const sell = product.buy_summary?.[0]?.pricePerUnit;
-  return buy > 0 && sell > 0 ? { buy, sell } : null;
-}
 
 // stats: { [id]: [score | null, medianSell, hoursOfHistory] } from stats.json, or null when it could not be loaded.
 // An item missing from loaded stats has no history yet and is provisional too.

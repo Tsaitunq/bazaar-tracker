@@ -1,5 +1,6 @@
 // What the screens of the guide app show, worked out from the shared logic. No markup in here.
-import { stepKey, doneSet, guideStats, openStep, stepCost } from '../progress.js';
+import { stepKey, doneSet, guideStats, openStep, stepCost, mergeGuides } from '../progress.js';
+import { syncMessage } from '../sync.js';
 import { rankArea, SCORES } from '../optimizer.js';
 import { detectGuide } from '../detect.js';
 import { checkStep } from '../requires.js';
@@ -193,6 +194,38 @@ export function guideModel(guide, world) {
     stats: statDelta(grid, card?.delta ?? null), chips: ranked.limits ?? null, rows, card, ranked, score, leader, missing: ranked.missing ?? null,
     tabs: score ? [{ id: 'path', label: 'Path' }, { id: 'best', label: 'Best value' }, { id: 'stats', label: 'Stats' }] : [{ id: 'path', label: 'Path' }],
   };
+}
+
+const GUIDE_TABS = ['path', 'best', 'stats'];
+export function parseRoute(hash, guides) {
+  const [, page, id, tab] = String(hash).split('/');
+  if (page === 'stats' || page === 'settings') return { page };
+  if (page === 'guide' && (id === 'farming' || guides.some((g) => g.id === id))) return { page, id, tab: GUIDE_TABS.includes(tab) ? tab : 'path' };
+  return { page: 'home' };
+}
+
+// What a sync run means for the screen. Anything but success keeps the last state.
+export function syncOutcome(result, last) {
+  if (result.status === 'ok') return { state: result.state, message: 'Synced.', choices: [] };
+  if (result.status === 'choose') return { state: last, message: 'Pick your profile.', choices: result.choices };
+  if (result.status === 'error') return { state: last, message: syncMessage(result.error, result.retryIn), choices: [] };
+  return { state: last, message: '', choices: [] };
+}
+
+// A shipped guide coming back unchanged stays shipped, so a later app update can still change it.
+export function applyImport({ imported, checks, bundled }, data) {
+  const same = (g) => JSON.stringify(g) === JSON.stringify(bundled.find((b) => b.id === g.id));
+  return { imported: mergeGuides(imported, data.guides).filter((g) => !same(g)), checks: { ...checks, ...data.progress } };
+}
+
+// firstRun: what is done now is older than the app. That holds per guide too, and for what the first sync finds.
+export function stampAll(guides, checks, dates, state, now, firstRun = false) {
+  const out = { ...dates };
+  for (const guide of guides) {
+    const done = doneSet(guide, new Set(checks[guide.id] ?? []), detectGuide(guide, state?.summary ?? null, stepKey));
+    out[guide.id] = stampDone(dates[guide.id], [...done].filter((k) => !k.startsWith('undone:')), now, firstRun || dates[guide.id] === undefined);
+  }
+  return out;
 }
 
 // The app keeps the checks per guide; a guide model sees only its own.

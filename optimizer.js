@@ -4,8 +4,7 @@ import { DAGGERS, OFA, ADDITIVE_ENCHANTS, blazeOutput, blazeState, daggersOf, ad
 import { nextUpgrades, stepCost, openStep, bookOf, stepKey, stepRow } from './progress.js';
 import { esc, coins } from './format.js';
 import { checkStep } from './requires.js';
-import { walkBook } from './craft.js';
-import { ahNet } from './forge.js';
+import { walkBook, ahNet } from './prices.js';
 import { RARITIES, ENCHANTS, ENCHANTS_NO_STAT, GEMS, GEM_STAT, GEM_SHARED_SLOTS, REFORGES, REFORGES_NO_STAT, COLDFUSED_WISP, ACCESSORY_POWER, PARTS, POLARVOID, COATING } from './optimizer-data.js';
 
 // Spec 4.1. Gemstone Fortune applies on gemstones only (wiki Pristine), and the other fortunes are not counted, so mithril and glacite read low.

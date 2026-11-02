@@ -1,4 +1,4 @@
-import { bookPrices } from './flips.js';
+import { bookPrices } from './prices.js';
 
 export const SHARDS = 16;
 export const KEEP_DAYS = 7;

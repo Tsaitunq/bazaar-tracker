@@ -24,6 +24,8 @@ export function settingsView(world) {
     <label class="field">API key<input type="password" data-set="key" autocomplete="off" autocapitalize="off" spellcheck="false" value=""></label>
     <small>${world.hasKey ? 'Key saved' : 'No key saved'}</small>
     ${world.canSync ? syncView(world.state, world.now, esc, { message: world.message, choices: world.choices }) : '<p>Sync needs the Android app.</p>'}
+    <small role="status">${esc(world.profileMessage ?? '')}</small>
+    <div class="actions"><button type="button" class="ghost" data-act="remove">${world.removeArmed ? 'Tap again to remove' : 'Remove key and profile data'}</button></div>
   </section>`;
   const mining = `<section class="panel"><h2>Mining target</h2>
     <label class="field">Preset<select data-mining="preset">${Object.keys(PRESETS).map((p) => `<option value="${p}"${p === s.preset ? ' selected' : ''}>${words(p)}</option>`).join('')}</select></label>
@@ -34,6 +36,8 @@ export function settingsView(world) {
     ${check('boosterCookie', 'Booster Cookie active', world.boosts?.boosterCookie)}
   </section>`;
   const data = `<section class="panel"><h2>Guides and data</h2>
+    <label class="field">Guide file or export as text<textarea data-json rows="4" spellcheck="false">${esc(world.dataText ?? '')}</textarea></label>
+    <input type="file" data-import-file accept=".json,application/json" hidden>
     <div class="actions"><button type="button" class="ghost" data-act="import">Import</button><button type="button" class="ghost" data-act="export">Export</button></div>
     <small role="status">${esc(world.dataMessage ?? '')}</small>
     ${world.guides.map((g) => resetRow(g, world.armed)).join('')}

@@ -1,0 +1,12 @@
+{
+  "name": "__APP_NAME__",
+  "short_name": "__APP_NAME__",
+  "description": "Follow your progress guides step by step",
+  "lang": "en",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0B0A10",
+  "theme_color": "#0B0A10",
+  "icons": []
+}

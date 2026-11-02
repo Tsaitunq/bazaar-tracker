@@ -1,17 +1,7 @@
-import { bookPrices, bySort, statOf } from './flips.js';
+import { bySort, statOf } from './flips.js';
+import { bookPrices, AH_TAX_FREE, AH_CLAIM_TAX, DERPY_TAX_FACTOR, ahListFee, ahNet } from './prices.js';
 
-// Auction House fees, see docs/events-sources.md. The fee for the auction's duration is not included.
-export const AH_TAX_FREE = 1e6; // collecting a sale up to this much costs nothing, and the tax never cuts below it
-export const AH_CLAIM_TAX = 0.01;
-export const DERPY_TAX_FACTOR = 4; // while Derpy is mayor the tax on collecting is four times as high
-export const ahListFee = (price) => (price > 100e6 ? 0.025 : price >= 10e6 ? 0.02 : 0.01);
-
-// What is left of a BIN sale at `price` after the listing fee and the tax on collecting the coins.
-export function ahNet(price, derpy = false) {
-  const rate = AH_CLAIM_TAX * (derpy ? DERPY_TAX_FACTOR : 1);
-  const claim = price > AH_TAX_FREE ? Math.min(price * rate, price - AH_TAX_FREE) : 0;
-  return price - price * ahListFee(price) - claim;
-}
+export { AH_TAX_FREE, AH_CLAIM_TAX, DERPY_TAX_FACTOR, ahListFee, ahNet };
 
 // One forge recipe as a flip, whether it pays or not; null when a price is missing.
 // r: { n, d: seconds, h: HotM tier, c?: coins, i: { id: quantity } }. ah: { id: lowest BIN }.
