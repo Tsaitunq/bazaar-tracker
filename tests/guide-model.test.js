@@ -315,3 +315,12 @@ test('swapping a score object changes every rate text', () => {
   assert.equal(rows[0].card.rate, 'L');
   assert.equal(rows[1].side, 'R');
 });
+
+test('without a sync the piece a new one replaces is sold, as with a sync', () => {
+  const data = { LOW: { category: 'HELMET', tier: 'RARE', stats: {} }, HIGH: { category: 'HELMET', tier: 'EPIC', stats: { MINING_FORTUNE: 30 } } };
+  const g = mining([{ text: 'high', items: [{ id: 'HIGH', qty: 1 }], detect: { kind: 'owned', on: [['HIGH']] } }]);
+  const products = { HIGH: sold(1e6), LOW: { sell_summary: [{ pricePerUnit: 5e5, amount: 10 }], buy_summary: [] } };
+  const m = guideModel(g, typed({ owned: ['LOW'], products, prices: { items: data } }));
+  assert.equal(m.leader.resale, 5e5);
+  assert.equal(m.leader.net, 5e5);
+});

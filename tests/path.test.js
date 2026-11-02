@@ -4,6 +4,8 @@ import { pathOf } from '../path.js';
 import { miningSettings } from '../optimizer.js';
 import { virtualProfile, virtualLoadout } from '../virtual.js';
 import { blazeState, daggersOf } from '../blaze.js';
+import { applyStep } from '../virtual.js';
+import { ENCHANTS } from '../optimizer-data.js';
 
 const sold = (price) => ({ buy_summary: [{ pricePerUnit: price, amount: 100 }] });
 const step = (text, id, fortune, extra = {}) => ({ text, gain: { MINING_FORTUNE: fortune }, items: [{ id, qty: 1 }], ...extra });
@@ -177,4 +179,71 @@ test('178 steps stay under a second', () => {
   const path = run(guideOf(list), products);
   assert.equal(path.order.length, 178);
   assert.ok(performance.now() - at < 1000);
+});
+
+test('a line whose first open step is a later group member stays behind the group', () => {
+  const g = guideOf([step('g1', 'A', 5, { group: 'G' }), step('g2', 'A', 5, { group: 'G', line: 'M' }), step('c', 'A', 50, { line: 'M' })]);
+  assert.deepEqual(texts(run(g, { A: sold(1e6) })), ['g1', 'g2', 'c']);
+});
+
+test('a group pays for a member without value, and the plan counts it', () => {
+  const g = guideOf([step('v', 'A', 5, { group: 'G' }), { text: 'z', items: [{ id: 'Z', qty: 1 }], group: 'G' }, step('next', 'A', 1)]);
+  const path = run(g, { A: sold(1e6), Z: sold(9e6) });
+  const head = path.order.find((e) => e.step.text === 'v');
+  assert.equal(head.coins, 10e6);
+  assert.equal(head.net, 10e6);
+});
+
+test('a group member without value still counts for the member after it', () => {
+  const items = { LOW: { category: 'HELMET', tier: 'RARE', stats: {} }, HIGH: { category: 'HELMET', tier: 'EPIC', stats: { MINING_FORTUNE: 30 } } };
+  const g = guideOf([
+    { text: 'low', group: 'G', items: [{ id: 'LOW', qty: 1 }], detect: { kind: 'owned', on: [['LOW']] } },
+    { text: 'high', group: 'G', items: [{ id: 'HIGH', qty: 1 }], detect: { kind: 'owned', on: [['HIGH']] } },
+  ]);
+  const profile = virtualProfile(g, new Set(), new Set(), items);
+  const path = pathOf({ guide: g, checked: new Set(), ctx: { products: { LOW: sold(1e5), HIGH: sold(1e6) }, items, tax: 0 }, profile, loadout: virtualLoadout(profile, items, 'mining'), base: { MINING_FORTUNE: 100 }, settings: miningSettings(null), brake: 5, keepOldGear: true });
+  assert.equal(path.order[0].coins, 1.1e6);
+  assert.deepEqual(path.order[0].delta, { MINING_FORTUNE: 30 });
+});
+
+test('a step shares the pieces it does not touch, and leaves the ones handed in alone', () => {
+  const profile = { items: [{ id: 'A', enchants: {}, gems: [] }, { id: 'B', enchants: {}, gems: [] }], pets: [], attrs: {}, perks: {}, hotm: { nodes: {} } };
+  const next = applyStep(profile, { detect: { kind: 'enchant', enchant: 'x', level: 2, on: [['A']] } }, {}, {});
+  assert.equal(next.items[1], profile.items[1]);
+  assert.deepEqual(profile.items[0].enchants, {});
+  assert.deepEqual(next.items[0].enchants, { x: 2 });
+  const perk = applyStep(profile, { detect: { kind: 'perk', perk: 'p', level: 1 } }, {}, {});
+  assert.deepEqual(profile.hotm.nodes, {});
+  assert.equal(perk.hotm.nodes.p, 1);
+  const pet = applyStep({ ...profile, pets: [{ type: 'OLD', active: true }] }, { detect: { kind: 'pet', types: ['NEW'] } }, {}, {});
+  assert.equal(pet.pets.find((p) => p.type === 'OLD').active, false);
+});
+
+test('178 steps on a full profile stay under a second', () => {
+  const list = Array.from({ length: 178 }, (_, i) => ({ text: `s${i}`, gain: { MINING_FORTUNE: 1 + (i % 17) }, items: [{ id: `I${i % 40}`, qty: 1 }], detect: { kind: 'enchant', enchant: 'x', level: 1, on: [[`P${i}`]] }, ...(i % 3 === 0 && { line: `L${i % 12}` }) }));
+  const products = Object.fromEntries(Array.from({ length: 40 }, (_, i) => [`I${i}`, sold(1e4 * (i + 1))]));
+  const pieces = Array.from({ length: 438 }, (_, i) => ({ id: `P${i}`, where: 'inventory', gems: [], enchants: {}, parts: {}, reforge: null, recomb: false, polarvoid: 0, coating: false, scrolls: [], lore: { MINING_SPEED: i }, text: 'x'.repeat(200) }));
+  const profile = { items: pieces, pets: [], hotm: { experience: 0, nodes: {} }, perks: {}, attrs: {}, mp: null, missing: { inventory: false } };
+  const at = performance.now();
+  const path = pathOf({ guide: guideOf(list), checked: new Set(), ctx: { products, items: {}, tax: 0 }, profile, loadout: { armor: [], equipment: [], held: null, accessories: [], pet: null, gaps: [] }, base: { MINING_FORTUNE: 100 }, settings: miningSettings(null), brake: 5, keepOldGear: true });
+  assert.equal(path.order.length, 178);
+  assert.ok(performance.now() - at < 1000, `took ${performance.now() - at} ms`);
+});
+
+test('of two pieces with one id the worn one stays the worn one after a step', () => {
+  const name = Object.keys(ENCHANTS).find((k) => !ENCHANTS[k].only && !ENCHANTS[k].gemstonesOnly && Object.keys(ENCHANTS[k].stats).includes('MINING_FORTUNE')) ?? Object.keys(ENCHANTS).find((k) => !ENCHANTS[k].only && !ENCHANTS[k].gemstonesOnly);
+  const blank = { id: 'HAT', where: 'chest', gems: [], enchants: {}, parts: {}, lore: {} };
+  const worn = { ...blank, where: 'armor', enchants: { [name]: 1 } };
+  const items = { HAT: { category: 'HELMET', tier: 'RARE', stats: {} } };
+  const profile = { items: [blank, worn], pets: [], hotm: { nodes: {} }, perks: {}, attrs: {}, missing: {} };
+  const g = guideOf([step('first', 'A', 50), { text: 'ench', items: [{ id: 'A', qty: 1 }], detect: { kind: 'enchant', enchant: name, level: 1, on: [['HAT']] } }]);
+  const path = pathOf({ guide: g, checked: new Set(), ctx: { products: { A: sold(1e6) }, items, tax: 0 }, profile, loadout: { armor: [worn], equipment: [], held: null, accessories: [], pet: null, gaps: [] }, base: { MINING_FORTUNE: 100 }, settings: miningSettings(null), brake: 5, keepOldGear: true });
+  assert.equal(path.order[1].tier, 'zero');
+});
+
+test('of a line of books only the highest level done counts as spent', () => {
+  const book = (n) => ({ text: `b${n}`, line: 'B', items: [{ id: `ENCHANTMENT_X_${n}`, qty: 1, combine: 0 }], gain: { MINING_FORTUNE: 1 } });
+  const g = guideOf([book(1), book(2), book(3), step('dear', 'D', 50)]);
+  const products = { ENCHANTMENT_X_1: sold(1e6), ENCHANTMENT_X_2: sold(2e6), ENCHANTMENT_X_3: sold(4e6), D: sold(30e6) };
+  assert.equal(run(g, products, { done: ['b1', 'b2', 'b3'] }).order[0].tier, 'overCap');
 });

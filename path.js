@@ -1,7 +1,7 @@
 // The order of a guide's open steps, round by round on a copy of the profile: each pick changes what the next one is worth. Pure.
 import { miningScore } from './stats.js';
 import { blazeOutput, daggersOf } from './blaze.js';
-import { stepKey } from './progress.js';
+import { stepKey, bookOf } from './progress.js';
 import { stepDelta, walkLine, chainCost, netCost, blazeRules, applyBlaze, limitsOf } from './optimizer.js';
 import { applyStep, baseStats } from './virtual.js';
 
@@ -21,7 +21,8 @@ const rulesOf = (world, env) => (isBlaze(world)
 
 // The loadout after a step: the same slots with the pieces of the new profile, and what came new in its slot.
 function nextLoadout(loadout, before, profile, items, area) {
-  const fresh = (piece) => piece && (profile.items.find((i) => i.id === piece.id) ?? piece);
+  // by place: a profile can hold two pieces with one id, and the worn one must stay the worn one
+  const fresh = (piece) => piece && (profile.items[before.items.indexOf(piece)] ?? profile.items.find((i) => i.id === piece.id) ?? piece);
   const out = { ...loadout, armor: loadout.armor.map(fresh), equipment: loadout.equipment.map(fresh), held: fresh(loadout.held), accessories: loadout.accessories.map(fresh) };
   const swap = (list, piece, same) => [...list.filter((i) => !same(i)), piece];
   for (const piece of profile.items.slice(before.items.length)) {
@@ -98,6 +99,8 @@ function moveOf(list, world, env) {
   let unknown = false;
   let leftover = null;
   let shown = null;
+  let valued = 0;
+  const isGroup = list.length > 1 || !!list[0][0].step.group;
   for (const chain of list) {
     const rules = rulesOf(now, env);
     const walked = walkLine(chain, { ...env.ctx, profile: now.profile }, rules);
@@ -107,8 +110,14 @@ function moveOf(list, world, env) {
     if (walked.group) {
       leftover ??= walked.group;
       shown = addChange(shown, rules.deltaOf(chain[0].step));
+      // a member with no value is still bought with the group, and what follows builds on it
+      if (isGroup) {
+        units.push({ steps: chain, target: chain[0], loadout: now.loadout, profile: now.profile });
+        now = advance(now, chain, null, env);
+      }
       continue;
     }
+    valued++;
     units.push({ steps: walked.steps, target: walked.target, loadout: now.loadout, profile: now.profile });
     walked.helps.forEach((h) => helps.add(h));
     progress = Math.min(progress + walked.progress, 1);
@@ -116,12 +125,12 @@ function moveOf(list, world, env) {
     now = advance(now, walked.steps, walked.delta, env);
   }
   const status = unknown ? 'unknown' : 'ok';
-  if (!units.length) return { list, tier: leftover ?? 'zero', status, reasons: [], notes, delta: shown };
+  if (!valued) return { list, tier: leftover ?? 'zero', status, reasons: [], notes, delta: shown };
   const gain = isBlaze(start)
     ? (blazeOutput(start.state) > 0 ? blazeOutput(now.state) / blazeOutput(start.state) - 1 : 0)
     : miningScore(start.base, delta, env.settings);
   const price = sumPrices(units.map((u) => unitPrice(u, env)));
-  const ahead = units.length === 1 && units[0].target !== units[0].steps[0] ? units[0].target.step : null;
+  const ahead = !isGroup && units[0].target !== units[0].steps[0] ? units[0].target.step : null;
   const move = { list, units, delta: addChange(delta, shown), gain, helps: [...helps], progress, status, reasons: [], notes, ahead, after: now, ...price };
   move.perMillion = move.net > 0 ? gain / (move.net / 1e6) : null;
   move.pace = !move.unpriced && (move.coins > 0 || tableStep(units)) ? (move.net > 0 ? progress / (move.net / 1e6) : Infinity) : -1;
@@ -139,12 +148,13 @@ function candidates(open, env, world) {
   for (const entry of open) {
     const { line, group } = entry.step;
     if (group) {
+      // the line waits behind its member, also when an earlier member stood for the group
+      if (line) seenLines.add(line);
       if (seenGroups.has(group)) continue;
       seenGroups.add(group);
       const members = open.filter((e) => e.step.group === group);
       const reachable = members.every((m) => !m.step.line || open.filter((e) => e.step.line === m.step.line && e.index < m.index).every((e) => e.step.group === group));
       if (reachable) moves.push(moveOf(members.map((m) => [m]), world, env));
-      if (line) seenLines.add(line);
       continue;
     }
     if (line) {
@@ -247,7 +257,10 @@ function byValue(open, world, env, doneCost) {
 
 // The guide's coins of what is done count as spent, whatever they were worth then.
 function spentSoFar(guide, checked, env) {
-  return guide.sections.filter((section) => !section.extra).flatMap((section) => section.steps.filter((step) => checked.has(stepKey(section, step))).map((step) => ({ section, step, index: 0, key: stepKey(section, step) })))
+  const done = guide.sections.filter((section) => !section.extra).flatMap((section) => section.steps.filter((step) => checked.has(stepKey(section, step))).map((step) => ({ section, step, index: 0, key: stepKey(section, step) })));
+  // the last level of a book line holds the price of the levels below it
+  const lastBook = new Map(done.filter((e) => e.step.line && bookOf(e.step)).map((e) => [e.step.line, e]));
+  return done.filter((e) => !e.step.line || !bookOf(e.step) || lastBook.get(e.step.line) === e)
     .reduce((sum, e) => sum + chainCost({ steps: [e], target: e }, env.ctx).coins, 0);
 }
 

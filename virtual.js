@@ -18,7 +18,11 @@ const slotsOf = (d, guide) => (typeof d.on === 'string' ? guide.groups?.[d.on] :
 function targets(d, guide, profile) {
   return slotsOf(d, guide).flatMap((ids) => {
     const id = [...ids].reverse().find((one) => profile.items.some((i) => i.id === one));
-    return id ? [profile.items.find((i) => i.id === id)] : [];
+    if (!id) return [];
+    // what a step works on gets its own copy; the rest stays shared with the profile before it
+    const at = profile.items.findIndex((i) => i.id === id);
+    profile.items[at] = structuredClone(profile.items[at]);
+    return [profile.items[at]];
   });
 }
 
@@ -58,7 +62,6 @@ function applyPart(p, d, guide, items) {
     case 'scroll': for (const t of targets(d, guide, p)) if (!(t.scrolls ??= []).includes(d.value)) t.scrolls.push(d.value); break;
     case 'part': for (const t of targets(d, guide, p)) if (PARTS[d.ids[0]]) t.parts[PARTS[d.ids[0]].kind] = d.ids[0]; break;
     case 'pet':
-      p.pets ??= [];
       for (const pet of p.pets) pet.active = false;
       p.pets = [...p.pets.filter((pet) => pet.type !== d.types[0]), { type: d.types[0], tier: d.tier ?? 'LEGENDARY', exp: PET_TOP_XP, active: true }];
       break;
@@ -74,7 +77,11 @@ function applyPart(p, d, guide, items) {
 
 // The profile with a step done. The one handed in stays as it is.
 export function applyStep(profile, step, guide, items) {
-  const next = structuredClone(profile);
+  const next = {
+    ...profile, items: [...profile.items], pets: (profile.pets ?? []).map((pet) => ({ ...pet })),
+    ...(profile.attrs && { attrs: { ...profile.attrs } }), ...(profile.perks && { perks: { ...profile.perks } }),
+    ...(profile.hotm && { hotm: { ...profile.hotm, nodes: { ...profile.hotm.nodes } } }),
+  };
   for (const d of [step.detect ?? []].flat()) applyPart(next, d, guide, items);
   return next;
 }

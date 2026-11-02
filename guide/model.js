@@ -226,7 +226,6 @@ function planOf(guide, world, ctx, checked, scores) {
     if (!Object.keys(entry?.values ?? {}).length) return { missing: 'stats' };
     start = virtualStart(guide, world, ctx, checked, entry, settings);
     picked = virtualLoadout(start.profile, ctx.items, area);
-    other = virtualLoadout(start.profile, ctx.items, otherArea);
   }
   const daggers = area === 'blaze' ? daggersOf(start.profile) : null;
   const loadout = daggers ? { ...picked, daggers } : picked;
