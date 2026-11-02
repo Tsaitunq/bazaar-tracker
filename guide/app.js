@@ -295,7 +295,7 @@ async function saveStats(box) {
   const values = Object.fromEntries([...box.querySelectorAll('[data-stats-stat]')].map((input) => [input.dataset.statsStat, input.value]));
   // the typed-in form has no slots and boxes
   const pick = (kind) => box.querySelector(`[data-stats-set="${kind}"]`)?.value;
-  const form = { armor: pick('armor'), equipment: pick('equipment'), pet: pick('pet'), emptyHand: box.querySelector('[data-stats-empty-hand]')?.checked, boost: box.querySelector('[data-stats-boost]')?.checked, values };
+  const form = { armor: pick('armor'), equipment: pick('equipment'), pet: pick('pet'), emptyHand: box.querySelector('[data-stats-empty-hand]')?.checked, boost: box.querySelector('[data-stats-boost]')?.checked, mp: box.querySelector('[data-stats-mp]')?.value, values };
   const stand = await loadStand() ?? {};
   const synced = personal() ? stand.summary : null;
   const { choice } = statsEntry(area, form, 0);

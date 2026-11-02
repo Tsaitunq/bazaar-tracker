@@ -9,6 +9,7 @@ import { RARITIES, ENCHANTS, ENCHANTS_NO_STAT, GEMS, GEM_STAT, GEM_SHARED_SLOTS,
 // Spec 4.1. Gemstone Fortune applies on gemstones only (wiki Pristine), and the other fortunes are not counted, so mithril and glacite read low.
 export const PRESETS = {
   gemstone: { blockStrength: 3000, wF: 1, wS: 1, wP: 1, gemFortune: true },
+  shafting: { blockStrength: 3000, wF: 1, wS: 1, wP: 1, gemFortune: true },
   mithril: { blockStrength: 500, wF: 1, wS: 1, wP: 0, gemFortune: false },
   glacite: { blockStrength: 6000, wF: 1, wS: 1, wP: 0, gemFortune: false },
 };
@@ -242,6 +243,8 @@ function partOf(d, guide, loadout, profile, items, settings, area = 'mining') {
 
 // What a step adds to the stats of the loadout. null: nothing known about it. {}: known to add nothing of ours.
 export function stepDelta(step, loadout, profile, items, settings, guide) {
+  // a fixed guide states what each step adds on top of the one before; every stat stays for the display
+  if (guide?.order === 'fixed' && step.gain) return { ...step.gain };
   const parts = [step.detect ?? []].flat().map((d) => partOf(d, guide, loadout, profile, items, settings));
   const known = parts.length && !parts.includes(null) ? onlyOf(total(parts), 'mining') : null;
   // the guide's own number stands in only where the data has nothing to say
@@ -399,7 +402,7 @@ export function netCost(step, gross, loadout, other, items, ctx, keepOldGear) {
 }
 
 // Spec 5.3: from the first open step of a line up to the first one that brings something. What stands in the way decides.
-function walkLine(chain, ctx, rules) {
+export function walkLine(chain, ctx, rules) {
   const steps = [];
   let unknown = false;
   const notes = [];
@@ -420,14 +423,14 @@ function walkLine(chain, ctx, rules) {
 }
 
 // A line of books pays only for its last one: that price is the cheapest way there, so the levels between are in it.
-function chainCost({ steps, target }, ctx) {
+export function chainCost({ steps, target }, ctx) {
   const list = bookOf(target.step) ? [target] : steps;
   const costs = list.map(({ section, step }) => stepCost(openStep(section, step, ctx), ctx));
   return { coins: costs.reduce((n, c) => n + c.coins, 0), unpriced: costs.reduce((n, c) => n + c.unpriced, 0) };
 }
 
 // Spec 4.2 and 4.3: gain in damage per second, and what a step does to the limits. An unread value locks nothing and helps nothing.
-function blazeRules(state, loadout, ctx, settings, guide) {
+export function blazeRules(state, loadout, ctx, settings, guide) {
   const now = blazeOutput(state);
   const td = ctx.profile.missing?.inventory ? null : state.common.TRUE_DEFENSE ?? 0;
   const mp = ctx.profile.mp ?? null;

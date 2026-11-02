@@ -2,6 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { isItemStep, idsToOwn, idsOfStep, ownedAuto, mergeAuto, migrateOwned, impliedDone, resetOwned } from '../owned.js';
+import { virtualProfile, virtualLoadout, applyStep, baseStats, doneSince } from '../virtual.js';
+import { daggersOf, DAGGERS } from '../blaze.js';
+import { stepDelta, blazeDelta, PRESETS } from '../optimizer.js';
+import { miningScore, statsEntry, statsView } from '../stats.js';
 import { stepKey, doneSet, openStep, exportData, importData } from '../progress.js';
 import { guideModel, stampAll, tickStep, autoOf, applyImport } from '../guide/model.js';
 import { settingsView } from '../guide/views/settings.js';
@@ -151,4 +155,142 @@ test('export and import carry what is owned', () => {
 
 test('the app ships the new file', () => {
   assert.match(readFileSync(new URL('../guide/sw.js', import.meta.url), 'utf8'), /'\.\.\/owned\.js'/);
+});
+
+const stats = {
+  LOW: { category: 'DEPLOYABLE', tier: 'RARE', stats: { MINING_SPEED: 10 } },
+  HIGH: { category: 'DEPLOYABLE', tier: 'EPIC', stats: { MINING_SPEED: 30 } },
+  D1: { category: 'DRILL', tier: 'RARE', stats: { MINING_SPEED: 100 }, gemstone_slots: [{ slot_type: 'AMBER' }] },
+  D2: { category: 'DRILL', tier: 'EPIC', stats: { MINING_SPEED: 200 }, gemstone_slots: [{ slot_type: 'AMBER' }] },
+  HELM: { category: 'HELMET', tier: 'EPIC', stats: { MINING_FORTUNE: 5 } },
+};
+const on = (detect) => ({ text: 'x', detect });
+
+test('a virtual profile holds what is owned and what the marks say', () => {
+  const g = guideOf('v', [{ text: 'Eff', detect: { kind: 'enchant', on: [['D1']], enchant: 'efficiency', level: 5 } }]);
+  const p = virtualProfile(g, new Set(['S|Eff', 'undone:S|Other']), ['D1', 'HELM'], stats, 900);
+  assert.deepEqual(p.items.map((i) => i.id), ['D1', 'HELM']);
+  assert.equal(p.items[0].enchants.efficiency, 5);
+  assert.deepEqual(p.items[1].lore, stats.HELM.stats);
+  assert.equal(p.mp, 900);
+  assert.equal(p.virtual, true);
+  assert.equal(virtualProfile(g, new Set(), [], stats).mp, null);
+});
+
+test('applyStep leaves its input alone and a second run changes nothing', () => {
+  const start = virtualProfile(guideOf('v', []), new Set(), ['D1'], stats);
+  const copy = structuredClone(start);
+  const steps = [
+    on({ kind: 'owned', on: [['HELM']] }), on({ kind: 'enchant', on: [['D1']], enchant: 'fortune', level: 3 }),
+    on({ kind: 'gem', on: [['D1']], type: 'AMBER', quality: 'FLAWLESS', need: 1 }), on({ kind: 'reforge', on: [['D1']], value: ['lustrous'] }),
+    on({ kind: 'recomb', on: [['D1']] }), on({ kind: 'coating', on: [['D1']] }), on({ kind: 'polarvoid', on: [['D1']], need: 5 }),
+    on({ kind: 'pet', types: ['BAL'], tier: 'EPIC' }), on({ kind: 'attr', attr: 'a', need: 4 }), on({ kind: 'power', value: 'silky' }), on({ kind: 'perk', perk: 'p', level: 2 }),
+  ];
+  let p = start;
+  for (const s of steps) {
+    const once = applyStep(p, s, guideOf('v', []), stats);
+    assert.deepEqual(applyStep(once, s, guideOf('v', []), stats), once);
+    p = once;
+  }
+  assert.deepEqual(start, copy);
+  const [drill] = p.items;
+  assert.equal(drill.enchants.fortune, 3);
+  assert.deepEqual(drill.gems.map((g) => [g.type, g.quality, g.slot]), [['AMBER', 'FLAWLESS', 'AMBER_0']]);
+  assert.equal(drill.reforge, 'lustrous');
+  assert.deepEqual([drill.recomb, drill.coating, drill.polarvoid], [true, true, 5]);
+  assert.deepEqual(p.pets.map((x) => [x.type, x.active]), [['BAL', true]]);
+  assert.equal(p.attrs.a, 4);
+  assert.equal(p.selectedPower, 'silky');
+  assert.equal(p.hotm.nodes.p, 2);
+});
+
+test('a better gem takes the place of the worse one', () => {
+  let p = virtualProfile(guideOf('v', []), new Set(), ['D1'], stats);
+  p = applyStep(p, on({ kind: 'gem', on: [['D1']], type: 'AMBER', quality: 'FLAWLESS', need: 1 }), guideOf('v', []), stats);
+  p = applyStep(p, on({ kind: 'gem', on: [['D1']], type: 'AMBER', quality: 'PERFECT', need: 1 }), guideOf('v', []), stats);
+  assert.deepEqual(p.items[0].gems.map((g) => g.quality), ['PERFECT']);
+});
+
+test('an upgrade of the same kind keeps what sits on the old piece', () => {
+  let p = virtualProfile(guideOf('v', []), new Set(), ['D1'], stats);
+  p = applyStep(p, on({ kind: 'enchant', on: [['D1', 'D2']], enchant: 'fortune', level: 3 }), guideOf('v', []), stats);
+  p = applyStep(p, on({ kind: 'owned', on: [['D2']] }), guideOf('v', []), stats);
+  assert.equal(p.items.find((i) => i.id === 'D2').enchants.fortune, 3);
+  assert.deepEqual(p.items.find((i) => i.id === 'D2').lore, stats.D2.stats);
+});
+
+test('an enchant on a piece not owned adds no piece', () => {
+  const p = applyStep(virtualProfile(guideOf('v', []), new Set(), [], stats), on({ kind: 'enchant', on: [['D1']], enchant: 'fortune', level: 3 }), guideOf('v', []), stats);
+  assert.equal(p.items.length, 0);
+});
+
+test('the loadout wears the strongest of each kind', () => {
+  const p = virtualProfile(guideOf('v', []), new Set(), ['HIGH', 'LOW', 'D1', 'D2', 'HELM'], stats);
+  const load = virtualLoadout(p, stats, 'mining');
+  assert.equal(load.held.id, 'D2');
+  assert.deepEqual(load.armor.map((i) => i.id), ['HELM']);
+  assert.deepEqual(load.gaps, []);
+  assert.equal(p.items.filter((i) => i.id === 'LOW').length, 1);
+});
+
+test('a dagger from a tick is a dagger of the blaze state', () => {
+  const [id] = Object.keys(DAGGERS);
+  const p = virtualProfile(guideOf('v', []), new Set(), [id], { [id]: { category: 'SWORD', tier: 'EPIC', stats: { DAMAGE: 5 } } });
+  assert.equal(daggersOf(p)[DAGGERS[id].line].id, id);
+  assert.equal(virtualLoadout(p, {}, 'blaze').daggers[DAGGERS[id].line].id, id);
+});
+
+test('without item data a virtual profile still works', () => {
+  const p = virtualProfile(guideOf('v', []), new Set(), ['D1'], null);
+  assert.deepEqual(p.items[0].lore, {});
+  assert.equal(virtualLoadout(p, null, 'mining').held, null);
+});
+
+test('the base adds what was done after the stats were saved, oldest first', () => {
+  assert.deepEqual(baseStats({ MINING_SPEED: 100 }, [{ MINING_SPEED: 5 }, { MINING_FORTUNE: 2, MINING_SPEED: 1 }]), { MINING_SPEED: 106, MINING_FORTUNE: 2 });
+  assert.deepEqual(doneSince({ a: 30, b: 10, c: 20, d: 0 }, 15), ['c', 'a']);
+  assert.deepEqual(doneSince({ a: 30 }, undefined), []);
+});
+
+test('the shafting preset reads like gemstone', () => {
+  assert.deepEqual(PRESETS.shafting, PRESETS.gemstone);
+  const s = miningSettings({ preset: 'shafting' });
+  assert.deepEqual([s.preset, s.wF, s.wS, s.wP, s.blockStrength, s.gemFortune], ['shafting', 1, 1, 1, 3000, true]);
+});
+
+test('in a fixed guide its own numbers beat the calculation and keep every stat', () => {
+  const step = { text: 'x', gain: { MINING_SPEED: 5, COLD_RESISTANCE: 3 }, detect: { kind: 'owned', on: [['HIGH']] } };
+  const load = { armor: [], equipment: [], held: null, accessories: [], pet: null, gaps: [] };
+  const profile = { items: [], pets: [] };
+  assert.deepEqual(stepDelta(step, load, profile, stats, {}, { order: 'fixed' }), { MINING_SPEED: 5, COLD_RESISTANCE: 3 });
+  assert.deepEqual(stepDelta(step, load, profile, stats, {}, {}), { MINING_SPEED: 30 });
+});
+
+test('cold resistance adds nothing to the score', () => {
+  assert.equal(miningScore({ MINING_SPEED: 100 }, { COLD_RESISTANCE: 50 }), 0);
+});
+
+test('the typed-in blaze form asks for magical power, the mining form does not', () => {
+  const state = { statsInput: { blaze: { values: {}, mp: 950, at: 1 } } };
+  const html = statsView(state, null, String);
+  assert.equal(html.split('data-stats-area="blaze"')[1].includes('data-stats-mp'), true);
+  assert.equal(html.split('data-stats-area="blaze"')[0].includes('data-stats-mp'), false);
+  assert.match(html, /data-stats-mp value="950"/);
+});
+
+test('magical power is stored as a number, a bad value keeps the old one', () => {
+  const form = (mp) => ({ values: {}, mp });
+  assert.equal(statsEntry('blaze', form('900'), 1).mp, 900);
+  assert.equal(statsEntry('blaze', form(''), 1).mp, undefined);
+  assert.equal(statsEntry('blaze', form('-3'), 1, undefined, { mp: 800 }).mp, 800);
+  assert.equal(statsEntry('blaze', form(undefined), 1, undefined, { mp: 800 }).mp, 800);
+  assert.equal(statsEntry('blaze', form(''), 1, undefined, { mp: 800 }).mp, undefined);
+});
+
+test('the app hands the form value on and blaze deltas run on a virtual profile', () => {
+  assert.match(readFileSync(new URL('../guide/app.js', import.meta.url), 'utf8'), /data-stats-mp/);
+  const p = virtualProfile(guideOf('v', []), new Set(), [], stats);
+  const load = virtualLoadout(p, stats, 'blaze');
+  const state = { common: {}, daggers: load.daggers, armorIds: [], path: 'guide' };
+  assert.deepEqual(blazeDelta({ text: 'x', detect: { kind: 'owned', on: [['HELM']] } }, state, load, p, stats, {}, {}).common.MINING_FORTUNE, undefined);
 });

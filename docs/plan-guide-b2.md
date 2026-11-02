@@ -141,7 +141,8 @@ Dazu der Review-Focus-Fall 3: `shownState` ohne `summary` plus `pg.owned` ergibt
 **Files:** Modify `owned.js`, `optimizer.js`, `tests/owned.test.js`.
 
 **Interfaces:**
-- Produces `virtualProfile(guide, marks, ownedIds, items) -> summary`: Form wie `profile.js`, `mp` aus dem Formular (sonst null), `attrs: {}`, `hotm: { nodes: {} }`, `missing: { inventory: false }`, `virtual: true`. Items tragen `lore: items[id].stats`.
+- Ruling: Die Funktionen liegen in `virtual.js`, nicht in `owned.js`, weil `progress.js` `owned.js` importiert und leicht bleiben soll.
+- Produces `virtualProfile(guide, marks, ownedIds, items, mp = null) -> summary`: Form wie `profile.js`, `mp` aus dem Formular (sonst null), `attrs: {}`, `hotm: { nodes: {} }`, `missing: { inventory: false }`, `virtual: true`. Items tragen `lore: items[id].stats`.
 - Produces `virtualLoadout(profile, items, area) -> loadout`: je Kategorie die höchste Stufe. Für Blaze zusätzlich `daggers`.
 - Produces `applyStep(profile, step, guide, items) -> profile` (rein): trägt `owned`, `enchant`, `gem`, `reforge`, `recomb`, `coating`, `polarvoid`, `part`, `pet`, `attr`, `power`, `perk` ein. Unbekannte Arten ändern nichts.
 - Produces `baseStats(typed, doneAfter) -> stats`: `typed` plus Deltas in Datumsreihenfolge. `entry.at` fehlt: keine Zuschläge. Stempel 0 zählen nie.
@@ -207,7 +208,7 @@ test('fixed order keeps the guide order and adds the gains up', ...);
 **Files:** Modify `guide/model.js`, `guide/app.js`, `guide/views/{guide,parts,settings}.js`, `guide/guide.css`, `optimizer.js`, `tests/guide-*.test.js`.
 
 **Interfaces:**
-- Consumes `pathOf`, `virtualProfile`, `virtualLoadout`, `baseStats`.
+- Consumes `pathOf`, `virtualProfile`, `virtualLoadout`, `baseStats`, `doneSince` (alle aus `virtual.js`, außer `pathOf`). `mp` kommt aus `statsInput.blaze.mp`.
 - Produces `world.pathEpoch` (Zähler in `app.js`, steigt beim Öffnen eines Guides, bei jedem Haken und beim ersten Bazaar-Laden).
 - Produces in `guide/model.js` den Cache `pathCached(guide, world)`, Schlüssel `guide.id|pathEpoch|syncedAt|stats at`.
 - Produces `row.group = 'with the next N steps'`, `row.tier`. Neue `STATS`-Einträge für `COLD_RESISTANCE`, `GEMSTONE_SPREAD`, `PICKAXE_CDR`.
