@@ -44,3 +44,5 @@ Kontrast: Fließtext ≥ 4.5:1 auf `bg`/`surface`. Touch-Ziele ≥ 44 px.
 - **Farming**: Theme fertig, Guide-Inhalt und Score-Formel folgen. Bis dahin Leerzustand im Farming-Theme („Guide coming soon“).
 
 Werte wie „% per 1M“ immer mit Einheit ausschreiben, nie als nackte Zahl.
+
+Abgleich mit der Vorlage: `docs/guide-design-check.md`, erzeugt von `npm run guide:shots`.
