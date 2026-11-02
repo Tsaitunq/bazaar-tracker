@@ -305,6 +305,13 @@ export function settled(f) {
   else f.defaultValue = f.value;
 }
 
+// What stays after removing key and profile: the typed-in /stats, without what was measured against a sync.
+export function statsOnly(stand) {
+  const entries = Object.entries(stand?.statsInput ?? {});
+  if (!entries.length) return null;
+  return { statsInput: Object.fromEntries(entries.map(([area, { offset, offsetFor, offsetNote, ...kept }]) => [area, kept])) };
+}
+
 // The app keeps the checks per guide; a guide model sees only its own.
 export const worldFor = (world, guide) => ({ ...world, marks: new Set(world.checks?.[guide.id] ?? []) });
 

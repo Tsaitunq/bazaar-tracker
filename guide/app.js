@@ -2,13 +2,13 @@
 import { loadItemData, loadStatsPreset, loadForge, loadAh, loadElection, freshBins, fetchBins } from '../data.js';
 import { loadBundled, mergeGuides, exportData, importData, setMark, stepKey, doneSet } from '../progress.js';
 import { createSync, syncMessage, normalizeUuid, cleanKey } from '../sync.js';
-import { plugin, canSync, getApiKey, setApiKey, loadProfile, saveProfile, clearProfileData } from '../native.js';
+import { plugin, canSync, getApiKey, setApiKey, loadProfile, saveProfile, clearProfileData, clearApiKeyOnly } from '../native.js';
 import { summarize } from '../profile.js';
 import { detectGuide } from '../detect.js';
 import { fallbackName, loadItems } from '../names.js';
 import { PRESETS, miningSettings } from '../optimizer.js';
 import { computeStats, loadoutOf, offsetStale, statsEntry } from '../stats.js';
-import { parseRoute, syncOutcome, applyImport, stampAll, formEdited, typedFields, restoreTyped, settled, swipeTarget, swipeAxis, swipeLands } from './model.js';
+import { parseRoute, syncOutcome, applyImport, stampAll, formEdited, typedFields, restoreTyped, settled, statsOnly, swipeTarget, swipeAxis, swipeLands } from './model.js';
 import { homeView } from './views/home.js';
 import { guideView, statsView } from './views/guide.js';
 import { settingsView } from './views/settings.js';
@@ -233,7 +233,13 @@ async function removeProfile() {
   keyField.value = '';
   settled(keyField);
   profileSync.invalidate();
-  profileMessage = await clearProfileData() ? 'Key and profile data removed.' : 'Could not remove them.';
+  // a store that cannot be read right now gives null: what is on screen still holds the typed-in stats
+  const kept = statsOnly(await loadStand() ?? state);
+  let removed;
+  if (!plugin()) removed = await saveStand(kept);
+  else if (kept) removed = await saveStand(kept) && await clearApiKeyOnly();
+  else removed = await clearProfileData();
+  profileMessage = removed ? 'Key and profile data removed.' : 'Could not remove them.';
   await showProfile();
   draw();
 }

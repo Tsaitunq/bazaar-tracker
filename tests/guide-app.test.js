@@ -132,3 +132,9 @@ test('a tick before the profile is loaded gets no date, and what the sync found 
   assert.equal(after.g['S|owned'], 0);
   assert.equal(after.g['S|tick'], 300);
 });
+
+test('removing the profile saves the typed stats before the key goes, and survives a failed read', () => {
+  const body = app.slice(app.indexOf('async function removeProfile'), app.indexOf('function saveSettings'));
+  assert.match(body, /statsOnly(await loadStand() ?? state)/);
+  assert.ok(body.indexOf('saveStand(kept)') < body.indexOf('clearApiKeyOnly()'));
+});

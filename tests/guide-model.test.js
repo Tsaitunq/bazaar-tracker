@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { chaptersOf, totalShare, stampDone, unlockedThisWeek, guideModel, stepStatus, statDelta } from '../guide/model.js';
+import { chaptersOf, totalShare, stampDone, unlockedThisWeek, guideModel, stepStatus, statDelta, statsOnly } from '../guide/model.js';
 import { pathRow, stepCard } from '../guide/views/parts.js';
 import { number } from '../format.js';
 import { miningSettings } from '../optimizer.js';
@@ -220,4 +220,14 @@ test('a section with nothing left to pay says nothing', () => {
   const g = { id: 'g', title: 'G', sections: [{ name: 'A', steps: [{ text: 'free' }] }] };
   const m = guideModel(g, { marks: new Set(), products: {}, name: String });
   assert.equal(m.card.left, '');
+});
+
+test('statsOnly keeps typed stats and drops what came from the sync', () => {
+  const stand = { uuid: 'u', summary: {}, syncedAt: 1, statsInput: { mining: { values: { MINING_SPEED: 1 }, choice: { armor: null }, boost: false, at: 5, offset: { MINING_SPEED: 3 }, offsetFor: {}, offsetNote: null } } };
+  assert.deepEqual(statsOnly(stand), { statsInput: { mining: { values: { MINING_SPEED: 1 }, choice: { armor: null }, boost: false, at: 5 } } });
+});
+
+test('statsOnly without typed stats is null', () => {
+  assert.equal(statsOnly({ uuid: 'u' }), null);
+  assert.equal(statsOnly(null), null);
 });
