@@ -62,12 +62,23 @@ let shownRoute = '';
 
 const guides = () => mergeGuides(bundled, imported);
 const route = () => parseRoute(location.hash, guides());
+// Off until asked for, so the app starts on typed-in stats. Whoever already has a key or a sync keeps it.
+const personal = () => settings.personal ?? (hasKey || !!state?.syncedAt);
+// With the sync off, what it found stays stored but counts for nothing. Keeps undefined: the profile is not loaded yet.
+const shownState = () => (state && !personal() ? { ...state, summary: undefined, syncedAt: undefined } : state);
+// Typed-in stats are no secret, so without the Android store they live in the browser.
+const loadStand = () => (plugin() ? loadProfile() : load('pg.profile', null));
+const saveStand = async (stand) => {
+  if (plugin()) return saveProfile(stand);
+  save('pg.profile', stand);
+  return true;
+};
 const boosts = () => ({ godPotion: settings.godPotion ?? preset?.boosts?.godPotion ?? false, boosterCookie: settings.boosterCookie ?? preset?.boosts?.boosterCookie ?? false });
 
 const world = () => {
   pending = new Set();
   return {
-    guides: guides(), checks, dates, state: state ?? null, products, now: Date.now(),
+    guides: guides(), checks, dates, state: shownState() ?? null, personal: personal(), products, now: Date.now(),
     prices: { forge, ah, cofl: freshBins(bins), wants: pending, items, tax: (settings.tax ?? DEFAULT_TAX) / 100, derpy: election?.mayor?.name === 'Derpy' },
     settings: miningSettings(settings.mining), keepOldGear: settings.keepOldGear === true, boosts: boosts(), preset,
     name: (id) => names[id] ?? fallbackName(id), uuid: state?.uuid ?? '', hasKey, keyMessage, tax: settings.tax ?? DEFAULT_TAX, importedIds: imported.map((g) => g.id), canSync: canSync(), message: note.message, choices: note.choices,
@@ -142,7 +153,7 @@ async function askBins(wants) {
 }
 
 function stamp(firstRun = false) {
-  dates = stampAll(guides(), checks, dates, state, Date.now(), firstRun);
+  dates = stampAll(guides(), checks, dates, shownState(), Date.now(), firstRun);
   save('pg.dates', dates);
 }
 
@@ -161,7 +172,7 @@ function toggle(key) {
   const guide = guides().find((g) => g.id === r.id);
   if (!guide) return;
   const marks = new Set(checks[guide.id] ?? []);
-  const auto = detectGuide(guide, state?.summary ?? null, stepKey);
+  const auto = detectGuide(guide, shownState()?.summary ?? null, stepKey);
   setMark(guide, marks, key, !doneSet(guide, marks, auto).has(key), auto);
   checks = { ...checks, [guide.id]: [...marks] };
   save('pg.checks', checks);
@@ -186,19 +197,20 @@ async function runSync(pick) {
 }
 
 async function showProfile() {
-  state = await loadProfile();
+  state = await loadStand();
   // a key that cannot be read right now is not a missing key
   [hasKey, keyMessage] = await getApiKey().then((key) => [!!key, null], () => [false, syncMessage('keyread')]);
 }
 
 async function saveUuid(input) {
   const uuid = normalizeUuid(input.value);
+  let stand;
   if (uuid) settled(input);
   if (!uuid) profileMessage = syncMessage('input');
-  else if ((await loadProfile())?.uuid !== uuid) {
-    // another player's stand must not stay behind under a new UUID
+  else if ((stand = await loadStand())?.uuid !== uuid) {
+    // another player's stand must not stay behind under a new UUID; stats typed in before any UUID are the player's own
     profileSync.invalidate();
-    profileMessage = await saveProfile({ uuid }) ? 'Saved.' : syncMessage('store');
+    profileMessage = await saveStand(stand?.uuid ? { uuid } : { ...stand, uuid }) ? 'Saved.' : syncMessage('store');
     await showProfile();
   }
   draw();
@@ -270,15 +282,17 @@ async function runExport() {
 async function saveStats(box) {
   const area = box.dataset.statsArea;
   const values = Object.fromEntries([...box.querySelectorAll('[data-stats-stat]')].map((input) => [input.dataset.statsStat, input.value]));
-  const pick = (kind) => box.querySelector(`[data-stats-set="${kind}"]`).value;
-  const form = { armor: pick('armor'), equipment: pick('equipment'), pet: pick('pet'), emptyHand: box.querySelector('[data-stats-empty-hand]').checked, boost: box.querySelector('[data-stats-boost]').checked, values };
-  const stand = await loadProfile();
-  if (!stand) return;
+  // the typed-in form has no slots and boxes
+  const pick = (kind) => box.querySelector(`[data-stats-set="${kind}"]`)?.value;
+  const form = { armor: pick('armor'), equipment: pick('equipment'), pet: pick('pet'), emptyHand: box.querySelector('[data-stats-empty-hand]')?.checked, boost: box.querySelector('[data-stats-boost]')?.checked, values };
+  const stand = await loadStand() ?? {};
+  const synced = personal() ? stand.summary : null;
   const { choice } = statsEntry(area, form, 0);
-  const measured = items && stand.summary ? { total: computeStats(stand.summary, items, loadoutOf(stand.summary, items, area, choice, miningSettings(settings.mining)), area, boosts()).total, boosts: boosts() } : null;
+  let measured; // nothing to measure against without a sync, so no offset at all
+  if (synced) measured = items ? { total: computeStats(synced, items, loadoutOf(synced, items, area, choice, miningSettings(settings.mining)), area, boosts()).total, boosts: boosts() } : null;
   const entry = statsEntry(area, form, Date.now(), measured, stand.statsInput?.[area] ?? null);
   const next = { ...stand, statsInput: { ...stand.statsInput, [area]: entry } };
-  if (await saveProfile(next)) {
+  if (await saveStand(next)) {
     state = next;
     box.querySelectorAll('input, select').forEach(settled);
   }

@@ -412,6 +412,18 @@ function petPicker(pets, picked, esc) {
   return `<label>Pet<select data-stats-set="pet">${options.join('')}</select></label>`;
 }
 
+const statInputs = (area, entry) => AREA_STATS[area].map((stat) => `<label>${STAT_NAME[stat]} in /stats<input type="number" step="any" inputmode="decimal" data-stats-stat="${stat}" value="${entry.values?.[stat] ?? ''}"></label>`).join('');
+
+// Without a synced profile the numbers from /stats are all there is: no slots, nothing to compare with.
+function manualView(area, entry) {
+  return `<section class="stats-area" data-stats-area="${area}"><strong>${AREA_TITLE[area]}</strong>
+    <small>Type in what /stats shows in game.</small>
+    ${statInputs(area, entry)}
+    <div class="actions"><button type="button" data-stats-save>Save ${AREA_TITLE[area]} stats</button></div>
+    ${entry.at ? '<small role="status">Saved on this device.</small>' : ''}
+  </section>`;
+}
+
 export function areaView(area, state, items, esc, boosts, preset) {
   const profile = state.summary;
   const entry = state.statsInput?.[area] ?? preset?.[area] ?? {};
@@ -433,7 +445,7 @@ export function areaView(area, state, items, esc, boosts, preset) {
     <small>Measure with the setup you actually play with. In hand: ${loadout.held ? esc(loadout.held.id) : 'nothing'}.</small>
     <label class="check"><input type="checkbox" data-stats-empty-hand${entry.choice?.emptyHand ? ' checked' : ''}> Nothing in hand when measuring</label>
     <label class="check"><input type="checkbox" data-stats-boost${entry.boost ? ' checked' : ''}> God Potion / Booster Cookie active</label>
-    ${AREA_STATS[area].map((stat) => `<label>${STAT_NAME[stat]} in /stats<input type="number" step="any" inputmode="decimal" data-stats-stat="${stat}" value="${entry.values?.[stat] ?? ''}"></label>`).join('')}
+    ${statInputs(area, entry)}
     <div class="actions"><button type="button" data-stats-save>Save ${AREA_TITLE[area]} stats</button></div>
     ${stale ? '<small class="stats-stale">Your /stats values are older than the last sync.</small>' : ''}
     ${OFFSET_NOTE[entry.offsetNote] ? `<small class="stats-stale">${OFFSET_NOTE[entry.offsetNote]}</small>` : ''}
@@ -446,6 +458,6 @@ export function areaView(area, state, items, esc, boosts, preset) {
 
 // The settings block: pick the slots, type in /stats, read the difference.
 export function statsView(state, items, esc, boosts = {}, preset = null) {
-  if (!state?.summary) return '<small>Sync your profile to see your stats.</small>';
+  if (!state?.summary) return ['mining', 'blaze'].map((area) => manualView(area, state?.statsInput?.[area] ?? preset?.[area] ?? {})).join('');
   return ['mining', 'blaze'].map((area) => areaView(area, state, items, esc, boosts, preset)).join('');
 }

@@ -5,7 +5,8 @@
       "date": "2026-11-02",
       "entries": [
         { "title": "Swipes follow your finger", "text": "The screen now moves with your finger, snaps into place when you let go, and springs back on a short swipe." },
-        { "title": "Guides open on your step", "text": "Opening a guide takes you straight to the step you are on, just below the header." }
+        { "title": "Guides open on your step", "text": "Opening a guide takes you straight to the step you are on, just below the header." },
+        { "title": "Type in your stats", "text": "Enter your /stats by hand under Stats, no API key needed; syncing with your own key is now an option in Settings." }
       ]
     },
     {

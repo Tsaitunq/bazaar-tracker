@@ -21,7 +21,7 @@ const blaze = { id: 'fire', title: 'Blaze Slayer', area: 'blaze', groups: {}, se
 const NOW = 1e12;
 const world = (over = {}) => ({
   guides: [mining, blaze], checks: {}, dates: {}, state: { summary: profile(), syncedAt: NOW - 2 * 3600e3, profileName: 'P' }, products: { A: sold(1e6), B: sold(2e6) }, prices: { items },
-  settings: miningSettings(null), keepOldGear: false, boosts: {}, now: NOW, hasKey: false, uuid: '', canSync: true, message: '', choices: [], armed: null, name: String, ...over,
+  personal: true, settings: miningSettings(null), keepOldGear: false, boosts: {}, now: NOW, hasKey: false, uuid: '', canSync: true, message: '', choices: [], armed: null, name: String, ...over,
 });
 
 test('home shows one line per guide with its best step, value and unit, and no shared best deal card', () => {
@@ -166,12 +166,30 @@ test('no guide at all shows an empty home', () => {
   assert.match(html, /class="bar"/);
 });
 
+test('the start state offers typed-in stats and hides the key', () => {
+  const off = world({ state: null, personal: false });
+  const settings = settingsView(off);
+  assert.match(settings, /data-flag="personal">/);
+  assert.doesNotMatch(settings, /data-set="key"|data-set="uuid"|data-sync="run"|data-act="remove"/);
+  assert.doesNotMatch(homeView(off), /Not synced yet/);
+  assert.match(settingsView(world({ state: null })), /data-flag="personal" checked[^]*data-set="key"/);
+});
+
+test('typed-in stats fill the grid without a sync, and an empty field stays unknown', () => {
+  const typed = world({ state: { uuid: '', statsInput: { mining: { values: { MINING_FORTUNE: 1234 }, at: 1 } } }, personal: false });
+  const html = guideView(typed, 'mine', 'path');
+  assert.match(html, /1,234/);
+  assert.match(html, /–/);
+  assert.doesNotMatch(guideView(world({ state: null, personal: false }), 'mine', 'path'), /class="stat-value/);
+});
+
 test('no sync shows what is missing and links to settings', () => {
   const off = world({ state: null });
   assert.match(homeView(off), /Not synced yet/);
   assert.match(homeView(off), /href="#\/settings"/);
   const best = guideView(off, 'mine', 'best');
-  assert.match(best, /Sync your profile/);
+  assert.match(best, /profile sync/);
+  assert.match(best, /href="#\/stats"/);
   assert.match(best, /href="#\/settings"/);
   const path = guideView(off, 'mine', 'path');
   assert.match(path, /class="card"/);

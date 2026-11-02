@@ -447,7 +447,7 @@ const view = (g, { state = { summary: summary(), syncedAt: 1 }, products = { A: 
 
 test('without a sync the mode says what is missing and links to the settings', () => {
   const html = view(mineGuide(), { state: null });
-  assert.match(html, /Sync your profile/);
+  assert.match(html, /profile sync/);
   assert.match(html, /href="#\/settings"/);
 });
 

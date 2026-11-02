@@ -73,7 +73,7 @@ test('the worker registers only outside the native app', () => {
 
 test('a sync without plugin is not offered', () => {
   assert.match(app, /canSync: canSync\(\)/);
-  const html = settingsView({ guides: [], settings: miningSettings(null), canSync: false, state: null, now: 1, choices: [], message: '' });
+  const html = settingsView({ guides: [], personal: true, settings: miningSettings(null), canSync: false, state: null, now: 1, choices: [], message: '' });
   assert.doesNotMatch(html, /data-sync="run"/);
 });
 
@@ -83,7 +83,7 @@ test('no guide file gives an empty home without an error', () => {
 });
 
 test('settings can remove the key and profile data, after a second tap', () => {
-  const world = { guides: [], settings: miningSettings(null), canSync: true, state: null, now: 1, choices: [], message: '' };
+  const world = { guides: [], personal: true, settings: miningSettings(null), canSync: true, state: null, now: 1, choices: [], message: '' };
   assert.match(settingsView(world), /data-act="remove">Remove key and profile data</);
   assert.match(settingsView({ ...world, removeArmed: true }), /data-act="remove">Tap again to remove</);
 });

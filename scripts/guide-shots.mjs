@@ -57,15 +57,15 @@ const server = http.createServer((req, res) => {
 const json = (route, body, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
 
 // The real guides and values in personal/ never reach a picture: all of it comes from the fixture.
-async function stubs(context, withData) {
-  await context.addInitScript(({ profile }) => {
-    let stand = profile;
+async function stubs(context, withData, { profile = withData ? { ...fixture.profile, syncedAt: Date.now() - 2 * 3600e3 } : null, native = true } = {}) {
+  if (native) await context.addInitScript(({ profile: first }) => {
+    let stand = first;
     const plugin = {
-      getApiKey: async () => ({ key: stand ? 'stub' : null }), setApiKey: async () => {}, clearApiKey: async () => {},
+      getApiKey: async () => ({ key: stand?.syncedAt ? 'stub' : null }), setApiKey: async () => {}, clearApiKey: async () => {},
       loadProfile: async () => ({ json: JSON.stringify(stand) }), saveProfile: async ({ json }) => { stand = JSON.parse(json); }, clearProfile: async () => { stand = null; },
     };
     window.Capacitor = { isNativePlatform: () => true, Plugins: { BazaarAlerts: plugin } };
-  }, { profile: withData ? { ...fixture.profile, syncedAt: Date.now() - 2 * 3600e3 } : null });
+  }, { profile });
   await context.route('**/*', (route) => {
     const url = new URL(route.request().url());
     const name = url.pathname.split('/').pop();
@@ -179,6 +179,46 @@ async function keepsTyped(page, base) {
   await page.locator('[data-tax]').selectOption('1.25');
 }
 
+// The start state: no key, no sync, stats typed in by hand; they stay when the sync is switched on, and in a browser over a reload.
+async function manual(browser, base) {
+  const start = async (native) => {
+    const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2 });
+    await stubs(context, true, { profile: null, native });
+    const page = await context.newPage();
+    page.on('pageerror', (e) => fail(`manual: ${e.message}`));
+    await open(page, base, '#/stats');
+    await page.locator('[data-stats-area="mining"] [data-stats-stat="MINING_FORTUNE"]').fill('1234');
+    await page.locator('[data-stats-area="mining"] [data-stats-save]').click();
+    await page.locator('[data-stats-area="mining"] [role="status"]').waitFor();
+    return { context, page };
+  };
+  const typed = (page) => page.locator('[data-stats-area="mining"] [data-stats-stat="MINING_FORTUNE"]').inputValue();
+  const { context, page } = await start(true);
+  await page.screenshot({ path: path.join(OUT, 'manual-stats.png') });
+  await layoutChecks(page, 'manual stats');
+  await open(page, base, '#/guide/mining/path');
+  await page.screenshot({ path: path.join(OUT, 'manual-guide.png') });
+  await layoutChecks(page, 'manual guide');
+  if (await page.locator('.stat-value').first().innerText() !== '1,234') fail('the typed-in value is not in the grid');
+  if (!await page.locator('.card .primary').count()) fail('no step to tick by hand');
+  await open(page, base, '#/settings');
+  await page.screenshot({ path: path.join(OUT, 'manual-settings.png') });
+  await layoutChecks(page, 'manual settings');
+  if (await page.locator('[data-set="key"]').count()) fail('the start state shows the key field');
+  await page.locator('[data-flag="personal"]').check();
+  await page.locator('[data-set="uuid"]').fill('0123456789abcdef0123456789abcdef');
+  await page.locator('[data-set="uuid"]').blur();
+  await page.getByText('Saved.').waitFor();
+  await open(page, base, '#/stats');
+  if (await typed(page) !== '1234') fail('saving a UUID threw away the typed-in stats');
+  await context.close();
+  const web = await start(false);
+  await web.page.reload();
+  await web.page.waitForLoadState('networkidle');
+  if (await typed(web.page) !== '1234') fail('a browser forgot the typed-in stats');
+  await web.context.close();
+}
+
 // Real touches: the screen follows the finger, a short drag springs back, a long one or a flick lands, a scroll never swipes, reduced motion has no movement.
 async function swipes(browser, base) {
   const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2, hasTouch: true });
@@ -276,6 +316,7 @@ try {
   await measureTable(page, base);
   await context.close();
   await swipes(browser, base);
+  await manual(browser, base);
 
   const empty = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2 });
   await stubs(empty, false);

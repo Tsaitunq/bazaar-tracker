@@ -162,7 +162,7 @@ a { color: var(--area); }
 .compare th { text-align: left; font-weight: 500; color: var(--muted); }
 .compare td, .compare th { padding: 4px 4px 4px 0; }
 .compare .flag { color: var(--stat-yellow); }
-.note a, .empty a { display: inline-flex; align-items: center; min-height: 44px; }
+.note a, .empty a, .panel small a { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; }
 .panel .row { width: 100%; }
 /* the shared /stats form and sync block */
 .stats-area, .guide-sync { padding: 14px 16px; border-radius: 20px; background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; font-size: 12px; color: var(--muted); }

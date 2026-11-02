@@ -211,7 +211,10 @@ export function guideModel(guide, world) {
   });
 
   const chapters = chaptersOf(guide, checked, costs).map((c) => ({ ...c, leftText: c.current && c.done < c.total ? leftText(c.left, world.products) : '' }));
-  const grid = ranked.base ? (GRIDS[guide.area] ?? []).map((k) => ({ key: k, icon: STATS[k].icon, label: STATS[k].short ?? STATS[k].label, color: STATS[k].color, value: number(ranked.base[k] ?? 0), delta: '' })) : [];
+  // without a ranking the typed-in /stats are what is known; a field left empty is unknown, not 0
+  const typed = ranked.base ? null : (world.state?.statsInput?.[guide.area] ?? world.preset?.[guide.area])?.values;
+  const shown = ranked.base ?? (Object.keys(typed ?? {}).length ? typed : null);
+  const grid = shown ? (GRIDS[guide.area] ?? []).map((k) => ({ key: k, icon: STATS[k].icon, label: STATS[k].short ?? STATS[k].label, color: STATS[k].color, value: !ranked.base && shown[k] === undefined ? '–' : number(shown[k] ?? 0), delta: '' })) : [];
   return {
     id: guide.id, source: guide.source ?? '', products: world.products, area: guide.area, theme: guide.area ?? 'home', name: guide.title, chapters, total: totalShare(chapters),
     stats: statDelta(grid, card?.delta ?? null), chips: ranked.limits ?? null, rows, card, ranked, score, leader, missing: ranked.missing ?? null, usedCofl: !!ctx.usedCofl,
