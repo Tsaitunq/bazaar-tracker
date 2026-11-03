@@ -7,7 +7,7 @@ import { pathOf, entryPrice } from '../path.js';
 import { virtualProfile, virtualLoadout, applyStep, baseStats, doneSince } from '../virtual.js';
 import { computeStats, loadoutOf, withOffset } from '../stats.js';
 import { blazeState, daggersOf } from '../blaze.js';
-import { detectGuide } from '../detect.js';
+import { detectGuide, explainGuide } from '../detect.js';
 import { checkStep } from '../requires.js';
 import { coins, number } from '../format.js';
 
@@ -166,6 +166,21 @@ function subOf(status, rank, reasons, lines, fromSync, skipped) {
 
 // What the sync found and what is ticked as owned, for one guide.
 export const autoOf = (guide, summary, owned) => mergeAuto(detectGuide(guide, summary ?? null, stepKey), ownedAuto(guide, new Set(owned ?? []), stepKey));
+
+// The detection report: each step the sync or a tick in another guide counts, with what was found for it. have and need
+// are those of autoOf, so the report says what the path does. A tick of an item counts like a piece "ticked by hand".
+export function reportOf(guide, summary, owned) {
+  const auto = autoOf(guide, summary, owned);
+  const synced = explainGuide(guide, summary ?? null, stepKey);
+  const ticked = explainGuide(guide, { items: (owned ?? []).map((id) => ({ id, where: 'tick' })) }, stepKey);
+  return guide.sections.flatMap((section) => section.steps.flatMap((step) => {
+    const key = stepKey(section, step);
+    const found = auto.get(key);
+    if (!found?.have) return [];
+    const why = (found.ticked ? ticked : synced).get(key) ?? { parts: [], by: null };
+    return [{ key, name: step.text, section: section.name, have: found.have, need: found.need, ticked: !!found.ticked, parts: why.parts, by: why.by }];
+  }));
+}
 
 // One tick. An item step goes to the state of all guides, anything else stays a mark of this guide. Gives the new owned state.
 export function tickStep({ guide, key, on, marks, owned, summary }) {
@@ -375,25 +390,30 @@ export function parseRoute(hash, guides) {
   return { page: 'home' };
 }
 
-// Where a sideways drag leads from a guide: the next tab, the one before, and from the first tab home. tabs: those on screen.
-export function swipeTarget(r, dx, tabs) {
+// Where a sideways drag leads from a guide: the next guide of its area, the one before, and from the first one home. family: the guide ids of the area in order.
+export function swipeTarget(r, dx, family) {
   if (r.page !== 'guide' || !dx) return null;
-  const at = Math.max(tabs.indexOf(r.tab), 0);
-  if (dx > 0) return { hash: at > 0 ? `#/guide/${r.id}/${tabs[at - 1]}` : '#/', back: true };
-  return at + 1 < tabs.length ? { hash: `#/guide/${r.id}/${tabs[at + 1]}`, back: false } : null;
+  const at = Math.max(family.indexOf(r.id), 0);
+  if (dx > 0) return { hash: at > 0 ? `#/guide/${family[at - 1]}/path` : '#/', back: true };
+  return at + 1 < family.length ? { hash: `#/guide/${family[at + 1]}/path`, back: false } : null;
 }
 
-// The first movement decides: clearly sideways is a swipe, anything else stays a scroll for the whole touch.
-const AXIS_MIN_PX = 10;
+// The first 8 px decide: mostly sideways is a swipe, anything else stays a scroll for the whole touch.
+const AXIS_MIN_PX = 8;
+const AXIS_RATIO = 1.5;
 export function swipeAxis(dx, dy) {
   if (Math.hypot(dx, dy) < AXIS_MIN_PX) return null;
-  return Math.abs(dx) > 2 * Math.abs(dy) ? 'x' : 'y';
+  return Math.abs(dx) > AXIS_RATIO * Math.abs(dy) ? 'x' : 'y';
 }
 
-// On release a flick counts by its direction, a slow drag by how far it got. speed in px/ms.
+// On release the swipe goes on with the speed of the finger: where it would be after MOMENTUM_MS decides.
+// It lands past 30 % of the width on the side it was pulled to, otherwise it goes back. speed in px/ms.
 const LAND_SHARE = 0.3;
-const FLICK_SPEED = 0.5;
-export const swipeLands = (dx, speed, width) => (Math.abs(speed) >= FLICK_SPEED ? speed * dx > 0 : Math.abs(dx) >= LAND_SHARE * width);
+const MOMENTUM_MS = 200;
+export function swipeLands(dx, speed, width) {
+  const ahead = dx + speed * MOMENTUM_MS;
+  return ahead * dx > 0 && Math.abs(ahead) >= LAND_SHARE * width;
+}
 
 // What a sync run means for the screen. Anything but success keeps the last state.
 export function syncOutcome(result, last) {

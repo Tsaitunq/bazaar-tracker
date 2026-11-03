@@ -8,7 +8,7 @@ import { migrateOwned, resetOwned } from '../owned.js';
 import { fallbackName, loadItems } from '../names.js';
 import { PRESETS, miningSettings } from '../optimizer.js';
 import { computeStats, loadoutOf, offsetStale, statsEntry } from '../stats.js';
-import { parseRoute, syncOutcome, applyImport, stampAll, formEdited, typedFields, restoreTyped, settled, statsOnly, autoOf, tickStep, swipeTarget, swipeAxis, swipeLands } from './model.js';
+import { parseRoute, syncOutcome, applyImport, stampAll, formEdited, typedFields, restoreTyped, settled, statsOnly, autoOf, tickStep, swipeTarget, swipeAxis, swipeLands, familyOf } from './model.js';
 import { homeView } from './views/home.js';
 import { guideView, statsView } from './views/guide.js';
 import { settingsView } from './views/settings.js';
@@ -17,9 +17,10 @@ const BAZAAR = 'https://api.hypixel.net/v2/skyblock/bazaar';
 const PRICE_EVERY = 300e3;
 const BIN_RETRY = 600e3;
 const DEFAULT_TAX = 1.25;
-const SETTLE_MS = 220; // as in guide.css
-const EDGE_PULL = 0.25;
+const SETTLE_MS = 200; // as in guide.css
+const EDGE_PULL = 0.25; // only where no screen waits: the last guide of an area
 const FLICK_FRESH_MS = 80;
+const SPEED_KEEP = 0.4; // the speed of a flick: the last moves count most, one jittery event does not decide
 const CARD_GAP = 8;
 const FOLD_PX = 24;
 
@@ -62,6 +63,8 @@ let settling = false;
 let redrawDue = false;
 let shownRoute = '';
 let infoOpen = false; // the sheet of notes stays open over a redraw
+let evidenceKey = null; // the step whose API tag was tapped: its sheet stays open over a redraw
+let tiers = {};
 let folded = false; // the head of a guide, down to its title line
 let byHand = false; // a finger, wheel or key was used; the app's own scroll to the card does not fold the head
 let follow = false; // the list still sits where the app put it, so a redraw puts it on the card again
@@ -71,6 +74,12 @@ const opened = {}; // a new order of one path: when that guide opens. Going back
 
 const guides = () => mergeGuides(bundled, imported);
 const route = () => parseRoute(location.hash, guides());
+// A swipe moves between the guides of one area, like the switch at the top.
+const targetOf = (dx) => {
+  const r = route();
+  const guide = guides().find((g) => g.id === r.id);
+  return swipeTarget(r, dx, guide ? familyOf(guides(), guide).map((g) => g.id) : [r.id]);
+};
 // Off until asked for, so the app starts on typed-in stats. Whoever already has a key or a sync keeps it.
 const personal = () => settings.personal ?? (hasKey || !!state?.syncedAt);
 // With the sync off, what it found stays stored but counts for nothing. Keeps undefined: the profile is not loaded yet.
@@ -91,7 +100,7 @@ const world = () => {
     prices: { forge, ah, cofl: freshBins(bins), wants: pending, items, tax: (settings.tax ?? DEFAULT_TAX) / 100, derpy: election?.mayor?.name === 'Derpy' },
     settings: miningSettings(settings.mining), keepOldGear: settings.keepOldGear === true, brake: settings.brake > 0 ? settings.brake : 5, pathEpoch, opened, boosts: boosts(), preset,
     name: (id) => names[id] ?? fallbackName(id), uuid: state?.uuid ?? '', hasKey, keyMessage, tax: settings.tax ?? DEFAULT_TAX, importedIds: imported.map((g) => g.id), canSync: canSync(), message: note.message, choices: note.choices,
-    profileMessage, dataMessage, dataText, armed, removeArmed,
+    profileMessage, dataMessage, dataText, armed, removeArmed, evidence: evidenceKey, tierOf: (id) => tiers[id] ?? '',
   };
 };
 
@@ -122,12 +131,14 @@ function draw() {
   const typed = typedFields(fields());
   const activeField = fields().indexOf(document.activeElement);
   const shownPage = root.firstElementChild?.dataset.page;
+  const openParts = [...root.querySelectorAll('details[data-keep-open][open]')].map((d) => d.dataset.keepOpen);
   const w = world();
   root.innerHTML = screenOf(route(), w);
   // the same form again: what is typed stays, and so does the field being typed in
   if (root.firstElementChild?.dataset.page === shownPage) {
     restoreTyped(fields(), typed);
     if (activeField >= 0) fields()[activeField]?.focus({ preventScroll: true });
+    root.querySelectorAll('details[data-keep-open]').forEach((d) => { d.open = openParts.includes(d.dataset.keepOpen); });
   }
   document.documentElement.dataset.theme = root.firstElementChild?.dataset.theme ?? 'home';
   const after = root.querySelector('.path, .scroll');
@@ -136,6 +147,7 @@ function draw() {
   if (shown !== shownRoute) {
     folded = false;
     infoOpen = false;
+    evidenceKey = null;
     byHand = false;
     follow = true;
   }
@@ -147,6 +159,7 @@ function draw() {
   shownRoute = shown;
   root.firstElementChild?.classList.toggle('head-min', folded);
   if (infoOpen) openInfo();
+  if (evidenceKey) openEvidence();
   if (focused !== undefined) {
     const same = [...root.querySelectorAll('[data-step]')].filter((el) => el.dataset.step === focused);
     (same.find((el) => el.className === focusClass) ?? same[0])?.focus({ preventScroll: true });
@@ -157,12 +170,19 @@ function draw() {
 
 // New prices must not wipe what is being typed into a form.
 function openInfo() {
-  const sheet = root.querySelector('dialog.sheet');
+  const sheet = root.querySelector('dialog.sheet:not(.ev-sheet)');
   if (!sheet) { infoOpen = false; return; }
   if (!sheet.open) sheet.showModal();
   infoOpen = true;
   // a sheet thrown away by a redraw may still report its close; only the one on screen counts
   sheet.addEventListener('close', () => { if (root.contains(sheet)) infoOpen = false; }, { once: true });
+}
+
+function openEvidence() {
+  const sheet = root.querySelector('dialog.ev-sheet');
+  if (!sheet) { evidenceKey = null; return; }
+  if (!sheet.open) sheet.showModal();
+  sheet.addEventListener('close', () => { if (root.contains(sheet)) evidenceKey = null; }, { once: true });
 }
 
 function drawInBackground() {
@@ -356,6 +376,8 @@ root.addEventListener('click', (e) => {
   const tab = el('[data-tab]');
   if (tab) { location.hash = tabTarget(tab.dataset.tab); return; }
   if (el('[data-info]')) { openInfo(); return; }
+  const why = el('[data-evidence]');
+  if (why) { evidenceKey = why.dataset.evidence; draw(); return; }
   const step = el('[data-step]');
   if (step) { toggle(step.dataset.step); return; }
   const sync = el('[data-sync="run"]');
@@ -436,12 +458,13 @@ const stillMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches
 const idle = (job) => (window.requestIdleCallback ? requestIdleCallback(job, { timeout: 1000 }) : setTimeout(job, 200));
 const unidle = (id) => (window.cancelIdleCallback ? cancelIdleCallback(id) : clearTimeout(id));
 let peekJob = 0;
+let reorderJob = 0;
 let landedOn = null;
 let frame = 0;
 
 function buildPeek(to) {
   const peek = document.createElement('div');
-  peek.className = 'peek';
+  peek.className = to.back ? 'peek' : 'peek peek-next';
   peek.inert = true;
   peek.dataset.hash = to.hash;
   peek.innerHTML = screenOf(parseRoute(to.hash, guides()), world());
@@ -449,15 +472,19 @@ function buildPeek(to) {
   return peek;
 }
 
-// The screen a swipe leads to, built while the app is idle and kept hidden, so the first move of a finger renders nothing.
+const peekOf = (to) => [...root.querySelectorAll('.peek')].find((p) => p.dataset.hash === to.hash);
+// a peek waits beside the screen: the one before on the left, the next one on the right
+const besideAt = (peek, shift) => `translate3d(${shift + (peek.classList.contains('peek-next') ? root.clientWidth : -root.clientWidth)}px, 0, 0)`;
+
+// The screens a swipe leads to, built while the app is idle and kept hidden, so the first move of a finger renders nothing.
 function preparePeek() {
   if (peekJob) unidle(peekJob);
   peekJob = 0;
-  const to = swipeTarget(route(), 1, []);
-  if (!to || stillMotion()) return;
+  const targets = [targetOf(1), targetOf(-1)].filter(Boolean);
+  if (!targets.length || stillMotion()) return;
   peekJob = idle(() => {
     peekJob = 0;
-    if (!touch && !settling && !root.querySelector('.peek')) buildPeek(to);
+    if (!touch && !settling) targets.filter((to) => !peekOf(to)).forEach(buildPeek);
   });
 }
 
@@ -467,19 +494,37 @@ function paint() {
   if (touch?.axis !== 'x') return;
   const shift = touch.to ? touch.dx : touch.dx * EDGE_PULL;
   root.firstElementChild.style.transform = `translate3d(${shift}px, 0, 0)`;
-  const peek = root.querySelector('.peek');
-  if (peek) peek.style.transform = `translate3d(${shift - root.clientWidth}px, 0, 0)`;
+  // only the peek on the side the finger moves to comes along; the other one waits at its place
+  for (const peek of root.querySelectorAll('.peek')) {
+    if (touch.to?.hash === peek.dataset.hash) peek.style.transform = besideAt(peek, shift);
+    else peek.style.removeProperty('transform');
+  }
+}
+
+// A guide opens at once in the order it had last time; its new order follows when the app is idle, with the card kept in sight.
+function reorderLater() {
+  const r = route();
+  if (r.page !== 'guide') return;
+  if (reorderJob) unidle(reorderJob);
+  reorderJob = idle(() => {
+    reorderJob = 0;
+    const now = route();
+    if (now.page !== 'guide' || now.id !== r.id) return;
+    opened[r.id] = (opened[r.id] ?? 0) + 1;
+    drawInBackground();
+  });
 }
 
 function landed(to) {
   settling = false;
   root.removeAttribute('class');
   root.firstElementChild?.style.removeProperty('transform');
-  root.querySelector('.peek')?.style.removeProperty('transform');
+  root.querySelectorAll('.peek').forEach((p) => p.style.removeProperty('transform'));
   // drawn at once, so no frame shows the old screen back in place; its hashchange then has nothing left to do
   if (to) { landedOn = to.hash; location.hash = to.hash; }
   if (to || redrawDue) draw();
   redrawDue = false;
+  if (to) reorderLater();
 }
 
 function settle(to) {
@@ -490,10 +535,9 @@ function settle(to) {
   if (stillMotion()) { landed(to); return; }
   root.classList.add(to ? 'settle' : 'spring');
   root.classList.remove('swiping');
-  const shift = to ? root.clientWidth : 0;
+  const shift = to ? (to.back ? root.clientWidth : -root.clientWidth) : 0;
   root.firstElementChild.style.transform = `translate3d(${shift}px, 0, 0)`;
-  const peek = root.querySelector('.peek');
-  if (peek) peek.style.transform = `translate3d(${shift - root.clientWidth}px, 0, 0)`;
+  root.querySelectorAll('.peek').forEach((p) => { p.style.transform = besideAt(p, shift); });
   setTimeout(() => landed(to), SETTLE_MS);
 }
 
@@ -528,6 +572,7 @@ root.addEventListener('touchstart', (e) => {
   touch = free ? { x: first.clientX, y: first.clientY, lastX: first.clientX, at: e.timeStamp, speed: 0, axis: null, dx: 0, to: null } : null;
 }, { passive: true });
 
+// Not passive: once a touch is a swipe, the list under it must not scroll along.
 root.addEventListener('touchmove', (e) => {
   if (!touch) return;
   const [now] = e.touches;
@@ -535,18 +580,17 @@ root.addEventListener('touchmove', (e) => {
   touch.axis ??= swipeAxis(dx, now.clientY - touch.y);
   if (touch.axis === 'y') { touch = null; return; }
   if (touch.axis !== 'x') return;
-  if (e.timeStamp > touch.at) touch.speed = (now.clientX - touch.lastX) / (e.timeStamp - touch.at);
+  if (e.cancelable) e.preventDefault();
+  if (e.timeStamp > touch.at) touch.speed = SPEED_KEEP * touch.speed + (1 - SPEED_KEEP) * ((now.clientX - touch.lastX) / (e.timeStamp - touch.at));
   touch.lastX = now.clientX;
   touch.at = e.timeStamp;
   if (stillMotion()) return;
   touch.dx = dx;
-  touch.to = swipeTarget(route(), dx, []);
-  if (!root.classList.contains('swiping')) {
-    if (touch.to && !root.querySelector('.peek')) buildPeek(touch.to); // not ready yet: built now, once
-    root.classList.add('swiping');
-  }
+  touch.to = targetOf(dx);
+  if (touch.to && !peekOf(touch.to)) buildPeek(touch.to); // not ready yet: built now, once per side
+  root.classList.add('swiping');
   frame ||= requestAnimationFrame(paint);
-}, { passive: true });
+}, { passive: false });
 
 root.addEventListener('touchcancel', () => {
   if (touch?.axis === 'x') settle(null);
@@ -558,16 +602,15 @@ root.addEventListener('touchend', (e) => {
   const dx = e.changedTouches[0].clientX - touch.x;
   // a finger that rested before lifting is no flick
   const speed = e.timeStamp - touch.at > FLICK_FRESH_MS ? 0 : touch.speed;
-  const to = swipeTarget(route(), dx, []);
+  const to = targetOf(dx);
   settle(to && swipeLands(dx, speed, root.clientWidth) ? to : null);
 }, { passive: true });
 
 window.addEventListener('hashchange', () => {
   if (landedOn === location.hash) { landedOn = null; return; }
   landedOn = null;
-  const r = route();
-  if (r.page === 'guide') opened[r.id] = (opened[r.id] ?? 0) + 1;
   draw();
+  reorderLater();
 });
 
 if ('serviceWorker' in navigator && !plugin()) navigator.serviceWorker.register('sw.js').catch(() => {});
@@ -591,6 +634,6 @@ loadForge().then((r) => { forge = r; pathEpoch++; drawInBackground(); });
 loadAh().then((r) => { ah = r; pathEpoch++; drawInBackground(); });
 loadElection().then((r) => { election = r; drawInBackground(); });
 loadItemData().then((r) => { items = r; pathEpoch++; drawInBackground(); });
-loadItems().then((r) => { names = r.names; drawInBackground(); });
+loadItems().then((r) => { names = r.names; tiers = r.tiers ?? {}; drawInBackground(); });
 refreshPrices();
 setInterval(refreshPrices, PRICE_EVERY);

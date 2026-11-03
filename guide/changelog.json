@@ -1,6 +1,16 @@
 {
   "versions": [
     {
+      "version": "0.6.0",
+      "date": "2026-11-03",
+      "entries": [
+        { "title": "Swipe between Mining guides", "text": "Swipe left and right to move between Gear progression and Shafting gear, and right from the first one to go home." },
+        { "title": "A lighter swipe", "text": "The screen now follows your finger exactly, keeps the speed of your flick and settles quickly, and guides open at once." },
+        { "title": "Why a step is ticked", "text": "Tap API on a step to see what the sync found for it; Settings list it for every guide under Detection report." },
+        { "title": "Price source moved", "text": "Where the prices come from is now in the notes behind the ⓘ and in Settings." }
+      ]
+    },
+    {
       "version": "0.5.0",
       "date": "2026-11-03",
       "entries": [

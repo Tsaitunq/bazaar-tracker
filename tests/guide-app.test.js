@@ -88,15 +88,15 @@ test('settings can remove the key and profile data, after a second tap', () => {
   assert.match(settingsView({ ...world, removeArmed: true }), /data-act="remove">Tap again to remove</);
 });
 
-test('a swipe moves between the tabs of a guide and from the first one home', () => {
-  const tabs = ['path', 'best'];
-  const at = (tab) => ({ page: 'guide', id: 'mine', tab });
-  assert.deepEqual(swipeTarget(at('path'), -80, tabs), { hash: '#/guide/mine/best', back: false });
-  assert.deepEqual(swipeTarget(at('best'), 80, tabs), { hash: '#/guide/mine/path', back: true });
-  assert.deepEqual(swipeTarget(at('path'), 80, tabs), { hash: '#/', back: true });
-  assert.equal(swipeTarget(at('best'), -80, tabs), null);
-  assert.deepEqual(swipeTarget(at('path'), 80, ['path']), { hash: '#/', back: true });
-  assert.equal(swipeTarget(at('path'), -80, ['path']), null);
+test('a swipe moves between the guides of an area and from the first one home', () => {
+  const family = ['mine', 'shaft'];
+  const at = (id) => ({ page: 'guide', id, tab: 'path' });
+  assert.deepEqual(swipeTarget(at('mine'), -80, family), { hash: '#/guide/shaft/path', back: false });
+  assert.deepEqual(swipeTarget(at('shaft'), 80, family), { hash: '#/guide/mine/path', back: true });
+  assert.deepEqual(swipeTarget(at('mine'), 80, family), { hash: '#/', back: true });
+  assert.equal(swipeTarget(at('shaft'), -80, family), null);
+  assert.deepEqual(swipeTarget(at('mine'), 80, ['mine']), { hash: '#/', back: true });
+  assert.equal(swipeTarget(at('mine'), -80, ['mine']), null);
 });
 
 test('other screens have no swipe', () => {
@@ -105,20 +105,23 @@ test('other screens have no swipe', () => {
   assert.equal(swipeTarget({ page: 'guide', id: 'mine', tab: 'path' }, 0, ['path']), null);
 });
 
-test('the first movement decides between a swipe and a scroll', () => {
-  assert.equal(swipeAxis(6, 6), null);
-  assert.equal(swipeAxis(30, 10), 'x');
-  assert.equal(swipeAxis(-30, 10), 'x');
-  assert.equal(swipeAxis(30, 15), 'y'); // slanted stays a scroll
+test('the first 8 px decide between a swipe and a scroll', () => {
+  assert.equal(swipeAxis(5, 5), null);
+  assert.equal(swipeAxis(8, 0), 'x');
+  assert.equal(swipeAxis(30, 15), 'x');
+  assert.equal(swipeAxis(-30, 19), 'x');
+  assert.equal(swipeAxis(30, 21), 'y'); // slanted stays a scroll
   assert.equal(swipeAxis(2, -40), 'y');
 });
 
-test('a swipe lands past 30 % of the width or with a flick in its direction, otherwise it springs back', () => {
+test('a swipe lands where its speed would carry it past 30 % of the width, otherwise it goes back', () => {
   assert.equal(swipeLands(-116, 0, 390), false);
   assert.equal(swipeLands(-117, 0, 390), true);
-  assert.equal(swipeLands(40, 0.5, 390), true);
-  assert.equal(swipeLands(40, 0.49, 390), false);
+  assert.equal(swipeLands(40, 0.39, 390), true); // 40 + 78 px
+  assert.equal(swipeLands(40, 0.3, 390), false);
+  assert.equal(swipeLands(20, 1, 390), true); // a short flick
   assert.equal(swipeLands(-200, 0.8, 390), false); // far out, but flicked back
+  assert.equal(swipeLands(-200, 2, 390), false); // flicked past the start: the other way is no landing
 });
 
 test('a tick before the profile is loaded gets no date, and what the sync found stays old', () => {
