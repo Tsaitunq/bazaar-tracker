@@ -64,6 +64,7 @@ let shownRoute = '';
 let infoOpen = false; // the sheet of notes stays open over a redraw
 let folded = false; // the head of a guide, down to its title line
 let byHand = false; // a finger, wheel or key was used; the app's own scroll to the card does not fold the head
+let follow = false; // the list still sits where the app put it, so a redraw puts it on the card again
 let foldFrom = 0; // where the list was when the head last opened
 let pathEpoch = 0; // a new order of the path: on opening a guide, on a tick, on the first prices and when a setting changes
 
@@ -135,6 +136,10 @@ function draw() {
     folded = false;
     infoOpen = false;
     byHand = false;
+    follow = true;
+  }
+  // prices or item data that come after the opening reorder the path; until a hand or a tick moves the list, the card stays in sight
+  if (shown !== shownRoute || follow) {
     showCard(root);
     foldFrom = root.querySelector('.path')?.scrollTop ?? 0;
   }
@@ -204,6 +209,7 @@ function toggle(key) {
   save('pg.checks', checks);
   save('pg.owned', owned);
   dataText = ''; // an export from before this tick must not come back by accident
+  follow = false; // the list stays under the finger that ticked
   pathEpoch++;
   stamp();
   draw();
@@ -476,7 +482,7 @@ root.addEventListener('scroll', (e) => {
   });
 }, { capture: true, passive: true });
 // set before the scroll it causes: a passive wheel may already have moved the list when its event comes
-const handScroll = () => { byHand = true; };
+const handScroll = () => { byHand = true; follow = false; };
 root.addEventListener('wheel', handScroll, { passive: true });
 root.addEventListener('keydown', handScroll);
 root.addEventListener('click', (e) => { if (folded && e.target.closest('.ring-head')) fold(false); });

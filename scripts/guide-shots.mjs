@@ -9,6 +9,8 @@ import { copyGuide } from './guide-copy.mjs';
 const OUT = 'guide-shots';
 const WEB = 'www-guide';
 const VIEWPORT = { width: 390, height: 844 };
+// the phones of the device test: every screen is shot on both, and a guide opens with its whole card in sight
+const PHONES = [VIEWPORT, { width: 412, height: 915 }];
 const fixture = JSON.parse(fs.readFileSync('tests/fixtures/guide/world.json', 'utf8'));
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.woff2': 'font/woff2', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
 
@@ -139,7 +141,10 @@ async function opensOnCard(page, base) {
   await open(page, base, '#/guide/mining/path');
   await onCard('from home');
   if (await scrolled() <= 0) fail('the card already was on top, the check says nothing');
-  await list.evaluate((el) => { el.scrollTop += 100; });
+  const was = await scrolled();
+  await page.mouse.move(195, 600);
+  await page.mouse.wheel(0, 100); // by hand: the app's own place for the list no longer counts
+  await page.waitForFunction((at) => document.querySelector('.path').scrollTop !== at, was);
   const moved = await scrolled();
   await page.evaluate(() => window.dispatchEvent(new HashChangeEvent('hashchange')));
   if (await scrolled() !== moved) fail('a redraw moved the list back to the card');
@@ -170,6 +175,24 @@ async function pathParts(page, base) {
   if (await brake.inputValue() !== '5') fail('the brake does not start at 5');
   await brake.scrollIntoViewIfNeeded();
   await page.screenshot({ path: path.join(OUT, 'settings-brake.png') });
+}
+
+async function phones(browser, base) {
+  for (const viewport of PHONES) {
+    const context = await browser.newContext({ viewport, deviceScaleFactor: 2 });
+    await stubs(context, true);
+    const page = await context.newPage();
+    page.on('pageerror', (e) => fail(`${viewport.width}: ${e.message}`));
+    for (const [name, hash] of SHOTS) {
+      await open(page, base, hash);
+      if (viewport !== VIEWPORT) await page.screenshot({ path: path.join(OUT, `${name}-${viewport.width}.png`) });
+      await layoutChecks(page, `${name} ${viewport.width}`);
+      if (!hash.startsWith('#/guide/') || hash.includes('farming')) continue;
+      const box = await page.evaluate(() => { const c = document.querySelector('.card').getBoundingClientRect(); const p = document.querySelector('.path').getBoundingClientRect(); return { top: c.top - p.top, bottom: Math.min(p.bottom, innerHeight) - c.bottom }; });
+      if (box.top < 0 || box.bottom < 0) fail(`${name} ${viewport.width}: the Mark done card is cut by ${Math.round(-Math.min(box.top, box.bottom))} px`);
+    }
+    await context.close();
+  }
 }
 
 // The app's own scroll to the card keeps the head open, a scroll by hand folds it, a tap on its line opens it.
@@ -357,6 +380,7 @@ try {
   await keepsTyped(page, base);
   await measureTable(page, base);
   await context.close();
+  await phones(browser, base);
   await swipes(browser, base);
   await manual(browser, base);
 
