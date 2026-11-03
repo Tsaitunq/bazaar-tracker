@@ -288,6 +288,14 @@ test('a later price changes the number, not the place, until the next tick', () 
   assert.deepEqual(ticked.rows.map((r) => r.name), ['y', 'x', 'z']);
 });
 
+test('opening one guide orders only its own path again', () => {
+  const g = { ...mining([coinsOf('x', 'A', 5), coinsOf('y', 'B', 5)]), id: 'own' };
+  const at = (opened, a) => guideModel(g, typed({ pathEpoch: 1, opened, products: { A: sold(a), B: sold(2e6) } })).rows.map((r) => r.name);
+  assert.deepEqual(at({ own: 1 }, 1e6), ['x', 'y']);
+  assert.deepEqual(at({ own: 1, other: 5 }, 9e6), ['x', 'y']);
+  assert.deepEqual(at({ own: 2, other: 5 }, 9e6), ['y', 'x']);
+});
+
 test('a cold resistance step shows its stat and no rate', () => {
   const g = { ...mining([{ text: 'warm', gain: { COLD_RESISTANCE: 5 }, items: [{ id: 'A', qty: 1 }] }]), order: 'fixed' };
   const [row] = guideModel(g, typed()).rows;

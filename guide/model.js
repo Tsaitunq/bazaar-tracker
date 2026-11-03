@@ -245,7 +245,7 @@ const plans = new Map();
 function planCached(guide, world, ctx, checked, scores) {
   if (world.pathEpoch === undefined) return planOf(guide, world, ctx, checked, scores);
   const entry = world.state?.statsInput?.[guide.area];
-  const key = `${guide.id}|${world.pathEpoch}|${world.state?.syncedAt}|${entry?.at}`;
+  const key = `${guide.id}|${world.pathEpoch}|${world.opened?.[guide.id] ?? 0}|${world.state?.syncedAt}|${entry?.at}`;
   if (plans.get(guide.id)?.key !== key) plans.set(guide.id, { key, plan: planOf(guide, world, ctx, checked, scores) });
   return plans.get(guide.id).plan;
 }

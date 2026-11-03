@@ -308,7 +308,7 @@ async function swipes(browser, base) {
   const at = async (want, what) => {
     const hash = await page.evaluate(() => location.hash);
     if (hash !== want) fail(`${what}: at ${hash}, should be at ${want}`);
-    if (await page.locator('.peek').count()) fail(`${what}: the next screen stayed behind`);
+    if (await page.locator('.peek:visible, #app[class]').count()) fail(`${what}: the next screen stayed behind`);
   };
   const shift = (selector) => page.locator(selector).first().evaluate((el) => new DOMMatrix(getComputedStyle(el).transform).m41);
   const MINING = '#/guide/mining/path';
@@ -317,14 +317,14 @@ async function swipes(browser, base) {
   await page.locator('.ring-head').waitFor();
   await pull(100);
   await wait(50);
-  if (Math.abs(await shift('.head') - 100) > 1) fail('the head does not follow the finger');
-  if (await page.locator('.peek .screen').count() !== 1) fail('no next screen beside this one');
+  if (Math.abs(await shift('#app > .screen') - 100) > 1) fail('the head does not follow the finger');
+  if (await page.locator('.peek:visible .screen').count() !== 1) fail('no next screen beside this one');
   await page.screenshot({ path: path.join(OUT, 'swipe-mid.png') });
   await lift(150);
   await at(MINING, 'under 30 %');
   await pull(-200);
   await wait(50);
-  if (Math.abs(await shift('.head') + 50) > 1) fail('the only tab does not hold back the pull');
+  if (Math.abs(await shift('#app > .screen') + 50) > 1) fail('the only tab does not hold back the pull');
   await lift(150);
   await at(MINING, 'past the only tab');
 
