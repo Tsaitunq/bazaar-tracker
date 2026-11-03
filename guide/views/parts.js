@@ -52,11 +52,21 @@ export function pathRow(row) {
   return `<div class="step${row.member ? ' step-member' : ''}">${rail(row.status, row.railTop, row.railBottom)}<button type="button" class="row${state}" data-step="${key}" aria-pressed="${row.status === 'done'}"><span class="row-text"><span class="row-name">${esc(row.name)}</span>${sub}${shown('row-sub', row.group)}</span><span class="row-side">${side}</span></button>${row.api ? `<button type="button" class="undo" data-evidence="${key}" aria-label="What the sync found for this step" aria-haspopup="dialog">API</button>` : ''}${row.undo ? `<button type="button" class="undo" data-step="${key}" aria-label="Undo the API check">Undo</button>` : ''}</div>`;
 }
 
+// The part of a section name in brackets explains the section; the guide's ⓘ holds it, the card shows the short name.
+export const shortSection = (name) => name.replace(/\s*\(.+\)$/, '');
+
+// The card keeps name, stats, cost and Mark done in sight; what the cost is made of folds behind the cost line.
 export function stepCard(card) {
   const box = card.stats.length || card.gain
     ? `<div class="card-box">${card.stats.map((s) => `<span class="card-stat c-${s.color}">${esc(s.text)}</span>`).join('')}${shown('card-gain', card.gain)}</div>`
     : '';
-  return `<div class="step">${rail('current', card.railTop, card.railBottom)}<div class="card"><div class="card-head"><span class="card-name">${esc(card.name)}</span>${card.badge ? '<span class="card-badge">★ BEST VALUE</span>' : ''}${shown('card-where', card.where)}</div>${box}${(card.items ?? []).map((i) => shown('card-item', i.text)).join('')}<div class="card-foot"><span class="card-cost">${esc(card.cost)}</span>${shown('card-rate', card.rate)}</div>${shown('card-where', card.group)}${(card.notes ?? []).map((n) => shown('card-where', n)).join('')}${shown('card-where', card.hint)}${card.left ? `<span class="card-where">${esc(card.left)} to section end</span>` : ''}<button type="button" class="primary" data-step="${esc(card.key)}">Mark done</button></div></div>`;
+  const more = [...(card.items ?? []).map((i) => shown('card-item', i.text)), shown('card-where', card.group), ...(card.notes ?? []).map((n) => shown('card-where', n)), shown('card-where', card.hint), card.left ? `<span class="card-where">${esc(card.left)} to section end</span>` : ''].filter(Boolean);
+  const cost = `<span class="card-cost">${esc(card.cost)}</span>${shown('card-rate', card.rate)}`;
+  // one line takes less room than the 44 px of a fold, so it stays open
+  const foot = more.length > 1
+    ? `<details class="card-more" data-keep-open="${esc(card.key)}"><summary class="card-foot">${cost}<span class="card-fold" aria-hidden="true">▾</span></summary>${more.join('')}</details>`
+    : `<div class="card-foot">${cost}</div>${more.join('')}`;
+  return `<div class="step">${rail('current', card.railTop, card.railBottom)}<div class="card"><div class="card-head"><span class="card-name">${esc(card.name)}</span>${card.badge ? '<span class="card-badge">★ BEST VALUE</span>' : ''}${shown('card-where', card.where && shortSection(card.where))}</div>${box}${foot}<button type="button" class="primary" data-step="${esc(card.key)}">Mark done</button></div></div>`;
 }
 
 const limitValue = (v) => (v === null ? 'unknown' : number(v));

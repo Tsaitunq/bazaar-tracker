@@ -2,7 +2,7 @@
 import { esc, number } from '../../format.js';
 import { statsView as allStats } from '../../stats.js';
 import { guideModel, worldFor, familyOf, reportOf } from '../model.js';
-import { ring, legend, nextMilestone, statGrid, pathRow, stepCard, chips, bottomBar, backLink, profileLink, icon, evidence } from './parts.js';
+import { ring, legend, nextMilestone, statGrid, pathRow, stepCard, chips, bottomBar, backLink, profileLink, icon, evidence, shortSection } from './parts.js';
 import { HOME_TABS } from './home.js';
 
 const FARMING = { id: 'farming', title: 'Farming', area: 'farming', sections: [] };
@@ -53,7 +53,10 @@ const screenClass = (theme) => `screen${theme === 'blaze' ? ' screen-blaze' : ''
 export function guideView(world, id) {
   const guide = world.guides.find((g) => g.id === id) ?? (id === FARMING.id ? FARMING : null);
   if (!guide) return null;
-  const m = guideModel(guide, worldFor(world, guide));
+  const model = guideModel(guide, worldFor(world, guide));
+  // what a section name says in brackets waits behind the ⓘ, so the card keeps its room
+  const told = guide.sections.filter((s) => shortSection(s.name) !== s.name).map((s) => `${shortSection(s.name)}: ${s.name.slice(shortSection(s.name).length).trim().slice(1, -1)}`);
+  const m = told.length ? { ...model, notes: [...model.notes, ...told] } : model;
   const empty = !guide.sections.length;
   const body = empty ? '<div class="empty"><strong>Guide coming soon</strong></div>' : pathTab(m);
   return `<div class="${screenClass(m.theme)}" data-theme="${esc(m.theme)}"><div class="top">${backLink()}${m.source ? `<a class="source" href="${esc(m.source)}" rel="noopener">Source</a>` : ''}${infoButton(m)}${profileLink()}</div>${switcher(world, guide)}${head(m, empty)}${body}${infoSheet(m)}${evidenceSheet(world, guide)}</div>`;
