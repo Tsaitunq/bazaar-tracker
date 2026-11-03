@@ -383,17 +383,22 @@ export function swipeTarget(r, dx, family) {
   return at + 1 < family.length ? { hash: `#/guide/${family[at + 1]}/path`, back: false } : null;
 }
 
-// The first movement decides: clearly sideways is a swipe, anything else stays a scroll for the whole touch.
-const AXIS_MIN_PX = 10;
+// The first 8 px decide: mostly sideways is a swipe, anything else stays a scroll for the whole touch.
+const AXIS_MIN_PX = 8;
+const AXIS_RATIO = 1.5;
 export function swipeAxis(dx, dy) {
   if (Math.hypot(dx, dy) < AXIS_MIN_PX) return null;
-  return Math.abs(dx) > 2 * Math.abs(dy) ? 'x' : 'y';
+  return Math.abs(dx) > AXIS_RATIO * Math.abs(dy) ? 'x' : 'y';
 }
 
-// On release a flick counts by its direction, a slow drag by how far it got. speed in px/ms.
+// On release the swipe goes on with the speed of the finger: where it would be after MOMENTUM_MS decides.
+// It lands past 30 % of the width on the side it was pulled to, otherwise it goes back. speed in px/ms.
 const LAND_SHARE = 0.3;
-const FLICK_SPEED = 0.5;
-export const swipeLands = (dx, speed, width) => (Math.abs(speed) >= FLICK_SPEED ? speed * dx > 0 : Math.abs(dx) >= LAND_SHARE * width);
+const MOMENTUM_MS = 200;
+export function swipeLands(dx, speed, width) {
+  const ahead = dx + speed * MOMENTUM_MS;
+  return ahead * dx > 0 && Math.abs(ahead) >= LAND_SHARE * width;
+}
 
 // What a sync run means for the screen. Anything but success keeps the last state.
 export function syncOutcome(result, last) {

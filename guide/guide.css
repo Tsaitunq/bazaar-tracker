@@ -211,5 +211,6 @@ a { color: var(--area); }
 .swiping, .settle, .spring { position: relative; height: 100dvh; overflow: hidden; }
 .swiping > .peek, .settle > .peek, .spring > .peek { visibility: visible; }
 .swiping > *, .settle > *, .spring > * { will-change: transform; }
-.settle > * { transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1); }
-.spring > * { transition: transform 220ms cubic-bezier(0.3, 1.4, 0.5, 1); }
+.swiping > * { transition: none; }
+/* landing and going back: ease-out, so the swipe goes on at the finger's speed and slows to its place */
+.settle > *, .spring > * { transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1); }

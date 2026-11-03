@@ -17,9 +17,10 @@ const BAZAAR = 'https://api.hypixel.net/v2/skyblock/bazaar';
 const PRICE_EVERY = 300e3;
 const BIN_RETRY = 600e3;
 const DEFAULT_TAX = 1.25;
-const SETTLE_MS = 220; // as in guide.css
-const EDGE_PULL = 0.25;
+const SETTLE_MS = 200; // as in guide.css
+const EDGE_PULL = 0.25; // only where no screen waits: the last guide of an area
 const FLICK_FRESH_MS = 80;
+const SPEED_KEEP = 0.4; // the speed of a flick: the last moves count most, one jittery event does not decide
 const CARD_GAP = 8;
 const FOLD_PX = 24;
 
@@ -540,6 +541,7 @@ root.addEventListener('touchstart', (e) => {
   touch = free ? { x: first.clientX, y: first.clientY, lastX: first.clientX, at: e.timeStamp, speed: 0, axis: null, dx: 0, to: null } : null;
 }, { passive: true });
 
+// Not passive: once a touch is a swipe, the list under it must not scroll along.
 root.addEventListener('touchmove', (e) => {
   if (!touch) return;
   const [now] = e.touches;
@@ -547,7 +549,8 @@ root.addEventListener('touchmove', (e) => {
   touch.axis ??= swipeAxis(dx, now.clientY - touch.y);
   if (touch.axis === 'y') { touch = null; return; }
   if (touch.axis !== 'x') return;
-  if (e.timeStamp > touch.at) touch.speed = (now.clientX - touch.lastX) / (e.timeStamp - touch.at);
+  if (e.cancelable) e.preventDefault();
+  if (e.timeStamp > touch.at) touch.speed = SPEED_KEEP * touch.speed + (1 - SPEED_KEEP) * ((now.clientX - touch.lastX) / (e.timeStamp - touch.at));
   touch.lastX = now.clientX;
   touch.at = e.timeStamp;
   if (stillMotion()) return;
@@ -556,7 +559,7 @@ root.addEventListener('touchmove', (e) => {
   if (touch.to && !peekOf(touch.to)) buildPeek(touch.to); // not ready yet: built now, once per side
   root.classList.add('swiping');
   frame ||= requestAnimationFrame(paint);
-}, { passive: true });
+}, { passive: false });
 
 root.addEventListener('touchcancel', () => {
   if (touch?.axis === 'x') settle(null);
