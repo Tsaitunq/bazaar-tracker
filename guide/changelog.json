@@ -1,6 +1,16 @@
 {
   "versions": [
     {
+      "version": "0.6.1",
+      "date": "2026-11-03",
+      "entries": [
+        { "title": "Steady switch", "text": "The Mining switch stays in place while you swipe or tap; only its marker slides along." },
+        { "title": "No jump after a swipe", "text": "The next guide already shows its open step while it slides in." },
+        { "title": "Room for Mark done", "text": "The step card is shorter: tap the cost line to see what the price is made of." },
+        { "title": "Calmer start", "text": "The start screen no longer flashes \"No guide yet\" while the guides load." }
+      ]
+    },
+    {
       "version": "0.6.0",
       "date": "2026-11-03",
       "entries": [
