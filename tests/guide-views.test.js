@@ -143,6 +143,12 @@ test('no guide at all shows an empty home', () => {
   assert.match(html, /class="bar"/);
 });
 
+test('while the guides still load, home shows no empty note', () => {
+  const html = homeView(world({ guides: [], loading: true }));
+  assert.doesNotMatch(html, /No guide yet|class="empty"/);
+  assert.match(html, /class="bar"/);
+});
+
 test('the start state offers typed-in stats and hides the key', () => {
   const off = world({ state: null, personal: false });
   const settings = settingsView(off);

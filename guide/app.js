@@ -69,6 +69,7 @@ let folded = false; // the head of a guide, down to its title line
 let byHand = false; // a finger, wheel or key was used; the app's own scroll to the card does not fold the head
 let follow = false; // the list still sits where the app put it, so a redraw puts it on the card again
 let foldFrom = 0; // where the list was when the head last opened
+let loading = true; // until the guide files are read, an empty list means nothing yet
 let pathEpoch = 0; // a new order of all paths: on a tick, on the first prices and when a setting changes
 const opened = {}; // a new order of one path: when that guide opens. Going back reuses what home had, so it is quick
 
@@ -100,7 +101,7 @@ const world = () => {
     prices: { forge, ah, cofl: freshBins(bins), wants: pending, items, tax: (settings.tax ?? DEFAULT_TAX) / 100, derpy: election?.mayor?.name === 'Derpy' },
     settings: miningSettings(settings.mining), keepOldGear: settings.keepOldGear === true, brake: settings.brake > 0 ? settings.brake : 5, pathEpoch, opened, boosts: boosts(), preset,
     name: (id) => names[id] ?? fallbackName(id), uuid: state?.uuid ?? '', hasKey, keyMessage, tax: settings.tax ?? DEFAULT_TAX, importedIds: imported.map((g) => g.id), canSync: canSync(), message: note.message, choices: note.choices,
-    profileMessage, dataMessage, dataText, armed, removeArmed, evidence: evidenceKey, tierOf: (id) => tiers[id] ?? '',
+    loading, profileMessage, dataMessage, dataText, armed, removeArmed, evidence: evidenceKey, tierOf: (id) => tiers[id] ?? '',
   };
 };
 
@@ -651,6 +652,7 @@ await Promise.all([
   showProfile(),
   loadStatsPreset().then((p) => { preset = p; }),
 ]);
+loading = false;
 // once: ticks from before the shared state. Without a guide loaded there is nothing to move yet.
 pathEpoch++;
 if (!load('pg.ownedV1', false) && guides().length) {

@@ -28,6 +28,8 @@ const farmingCard = `<a class="guide-card" data-theme="farming" href="#/guide/fa
 export function homeView(world) {
   const head = `<div class="home-head"><div class="home-title"><small>${syncedText(world.state, world.now, world.personal)}</small><h1>Your guides</h1></div>${profileLink()}</div>`;
   const bar = bottomBar(HOME_TABS, 'home');
+  // still loading: the bare screen, so "No guide yet" never flashes at start
+  if (!world.guides.length && world.loading) return `<div class="screen screen-home" data-theme="home">${head}<div class="scroll"></div>${bar}</div>`;
   if (!world.guides.length) return `<div class="screen screen-home" data-theme="home">${head}<div class="empty"><strong>No guide yet</strong><p>Add a guide file in <a href="#/settings">Settings</a>.</p></div>${bar}</div>`;
   const models = world.guides.map((g) => guideModel(g, worldFor(world, g)));
   const lines = nextPerGuide(models);
