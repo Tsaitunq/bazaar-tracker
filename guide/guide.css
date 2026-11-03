@@ -67,6 +67,10 @@ a { color: var(--area); }
 .arc-track { stroke: var(--track); }
 .arc-1 { stroke: var(--k1); } .arc-2 { stroke: var(--k2); } .arc-3 { stroke: var(--k3); }
 .dot-1 { background: var(--k1); } .dot-2 { background: var(--k2); } .dot-3 { background: var(--k3); }
+.ring-mark { fill: var(--text); }
+.ring-mark-done { fill: var(--bg); }
+.milestone { margin: 0; font-size: 12px; color: var(--soft); }
+.milestone-count { font-size: 12px; color: var(--muted); }
 .ring-pct { fill: var(--text); font-weight: 700; font-family: 'Space Grotesk', sans-serif; }
 
 /* stat grid */

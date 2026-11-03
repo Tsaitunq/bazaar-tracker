@@ -28,6 +28,7 @@
     },
     "shafting": {
       "title": "Shafting gear", "area": "mining", "order": "fixed",
+      "milestones": [{ "name": "Drill", "steps": ["Shaft drill"] }, { "name": "Armour", "steps": ["Shaft helmet", "Shaft boots"] }, { "name": "Pendant", "steps": ["Shaft pendant"] }],
       "sections": [
         { "name": "Shafting", "steps": [
           { "text": "Shaft drill", "gain": { "MINING_SPEED": 200 }, "items": [{ "id": "ITEM_B", "qty": 1 }] },

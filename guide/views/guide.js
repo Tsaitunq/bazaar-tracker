@@ -2,13 +2,16 @@
 import { esc, number } from '../../format.js';
 import { statsView as allStats } from '../../stats.js';
 import { guideModel, worldFor, familyOf } from '../model.js';
-import { ring, legend, statGrid, pathRow, stepCard, chips, bottomBar, backLink, profileLink, icon } from './parts.js';
+import { ring, legend, nextMilestone, statGrid, pathRow, stepCard, chips, bottomBar, backLink, profileLink, icon } from './parts.js';
 import { HOME_TABS } from './home.js';
 
 const FARMING = { id: 'farming', title: 'Farming', area: 'farming', sections: [] };
 
 // Scrolled down, the head folds to its title line with the total beside it.
-const ringHead = (m) => `<div class="ring-head">${ring({ chapters: m.chapters, total: m.total, size: 88 })}<div class="ring-text"><div class="ring-title">${icon(m.theme)}<h1>${esc(m.name)}</h1><b class="head-pct">${Math.round(m.total * 100)}%</b></div>${legend(m.chapters)}</div></div>`;
+// A guide by tiers shows its chapters, a ranked one its milestones on one ring.
+const ringOf = (m, size) => (m.milestones ? ring({ chapters: [{ share: m.total }], total: m.total, size, label: 'Progress and milestones', marks: m.milestones.marks }) : ring({ chapters: m.chapters, total: m.total, size }));
+const ringLegend = (m) => (m.milestones ? `<span class="milestone-count">${number(m.milestones.reached)} of ${number(m.milestones.count)} milestones</span>` : legend(m.chapters));
+const ringHead = (m) => `<div class="ring-head">${ringOf(m, 88)}<div class="ring-text"><div class="ring-title">${icon(m.theme)}<h1>${esc(m.name)}</h1><b class="head-pct">${Math.round(m.total * 100)}%</b></div>${ringLegend(m)}</div></div>`;
 
 function missingNote(m) {
   if (m.missing === 'stats') return '<p class="note">Type in your /stats under <a href="#/stats">Stats</a> to rank the steps by what they bring.</p>';
@@ -23,7 +26,7 @@ const infoSheet = (m) => (infoOf(m).length ? `<dialog class="sheet"><h2>Notes</h
 
 const warning = (m) => (m.daggerMissing ? '<p class="warn" role="alert">Dagger pair incomplete: the Hellion Shield needs one dagger of each line.</p>' : '');
 
-const head = (m, empty) => `<div class="head">${ringHead(m)}${empty ? '' : `${m.stats.length ? statGrid(m.stats, m.stats.length > 4 ? 3 : 2) : ''}${missingNote(m)}${m.chips ? chips(m.chips) : ''}`}</div>`;
+const head = (m, empty) => `<div class="head">${ringHead(m)}${m.milestones ? `<p class="milestone">${esc(nextMilestone(m.milestones))}</p>` : ''}${empty ? '' : `${m.stats.length ? statGrid(m.stats, m.stats.length > 4 ? 3 : 2) : ''}${missingNote(m)}${m.chips ? chips(m.chips) : ''}`}</div>`;
 
 const pathTab = (m) => `${warning(m)}<div class="path">${m.rows.map((row) => (row.card ? stepCard(row.card) : pathRow(row))).join('')}</div>`;
 

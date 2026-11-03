@@ -1,7 +1,7 @@
 // The start page: one card per guide, each guide's best step, and what was unlocked this week.
 import { esc, number } from '../../format.js';
 import { guideModel, worldFor, nextPerGuide, unlockedThisWeek, firstOfFamilies } from '../model.js';
-import { ring, bottomBar, profileLink } from './parts.js';
+import { ring, bottomBar, profileLink, nextMilestone } from './parts.js';
 
 export const HOME_TABS = [{ id: 'home', label: 'Home' }, { id: 'settings', label: 'Settings' }];
 const HOUR = 3600e3;
@@ -16,7 +16,10 @@ function syncedText(state, now, personal) {
 function guideCard(m) {
   const at = m.chapters.findIndex((c) => c.current);
   const next = m.card ? `Next: ${m.card.name}` : 'All steps are done';
-  return `<a class="guide-card" data-theme="${esc(m.theme)}" href="#/guide/${esc(m.id)}/path">${ring({ chapters: m.chapters, total: m.total, size: 70, label: `${m.name} ${Math.round(m.total * 100)}%` })}<span class="guide-info"><strong>${esc(m.name)}</strong><small>Chapter ${at + 1} · ${esc(m.chapters[at].name)}</small><em>${esc(next)}</em></span></a>`;
+  const label = `${m.name} ${Math.round(m.total * 100)}%`;
+  const arcs = m.milestones ? ring({ chapters: [{ share: m.total }], total: m.total, size: 70, label, marks: m.milestones.marks }) : ring({ chapters: m.chapters, total: m.total, size: 70, label });
+  const where = m.milestones ? nextMilestone(m.milestones) : `Chapter ${at + 1} · ${m.chapters[at].name}`;
+  return `<a class="guide-card" data-theme="${esc(m.theme)}" href="#/guide/${esc(m.id)}/path">${arcs}<span class="guide-info"><strong>${esc(m.name)}</strong><small>${esc(where)}</small><em>${esc(next)}</em></span></a>`;
 }
 
 const EMPTY_ARCS = ['', '', ''].map((name) => ({ name, share: 0 }));

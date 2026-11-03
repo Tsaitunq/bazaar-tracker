@@ -14,7 +14,7 @@ const percent = (share) => `${Math.round(share * 100)}%`;
 // r, stroke, gap, text position and size of the two rings of the mockups
 const RINGS = { 88: { r: 36, stroke: 9, gap: 12, textY: 50, font: 18 }, 70: { r: 28, stroke: 7, gap: 10, textY: 40, font: 14 } };
 
-export function ring({ chapters, total, size, label = 'Chapter progress', showTotal = true }) {
+export function ring({ chapters, total, size, label = 'Chapter progress', showTotal = true, marks = [] }) {
   const { r, stroke, gap, textY, font } = RINGS[size];
   const mid = size / 2;
   const C = 2 * Math.PI * r;
@@ -26,8 +26,16 @@ export function ring({ chapters, total, size, label = 'Chapter progress', showTo
     return circle('arc-track', `${L.toFixed(1)} ${(C - L).toFixed(1)}`, off)
       + circle(`arc-${(i % 3) + 1}`, `${Math.max(0.1, L * c.share).toFixed(1)} ${(C - L * c.share).toFixed(1)}`, off);
   }).join('');
-  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="${esc(label)}">${arcs}${showTotal ? `<text class="ring-pct" x="${mid}" y="${textY}" text-anchor="middle" font-size="${font}">${percent(total)}</text>` : ''}</svg>`;
+  // a milestone: a small dot on the one arc, light on the track, dark on the filled part
+  const dots = marks.map((m) => {
+    const angle = ((gap / 2 + m.at * L) / C) * 2 * Math.PI - Math.PI / 2;
+    return `<circle class="ring-mark${m.done ? ' ring-mark-done' : ''}" cx="${(mid + r * Math.cos(angle)).toFixed(1)}" cy="${(mid + r * Math.sin(angle)).toFixed(1)}" r="${(stroke * 0.28).toFixed(1)}"></circle>`;
+  }).join('');
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="${esc(label)}">${arcs}${dots}${showTotal ? `<text class="ring-pct" x="${mid}" y="${textY}" text-anchor="middle" font-size="${font}">${percent(total)}</text>` : ''}</svg>`;
 }
+
+// The line of a ranked guide under its ring.
+export const nextMilestone = (ms) => (ms.next ? `Next milestone: ${ms.next.name} · ${number(ms.next.steps)} ${ms.next.steps === 1 ? 'step' : 'steps'} · ${ms.next.left}` : 'All milestones reached');
 
 export const legend = (chapters) => chapters.map((c, i) => `<div class="legend"><i class="dot-${(i % 3) + 1}"></i><span${c.current ? ' class="legend-now"' : ''}>${esc(c.name)}</span><b>${percent(c.share)}</b></div>${c.leftText ? `<div class="legend-left">${esc(c.leftText)} to chapter end</div>` : ''}`).join('');
 
