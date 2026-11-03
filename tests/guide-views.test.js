@@ -204,6 +204,6 @@ test('guides of one area share one home card and switch at the top', () => {
   assert.equal(home.match(/class="guide-card" data-theme="mining"/g).length, 1);
   assert.match(home, /href="#\/guide\/mine\/path"/);
   const html = guideView(w, 'shaft', 'path');
-  assert.match(html, /<nav class="switch"[^>]*><a href="#\/guide\/mine\/path">Gear progression<\/a><a href="#\/guide\/shaft\/path" aria-current="page">Shafting gear<\/a><\/nav>/);
+  assert.match(html, /<nav class="switch"[^>]*><span class="switch-thumb" aria-hidden="true" style="--n:2;--at:1"><\/span><a href="#\/guide\/mine\/path">Gear progression<\/a><a href="#\/guide\/shaft\/path" aria-current="page">Shafting gear<\/a><\/nav>/);
   assert.doesNotMatch(guideView(w, 'fire', 'path'), /class="switch"/);
 });

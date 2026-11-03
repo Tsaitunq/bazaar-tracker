@@ -43,7 +43,9 @@ const pathTab = (m) => `${warning(m)}<div class="path">${m.rows.map((row) => (ro
 function switcher(world, guide) {
   const family = familyOf(world.guides, guide);
   if (family.length < 2) return '';
-  return `<nav class="switch" aria-label="Guides of this area">${family.map((g) => `<a href="#/guide/${esc(g.id)}/path"${g === guide ? ' aria-current="page"' : ''}>${esc(g.label ?? g.title)}</a>`).join('')}</nav>`;
+  // one mark under the links: during a swipe or after a tap it slides, the switch itself stays put
+  const thumb = `<span class="switch-thumb" aria-hidden="true" style="--n:${family.length};--at:${family.indexOf(guide)}"></span>`;
+  return `<nav class="switch" aria-label="Guides of this area">${thumb}${family.map((g) => `<a href="#/guide/${esc(g.id)}/path"${g === guide ? ' aria-current="page"' : ''}>${esc(g.label ?? g.title)}</a>`).join('')}</nav>`;
 }
 
 const screenClass = (theme) => `screen${theme === 'blaze' ? ' screen-blaze' : ''}`;

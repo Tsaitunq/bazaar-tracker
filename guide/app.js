@@ -488,12 +488,28 @@ function preparePeek() {
   });
 }
 
+// The switch of an area stays where it is while its guides slide under it; its mark follows the swipe.
+// A swipe out of the area (back home) takes the switch along with its screen.
+function pinSwitch(shift, to) {
+  const sw = root.firstElementChild?.querySelector('.switch');
+  const thumb = sw?.querySelector('.switch-thumb');
+  if (!thumb) return;
+  const links = [...sw.querySelectorAll('a')];
+  const from = links.findIndex((a) => a.hasAttribute('aria-current'));
+  const goal = to ? links.findIndex((a) => a.getAttribute('href') === to.hash) : from;
+  if (goal < 0) { sw.style.removeProperty('transform'); thumb.style.removeProperty('transform'); return; }
+  const pos = from + (goal - from) * Math.min(1, Math.abs(shift) / root.clientWidth);
+  sw.style.transform = `translate3d(${-shift}px, 0, 0)`;
+  thumb.style.transform = `translateX(${pos * 100}%)`;
+}
+
 // One write per frame, and only transforms: the list under the finger is never laid out again.
 function paint() {
   frame = 0;
   if (touch?.axis !== 'x') return;
   const shift = touch.to ? touch.dx : touch.dx * EDGE_PULL;
   root.firstElementChild.style.transform = `translate3d(${shift}px, 0, 0)`;
+  pinSwitch(shift, touch.to);
   // only the peek on the side the finger moves to comes along; the other one waits at its place
   for (const peek of root.querySelectorAll('.peek')) {
     if (touch.to?.hash === peek.dataset.hash) peek.style.transform = besideAt(peek, shift);
@@ -519,6 +535,7 @@ function landed(to) {
   settling = false;
   root.removeAttribute('class');
   root.firstElementChild?.style.removeProperty('transform');
+  root.querySelectorAll('.switch, .switch-thumb').forEach((el) => el.style.removeProperty('transform'));
   root.querySelectorAll('.peek').forEach((p) => p.style.removeProperty('transform'));
   // drawn at once, so no frame shows the old screen back in place; its hashchange then has nothing left to do
   if (to) { landedOn = to.hash; location.hash = to.hash; }
@@ -537,6 +554,7 @@ function settle(to) {
   root.classList.remove('swiping');
   const shift = to ? (to.back ? root.clientWidth : -root.clientWidth) : 0;
   root.firstElementChild.style.transform = `translate3d(${shift}px, 0, 0)`;
+  pinSwitch(shift, to);
   root.querySelectorAll('.peek').forEach((p) => { p.style.transform = besideAt(p, shift); });
   setTimeout(() => landed(to), SETTLE_MS);
 }
@@ -562,6 +580,17 @@ root.addEventListener('scroll', (e) => {
 const handScroll = () => { byHand = true; follow = false; };
 root.addEventListener('wheel', handScroll, { passive: true });
 root.addEventListener('keydown', handScroll);
+// A tap on the switch slides to the neighbour like a swipe does, so the mark glides over in the same 200 ms.
+root.addEventListener('click', (e) => {
+  const link = e.target.closest('.switch a:not([aria-current])');
+  if (!link || settling || touch?.axis === 'x' || stillMotion()) return;
+  const to = [targetOf(-1), targetOf(1)].find((t) => t?.hash === link.getAttribute('href'));
+  if (!to) return;
+  e.preventDefault();
+  // a peek built now needs its first place laid out, or it would not slide in
+  (peekOf(to) ?? buildPeek(to)).getBoundingClientRect();
+  settle(to);
+});
 root.addEventListener('click', (e) => { if (folded && e.target.closest('.ring-head')) fold(false); });
 
 root.addEventListener('touchstart', (e) => {
