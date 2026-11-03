@@ -66,12 +66,12 @@ test('blaze shows six stats in three columns and the two chips, mining four in t
   assert.doesNotMatch(mine, /class="chips"/);
 });
 
-test('the path has its card, its rows and the bar', () => {
+test('the path has its card and its rows, and no bar', () => {
   const html = guideView(world(), 'mine', 'path');
   assert.match(html, /class="back"/);
   assert.match(html, /class="card"/);
   assert.match(html, /class="row" data-step="Main\|Topaz"/);
-  assert.match(html, /data-tab="path" aria-current="page"/);
+  assert.doesNotMatch(html, /class="bar"|data-tab=/);
 });
 
 test('below a limit the chip row says so, and without a block', () => {

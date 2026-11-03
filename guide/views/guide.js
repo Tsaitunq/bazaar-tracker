@@ -27,7 +27,7 @@ export function guideView(world, id) {
   const empty = !guide.sections.length;
   const body = empty ? '<div class="empty"><strong>Guide coming soon</strong></div>' : pathTab(m);
   const credit = m.usedCofl ? '<p class="note">Prices: <a href="https://sky.coflnet.com" rel="noopener">SkyCofl</a></p>' : '';
-  return `<div class="${screenClass(m.theme)}" data-theme="${esc(m.theme)}"><div class="top">${backLink()}${m.source ? `<a class="source" href="${esc(m.source)}" rel="noopener">Source</a>` : ''}${profileLink()}</div>${head(m)}${body}${credit}${bottomBar(m.tabs, 'path')}</div>`;
+  return `<div class="${screenClass(m.theme)}" data-theme="${esc(m.theme)}"><div class="top">${backLink()}${m.source ? `<a class="source" href="${esc(m.source)}" rel="noopener">Source</a>` : ''}${profileLink()}</div>${head(m)}${body}${credit}</div>`;
 }
 
 export const statsView = (world) => `<div class="screen screen-home" data-theme="home" data-page="stats"><div class="home-title"><h1>Stats</h1></div><div class="scroll">${allStats(world.state, world.prices.items, esc, world.boosts, world.preset)}</div>${bottomBar(HOME_TABS, null)}</div>`;

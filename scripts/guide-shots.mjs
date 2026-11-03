@@ -34,7 +34,6 @@ const MEASURES = [
     ['.row', 'padding', '11px 0px 10px'], ['.row-name', 'font-size', '15px'], ['.row-sub', 'font-size', '12px'], ['.row-side', 'font-size', '12px'], ['.row-sub.c-orange', 'color', 'rgb(255, 170, 0)'],
     ['.card', 'padding', '14px'], ['.card', 'border-radius', '18px'], ['.card-name', 'font-size', '17px'], ['.card-box', 'padding', '10px 12px'], ['.card-box', 'border-radius', '14px'],
     ['.card-stat', 'font-size', '15px'], ['.card-gain', 'font-size', '13px'], ['.card-foot', 'font-size', '13px'], ['.primary', 'height', '44px'],
-    ['.bar', 'height', '56px'], ['.bar button', 'height', '44px'], ['.bar button[aria-current]', 'background-color', 'rgb(21, 32, 44)'],
     ['.step-dot.dot-current', 'box-shadow', 'rgb(92, 200, 255) 0px 0px 14px 0px'],
   ]],
   ['Blaze path', '#/guide/blaze-slayer/path', [
@@ -43,7 +42,7 @@ const MEASURES = [
     ['.chip', 'padding', '8px 12px'], ['.chip', 'border-radius', '14px'], ['.chips', 'font-size', '12px'],
     ['.card', 'padding', '12px 14px'], ['.card-name', 'font-size', '16px'], ['.card-box', 'padding', '8px 12px'], ['.card-box', 'border-radius', '12px'], ['.card-stat', 'font-size', '14px'], ['.row', 'padding', '10px 0px 9px'],
   ]],
-  ['Farming', '#/guide/farming/path', [['.screen', 'padding', '18px 20px 12px'], ['.ring-title h1', 'font-size', '22px'], ['.bar', 'height', '56px']]],
+  ['Farming', '#/guide/farming/path', [['.screen', 'padding', '18px 20px 12px'], ['.ring-title h1', 'font-size', '22px']]],
 ];
 const NO_TEMPLATE = ['Stats of all guides', 'Settings'];
 

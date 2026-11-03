@@ -193,13 +193,11 @@ test('without a sync the path still shows, with no stats and no ranking', () => 
   assert.deepEqual(m.stats, []);
   assert.equal(m.card.cost, '1M coins');
   assert.equal(m.card.gain, '');
-  assert.deepEqual(m.tabs.map((t) => t.id), ['path']);
 });
 
-test('a guide without a score has only the path tab', () => {
+test('a guide without a score has an empty path', () => {
   const m = guideModel({ ...mining([]), area: 'farming' }, world());
   assert.equal(m.theme, 'farming');
-  assert.deepEqual(m.tabs.map((t) => t.id), ['path']);
   assert.deepEqual(m.rows, []);
 });
 

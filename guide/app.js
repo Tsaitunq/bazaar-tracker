@@ -406,7 +406,6 @@ const stillMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches
 function showPeek(to) {
   root.querySelector('.peek')?.remove();
   touch.peek = to?.hash ?? null;
-  root.classList.toggle('swipe-tabs', !!to && to.hash !== '#/');
   if (!to) return;
   const peek = document.createElement('div');
   peek.className = 'peek';
