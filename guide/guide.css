@@ -33,6 +33,15 @@ a { color: var(--area); }
 
 .icon { flex: none; color: var(--area); }
 
+/* notes behind the ⓘ of the head */
+.info { width: 44px; height: 44px; padding: 0; border-radius: 22px; background: none; border: 1px solid var(--line); color: var(--area); font-size: 20px; }
+.top > .info:nth-child(2) { margin-left: auto; }
+.sheet { width: min(100% - 32px, 448px); max-height: 80dvh; margin: auto auto 16px; padding: 16px; border-radius: 20px; background: var(--surface); border: 1px solid var(--line); color: var(--text); display: none; flex-direction: column; gap: 10px; }
+.sheet[open] { display: flex; }
+.sheet::backdrop { background: var(--bg); opacity: 0.7; }
+.sheet h2 { margin: 0; font-size: 15px; color: var(--area); }
+.sheet form { display: flex; justify-content: flex-end; }
+
 /* ring and legend */
 .head { flex: none; display: flex; flex-direction: column; gap: 8px; }
 .ring-head { display: flex; align-items: center; gap: 14px; }

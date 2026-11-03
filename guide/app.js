@@ -61,6 +61,7 @@ let touch = null;
 let settling = false;
 let redrawDue = false;
 let shownRoute = '';
+let infoOpen = false; // the sheet of notes stays open over a redraw
 let folded = false; // the head of a guide, down to its title line
 let byHand = false; // a finger, wheel or key was used; the app's own scroll to the card does not fold the head
 let foldFrom = 0; // where the list was when the head last opened
@@ -132,12 +133,14 @@ function draw() {
   const shown = JSON.stringify(route());
   if (shown !== shownRoute) {
     folded = false;
+    infoOpen = false;
     byHand = false;
     showCard(root);
     foldFrom = root.querySelector('.path')?.scrollTop ?? 0;
   }
   shownRoute = shown;
   root.firstElementChild?.classList.toggle('head-min', folded);
+  if (infoOpen) openInfo();
   if (focused !== undefined) {
     const same = [...root.querySelectorAll('[data-step]')].filter((el) => el.dataset.step === focused);
     (same.find((el) => el.className === focusClass) ?? same[0])?.focus({ preventScroll: true });
@@ -146,6 +149,15 @@ function draw() {
 }
 
 // New prices must not wipe what is being typed into a form.
+function openInfo() {
+  const sheet = root.querySelector('dialog.sheet');
+  if (!sheet) { infoOpen = false; return; }
+  if (!sheet.open) sheet.showModal();
+  infoOpen = true;
+  // a sheet thrown away by a redraw may still report its close; only the one on screen counts
+  sheet.addEventListener('close', () => { if (root.contains(sheet)) infoOpen = false; }, { once: true });
+}
+
 function drawInBackground() {
   if (!formEdited([...root.querySelectorAll('input, select, textarea')], document.activeElement)) draw();
 }
@@ -335,6 +347,7 @@ root.addEventListener('click', (e) => {
   const el = (selector) => e.target.closest(selector);
   const tab = el('[data-tab]');
   if (tab) { location.hash = tabTarget(tab.dataset.tab); return; }
+  if (el('[data-info]')) { openInfo(); return; }
   const step = el('[data-step]');
   if (step) { toggle(step.dataset.step); return; }
   const sync = el('[data-sync="run"]');

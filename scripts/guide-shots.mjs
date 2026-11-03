@@ -185,6 +185,19 @@ async function folds(page, base) {
   if (await min()) fail('a tap on the folded head does not open it');
 }
 
+// The notes open as a sheet over the guide and stay open over a redraw.
+async function infoSheet(page, base) {
+  await open(page, base, '#/guide/blaze-slayer/path');
+  if (await page.locator('.screen > .note').count()) fail('a note still sits above the path');
+  await page.locator('[data-info]').click();
+  await page.locator('dialog.sheet[open]').waitFor();
+  await page.screenshot({ path: path.join(OUT, 'info-sheet.png') });
+  await page.evaluate(() => window.dispatchEvent(new HashChangeEvent('hashchange')));
+  if (!await page.locator('dialog.sheet[open]').count()) fail('a redraw closed the notes');
+  await page.locator('dialog.sheet button').click();
+  if (await page.locator('dialog.sheet[open]').count()) fail('the notes do not close');
+}
+
 async function keepsPlace(page, base) {
   await open(page, base, '#/guide/mining/path');
   // not the last rows: a done row is lower, and at the very end the browser would have to move the list
@@ -338,6 +351,7 @@ try {
   }
   await opensOnCard(page, base);
   await folds(page, base);
+  await infoSheet(page, base);
   await keepsPlace(page, base);
   await pathParts(page, base);
   await keepsTyped(page, base);

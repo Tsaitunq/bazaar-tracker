@@ -185,3 +185,14 @@ test('the head links the source of a guide, with its text escaped, and only if i
   const html = guideView(w, 'fire', 'path');
   assert.match(html, /class="source" href="https:\/\/example\.com\/\?a=&#34;b" rel="noopener">Source</);
 });
+
+test('the notes wait behind the ⓘ of the head, not above the path', () => {
+  const html = guideView(world(), 'fire', 'path');
+  assert.match(html, /class="info" data-info/);
+  const [before, sheet] = html.split('<dialog class="sheet">');
+  assert.doesNotMatch(before, /Not modelled/);
+  assert.match(sheet, /Not modelled/);
+  assert.match(html, /class="chips"/);
+  const plain = world({ state: { uuid: '', statsInput: { mining: { values: { MINING_FORTUNE: 1 }, at: 1 } } }, personal: false, settings: { ...miningSettings(null), gemFortune: true } });
+  assert.doesNotMatch(guideView(plain, 'mine', 'path'), /data-info|<dialog/);
+});
