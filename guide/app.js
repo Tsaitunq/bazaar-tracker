@@ -469,6 +469,7 @@ function buildPeek(to) {
   peek.dataset.hash = to.hash;
   peek.innerHTML = screenOf(parseRoute(to.hash, guides()), world());
   root.append(peek);
+  showCard(peek); // already on its card while hidden, so the slide in shows no done steps and no jump at landing
   return peek;
 }
 
