@@ -8,7 +8,7 @@ import { migrateOwned, resetOwned } from '../owned.js';
 import { fallbackName, loadItems } from '../names.js';
 import { PRESETS, miningSettings } from '../optimizer.js';
 import { computeStats, loadoutOf, offsetStale, statsEntry } from '../stats.js';
-import { parseRoute, syncOutcome, applyImport, stampAll, formEdited, typedFields, restoreTyped, settled, statsOnly, autoOf, tickStep, swipeTarget, swipeAxis, swipeLands } from './model.js';
+import { parseRoute, syncOutcome, applyImport, stampAll, formEdited, typedFields, restoreTyped, settled, statsOnly, autoOf, tickStep, swipeTarget, swipeAxis, swipeLands, familyOf } from './model.js';
 import { homeView } from './views/home.js';
 import { guideView, statsView } from './views/guide.js';
 import { settingsView } from './views/settings.js';
@@ -71,6 +71,12 @@ const opened = {}; // a new order of one path: when that guide opens. Going back
 
 const guides = () => mergeGuides(bundled, imported);
 const route = () => parseRoute(location.hash, guides());
+// A swipe moves between the guides of one area, like the switch at the top.
+const targetOf = (dx) => {
+  const r = route();
+  const guide = guides().find((g) => g.id === r.id);
+  return swipeTarget(r, dx, guide ? familyOf(guides(), guide).map((g) => g.id) : [r.id]);
+};
 // Off until asked for, so the app starts on typed-in stats. Whoever already has a key or a sync keeps it.
 const personal = () => settings.personal ?? (hasKey || !!state?.syncedAt);
 // With the sync off, what it found stays stored but counts for nothing. Keeps undefined: the profile is not loaded yet.
@@ -441,7 +447,7 @@ let frame = 0;
 
 function buildPeek(to) {
   const peek = document.createElement('div');
-  peek.className = 'peek';
+  peek.className = to.back ? 'peek' : 'peek peek-next';
   peek.inert = true;
   peek.dataset.hash = to.hash;
   peek.innerHTML = screenOf(parseRoute(to.hash, guides()), world());
@@ -449,15 +455,19 @@ function buildPeek(to) {
   return peek;
 }
 
-// The screen a swipe leads to, built while the app is idle and kept hidden, so the first move of a finger renders nothing.
+const peekOf = (to) => [...root.querySelectorAll('.peek')].find((p) => p.dataset.hash === to.hash);
+// a peek waits beside the screen: the one before on the left, the next one on the right
+const besideAt = (peek, shift) => `translate3d(${shift + (peek.classList.contains('peek-next') ? root.clientWidth : -root.clientWidth)}px, 0, 0)`;
+
+// The screens a swipe leads to, built while the app is idle and kept hidden, so the first move of a finger renders nothing.
 function preparePeek() {
   if (peekJob) unidle(peekJob);
   peekJob = 0;
-  const to = swipeTarget(route(), 1, []);
-  if (!to || stillMotion()) return;
+  const targets = [targetOf(1), targetOf(-1)].filter(Boolean);
+  if (!targets.length || stillMotion()) return;
   peekJob = idle(() => {
     peekJob = 0;
-    if (!touch && !settling && !root.querySelector('.peek')) buildPeek(to);
+    if (!touch && !settling) targets.filter((to) => !peekOf(to)).forEach(buildPeek);
   });
 }
 
@@ -467,15 +477,18 @@ function paint() {
   if (touch?.axis !== 'x') return;
   const shift = touch.to ? touch.dx : touch.dx * EDGE_PULL;
   root.firstElementChild.style.transform = `translate3d(${shift}px, 0, 0)`;
-  const peek = root.querySelector('.peek');
-  if (peek) peek.style.transform = `translate3d(${shift - root.clientWidth}px, 0, 0)`;
+  // only the peek on the side the finger moves to comes along; the other one waits at its place
+  for (const peek of root.querySelectorAll('.peek')) {
+    if (touch.to?.hash === peek.dataset.hash) peek.style.transform = besideAt(peek, shift);
+    else peek.style.removeProperty('transform');
+  }
 }
 
 function landed(to) {
   settling = false;
   root.removeAttribute('class');
   root.firstElementChild?.style.removeProperty('transform');
-  root.querySelector('.peek')?.style.removeProperty('transform');
+  root.querySelectorAll('.peek').forEach((p) => p.style.removeProperty('transform'));
   // drawn at once, so no frame shows the old screen back in place; its hashchange then has nothing left to do
   if (to) { landedOn = to.hash; location.hash = to.hash; }
   if (to || redrawDue) draw();
@@ -490,10 +503,9 @@ function settle(to) {
   if (stillMotion()) { landed(to); return; }
   root.classList.add(to ? 'settle' : 'spring');
   root.classList.remove('swiping');
-  const shift = to ? root.clientWidth : 0;
+  const shift = to ? (to.back ? root.clientWidth : -root.clientWidth) : 0;
   root.firstElementChild.style.transform = `translate3d(${shift}px, 0, 0)`;
-  const peek = root.querySelector('.peek');
-  if (peek) peek.style.transform = `translate3d(${shift - root.clientWidth}px, 0, 0)`;
+  root.querySelectorAll('.peek').forEach((p) => { p.style.transform = besideAt(p, shift); });
   setTimeout(() => landed(to), SETTLE_MS);
 }
 
@@ -540,11 +552,9 @@ root.addEventListener('touchmove', (e) => {
   touch.at = e.timeStamp;
   if (stillMotion()) return;
   touch.dx = dx;
-  touch.to = swipeTarget(route(), dx, []);
-  if (!root.classList.contains('swiping')) {
-    if (touch.to && !root.querySelector('.peek')) buildPeek(touch.to); // not ready yet: built now, once
-    root.classList.add('swiping');
-  }
+  touch.to = targetOf(dx);
+  if (touch.to && !peekOf(touch.to)) buildPeek(touch.to); // not ready yet: built now, once per side
+  root.classList.add('swiping');
   frame ||= requestAnimationFrame(paint);
 }, { passive: true });
 
@@ -558,7 +568,7 @@ root.addEventListener('touchend', (e) => {
   const dx = e.changedTouches[0].clientX - touch.x;
   // a finger that rested before lifting is no flick
   const speed = e.timeStamp - touch.at > FLICK_FRESH_MS ? 0 : touch.speed;
-  const to = swipeTarget(route(), dx, []);
+  const to = targetOf(dx);
   settle(to && swipeLands(dx, speed, root.clientWidth) ? to : null);
 }, { passive: true });
 

@@ -130,7 +130,7 @@ async function measureTable(page, base) {
 
 // A guide opens with its open step just below the head, and no redraw after that moves the list.
 async function opensOnCard(page, base) {
-  const list = page.locator('.path');
+  const list = page.locator('#app > .screen .path');
   const gap = () => page.evaluate(() => document.querySelector('.card').getBoundingClientRect().top - document.querySelector('.path').getBoundingClientRect().top);
   const onCard = async (what) => {
     const got = await gap();
@@ -151,9 +151,9 @@ async function opensOnCard(page, base) {
   await open(page, base, '#/');
   await open(page, base, '#/guide/mining/path');
   await onCard('from home again');
-  const key = await page.locator('.card .primary').getAttribute('data-step');
+  const key = await page.locator('#app > .screen .card .primary').getAttribute('data-step');
   const before = await scrolled();
-  await page.locator('.card .primary').click();
+  await page.locator('#app > .screen .card .primary').click();
   await page.waitForFunction((k) => document.activeElement?.dataset?.step === k || !document.querySelector(`.card [data-step="${k}"]`), key);
   if (Math.abs(await scrolled() - before) > 1) fail('marking a step done moved the list');
   await page.locator(`.path [data-step="${key}"]`).first().click();
@@ -163,9 +163,9 @@ async function opensOnCard(page, base) {
 // What only a scroll shows: a group on the path, the extras at its end, the brake in the settings.
 async function pathParts(page, base) {
   await open(page, base, '#/guide/mining/path');
-  const member = page.locator('.step-member');
+  const member = page.locator('#app > .screen .step-member');
   if (await member.count() !== 1) fail('the group member is not on the path');
-  if (await page.locator('.path').getByText('with the next step').count() !== 1) fail('the group head does not say so');
+  if (await page.locator('#app > .screen .path').getByText('with the next step').count() !== 1) fail('the group head does not say so');
   const rows = page.locator('.path button.row');
   if (!(await rows.last().innerText()).includes('Cake')) fail('the extras are not last');
   await member.scrollIntoViewIfNeeded();
@@ -204,7 +204,7 @@ async function folds(page, base) {
   await page.mouse.wheel(0, 200);
   await page.waitForFunction(() => document.querySelector('.head-min'));
   await page.screenshot({ path: path.join(OUT, 'head-folded.png') });
-  await page.locator('.ring-head').click();
+  await page.locator('#app > .screen .ring-head').click();
   if (await min()) fail('a tap on the folded head does not open it');
 }
 
@@ -226,12 +226,12 @@ async function keepsPlace(page, base) {
   // not the last rows: a done row is lower, and at the very end the browser would have to move the list
   const row = page.locator('.path button.row', { hasText: 'No price yet' });
   await row.scrollIntoViewIfNeeded();
-  const before = await page.locator('.path').evaluate((el) => el.scrollTop);
+  const before = await page.locator('#app > .screen .path').evaluate((el) => el.scrollTop);
   if (before <= 0) fail('the path does not scroll, the check below says nothing');
   await row.click();
   await page.waitForFunction(() => document.activeElement?.dataset?.step === 'The middle|No price yet');
   // the ticked row moves up to the done ones, so a list at its end may get shorter under the finger
-  const { after, most } = await page.locator('.path').evaluate((el) => ({ after: el.scrollTop, most: el.scrollHeight - el.clientHeight }));
+  const { after, most } = await page.locator('#app > .screen .path').evaluate((el) => ({ after: el.scrollTop, most: el.scrollHeight - el.clientHeight }));
   if (Math.abs(after - Math.min(before, most)) > 1) fail(`a tick moved the list from ${before} to ${after}`);
 }
 
@@ -267,7 +267,7 @@ async function manual(browser, base) {
   await page.screenshot({ path: path.join(OUT, 'manual-guide.png') });
   await layoutChecks(page, 'manual guide');
   if (await page.locator('.stat-value').first().innerText() !== '1,234') fail('the typed-in value is not in the grid');
-  if (!await page.locator('.card .primary').count()) fail('no step to tick by hand');
+  if (!await page.locator('#app > .screen .card .primary').count()) fail('no step to tick by hand');
   await open(page, base, '#/settings');
   await page.screenshot({ path: path.join(OUT, 'manual-settings.png') });
   await layoutChecks(page, 'manual settings');
@@ -314,19 +314,30 @@ async function swipes(browser, base) {
   const MINING = '#/guide/mining/path';
 
   await open(page, base, MINING);
-  await page.locator('.ring-head').waitFor();
+  await page.locator('#app > .screen .ring-head').waitFor();
   await pull(100);
   await wait(50);
   if (Math.abs(await shift('#app > .screen') - 100) > 1) fail('the head does not follow the finger');
-  if (await page.locator('.peek:visible .screen').count() !== 1) fail('no next screen beside this one');
+  if (await page.locator('.peek:not(.peek-next):visible .screen').count() !== 1) fail('no home screen beside this one');
   await page.screenshot({ path: path.join(OUT, 'swipe-mid.png') });
   await lift(150);
   await at(MINING, 'under 30 %');
+  // to the left the next guide of the area comes in from the right, and back again
+  const SHAFTING = '#/guide/shafting/path';
   await pull(-200);
   await wait(50);
-  if (Math.abs(await shift('#app > .screen') + 50) > 1) fail('the only tab does not hold back the pull');
+  if (Math.abs(await shift('#app > .screen') + 200) > 1) fail('the screen does not follow a pull to the next guide');
+  if (Math.abs(await shift('.peek-next') - (VIEWPORT.width - 200)) > 1) fail('the next guide does not come in from the right');
   await lift(150);
-  await at(MINING, 'past the only tab');
+  await at(SHAFTING, 'to the next guide of the area');
+  await page.locator('#app > .screen .ring-head').waitFor();
+  await pull(-200);
+  await wait(50);
+  if (Math.abs(await shift('#app > .screen') + 50) > 1) fail('the last guide of the area does not hold back the pull');
+  await lift(150);
+  await at(SHAFTING, 'past the last guide');
+  await slow(200);
+  await at(MINING, 'back to the first guide of the area');
 
   // a quick flick lands though it is short
   await pull(100); // under 30 %
@@ -337,8 +348,8 @@ async function swipes(browser, base) {
   await at('#/', 'home from the only tab');
 
   await open(page, base, MINING);
-  const top = () => page.locator('.path').evaluate((el) => el.scrollTop);
-  await page.locator('.path').evaluate((el) => { el.scrollTop = 0; });
+  const top = () => page.locator('#app > .screen .path').evaluate((el) => el.scrollTop);
+  await page.locator('#app > .screen .path').evaluate((el) => { el.scrollTop = 0; });
   await slow(10, -240);
   await at(MINING, 'a scroll');
   if (await top() <= 0) fail('a real scroll did not move the list');

@@ -206,6 +206,8 @@ a { color: var(--area); }
 /* a swipe: the screen follows the finger with the next one beside it. Only transforms move, set on two elements per frame */
 .screen { touch-action: pan-y pinch-zoom; }
 .peek { position: absolute; inset: 0; pointer-events: none; visibility: hidden; transform: translate3d(-100%, 0, 0); }
+.peek-next { transform: translate3d(100%, 0, 0); }
+#app { position: relative; overflow-x: clip; } /* the next guide waits right of the screen without widening the page */
 .swiping, .settle, .spring { position: relative; height: 100dvh; overflow: hidden; }
 .swiping > .peek, .settle > .peek, .spring > .peek { visibility: visible; }
 .swiping > *, .settle > *, .spring > * { will-change: transform; }

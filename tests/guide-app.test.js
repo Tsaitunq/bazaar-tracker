@@ -88,15 +88,15 @@ test('settings can remove the key and profile data, after a second tap', () => {
   assert.match(settingsView({ ...world, removeArmed: true }), /data-act="remove">Tap again to remove</);
 });
 
-test('a swipe moves between the tabs of a guide and from the first one home', () => {
-  const tabs = ['path', 'best'];
-  const at = (tab) => ({ page: 'guide', id: 'mine', tab });
-  assert.deepEqual(swipeTarget(at('path'), -80, tabs), { hash: '#/guide/mine/best', back: false });
-  assert.deepEqual(swipeTarget(at('best'), 80, tabs), { hash: '#/guide/mine/path', back: true });
-  assert.deepEqual(swipeTarget(at('path'), 80, tabs), { hash: '#/', back: true });
-  assert.equal(swipeTarget(at('best'), -80, tabs), null);
-  assert.deepEqual(swipeTarget(at('path'), 80, ['path']), { hash: '#/', back: true });
-  assert.equal(swipeTarget(at('path'), -80, ['path']), null);
+test('a swipe moves between the guides of an area and from the first one home', () => {
+  const family = ['mine', 'shaft'];
+  const at = (id) => ({ page: 'guide', id, tab: 'path' });
+  assert.deepEqual(swipeTarget(at('mine'), -80, family), { hash: '#/guide/shaft/path', back: false });
+  assert.deepEqual(swipeTarget(at('shaft'), 80, family), { hash: '#/guide/mine/path', back: true });
+  assert.deepEqual(swipeTarget(at('mine'), 80, family), { hash: '#/', back: true });
+  assert.equal(swipeTarget(at('shaft'), -80, family), null);
+  assert.deepEqual(swipeTarget(at('mine'), 80, ['mine']), { hash: '#/', back: true });
+  assert.equal(swipeTarget(at('mine'), -80, ['mine']), null);
 });
 
 test('other screens have no swipe', () => {

@@ -375,12 +375,12 @@ export function parseRoute(hash, guides) {
   return { page: 'home' };
 }
 
-// Where a sideways drag leads from a guide: the next tab, the one before, and from the first tab home. tabs: those on screen.
-export function swipeTarget(r, dx, tabs) {
+// Where a sideways drag leads from a guide: the next guide of its area, the one before, and from the first one home. family: the guide ids of the area in order.
+export function swipeTarget(r, dx, family) {
   if (r.page !== 'guide' || !dx) return null;
-  const at = Math.max(tabs.indexOf(r.tab), 0);
-  if (dx > 0) return { hash: at > 0 ? `#/guide/${r.id}/${tabs[at - 1]}` : '#/', back: true };
-  return at + 1 < tabs.length ? { hash: `#/guide/${r.id}/${tabs[at + 1]}`, back: false } : null;
+  const at = Math.max(family.indexOf(r.id), 0);
+  if (dx > 0) return { hash: at > 0 ? `#/guide/${family[at - 1]}/path` : '#/', back: true };
+  return at + 1 < family.length ? { hash: `#/guide/${family[at + 1]}/path`, back: false } : null;
 }
 
 // The first movement decides: clearly sideways is a swipe, anything else stays a scroll for the whole touch.
