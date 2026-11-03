@@ -69,8 +69,12 @@ test('prices from SkyCofl are credited', () => {
   const cofl = { AUCTIONED: 1e6 };
   const w = { ...world({ guides: [g], prices: { items, cofl } }) };
   assert.equal(guideModel(g, w).usedCofl, true);
-  assert.match(guideView(w, 'm', 'path'), /sky\.coflnet\.com/);
+  const html = guideView(w, 'm', 'path');
+  // in the sheet behind the ⓘ, not as a bar under the path
+  assert.match(html, /<dialog class="sheet">.*sky\.coflnet\.com.*<\/dialog>/s);
+  assert.equal(html.split('</dialog>')[1], '</div>');
   assert.doesNotMatch(guideView(world({ guides: [g] }), 'm', 'path'), /coflnet/);
+  assert.match(settingsView({ guides: [], settings: miningSettings(null) }), /sky\.coflnet\.com/);
 });
 
 test('the bazaar tax can be set', () => {

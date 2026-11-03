@@ -41,6 +41,7 @@ export function settingsView(world) {
     ${check('keepOldGear', 'I keep old gear', world.keepOldGear)}
     ${check('godPotion', 'God Potion active', world.boosts?.godPotion)}
     ${check('boosterCookie', 'Booster Cookie active', world.boosts?.boosterCookie)}
+    <small>Prices: Bazaar from the Hypixel API, lowest BIN from <a href="https://sky.coflnet.com" rel="noopener">SkyCofl</a>.</small>
   </section>`;
   const data = `<section class="panel"><h2>Guides and data</h2>
     <label class="field">Guide file or export as text<textarea data-json rows="4" spellcheck="false">${esc(world.dataText ?? '')}</textarea></label>
