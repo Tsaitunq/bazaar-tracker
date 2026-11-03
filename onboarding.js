@@ -13,6 +13,15 @@ export const compareVersions = (a, b) => {
   return 0;
 };
 
+// Stored keys of features that are gone: the view state of the old Progress area and old price caches.
+// Its checkmarks and guides (bt.guideChecks, bt.guides) stay: nothing moves them to the guide app on its own.
+export const RETIRED_KEYS = ['bt.guide', 'bt.guideMode', 'bt.guideRecent', 'bt.radar', 'bt.bins'];
+export function dropRetired(storage) {
+  for (const key of RETIRED_KEYS) {
+    try { storage.removeItem(key); } catch { /* blocked storage: nothing to clean */ }
+  }
+}
+
 const VERSION = /^\d+(\.\d+){0,3}$/;
 export const SCHEME = 2; // stored with the last seen version since the numbering became 0.x
 

@@ -8,7 +8,8 @@
     "android:build": "node scripts/android-build.mjs",
     "guide:sync": "node scripts/guide-build.mjs --sync",
     "guide:build": "node scripts/guide-build.mjs",
-    "guide:shots": "node scripts/guide-shots.mjs"
+    "guide:shots": "node scripts/guide-shots.mjs",
+    "clean": "node scripts/clean.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.3",

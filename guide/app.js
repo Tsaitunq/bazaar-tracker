@@ -27,7 +27,7 @@ const load = (key, fallback) => {
   try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
 };
 const save = (key, value) => {
-  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* full or blocked: it stays for this session */ }
+  try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch { return false; /* full or blocked: it stays for this session */ }
 };
 
 const root = document.getElementById('app');
@@ -582,9 +582,8 @@ await Promise.all([
 pathEpoch++;
 if (!load('pg.ownedV1', false) && guides().length) {
   ({ owned, checks } = migrateOwned(guides(), checks, owned));
-  save('pg.owned', owned);
-  save('pg.checks', checks);
-  save('pg.ownedV1', true);
+  // the flag only follows when both are stored: a failed save runs it again next start, and twice changes nothing
+  if (save('pg.owned', owned) && save('pg.checks', checks)) save('pg.ownedV1', true);
 }
 stamp();
 draw();

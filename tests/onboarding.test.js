@@ -373,3 +373,17 @@ test('old entries about the guides stay hidden, an emptied version too', () => {
   assert.deepEqual(shown.map((v) => v.version), ['0.2.0']);
   assert.deepEqual(shown[0].entries.map((e) => e.title), ['Public']);
 });
+
+test('retired keys are dropped and no file still reads or writes one; the old checkmarks stay', async () => {
+  const { RETIRED_KEYS, dropRetired } = await import('../onboarding.js');
+  const { readFileSync, readdirSync } = await import('node:fs');
+  const store = new Map([['bt.guide', '1'], ['bt.radar', '1'], ['bt.guideChecks', '{}'], ['bt.guides', '[]'], ['bt.settings', '{}']]);
+  dropRetired({ removeItem: (k) => store.delete(k) });
+  assert.deepEqual([...store.keys()], ['bt.guideChecks', 'bt.guides', 'bt.settings']);
+  dropRetired({ removeItem: () => { throw new Error('blocked'); } });
+  const sources = [...readdirSync('.').filter((f) => f.endsWith('.js')), ...readdirSync('guide').filter((f) => f.endsWith('.js')).map((f) => `guide/${f}`)];
+  for (const file of sources) {
+    const text = readFileSync(file, 'utf8');
+    for (const key of RETIRED_KEYS) for (const call of ['load', 'save', 'getItem', 'setItem']) assert.ok(!text.includes(`${call}('${key}'`), `${file} uses ${key}`);
+  }
+});

@@ -13,6 +13,7 @@ import { activePerks, upcoming, electionWindow, eventItems, flipRisks, planElect
 import { buyNow, itemWindows, readWindowAlerts, windowAlerts, MIN_ALERT_RUNS } from './timing.js';
 import { bindSheet, openSheet } from './sheet.js';
 import { initOnboarding, refreshHints, offerAdvanced, returning } from './tour.js';
+import { dropRetired } from './onboarding.js';
 
 const API = 'https://api.hypixel.net/v2/skyblock/bazaar';
 const MAX_ROWS = 100;
@@ -30,6 +31,7 @@ const PLAN_ALERTS = ['planPriceAlerts', 'planSuspiciousAlerts', 'planElectionAle
 const $ = (id) => document.getElementById(id);
 const load = (key, fallback) => { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } };
 const save = (key, value) => { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} };
+try { dropRetired(localStorage); } catch { /* no storage at all */ }
 
 // the fields of the panel; they take effect together, on Apply
 const FIELDS = ['tax', 'interval', 'share', 'minVolume', 'maxCapital', 'alertMargin', 'marketMargin', 'marketMinVolume', 'marketMinProfit', 'marketCooldown', 'portfolioCapital', 'portfolioSlots', 'portfolioMargin', 'portfolioTurnover', 'hotm', 'portfolioDrop', 'portfolioCooldown', 'craftMode', 'craftRuns', 'windowMinSpread', 'windowMinRuns', 'windowMaxPerDay', 'quietStart', 'quietEnd'];
