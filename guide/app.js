@@ -63,6 +63,8 @@ let settling = false;
 let redrawDue = false;
 let shownRoute = '';
 let infoOpen = false; // the sheet of notes stays open over a redraw
+let evidenceKey = null; // the step whose API tag was tapped: its sheet stays open over a redraw
+let tiers = {};
 let folded = false; // the head of a guide, down to its title line
 let byHand = false; // a finger, wheel or key was used; the app's own scroll to the card does not fold the head
 let follow = false; // the list still sits where the app put it, so a redraw puts it on the card again
@@ -98,7 +100,7 @@ const world = () => {
     prices: { forge, ah, cofl: freshBins(bins), wants: pending, items, tax: (settings.tax ?? DEFAULT_TAX) / 100, derpy: election?.mayor?.name === 'Derpy' },
     settings: miningSettings(settings.mining), keepOldGear: settings.keepOldGear === true, brake: settings.brake > 0 ? settings.brake : 5, pathEpoch, opened, boosts: boosts(), preset,
     name: (id) => names[id] ?? fallbackName(id), uuid: state?.uuid ?? '', hasKey, keyMessage, tax: settings.tax ?? DEFAULT_TAX, importedIds: imported.map((g) => g.id), canSync: canSync(), message: note.message, choices: note.choices,
-    profileMessage, dataMessage, dataText, armed, removeArmed,
+    profileMessage, dataMessage, dataText, armed, removeArmed, evidence: evidenceKey, tierOf: (id) => tiers[id] ?? '',
   };
 };
 
@@ -129,12 +131,14 @@ function draw() {
   const typed = typedFields(fields());
   const activeField = fields().indexOf(document.activeElement);
   const shownPage = root.firstElementChild?.dataset.page;
+  const openParts = [...root.querySelectorAll('details[data-keep-open][open]')].map((d) => d.dataset.keepOpen);
   const w = world();
   root.innerHTML = screenOf(route(), w);
   // the same form again: what is typed stays, and so does the field being typed in
   if (root.firstElementChild?.dataset.page === shownPage) {
     restoreTyped(fields(), typed);
     if (activeField >= 0) fields()[activeField]?.focus({ preventScroll: true });
+    root.querySelectorAll('details[data-keep-open]').forEach((d) => { d.open = openParts.includes(d.dataset.keepOpen); });
   }
   document.documentElement.dataset.theme = root.firstElementChild?.dataset.theme ?? 'home';
   const after = root.querySelector('.path, .scroll');
@@ -143,6 +147,7 @@ function draw() {
   if (shown !== shownRoute) {
     folded = false;
     infoOpen = false;
+    evidenceKey = null;
     byHand = false;
     follow = true;
   }
@@ -154,6 +159,7 @@ function draw() {
   shownRoute = shown;
   root.firstElementChild?.classList.toggle('head-min', folded);
   if (infoOpen) openInfo();
+  if (evidenceKey) openEvidence();
   if (focused !== undefined) {
     const same = [...root.querySelectorAll('[data-step]')].filter((el) => el.dataset.step === focused);
     (same.find((el) => el.className === focusClass) ?? same[0])?.focus({ preventScroll: true });
@@ -164,12 +170,19 @@ function draw() {
 
 // New prices must not wipe what is being typed into a form.
 function openInfo() {
-  const sheet = root.querySelector('dialog.sheet');
+  const sheet = root.querySelector('dialog.sheet:not(.ev-sheet)');
   if (!sheet) { infoOpen = false; return; }
   if (!sheet.open) sheet.showModal();
   infoOpen = true;
   // a sheet thrown away by a redraw may still report its close; only the one on screen counts
   sheet.addEventListener('close', () => { if (root.contains(sheet)) infoOpen = false; }, { once: true });
+}
+
+function openEvidence() {
+  const sheet = root.querySelector('dialog.ev-sheet');
+  if (!sheet) { evidenceKey = null; return; }
+  if (!sheet.open) sheet.showModal();
+  sheet.addEventListener('close', () => { if (root.contains(sheet)) evidenceKey = null; }, { once: true });
 }
 
 function drawInBackground() {
@@ -363,6 +376,8 @@ root.addEventListener('click', (e) => {
   const tab = el('[data-tab]');
   if (tab) { location.hash = tabTarget(tab.dataset.tab); return; }
   if (el('[data-info]')) { openInfo(); return; }
+  const why = el('[data-evidence]');
+  if (why) { evidenceKey = why.dataset.evidence; draw(); return; }
   const step = el('[data-step]');
   if (step) { toggle(step.dataset.step); return; }
   const sync = el('[data-sync="run"]');
@@ -619,6 +634,6 @@ loadForge().then((r) => { forge = r; pathEpoch++; drawInBackground(); });
 loadAh().then((r) => { ah = r; pathEpoch++; drawInBackground(); });
 loadElection().then((r) => { election = r; drawInBackground(); });
 loadItemData().then((r) => { items = r; pathEpoch++; drawInBackground(); });
-loadItems().then((r) => { names = r.names; drawInBackground(); });
+loadItems().then((r) => { names = r.names; tiers = r.tiers ?? {}; drawInBackground(); });
 refreshPrices();
 setInterval(refreshPrices, PRICE_EVERY);

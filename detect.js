@@ -109,3 +109,46 @@ export function detectGuide(guide, profile, keyOf) {
   }
   return out;
 }
+
+// The detection report: what the profile shows for each rule of a step. detectStep stays the judge of have and need;
+// this only says which piece or entry it looked at, so a wrong tick can be traced.
+const PET_RULES = { pet: (p, d) => d.types.includes(p.type), held: (p, d) => p.heldItem === d.item, petItem: (p, d) => d.types.includes(p.type) };
+const DATA_VALUE = {
+  essence: (p, d) => p.perks?.[d.perk] ?? 0, perk: (p, d) => p.perks?.[d.perk] ?? 0, attr: (p, d) => p.attrs?.[d.attr] ?? 0, skill: (p, d) => p.skills?.[d.skill] ?? 0,
+  power: (p, d) => !!p.powers?.includes(d.value), coll: (p, d) => !!p.collTiers?.includes(`${d.id}_${d.tier}`),
+};
+
+function explainPart(d, profile, groups) {
+  const found = VALUE[d.kind] ? itemPart(d, profile, groups) : dataPart(d, profile);
+  if (!found) return null;
+  const out = { rule: d, ...found };
+  if (VALUE[d.kind]) {
+    const value = VALUE[d.kind];
+    out.slots = (typeof d.on === 'string' ? groups[d.on] : d.on).map((ids) => {
+      const best = profile.items.filter((i) => ids.includes(i.id)).reduce((b, i) => (!b || value(i, d) > value(b, d) ? i : b), null);
+      return { ids, item: best, value: best ? value(best, d) : 0 };
+    });
+    if (d.kind === 'part') out.loose = profile.items.find((i) => d.ids.includes(i.id)) ?? null;
+  } else if (PET_RULES[d.kind]) out.pets = (profile.pets ?? []).filter((p) => PET_RULES[d.kind](p, d));
+  else out.value = DATA_VALUE[d.kind](profile, d);
+  return out;
+}
+
+// By key, as detectGuide walks: { have, need, parts, by }. by: the later step of the same slot that settled this one.
+export function explainGuide(guide, profile, keyOf) {
+  const out = new Map();
+  const reached = new Map();
+  for (const section of [...guide.sections].reverse()) {
+    for (const step of [...section.steps].reverse()) {
+      if (!step.detect || !profile) continue;
+      const parts = [step.detect].flat().map((d) => explainPart(d, profile, guide.groups));
+      if (!parts.length || parts.includes(null)) continue;
+      const entry = { have: parts.reduce((n, p) => n + p.have, 0), need: parts.reduce((n, p) => n + p.need, 0), parts, by: null };
+      const slot = [step.detect].flat().find((d) => d.slot)?.slot;
+      if (slot && reached.has(slot)) { entry.by = reached.get(slot); entry.have = entry.need; }
+      if (slot && entry.have && !reached.has(slot)) reached.set(slot, step.text);
+      out.set(keyOf(section, step), entry);
+    }
+  }
+  return out;
+}

@@ -48,8 +48,8 @@ export function pathRow(row) {
   const key = esc(row.key);
   const state = row.status === 'done' || row.status === 'locked' ? ` row-${row.status}` : '';
   const sub = shown(`row-sub${row.subColor ? ` c-${row.subColor}` : ''}`, row.sub);
-  const side = [row.side && esc(row.side), row.progress && esc(row.progress), row.api && '<span class="tag">API</span>'].filter(Boolean).map((part) => `<span>${part}</span>`).join('');
-  return `<div class="step${row.member ? ' step-member' : ''}">${rail(row.status, row.railTop, row.railBottom)}<button type="button" class="row${state}" data-step="${key}" aria-pressed="${row.status === 'done'}"><span class="row-text"><span class="row-name">${esc(row.name)}</span>${sub}${shown('row-sub', row.group)}</span><span class="row-side">${side}</span></button>${row.undo ? `<button type="button" class="undo" data-step="${key}" aria-label="Undo the API check">Undo</button>` : ''}</div>`;
+  const side = [row.side && esc(row.side), row.progress && esc(row.progress)].filter(Boolean).map((part) => `<span>${part}</span>`).join('');
+  return `<div class="step${row.member ? ' step-member' : ''}">${rail(row.status, row.railTop, row.railBottom)}<button type="button" class="row${state}" data-step="${key}" aria-pressed="${row.status === 'done'}"><span class="row-text"><span class="row-name">${esc(row.name)}</span>${sub}${shown('row-sub', row.group)}</span><span class="row-side">${side}</span></button>${row.api ? `<button type="button" class="undo" data-evidence="${key}" aria-label="What the sync found for this step" aria-haspopup="dialog">API</button>` : ''}${row.undo ? `<button type="button" class="undo" data-step="${key}" aria-label="Undo the API check">Undo</button>` : ''}</div>`;
 }
 
 export function stepCard(card) {
@@ -76,3 +76,56 @@ export const bottomBar = (tabs, active) => `<nav class="bar">${tabs.map((t) => `
 export const profileLink = () => `<a class="profile" href="#/stats" aria-label="Your stats">${icon('profile', 22)}</a>`;
 
 export const backLink = () => `<a class="back" href="#/"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Guides</a>`;
+
+// The detection report: one step, what each rule asked for and what the profile showed for it.
+const RULES = {
+  owned: () => 'Owns the item', enchant: (d) => `Enchant ${d.enchant} ${d.level}`, reforge: (d) => `Reforge ${d.value.join(' or ')}`, recomb: () => 'Recombobulated',
+  coating: () => 'Divan coating', polarvoid: () => 'Polarvoid book', scroll: (d) => `Scroll ${d.value}`, part: (d) => `Drill part ${d.ids.join(' or ')}`,
+  gem: (d) => `${d.type ?? 'Any'} gem, ${d.quality} or better`, pet: (d) => `Pet ${d.types.join(' or ')}, ${d.tier ?? 'COMMON'} or better`, held: (d) => `Pet item ${d.item}`,
+  petItem: (d) => `${d.item} on ${d.types.join(' or ')}`, essence: (d) => `Perk ${d.perk} ${d.level}`, perk: (d) => `Perk ${d.perk} ${d.level}`, power: (d) => `Power ${d.value}`,
+  attr: (d) => `Attribute ${d.attr} ${d.need}`, coll: (d) => `Collection ${d.id} ${d.tier}`, skill: (d) => `${d.skill} ${number(d.xp)} XP`,
+};
+const PLACES = { inventory: 'Inventory', ender: 'Ender chest', vault: 'Personal vault', armor: 'Worn armor', equipment: 'Equipment', accessory: 'Accessory bag', tick: 'Ticked by hand' };
+
+function placeOf(item) {
+  const sets = (item.sets ?? []).map((s) => { const [kind, n] = s.split(':'); return kind === 'armor' ? `wardrobe slot ${n}` : `equipment set ${n}`; });
+  const where = item.where === 'backpack' ? `Backpack ${item.bag ?? '(number after the next sync)'}`
+    : item.where === 'wardrobe' ? sets.shift() ?? 'Wardrobe' : PLACES[item.where] ?? item.where;
+  return [where[0].toUpperCase() + where.slice(1), ...sets].join(', ');
+}
+
+function itemText(item, tierOf) {
+  const tier = tierOf(item.id);
+  const parts = [
+    item.id,
+    tier && `${tier}${item.recomb ? ' +1 (recombobulated)' : ''}`,
+    item.reforge && `reforge ${item.reforge}`,
+    Object.keys(item.enchants ?? {}).length && `enchants ${Object.entries(item.enchants).map(([e, l]) => `${e} ${l}`).join(', ')}`,
+    item.gems?.length && `gems ${item.gems.map((g) => `${g.slot} ${g.type} ${g.quality}`).join(', ')}`,
+    item.coating && 'Divan coating',
+    item.polarvoid > 0 && `polarvoid ${item.polarvoid}`,
+    Object.keys(item.parts ?? {}).length && `modules ${Object.entries(item.parts).map(([k, v]) => `${k} ${v}`).join(', ')}`,
+  ].filter(Boolean);
+  return `${esc(parts.join(' · '))}<br><small>${esc(placeOf(item))}</small>`;
+}
+
+const verdict = (have, need) => (have >= need ? ['yes', 'fulfilled'] : have > 0 ? ['partly', 'partly'] : ['no', 'no']);
+
+function partView(p, tierOf) {
+  const [cls, word] = verdict(p.have, p.need);
+  let found;
+  if (p.slots) {
+    found = p.slots.map((s) => (s.item ? `<li>${itemText(s.item, tierOf)}${s.value ? '' : '<br><small>found, but without this</small>'}</li>` : `<li class="ev-miss">missing: none of ${esc(s.ids.join(', '))}</li>`)).join('');
+    if (p.loose) found += `<li>${itemText(p.loose, tierOf)}<br><small>the part on its own</small></li>`;
+  } else if (p.pets) found = p.pets.length ? p.pets.map((pet) => `<li>${esc([pet.type, pet.tier, pet.heldItem && `holding ${pet.heldItem}`].filter(Boolean).join(' · '))}<br><small>Pets</small></li>`).join('') : '<li class="ev-miss">missing: no such pet</li>';
+  else found = `<li>Profile: ${esc(typeof p.value === 'boolean' ? (p.value ? 'unlocked' : 'not unlocked') : number(p.value))}</li>`;
+  return `<div class="ev-rule"><div><span>${esc(RULES[p.rule.kind](p.rule))}</span><b class="ev-${cls}">${number(p.have)} / ${number(p.need)} · ${word}</b></div><ul>${found}</ul></div>`;
+}
+
+export function evidence(entry, tierOf) {
+  const [cls, word] = verdict(entry.have, entry.need);
+  const result = entry.have >= entry.need ? word : `${word}: ${number(entry.have)} / ${number(entry.need)}, missing ${number(entry.need - entry.have)}`;
+  const by = entry.by ? `<p class="note">Counted as done: a later step of the same slot was found (${esc(entry.by)}).</p>` : '';
+  const how = entry.ticked ? '<p class="note">From an item ticked by hand, here or in another guide.</p>' : '';
+  return `<div class="evidence"><h3>${esc(entry.name)}</h3><small>${esc(entry.section)}</small><p class="ev-${cls}">Result: ${esc(result)}</p>${how}${by}${entry.parts.map((p) => partView(p, tierOf)).join('')}</div>`;
+}

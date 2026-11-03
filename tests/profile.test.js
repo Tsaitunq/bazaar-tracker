@@ -59,6 +59,9 @@ test('summarize reads every storage and marks where', async () => {
   const out = await summarize(member());
   const where = Object.fromEntries(out.items.map((i) => [i.id, i.where]));
   assert.deepEqual(where, { WORN: 'armor', EQUIP: 'equipment', INV: 'inventory', ENDER: 'ender', VAULT: 'vault', PACK0: 'backpack', PACK7: 'backpack', TALI: 'accessory', SET_HELM: 'wardrobe', SET_NECK: 'wardrobe' });
+  assert.equal(out.items.find((i) => i.id === 'PACK0').bag, 1);
+  assert.equal(out.items.find((i) => i.id === 'PACK7').bag, 8);
+  assert.equal(out.items.find((i) => i.id === 'INV').bag, undefined);
   assert.equal(out.items.find((i) => i.id === 'SET_HELM').slot, 'HELMET');
   assert.equal(out.items.find((i) => i.id === 'SET_NECK').slot, 'EQUIPMENT_SLOT_1');
   assert.deepEqual(out.missing, { inventory: false, collections: false, skills: false });

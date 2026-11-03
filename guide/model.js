@@ -7,7 +7,7 @@ import { pathOf, entryPrice } from '../path.js';
 import { virtualProfile, virtualLoadout, applyStep, baseStats, doneSince } from '../virtual.js';
 import { computeStats, loadoutOf, withOffset } from '../stats.js';
 import { blazeState, daggersOf } from '../blaze.js';
-import { detectGuide } from '../detect.js';
+import { detectGuide, explainGuide } from '../detect.js';
 import { checkStep } from '../requires.js';
 import { coins, number } from '../format.js';
 
@@ -166,6 +166,21 @@ function subOf(status, rank, reasons, lines, fromSync, skipped) {
 
 // What the sync found and what is ticked as owned, for one guide.
 export const autoOf = (guide, summary, owned) => mergeAuto(detectGuide(guide, summary ?? null, stepKey), ownedAuto(guide, new Set(owned ?? []), stepKey));
+
+// The detection report: each step the sync or a tick in another guide counts, with what was found for it. have and need
+// are those of autoOf, so the report says what the path does. A tick of an item counts like a piece "ticked by hand".
+export function reportOf(guide, summary, owned) {
+  const auto = autoOf(guide, summary, owned);
+  const synced = explainGuide(guide, summary ?? null, stepKey);
+  const ticked = explainGuide(guide, { items: (owned ?? []).map((id) => ({ id, where: 'tick' })) }, stepKey);
+  return guide.sections.flatMap((section) => section.steps.flatMap((step) => {
+    const key = stepKey(section, step);
+    const found = auto.get(key);
+    if (!found?.have) return [];
+    const why = (found.ticked ? ticked : synced).get(key) ?? { parts: [], by: null };
+    return [{ key, name: step.text, section: section.name, have: found.have, need: found.need, ticked: !!found.ticked, parts: why.parts, by: why.by }];
+  }));
+}
 
 // One tick. An item step goes to the state of all guides, anything else stays a mark of this guide. Gives the new owned state.
 export function tickStep({ guide, key, on, marks, owned, summary }) {

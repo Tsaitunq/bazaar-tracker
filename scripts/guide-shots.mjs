@@ -227,6 +227,31 @@ async function infoSheet(page, base) {
   if (await page.locator('dialog.sheet[open]').count()) fail('the notes do not close');
 }
 
+// The API tag of a row opens what the sync found; Settings list the same per guide.
+async function evidenceSheet(page, base) {
+  await open(page, base, '#/guide/mining/path');
+  await page.waitForTimeout(1200); // a new order may still come when the app is idle
+  const tag = page.locator('#app > .screen [data-evidence]').first();
+  if (!await tag.count()) { fail('no API tag on the mining path, the check says nothing'); return; }
+  await tag.scrollIntoViewIfNeeded();
+  await tag.click();
+  await page.locator('dialog.ev-sheet[open] .evidence').waitFor();
+  await page.screenshot({ path: path.join(OUT, 'evidence-sheet.png') });
+  await page.evaluate(() => window.dispatchEvent(new HashChangeEvent('hashchange')));
+  if (!await page.locator('dialog.ev-sheet[open]').count()) fail('a redraw closed the evidence');
+  await page.locator('dialog.ev-sheet button').click();
+  if (await page.locator('dialog.ev-sheet[open]').count()) fail('the evidence does not close');
+  await open(page, base, '#/settings');
+  const first = page.locator('details.ev-guide summary').first();
+  if (!await first.count()) { fail('no detection report in settings'); return; }
+  await first.click();
+  await page.evaluate(() => window.dispatchEvent(new HashChangeEvent('hashchange')));
+  if (!await page.locator('details.ev-guide[open]').count()) fail('a redraw closed the detection report');
+  await page.locator('details.ev-guide[open] .evidence').first().scrollIntoViewIfNeeded();
+  await page.screenshot({ path: path.join(OUT, 'detection-report.png') });
+  await layoutChecks(page, 'detection report');
+}
+
 async function keepsPlace(page, base) {
   await open(page, base, '#/guide/mining/path');
   // not the last rows: a done row is lower, and at the very end the browser would have to move the list
@@ -393,6 +418,7 @@ try {
   await opensOnCard(page, base);
   await folds(page, base);
   await infoSheet(page, base);
+  await evidenceSheet(page, base);
   await keepsPlace(page, base);
   await pathParts(page, base);
   await keepsTyped(page, base);

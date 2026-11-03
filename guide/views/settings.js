@@ -2,7 +2,8 @@
 import { esc } from '../../format.js';
 import { syncView } from '../../sync.js';
 import { PRESETS } from '../../optimizer.js';
-import { bottomBar } from './parts.js';
+import { bottomBar, evidence } from './parts.js';
+import { reportOf } from '../model.js';
 import { HOME_TABS } from './home.js';
 
 const WEIGHTS = [['wF', 'Fortune weight'], ['wS', 'Speed weight'], ['wP', 'Pristine weight'], ['blockStrength', 'Block strength']];
@@ -16,6 +17,16 @@ function resetRow(guide, armed, removable) {
   return armed === guide.id
     ? `<div class="actions"><span class="note">Clear all checkmarks of ${name}? Items you ticked also clear in your other guides.</span><button type="button" class="primary" data-reset-yes="${id}">Reset</button><button type="button" class="ghost" data-reset-no>Cancel</button></div>`
     : `<div class="actions"><button type="button" class="ghost" data-reset="${id}">Reset ${name}</button>${removable ? `<button type="button" class="ghost" data-remove-guide="${id}">Remove imported copy</button>` : ''}</div>`;
+}
+
+// Every step the sync ticked or found in part, with the piece it looked at and where that piece is. Only with the sync on.
+function report(world) {
+  if (!world.personal) return '';
+  const summary = world.state?.summary;
+  const guides = summary ? world.guides.map((g) => ({ g, entries: reportOf(g, summary, world.owned) })) : [];
+  const body = !summary ? '<small>Sync first: the report shows what the last sync found.</small>'
+    : guides.map(({ g, entries }) => `<details class="ev-guide" data-keep-open="${esc(g.id)}"><summary>${esc(g.title)} · ${entries.length} ${entries.length === 1 ? 'step' : 'steps'}</summary>${entries.length ? entries.map((e) => evidence(e, world.tierOf ?? (() => ''))).join('') : '<small>Nothing found for this guide.</small>'}</details>`).join('');
+  return `<section class="panel"><h2>Detection report</h2><small>Steps ticked or found in part by the sync: the piece it looked at, where it is, and what is missing.</small>${body}</section>`;
 }
 
 export function settingsView(world) {
@@ -50,5 +61,5 @@ export function settingsView(world) {
     <small role="status">${esc(world.dataMessage ?? '')}</small>
     ${world.guides.map((g) => resetRow(g, world.armed, world.importedIds?.includes(g.id))).join('')}
   </section>`;
-  return `<div class="screen screen-home" data-theme="home" data-page="settings"><div class="home-title"><h1>Settings</h1></div><div class="scroll">${profile}${mining}${data}</div>${bottomBar(HOME_TABS, 'settings')}</div>`;
+  return `<div class="screen screen-home" data-theme="home" data-page="settings"><div class="home-title"><h1>Settings</h1></div><div class="scroll">${profile}${report(world)}${mining}${data}</div>${bottomBar(HOME_TABS, 'settings')}</div>`;
 }

@@ -46,7 +46,8 @@ function storages(member) {
   const inv = member.inventory ?? {};
   const list = [
     ['armor', inv.inv_armor], ['equipment', inv.equipment_contents], ['inventory', inv.inv_contents], ['ender', inv.ender_chest_contents], ['vault', inv.personal_vault_contents],
-    ...Object.values(inv.backpack_contents ?? {}).map((s) => ['backpack', s]),
+    // the number of a backpack as the game shows it, 1 to 18, for the detection report
+    ...Object.entries(inv.backpack_contents ?? {}).map(([n, s]) => ['backpack', s, null, null, Number(n) + 1]),
     ['accessory', inv.bag_contents?.talisman_bag],
   ];
   for (const kind of ['armor', 'equipment']) {
@@ -66,7 +67,7 @@ async function readItems(member) {
   let readable = 0;
   let skipped = 0;
   // One broken inventory or item must not cost the others. They run one after the other, so the page stays responsive.
-  for (const [where, store, slot, wardrobeSet] of list) {
+  for (const [where, store, slot, wardrobeSet, bag] of list) {
     const set = wardrobeSet ?? (where in worn && worn[where] ? `${where}:${worn[where]}` : null);
     let slots;
     try {
@@ -81,6 +82,7 @@ async function readItems(member) {
         const item = readItem(raw, where, slot ?? null);
         const uuid = raw.tag?.ExtraAttributes?.uuid;
         if (!item) continue;
+        if (bag) item.bag = bag;
         // the same item in two places is one item, and it stays in each set
         const known = uuid && seen.get(uuid);
         const kept = known || item;
