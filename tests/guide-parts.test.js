@@ -132,3 +132,12 @@ test('all text is escaped', () => {
   assert.doesNotMatch(out, /<i>/);
   assert.doesNotMatch(out, /"x"/);
 });
+
+test('the card folds its breakdown behind the cost line and shows a short section name', () => {
+  const html = stepCard(card({ where: 'Path (order = bot pick)', items: [{ text: '2× Gem · 2M · Bazaar' }], hint: 'Forge: 3 Mithril' }));
+  assert.match(html, /<details class="card-more" data-keep-open="S\|a"><summary class="card-foot"><span class="card-cost">3.9M coins<\/span>/);
+  assert.match(html, /<\/summary><span class="card-item">2× Gem · 2M · Bazaar<\/span>.*Forge: 3 Mithril<\/span><\/details>/);
+  assert.match(html, /card-where">Path</);
+  assert.doesNotMatch(html, /bot pick/);
+  assert.doesNotMatch(stepCard(card()), /<details/);
+});
