@@ -1,6 +1,6 @@
 // The start page: one card per guide, each guide's best step, and what was unlocked this week.
 import { esc, number } from '../../format.js';
-import { guideModel, worldFor, nextPerGuide, unlockedThisWeek } from '../model.js';
+import { guideModel, worldFor, nextPerGuide, unlockedThisWeek, firstOfFamilies } from '../model.js';
 import { ring, bottomBar, profileLink } from './parts.js';
 
 export const HOME_TABS = [{ id: 'home', label: 'Home' }, { id: 'settings', label: 'Settings' }];
@@ -32,5 +32,5 @@ export function homeView(world) {
   const week = Object.values(world.dates ?? {}).reduce((n, stamps) => n + unlockedThisWeek(stamps, world.now), 0);
   const tiles = `<div class="tile"><small>Unlocked this week</small><strong>${number(week)} <em>step${week === 1 ? '' : 's'}</em></strong></div>`;
   const hasFarming = world.guides.some((g) => g.area === 'farming');
-  return `<div class="screen screen-home" data-theme="home">${head}<div class="scroll">${bests}${models.map(guideCard).join('')}${hasFarming ? '' : farmingCard}${tiles}</div>${bar}</div>`;
+  return `<div class="screen screen-home" data-theme="home">${head}<div class="scroll">${bests}${models.filter((m) => firstOfFamilies(world.guides).some((g) => g.id === m.id)).map(guideCard).join('')}${hasFarming ? '' : farmingCard}${tiles}</div>${bar}</div>`;
 }

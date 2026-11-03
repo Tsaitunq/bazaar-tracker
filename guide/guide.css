@@ -33,6 +33,12 @@ a { color: var(--area); }
 
 .icon { flex: none; color: var(--area); }
 
+/* the guides of one area */
+.switch { flex: none; display: flex; padding: 3px; border-radius: 24px; background: var(--surface); border: 1px solid var(--line); }
+.switch a { flex: 1 1 0; min-height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 21px; font-size: 13px; color: var(--muted); text-decoration: none; text-align: center; }
+.switch a[aria-current="page"] { background: var(--raised); color: var(--text); font-weight: 700; }
+.head-min .switch { display: none; }
+
 /* notes behind the ⓘ of the head */
 .info { width: 44px; height: 44px; padding: 0; border-radius: 22px; background: none; border: 1px solid var(--line); color: var(--area); font-size: 20px; }
 .top > .info:nth-child(2) { margin-left: auto; }

@@ -16,7 +16,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
 
 const SHOTS = [
   ['home', '#/'], ['mining-path', '#/guide/mining/path'],
-  ['blaze-path', '#/guide/blaze-slayer/path'],
+  ['shafting-path', '#/guide/shafting/path'], ['blaze-path', '#/guide/blaze-slayer/path'],
   ['farming', '#/guide/farming/path'], ['settings', '#/settings'], ['stats', '#/stats'],
 ];
 

@@ -1,7 +1,7 @@
 // A guide: its path. Also the stats of all guides, reached through the profile button.
 import { esc, number } from '../../format.js';
 import { statsView as allStats } from '../../stats.js';
-import { guideModel, worldFor } from '../model.js';
+import { guideModel, worldFor, familyOf } from '../model.js';
 import { ring, legend, statGrid, pathRow, stepCard, chips, bottomBar, backLink, profileLink, icon } from './parts.js';
 import { HOME_TABS } from './home.js';
 
@@ -27,6 +27,13 @@ const head = (m, empty) => `<div class="head">${ringHead(m)}${empty ? '' : `${m.
 
 const pathTab = (m) => `${warning(m)}<div class="path">${m.rows.map((row) => (row.card ? stepCard(row.card) : pathRow(row))).join('')}</div>`;
 
+// Between the guides of one area, as a two-way switch at the top.
+function switcher(world, guide) {
+  const family = familyOf(world.guides, guide);
+  if (family.length < 2) return '';
+  return `<nav class="switch" aria-label="Guides of this area">${family.map((g) => `<a href="#/guide/${esc(g.id)}/path"${g === guide ? ' aria-current="page"' : ''}>${esc(g.label ?? g.title)}</a>`).join('')}</nav>`;
+}
+
 const screenClass = (theme) => `screen${theme === 'blaze' ? ' screen-blaze' : ''}`;
 
 export function guideView(world, id) {
@@ -36,7 +43,7 @@ export function guideView(world, id) {
   const empty = !guide.sections.length;
   const body = empty ? '<div class="empty"><strong>Guide coming soon</strong></div>' : pathTab(m);
   const credit = m.usedCofl ? '<p class="note">Prices: <a href="https://sky.coflnet.com" rel="noopener">SkyCofl</a></p>' : '';
-  return `<div class="${screenClass(m.theme)}" data-theme="${esc(m.theme)}"><div class="top">${backLink()}${m.source ? `<a class="source" href="${esc(m.source)}" rel="noopener">Source</a>` : ''}${infoButton(m)}${profileLink()}</div>${head(m, empty)}${body}${credit}${infoSheet(m)}</div>`;
+  return `<div class="${screenClass(m.theme)}" data-theme="${esc(m.theme)}"><div class="top">${backLink()}${m.source ? `<a class="source" href="${esc(m.source)}" rel="noopener">Source</a>` : ''}${infoButton(m)}${profileLink()}</div>${switcher(world, guide)}${head(m, empty)}${body}${credit}${infoSheet(m)}</div>`;
 }
 
 export const statsView = (world) => `<div class="screen screen-home" data-theme="home" data-page="stats"><div class="home-title"><h1>Stats</h1></div><div class="scroll">${allStats(world.state, world.prices.items, esc, world.boosts, world.preset)}</div>${bottomBar(HOME_TABS, null)}</div>`;

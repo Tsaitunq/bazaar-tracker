@@ -430,6 +430,10 @@ export function statsOnly(stand) {
   return { statsInput: Object.fromEntries(entries.map(([area, { offset, offsetFor, offsetNote, ...kept }]) => [area, kept])) };
 }
 
+// Guides of one area belong together: home shows the first, the head switches between them. Owned items are shared anyway.
+export const familyOf = (guides, guide) => (guide.area ? guides.filter((g) => g.area === guide.area) : [guide]);
+export const firstOfFamilies = (guides) => guides.filter((g) => familyOf(guides, g)[0] === g);
+
 // The app keeps the checks per guide; a guide model sees only its own.
 export const worldFor = (world, guide) => ({ ...world, marks: new Set(world.checks?.[guide.id] ?? []) });
 
