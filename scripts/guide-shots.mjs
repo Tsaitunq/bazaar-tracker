@@ -140,6 +140,8 @@ async function opensOnCard(page, base) {
   await open(page, base, '#/');
   await open(page, base, '#/guide/mining/path');
   await onCard('from home');
+  await page.waitForTimeout(1200); // the new order comes when the app is idle and may put rows above the card
+  await onCard('from home, after the new order');
   if (await scrolled() <= 0) fail('the card already was on top, the check says nothing');
   const was = await scrolled();
   await page.mouse.move(195, 600);
@@ -148,16 +150,20 @@ async function opensOnCard(page, base) {
   const moved = await scrolled();
   await page.evaluate(() => window.dispatchEvent(new HashChangeEvent('hashchange')));
   if (await scrolled() !== moved) fail('a redraw moved the list back to the card');
+  await page.waitForTimeout(1200); // the new order comes when the app is idle
+  if (await scrolled() !== moved) fail('the new order moved the list back to the card');
   await open(page, base, '#/');
   await open(page, base, '#/guide/mining/path');
   await onCard('from home again');
+  await page.waitForTimeout(1200);
+  await onCard('after the new order');
   const key = await page.locator('#app > .screen .card .primary').getAttribute('data-step');
   const before = await scrolled();
   await page.locator('#app > .screen .card .primary').click();
   await page.waitForFunction((k) => document.activeElement?.dataset?.step === k || !document.querySelector(`.card [data-step="${k}"]`), key);
   if (Math.abs(await scrolled() - before) > 1) fail('marking a step done moved the list');
-  await page.locator(`.path [data-step="${key}"]`).first().click();
-  await page.locator(`.card [data-step="${key}"]`).waitFor();
+  await page.locator(`#app > .screen .path [data-step="${key}"]`).first().click();
+  await page.locator(`#app > .screen .card [data-step="${key}"]`).waitFor();
 }
 
 // What only a scroll shows: a group on the path, the extras at its end, the brake in the settings.
@@ -166,7 +172,7 @@ async function pathParts(page, base) {
   const member = page.locator('#app > .screen .step-member');
   if (await member.count() !== 1) fail('the group member is not on the path');
   if (await page.locator('#app > .screen .path').getByText('with the next step').count() !== 1) fail('the group head does not say so');
-  const rows = page.locator('.path button.row');
+  const rows = page.locator('#app > .screen .path button.row');
   if (!(await rows.last().innerText()).includes('Cake')) fail('the extras are not last');
   await member.scrollIntoViewIfNeeded();
   await page.screenshot({ path: path.join(OUT, 'path-group.png') });
@@ -224,7 +230,8 @@ async function infoSheet(page, base) {
 async function keepsPlace(page, base) {
   await open(page, base, '#/guide/mining/path');
   // not the last rows: a done row is lower, and at the very end the browser would have to move the list
-  const row = page.locator('.path button.row', { hasText: 'No price yet' });
+  const row = page.locator('#app > .screen .path button.row', { hasText: 'No price yet' });
+  await page.waitForTimeout(1200); // a new order may still come when the app is idle
   await row.scrollIntoViewIfNeeded();
   const before = await page.locator('#app > .screen .path').evaluate((el) => el.scrollTop);
   if (before <= 0) fail('the path does not scroll, the check below says nothing');

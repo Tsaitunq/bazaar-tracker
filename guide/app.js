@@ -443,6 +443,7 @@ const stillMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches
 const idle = (job) => (window.requestIdleCallback ? requestIdleCallback(job, { timeout: 1000 }) : setTimeout(job, 200));
 const unidle = (id) => (window.cancelIdleCallback ? cancelIdleCallback(id) : clearTimeout(id));
 let peekJob = 0;
+let reorderJob = 0;
 let landedOn = null;
 let frame = 0;
 
@@ -485,6 +486,20 @@ function paint() {
   }
 }
 
+// A guide opens at once in the order it had last time; its new order follows when the app is idle, with the card kept in sight.
+function reorderLater() {
+  const r = route();
+  if (r.page !== 'guide') return;
+  if (reorderJob) unidle(reorderJob);
+  reorderJob = idle(() => {
+    reorderJob = 0;
+    const now = route();
+    if (now.page !== 'guide' || now.id !== r.id) return;
+    opened[r.id] = (opened[r.id] ?? 0) + 1;
+    drawInBackground();
+  });
+}
+
 function landed(to) {
   settling = false;
   root.removeAttribute('class');
@@ -494,6 +509,7 @@ function landed(to) {
   if (to) { landedOn = to.hash; location.hash = to.hash; }
   if (to || redrawDue) draw();
   redrawDue = false;
+  if (to) reorderLater();
 }
 
 function settle(to) {
@@ -578,9 +594,8 @@ root.addEventListener('touchend', (e) => {
 window.addEventListener('hashchange', () => {
   if (landedOn === location.hash) { landedOn = null; return; }
   landedOn = null;
-  const r = route();
-  if (r.page === 'guide') opened[r.id] = (opened[r.id] ?? 0) + 1;
   draw();
+  reorderLater();
 });
 
 if ('serviceWorker' in navigator && !plugin()) navigator.serviceWorker.register('sw.js').catch(() => {});
