@@ -193,13 +193,11 @@ test('without a sync the path still shows, with no stats and no ranking', () => 
   assert.deepEqual(m.stats, []);
   assert.equal(m.card.cost, '1M coins');
   assert.equal(m.card.gain, '');
-  assert.deepEqual(m.tabs.map((t) => t.id), ['path']);
 });
 
-test('a guide without a score has only the path tab', () => {
+test('a guide without a score has an empty path', () => {
   const m = guideModel({ ...mining([]), area: 'farming' }, world());
   assert.equal(m.theme, 'farming');
-  assert.deepEqual(m.tabs.map((t) => t.id), ['path']);
   assert.deepEqual(m.rows, []);
 });
 
@@ -288,6 +286,14 @@ test('a later price changes the number, not the place, until the next tick', () 
   assert.notEqual(later.rows[0].card.rate, first.rows[0].card.rate);
   const ticked = guideModel(g, typed({ pathEpoch: 2, products: { A: sold(9e6), B: sold(2e6) } }));
   assert.deepEqual(ticked.rows.map((r) => r.name), ['y', 'x', 'z']);
+});
+
+test('opening one guide orders only its own path again', () => {
+  const g = { ...mining([coinsOf('x', 'A', 5), coinsOf('y', 'B', 5)]), id: 'own' };
+  const at = (opened, a) => guideModel(g, typed({ pathEpoch: 1, opened, products: { A: sold(a), B: sold(2e6) } })).rows.map((r) => r.name);
+  assert.deepEqual(at({ own: 1 }, 1e6), ['x', 'y']);
+  assert.deepEqual(at({ own: 1, other: 5 }, 9e6), ['x', 'y']);
+  assert.deepEqual(at({ own: 2, other: 5 }, 9e6), ['y', 'x']);
 });
 
 test('a cold resistance step shows its stat and no rate', () => {

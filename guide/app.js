@@ -21,12 +21,13 @@ const SETTLE_MS = 220; // as in guide.css
 const EDGE_PULL = 0.25;
 const FLICK_FRESH_MS = 80;
 const CARD_GAP = 8;
+const FOLD_PX = 24;
 
 const load = (key, fallback) => {
   try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
 };
 const save = (key, value) => {
-  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* full or blocked: it stays for this session */ }
+  try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch { return false; /* full or blocked: it stays for this session */ }
 };
 
 const root = document.getElementById('app');
@@ -60,7 +61,13 @@ let touch = null;
 let settling = false;
 let redrawDue = false;
 let shownRoute = '';
-let pathEpoch = 0; // a new order of the path: on opening a guide, on a tick, on the first prices and when a setting changes
+let infoOpen = false; // the sheet of notes stays open over a redraw
+let folded = false; // the head of a guide, down to its title line
+let byHand = false; // a finger, wheel or key was used; the app's own scroll to the card does not fold the head
+let follow = false; // the list still sits where the app put it, so a redraw puts it on the card again
+let foldFrom = 0; // where the list was when the head last opened
+let pathEpoch = 0; // a new order of all paths: on a tick, on the first prices and when a setting changes
+const opened = {}; // a new order of one path: when that guide opens. Going back reuses what home had, so it is quick
 
 const guides = () => mergeGuides(bundled, imported);
 const route = () => parseRoute(location.hash, guides());
@@ -82,7 +89,7 @@ const world = () => {
   return {
     guides: guides(), checks, owned, dates, state: shownState() ?? null, personal: personal(), products, now: Date.now(),
     prices: { forge, ah, cofl: freshBins(bins), wants: pending, items, tax: (settings.tax ?? DEFAULT_TAX) / 100, derpy: election?.mayor?.name === 'Derpy' },
-    settings: miningSettings(settings.mining), keepOldGear: settings.keepOldGear === true, brake: settings.brake > 0 ? settings.brake : 5, pathEpoch, boosts: boosts(), preset,
+    settings: miningSettings(settings.mining), keepOldGear: settings.keepOldGear === true, brake: settings.brake > 0 ? settings.brake : 5, pathEpoch, opened, boosts: boosts(), preset,
     name: (id) => names[id] ?? fallbackName(id), uuid: state?.uuid ?? '', hasKey, keyMessage, tax: settings.tax ?? DEFAULT_TAX, importedIds: imported.map((g) => g.id), canSync: canSync(), message: note.message, choices: note.choices,
     profileMessage, dataMessage, dataText, armed, removeArmed,
   };
@@ -126,16 +133,38 @@ function draw() {
   const after = root.querySelector('.path, .scroll');
   if (after && after.className === list) after.scrollTop = top;
   const shown = JSON.stringify(route());
-  if (shown !== shownRoute) showCard(root);
+  if (shown !== shownRoute) {
+    folded = false;
+    infoOpen = false;
+    byHand = false;
+    follow = true;
+  }
+  // prices or item data that come after the opening reorder the path; until a hand or a tick moves the list, the card stays in sight
+  if (shown !== shownRoute || follow) {
+    showCard(root);
+    foldFrom = root.querySelector('.path')?.scrollTop ?? 0;
+  }
   shownRoute = shown;
+  root.firstElementChild?.classList.toggle('head-min', folded);
+  if (infoOpen) openInfo();
   if (focused !== undefined) {
     const same = [...root.querySelectorAll('[data-step]')].filter((el) => el.dataset.step === focused);
     (same.find((el) => el.className === focusClass) ?? same[0])?.focus({ preventScroll: true });
   }
+  preparePeek();
   askBins(pending);
 }
 
 // New prices must not wipe what is being typed into a form.
+function openInfo() {
+  const sheet = root.querySelector('dialog.sheet');
+  if (!sheet) { infoOpen = false; return; }
+  if (!sheet.open) sheet.showModal();
+  infoOpen = true;
+  // a sheet thrown away by a redraw may still report its close; only the one on screen counts
+  sheet.addEventListener('close', () => { if (root.contains(sheet)) infoOpen = false; }, { once: true });
+}
+
 function drawInBackground() {
   if (!formEdited([...root.querySelectorAll('input, select, textarea')], document.activeElement)) draw();
 }
@@ -182,6 +211,7 @@ function toggle(key) {
   save('pg.checks', checks);
   save('pg.owned', owned);
   dataText = ''; // an export from before this tick must not come back by accident
+  follow = false; // the list stays under the finger that ticked
   pathEpoch++;
   stamp();
   draw();
@@ -325,6 +355,7 @@ root.addEventListener('click', (e) => {
   const el = (selector) => e.target.closest(selector);
   const tab = el('[data-tab]');
   if (tab) { location.hash = tabTarget(tab.dataset.tab); return; }
+  if (el('[data-info]')) { openInfo(); return; }
   const step = el('[data-step]');
   if (step) { toggle(step.dataset.step); return; }
   const sync = el('[data-sync="run"]');
@@ -402,27 +433,51 @@ function scrollsSideways(el) {
 
 const stillMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// The screen the drag leads to, waiting one width beside this one.
-function showPeek(to) {
-  root.querySelector('.peek')?.remove();
-  touch.peek = to?.hash ?? null;
-  root.classList.toggle('swipe-tabs', !!to && to.hash !== '#/');
-  if (!to) return;
+const idle = (job) => (window.requestIdleCallback ? requestIdleCallback(job, { timeout: 1000 }) : setTimeout(job, 200));
+const unidle = (id) => (window.cancelIdleCallback ? cancelIdleCallback(id) : clearTimeout(id));
+let peekJob = 0;
+let landedOn = null;
+let frame = 0;
+
+function buildPeek(to) {
   const peek = document.createElement('div');
   peek.className = 'peek';
   peek.inert = true;
-  peek.style.setProperty('--peek-at', `${(to.back ? -1 : 1) * root.clientWidth}px`);
+  peek.dataset.hash = to.hash;
   peek.innerHTML = screenOf(parseRoute(to.hash, guides()), world());
   root.append(peek);
-  showCard(peek);
+  return peek;
+}
+
+// The screen a swipe leads to, built while the app is idle and kept hidden, so the first move of a finger renders nothing.
+function preparePeek() {
+  if (peekJob) unidle(peekJob);
+  peekJob = 0;
+  const to = swipeTarget(route(), 1, []);
+  if (!to || stillMotion()) return;
+  peekJob = idle(() => {
+    peekJob = 0;
+    if (!touch && !settling && !root.querySelector('.peek')) buildPeek(to);
+  });
+}
+
+// One write per frame, and only transforms: the list under the finger is never laid out again.
+function paint() {
+  frame = 0;
+  if (touch?.axis !== 'x') return;
+  const shift = touch.to ? touch.dx : touch.dx * EDGE_PULL;
+  root.firstElementChild.style.transform = `translate3d(${shift}px, 0, 0)`;
+  const peek = root.querySelector('.peek');
+  if (peek) peek.style.transform = `translate3d(${shift - root.clientWidth}px, 0, 0)`;
 }
 
 function landed(to) {
   settling = false;
   root.removeAttribute('class');
-  root.removeAttribute('style');
-  root.querySelector('.peek')?.remove();
-  if (to) location.hash = to.hash;
+  root.firstElementChild?.style.removeProperty('transform');
+  root.querySelector('.peek')?.style.removeProperty('transform');
+  // drawn at once, so no frame shows the old screen back in place; its hashchange then has nothing left to do
+  if (to) { landedOn = to.hash; location.hash = to.hash; }
   if (to || redrawDue) draw();
   redrawDue = false;
 }
@@ -430,17 +485,47 @@ function landed(to) {
 function settle(to) {
   touch = null;
   settling = true;
+  if (frame) cancelAnimationFrame(frame);
+  frame = 0;
   if (stillMotion()) { landed(to); return; }
   root.classList.add(to ? 'settle' : 'spring');
-  root.style.setProperty('--drag', `${to ? (to.back ? 1 : -1) * root.clientWidth : 0}px`);
+  root.classList.remove('swiping');
+  const shift = to ? root.clientWidth : 0;
+  root.firstElementChild.style.transform = `translate3d(${shift}px, 0, 0)`;
+  const peek = root.querySelector('.peek');
+  if (peek) peek.style.transform = `translate3d(${shift - root.clientWidth}px, 0, 0)`;
   setTimeout(() => landed(to), SETTLE_MS);
 }
 
+// Scrolled down by hand the head folds, at the top or on a tap of its line it opens again. One class change, no work per frame.
+let foldFrame = 0;
+function fold(next) {
+  if (next === folded) return;
+  folded = next;
+  if (!next) foldFrom = root.querySelector('.path')?.scrollTop ?? 0;
+  root.firstElementChild?.classList.toggle('head-min', folded);
+}
+root.addEventListener('scroll', (e) => {
+  if (!byHand || !e.target.classList?.contains('path') || foldFrame) return;
+  foldFrame = requestAnimationFrame(() => {
+    foldFrame = 0;
+    const top = e.target.scrollTop;
+    if (top <= 0) fold(false);
+    else if (Math.abs(top - foldFrom) > FOLD_PX) fold(true);
+  });
+}, { capture: true, passive: true });
+// set before the scroll it causes: a passive wheel may already have moved the list when its event comes
+const handScroll = () => { byHand = true; follow = false; };
+root.addEventListener('wheel', handScroll, { passive: true });
+root.addEventListener('keydown', handScroll);
+root.addEventListener('click', (e) => { if (folded && e.target.closest('.ring-head')) fold(false); });
+
 root.addEventListener('touchstart', (e) => {
+  handScroll();
   if (touch?.axis === 'x') { settle(null); return; } // a second finger ends the swipe
   const [first] = e.touches;
   const free = e.touches.length === 1 && !settling && route().page === 'guide' && !scrollsSideways(e.target);
-  touch = free ? { x: first.clientX, y: first.clientY, lastX: first.clientX, at: e.timeStamp, speed: 0, axis: null, peek: null, tabs: [...root.querySelectorAll('.bar [data-tab]')].map((b) => b.dataset.tab) } : null;
+  touch = free ? { x: first.clientX, y: first.clientY, lastX: first.clientX, at: e.timeStamp, speed: 0, axis: null, dx: 0, to: null } : null;
 }, { passive: true });
 
 root.addEventListener('touchmove', (e) => {
@@ -454,10 +539,13 @@ root.addEventListener('touchmove', (e) => {
   touch.lastX = now.clientX;
   touch.at = e.timeStamp;
   if (stillMotion()) return;
-  const to = swipeTarget(route(), dx, touch.tabs);
-  if (!root.classList.contains('swiping') || (to?.hash ?? null) !== touch.peek) showPeek(to);
-  root.classList.add('swiping');
-  root.style.setProperty('--drag', `${to ? dx : dx * EDGE_PULL}px`);
+  touch.dx = dx;
+  touch.to = swipeTarget(route(), dx, []);
+  if (!root.classList.contains('swiping')) {
+    if (touch.to && !root.querySelector('.peek')) buildPeek(touch.to); // not ready yet: built now, once
+    root.classList.add('swiping');
+  }
+  frame ||= requestAnimationFrame(paint);
 }, { passive: true });
 
 root.addEventListener('touchcancel', () => {
@@ -470,11 +558,17 @@ root.addEventListener('touchend', (e) => {
   const dx = e.changedTouches[0].clientX - touch.x;
   // a finger that rested before lifting is no flick
   const speed = e.timeStamp - touch.at > FLICK_FRESH_MS ? 0 : touch.speed;
-  const to = swipeTarget(route(), dx, touch.tabs);
+  const to = swipeTarget(route(), dx, []);
   settle(to && swipeLands(dx, speed, root.clientWidth) ? to : null);
 }, { passive: true });
 
-window.addEventListener('hashchange', () => { pathEpoch++; draw(); });
+window.addEventListener('hashchange', () => {
+  if (landedOn === location.hash) { landedOn = null; return; }
+  landedOn = null;
+  const r = route();
+  if (r.page === 'guide') opened[r.id] = (opened[r.id] ?? 0) + 1;
+  draw();
+});
 
 if ('serviceWorker' in navigator && !plugin()) navigator.serviceWorker.register('sw.js').catch(() => {});
 
@@ -488,9 +582,8 @@ await Promise.all([
 pathEpoch++;
 if (!load('pg.ownedV1', false) && guides().length) {
   ({ owned, checks } = migrateOwned(guides(), checks, owned));
-  save('pg.owned', owned);
-  save('pg.checks', checks);
-  save('pg.ownedV1', true);
+  // the flag only follows when both are stored: a failed save runs it again next start, and twice changes nothing
+  if (save('pg.owned', owned) && save('pg.checks', checks)) save('pg.ownedV1', true);
 }
 stamp();
 draw();

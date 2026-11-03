@@ -66,12 +66,12 @@ test('blaze shows six stats in three columns and the two chips, mining four in t
   assert.doesNotMatch(mine, /class="chips"/);
 });
 
-test('the path has its card, its rows and the bar', () => {
+test('the path has its card and its rows, and no bar', () => {
   const html = guideView(world(), 'mine', 'path');
   assert.match(html, /class="back"/);
   assert.match(html, /class="card"/);
   assert.match(html, /class="row" data-step="Main\|Topaz"/);
-  assert.match(html, /data-tab="path" aria-current="page"/);
+  assert.doesNotMatch(html, /class="bar"|data-tab=/);
 });
 
 test('below a limit the chip row says so, and without a block', () => {
@@ -184,4 +184,26 @@ test('the head links the source of a guide, with its text escaped, and only if i
   w.guides = w.guides.map((g) => (g.id === 'fire' ? { ...g, source: 'https://example.com/?a="b' } : g));
   const html = guideView(w, 'fire', 'path');
   assert.match(html, /class="source" href="https:\/\/example\.com\/\?a=&#34;b" rel="noopener">Source</);
+});
+
+test('the notes wait behind the ⓘ of the head, not above the path', () => {
+  const html = guideView(world(), 'fire', 'path');
+  assert.match(html, /class="info" data-info/);
+  const [before, sheet] = html.split('<dialog class="sheet">');
+  assert.doesNotMatch(before, /Not modelled/);
+  assert.match(sheet, /Not modelled/);
+  assert.match(html, /class="chips"/);
+  const plain = world({ state: { uuid: '', statsInput: { mining: { values: { MINING_FORTUNE: 1 }, at: 1 } } }, personal: false, settings: { ...miningSettings(null), gemFortune: true } });
+  assert.doesNotMatch(guideView(plain, 'mine', 'path'), /data-info|<dialog/);
+});
+
+test('guides of one area share one home card and switch at the top', () => {
+  const shaft = { ...mining, id: 'shaft', title: 'Shafting gear', sections: [{ name: 'Main', steps: [step('Drill', 'B')] }] };
+  const w = world({ guides: [{ ...mining, label: 'Gear progression' }, shaft, blaze] });
+  const home = homeView(w);
+  assert.equal(home.match(/class="guide-card" data-theme="mining"/g).length, 1);
+  assert.match(home, /href="#\/guide\/mine\/path"/);
+  const html = guideView(w, 'shaft', 'path');
+  assert.match(html, /<nav class="switch"[^>]*><a href="#\/guide\/mine\/path">Gear progression<\/a><a href="#\/guide\/shaft\/path" aria-current="page">Shafting gear<\/a><\/nav>/);
+  assert.doesNotMatch(guideView(w, 'fire', 'path'), /class="switch"/);
 });

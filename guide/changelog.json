@@ -1,6 +1,16 @@
 {
   "versions": [
     {
+      "version": "0.5.0",
+      "date": "2026-11-03",
+      "entries": [
+        { "title": "Your step fits on screen", "text": "A smaller header that folds to one line when you scroll keeps the Mark done card in view, and the notes now sit behind the ⓘ button." },
+        { "title": "Blaze path is back", "text": "The Blaze guide shows its path again; the notes above it had squeezed it out of view." },
+        { "title": "Mining in one place", "text": "Shafting gear is now part of the Mining guide, with a switch at the top and one card on the start page." },
+        { "title": "Milestones", "text": "Ranked guides show your progress on one ring with milestone marks, and how many steps and coins the next milestone still needs." }
+      ]
+    },
+    {
       "version": "0.4.0",
       "date": "2026-11-02",
       "entries": [

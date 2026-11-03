@@ -245,7 +245,7 @@ const plans = new Map();
 function planCached(guide, world, ctx, checked, scores) {
   if (world.pathEpoch === undefined) return planOf(guide, world, ctx, checked, scores);
   const entry = world.state?.statsInput?.[guide.area];
-  const key = `${guide.id}|${world.pathEpoch}|${world.state?.syncedAt}|${entry?.at}`;
+  const key = `${guide.id}|${world.pathEpoch}|${world.opened?.[guide.id] ?? 0}|${world.state?.syncedAt}|${entry?.at}`;
   if (plans.get(guide.id)?.key !== key) plans.set(guide.id, { key, plan: planOf(guide, world, ctx, checked, scores) });
   return plans.get(guide.id).plan;
 }
@@ -257,6 +257,32 @@ function rankOf(entry, guide, ctx, world, other) {
   const free = !price.unpriced && price.net === 0 && (price.coins > 0 || !!entry.step.table);
   const group = entry.tier === 'noPrice' && free && entry.gain > 0 ? 'free' : entry.tier;
   return { ...entry, ...price, group, head: !entry.group || entry.group.head, ...(paid && { perMillion: entry.gain / (price.net / 1e6) }) };
+}
+
+// A ranked guide counts to milestones instead of chapters. Each mark sits where its last step is in the shown order
+// (done first, then the path), so the ring passes a mark when that milestone is done.
+// shortcut: what is left is the plain price of each open step, without resale or book lines; use the path's price if it misleads.
+export function milestonesOf(guide, order, checked, ctx, products) {
+  if (!guide.milestones) return null;
+  const total = Math.max(order.length, 1);
+  const list = guide.milestones.map((m) => {
+    const names = new Set(m.steps);
+    const mine = order.map((e, i) => ({ ...e, i })).filter((e) => names.has(e.step.text));
+    const open = mine.filter((e) => !checked.has(e.key));
+    return { name: m.name, at: mine.length ? (mine[mine.length - 1].i + 1) / total : 0, done: !open.length, open };
+  });
+  const next = list.find((m) => !m.done);
+  let left = '';
+  if (next) {
+    const cost = next.open.map((e) => stepCost(openStep(e.section, e.step, ctx), ctx)).reduce((a, c) => ({ coins: a.coins + c.coins, unpriced: a.unpriced + c.unpriced }), { coins: 0, unpriced: 0 });
+    left = !products ? '… left' : [`${coins(cost.coins)} left`, cost.unpriced > 0 && `+ ${cost.unpriced} unpriced`].filter(Boolean).join(' ');
+  }
+  return {
+    marks: list.map(({ at, done }) => ({ at, done })),
+    reached: list.filter((m) => m.done).length,
+    count: list.length,
+    next: next ? { name: next.name, steps: next.open.length, left } : null,
+  };
 }
 
 const withNext = (n) => (n === 1 ? 'with the next step' : `with the next ${n} steps`);
@@ -330,14 +356,14 @@ export function guideModel(guide, world) {
     if (row.card) Object.assign(row.card, { railTop: row.railTop, railBottom: row.railBottom });
   });
 
+  const milestones = milestonesOf(guide, inPlace, checked, ctx, world.products);
   const chapters = chaptersOf(guide, checked, costs, card?.key).map((c) => ({ ...c, leftText: c.current && c.done < c.total ? leftText(c.left, world.products) : '' }));
   // typed-in /stats: a field left empty is unknown, not 0
   const shown = plan.base ?? null;
   const grid = shown ? (GRIDS[guide.area] ?? []).map((k) => ({ key: k, icon: STATS[k].icon, label: STATS[k].short ?? STATS[k].label, color: STATS[k].color, value: plan.typed && shown[k] === undefined ? '–' : number(shown[k] ?? 0), delta: '' })) : [];
   return {
-    id: guide.id, source: guide.source ?? '', products: world.products, area: guide.area, theme: guide.area ?? 'home', name: guide.title, chapters, total: totalShare(chapters),
+    id: guide.id, source: guide.source ?? '', products: world.products, area: guide.area, theme: guide.area ?? 'home', name: guide.title, chapters, milestones, total: totalShare(chapters),
     stats: statDelta(grid, card?.delta ?? null), chips: plan.path?.limits ?? null, rows, card, score, leader, missing: plan.missing ?? null, notes: plan.notes ?? [], leftOut: plan.leftOut ?? null, daggerMissing: !!plan.daggerMissing, usedCofl: !!ctx.usedCofl,
-    tabs: [{ id: 'path', label: 'Path' }],
   };
 }
 
@@ -430,6 +456,10 @@ export function statsOnly(stand) {
   if (!entries.length) return null;
   return { statsInput: Object.fromEntries(entries.map(([area, { offset, offsetFor, offsetNote, ...kept }]) => [area, kept])) };
 }
+
+// Guides of one area belong together: home shows the first, the head switches between them. Owned items are shared anyway.
+export const familyOf = (guides, guide) => (guide.area ? guides.filter((g) => g.area === guide.area) : [guide]);
+export const firstOfFamilies = (guides) => guides.filter((g) => familyOf(guides, g)[0] === g);
 
 // The app keeps the checks per guide; a guide model sees only its own.
 export const worldFor = (world, guide) => ({ ...world, marks: new Set(world.checks?.[guide.id] ?? []) });

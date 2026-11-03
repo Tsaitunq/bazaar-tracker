@@ -56,6 +56,17 @@ function validChapters(list, sections) {
   return kept.length ? kept : null;
 }
 
+// Milestones name steps by their text; unknown names drop out, a milestone without a known step goes.
+function validMilestones(list, sections) {
+  if (!Array.isArray(list)) return null;
+  const known = new Set(sections.flatMap((s) => s.steps.map((step) => step.text)));
+  const kept = list.flatMap((m) => {
+    const steps = Array.isArray(m?.steps) ? m.steps.filter((n) => known.has(n)) : [];
+    return text(m?.name) && steps.length ? [{ name: m.name, steps }] : [];
+  });
+  return kept.length ? kept : null;
+}
+
 // A guide from a file is outside data: only the known fields come through, and a link only as http(s).
 export function validGuide(g) {
   if (!text(g?.title) || !Array.isArray(g.sections) || !g.sections.length) return null;
@@ -68,7 +79,8 @@ export function validGuide(g) {
   if (sections.includes(null)) return null;
   const groups = validGroups(g.groups);
   const chapters = validChapters(g.chapters, sections);
-  return { title: g.title, ...(/^https?:\/\//i.test(g.source ?? '') && { source: g.source }), ...(['mining', 'blaze', 'farming'].includes(g.area) && { area: g.area }), ...(['fixed', 'value'].includes(g.order) && { order: g.order }), ...(text(g.preset) && { preset: g.preset }), ...(chapters && { chapters }), ...(groups && { groups }), sections };
+  const milestones = validMilestones(g.milestones, sections);
+  return { title: g.title, ...(text(g.label) && { label: g.label }), ...(/^https?:\/\//i.test(g.source ?? '') && { source: g.source }), ...(['mining', 'blaze', 'farming'].includes(g.area) && { area: g.area }), ...(['fixed', 'value'].includes(g.order) && { order: g.order }), ...(text(g.preset) && { preset: g.preset }), ...(chapters && { chapters }), ...(milestones && { milestones }), ...(groups && { groups }), sections };
 }
 
 const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'guide';

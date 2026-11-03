@@ -59,6 +59,6 @@ test('no font comes from outside', () => {
 test('sizes of the mockups are in the rules', () => {
   assert.match(css, /\.bar \{ flex: none; height: 56px; border-radius: 28px;/);
   assert.match(css, /\.screen-home \.bar \{ height: 60px; border-radius: 30px; \}/);
-  assert.match(css, /\.stats-3 \.stat-value \{ font-size: 18px; \}/);
+  assert.match(css, /\.stats-3 \.stat-value \{ font-size: 15px; \}/);
   assert.match(css, /\.step-dot \{ flex: none; width: 22px; height: 22px;/);
 });

@@ -9,15 +9,18 @@ import { copyGuide } from './guide-copy.mjs';
 const OUT = 'guide-shots';
 const WEB = 'www-guide';
 const VIEWPORT = { width: 390, height: 844 };
+// the phones of the device test: every screen is shot on both, and a guide opens with its whole card in sight
+const PHONES = [VIEWPORT, { width: 412, height: 915 }];
 const fixture = JSON.parse(fs.readFileSync('tests/fixtures/guide/world.json', 'utf8'));
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.woff2': 'font/woff2', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
 
 const SHOTS = [
   ['home', '#/'], ['mining-path', '#/guide/mining/path'],
-  ['blaze-path', '#/guide/blaze-slayer/path'],
+  ['shafting-path', '#/guide/shafting/path'], ['blaze-path', '#/guide/blaze-slayer/path'],
   ['farming', '#/guide/farming/path'], ['settings', '#/settings'], ['stats', '#/stats'],
 ];
 
+const COMPACT = 'Smaller head from the device test, so the open step fits without a scroll.';
 // Selector, property, value of the .dc.html, and why it differs if it has to.
 const MEASURES = [
   ['Home', '#/', [
@@ -28,22 +31,21 @@ const MEASURES = [
   ]],
   ['Mining path', '#/guide/mining/path', [
     ['.screen', 'padding', '18px 20px 12px'], ['.screen', 'row-gap', '14px'], ['.back', 'height', '36px', 'Raised to 44 px for the touch target rule.'], ['.back', 'font-size', '13px'],
-    ['.ring-title h1', 'font-size', '22px'], ['.legend', 'font-size', '12px'], ['.legend i', 'width', '9px'],
-    ['.stats', 'padding', '14px 16px'], ['.stats', 'border-radius', '20px'], ['.stats', 'row-gap', '12px'], ['.stat-label', 'font-size', '12px'], ['.stat-value', 'font-size', '22px'], ['.stat-delta', 'font-size', '13px'],
+    ['.ring-title h1', 'font-size', '22px', COMPACT], ['.legend', 'font-size', '12px'], ['.legend i', 'width', '9px'],
+    ['.stats', 'padding', '14px 16px', COMPACT], ['.stats', 'border-radius', '20px', COMPACT], ['.stats', 'row-gap', '12px', COMPACT], ['.stat-label', 'font-size', '12px', COMPACT], ['.stat-value', 'font-size', '22px', COMPACT], ['.stat-delta', 'font-size', '13px', COMPACT],
     ['.step-rail', 'width', '28px'], ['.rail-top', 'width', '3px'], ['.rail-top', 'height', '14px'], ['.step-dot', 'width', '22px'],
     ['.row', 'padding', '11px 0px 10px'], ['.row-name', 'font-size', '15px'], ['.row-sub', 'font-size', '12px'], ['.row-side', 'font-size', '12px'], ['.row-sub.c-orange', 'color', 'rgb(255, 170, 0)'],
     ['.card', 'padding', '14px'], ['.card', 'border-radius', '18px'], ['.card-name', 'font-size', '17px'], ['.card-box', 'padding', '10px 12px'], ['.card-box', 'border-radius', '14px'],
     ['.card-stat', 'font-size', '15px'], ['.card-gain', 'font-size', '13px'], ['.card-foot', 'font-size', '13px'], ['.primary', 'height', '44px'],
-    ['.bar', 'height', '56px'], ['.bar button', 'height', '44px'], ['.bar button[aria-current]', 'background-color', 'rgb(21, 32, 44)'],
     ['.step-dot.dot-current', 'box-shadow', 'rgb(92, 200, 255) 0px 0px 14px 0px'],
   ]],
   ['Blaze path', '#/guide/blaze-slayer/path', [
-    ['.screen', 'row-gap', '12px'], ['.stats', 'padding', '12px 14px'], ['.stats', 'row-gap', '10px'], ['.stats', 'column-gap', '8px'],
-    ['.stat-label', 'font-size', '11px'], ['.stat-value', 'font-size', '18px'], ['.stat-delta', 'font-size', '12px'],
-    ['.chip', 'padding', '8px 12px'], ['.chip', 'border-radius', '14px'], ['.chips', 'font-size', '12px'],
+    ['.screen', 'row-gap', '12px'], ['.stats', 'padding', '12px 14px', COMPACT], ['.stats', 'row-gap', '10px', COMPACT], ['.stats', 'column-gap', '8px'],
+    ['.stat-label', 'font-size', '11px'], ['.stat-value', 'font-size', '18px', COMPACT], ['.stat-delta', 'font-size', '12px'],
+    ['.chip', 'padding', '8px 12px', COMPACT], ['.chip', 'border-radius', '14px', COMPACT], ['.chips', 'font-size', '12px'],
     ['.card', 'padding', '12px 14px'], ['.card-name', 'font-size', '16px'], ['.card-box', 'padding', '8px 12px'], ['.card-box', 'border-radius', '12px'], ['.card-stat', 'font-size', '14px'], ['.row', 'padding', '10px 0px 9px'],
   ]],
-  ['Farming', '#/guide/farming/path', [['.screen', 'padding', '18px 20px 12px'], ['.ring-title h1', 'font-size', '22px'], ['.bar', 'height', '56px']]],
+  ['Farming', '#/guide/farming/path', [['.screen', 'padding', '18px 20px 12px'], ['.ring-title h1', 'font-size', '22px', COMPACT]]],
 ];
 const NO_TEMPLATE = ['Stats of all guides', 'Settings'];
 
@@ -139,7 +141,10 @@ async function opensOnCard(page, base) {
   await open(page, base, '#/guide/mining/path');
   await onCard('from home');
   if (await scrolled() <= 0) fail('the card already was on top, the check says nothing');
-  await list.evaluate((el) => { el.scrollTop += 100; });
+  const was = await scrolled();
+  await page.mouse.move(195, 600);
+  await page.mouse.wheel(0, 100); // by hand: the app's own place for the list no longer counts
+  await page.waitForFunction((at) => document.querySelector('.path').scrollTop !== at, was);
   const moved = await scrolled();
   await page.evaluate(() => window.dispatchEvent(new HashChangeEvent('hashchange')));
   if (await scrolled() !== moved) fail('a redraw moved the list back to the card');
@@ -170,6 +175,50 @@ async function pathParts(page, base) {
   if (await brake.inputValue() !== '5') fail('the brake does not start at 5');
   await brake.scrollIntoViewIfNeeded();
   await page.screenshot({ path: path.join(OUT, 'settings-brake.png') });
+}
+
+async function phones(browser, base) {
+  for (const viewport of PHONES) {
+    const context = await browser.newContext({ viewport, deviceScaleFactor: 2 });
+    await stubs(context, true);
+    const page = await context.newPage();
+    page.on('pageerror', (e) => fail(`${viewport.width}: ${e.message}`));
+    for (const [name, hash] of SHOTS) {
+      await open(page, base, hash);
+      if (viewport !== VIEWPORT) await page.screenshot({ path: path.join(OUT, `${name}-${viewport.width}.png`) });
+      await layoutChecks(page, `${name} ${viewport.width}`);
+      if (!hash.startsWith('#/guide/') || hash.includes('farming')) continue;
+      const box = await page.evaluate(() => { const c = document.querySelector('.card').getBoundingClientRect(); const p = document.querySelector('.path').getBoundingClientRect(); return { top: c.top - p.top, bottom: Math.min(p.bottom, innerHeight) - c.bottom }; });
+      if (box.top < 0 || box.bottom < 0) fail(`${name} ${viewport.width}: the Mark done card is cut by ${Math.round(-Math.min(box.top, box.bottom))} px`);
+    }
+    await context.close();
+  }
+}
+
+// The app's own scroll to the card keeps the head open, a scroll by hand folds it, a tap on its line opens it.
+async function folds(page, base) {
+  await open(page, base, '#/guide/mining/path');
+  const min = () => page.locator('.screen.head-min').count();
+  if (await min()) fail('the head is folded on opening');
+  await page.mouse.move(195, 600);
+  await page.mouse.wheel(0, 200);
+  await page.waitForFunction(() => document.querySelector('.head-min'));
+  await page.screenshot({ path: path.join(OUT, 'head-folded.png') });
+  await page.locator('.ring-head').click();
+  if (await min()) fail('a tap on the folded head does not open it');
+}
+
+// The notes open as a sheet over the guide and stay open over a redraw.
+async function infoSheet(page, base) {
+  await open(page, base, '#/guide/blaze-slayer/path');
+  if (await page.locator('.screen > .note').count()) fail('a note still sits above the path');
+  await page.locator('[data-info]').click();
+  await page.locator('dialog.sheet[open]').waitFor();
+  await page.screenshot({ path: path.join(OUT, 'info-sheet.png') });
+  await page.evaluate(() => window.dispatchEvent(new HashChangeEvent('hashchange')));
+  if (!await page.locator('dialog.sheet[open]').count()) fail('a redraw closed the notes');
+  await page.locator('dialog.sheet button').click();
+  if (await page.locator('dialog.sheet[open]').count()) fail('the notes do not close');
 }
 
 async function keepsPlace(page, base) {
@@ -259,7 +308,7 @@ async function swipes(browser, base) {
   const at = async (want, what) => {
     const hash = await page.evaluate(() => location.hash);
     if (hash !== want) fail(`${what}: at ${hash}, should be at ${want}`);
-    if (await page.locator('.peek').count()) fail(`${what}: the next screen stayed behind`);
+    if (await page.locator('.peek:visible, #app[class]').count()) fail(`${what}: the next screen stayed behind`);
   };
   const shift = (selector) => page.locator(selector).first().evaluate((el) => new DOMMatrix(getComputedStyle(el).transform).m41);
   const MINING = '#/guide/mining/path';
@@ -268,14 +317,14 @@ async function swipes(browser, base) {
   await page.locator('.ring-head').waitFor();
   await pull(100);
   await wait(50);
-  if (Math.abs(await shift('.ring-head') - 100) > 1) fail('the head does not follow the finger');
-  if (await page.locator('.peek .screen').count() !== 1) fail('no next screen beside this one');
+  if (Math.abs(await shift('#app > .screen') - 100) > 1) fail('the head does not follow the finger');
+  if (await page.locator('.peek:visible .screen').count() !== 1) fail('no next screen beside this one');
   await page.screenshot({ path: path.join(OUT, 'swipe-mid.png') });
   await lift(150);
   await at(MINING, 'under 30 %');
   await pull(-200);
   await wait(50);
-  if (Math.abs(await shift('.ring-head') + 50) > 1) fail('the only tab does not hold back the pull');
+  if (Math.abs(await shift('#app > .screen') + 50) > 1) fail('the only tab does not hold back the pull');
   await lift(150);
   await at(MINING, 'past the only tab');
 
@@ -324,11 +373,14 @@ try {
     await layoutChecks(page, name);
   }
   await opensOnCard(page, base);
+  await folds(page, base);
+  await infoSheet(page, base);
   await keepsPlace(page, base);
   await pathParts(page, base);
   await keepsTyped(page, base);
   await measureTable(page, base);
   await context.close();
+  await phones(browser, base);
   await swipes(browser, base);
   await manual(browser, base);
 
