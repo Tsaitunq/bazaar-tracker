@@ -8,15 +8,15 @@ const attr = (el, name) => el.match(new RegExp(`${name}="([^"]*)"`))?.[1];
 const row = (over = {}) => ({ key: 'S|a', name: 'Step', status: 'open', sub: '', subColor: '', side: '', progress: '', api: false, undo: false, railTop: false, railBottom: false, ...over });
 const card = (over = {}) => ({ key: 'S|a', name: 'Jade', where: 'Helmet', stats: [{ text: '+8 ☘ Mining Fortune', color: 'orange' }], gain: '+2.4 % yield', cost: '3.9M coins', rate: '0.61 % per 1M', badge: false, hint: '', railTop: true, railBottom: false, ...over });
 
-test('the ring has three arcs with the gap and radius of the mockup', () => {
-  const big = circles(ring({ chapters, total: 0.5, size: 116 }));
+test('the ring has three arcs with their gap and radius', () => {
+  const big = circles(ring({ chapters, total: 0.5, size: 88 }));
   assert.equal(big.length, 6);
-  const C = 2 * Math.PI * 47;
-  const L = C / 3 - 15;
-  assert.equal(attr(big[0], 'r'), '47');
-  assert.equal(attr(big[0], 'stroke-width'), '11');
+  const C = 2 * Math.PI * 36;
+  const L = C / 3 - 12;
+  assert.equal(attr(big[0], 'r'), '36');
+  assert.equal(attr(big[0], 'stroke-width'), '9');
   assert.equal(attr(big[0], 'stroke-dasharray'), `${L.toFixed(1)} ${(C - L).toFixed(1)}`);
-  assert.equal(attr(big[2], 'stroke-dashoffset'), (-(C / 3) - 7.5).toFixed(1));
+  assert.equal(attr(big[2], 'stroke-dashoffset'), (-(C / 3) - 6).toFixed(1));
   const small = circles(ring({ chapters, total: 0.5, size: 70 }));
   assert.equal(attr(small[0], 'r'), '28');
   assert.equal(attr(small[0], 'stroke-width'), '7');
@@ -24,14 +24,14 @@ test('the ring has three arcs with the gap and radius of the mockup', () => {
 });
 
 test('an empty chapter still draws its track and a 0.1 fill like the mockup', () => {
-  const list = circles(ring({ chapters, total: 0.5, size: 116 }));
+  const list = circles(ring({ chapters, total: 0.5, size: 88 }));
   assert.match(list[4], /arc-track/);
   assert.match(attr(list[5], 'stroke-dasharray'), /^0\.1 /);
   assert.match(list[5], /arc-3/);
 });
 
 test('the ring shows the total in percent', () => {
-  assert.match(ring({ chapters, total: 0.376, size: 116 }), />38%<\/text>/);
+  assert.match(ring({ chapters, total: 0.376, size: 88 }), />38%<\/text>/);
 });
 
 test('the legend marks the current chapter', () => {

@@ -18,6 +18,7 @@ const SHOTS = [
   ['farming', '#/guide/farming/path'], ['settings', '#/settings'], ['stats', '#/stats'],
 ];
 
+const COMPACT = 'Smaller head from the device test, so the open step fits without a scroll.';
 // Selector, property, value of the .dc.html, and why it differs if it has to.
 const MEASURES = [
   ['Home', '#/', [
@@ -28,8 +29,8 @@ const MEASURES = [
   ]],
   ['Mining path', '#/guide/mining/path', [
     ['.screen', 'padding', '18px 20px 12px'], ['.screen', 'row-gap', '14px'], ['.back', 'height', '36px', 'Raised to 44 px for the touch target rule.'], ['.back', 'font-size', '13px'],
-    ['.ring-title h1', 'font-size', '22px'], ['.legend', 'font-size', '12px'], ['.legend i', 'width', '9px'],
-    ['.stats', 'padding', '14px 16px'], ['.stats', 'border-radius', '20px'], ['.stats', 'row-gap', '12px'], ['.stat-label', 'font-size', '12px'], ['.stat-value', 'font-size', '22px'], ['.stat-delta', 'font-size', '13px'],
+    ['.ring-title h1', 'font-size', '22px', COMPACT], ['.legend', 'font-size', '12px'], ['.legend i', 'width', '9px'],
+    ['.stats', 'padding', '14px 16px', COMPACT], ['.stats', 'border-radius', '20px', COMPACT], ['.stats', 'row-gap', '12px', COMPACT], ['.stat-label', 'font-size', '12px', COMPACT], ['.stat-value', 'font-size', '22px', COMPACT], ['.stat-delta', 'font-size', '13px', COMPACT],
     ['.step-rail', 'width', '28px'], ['.rail-top', 'width', '3px'], ['.rail-top', 'height', '14px'], ['.step-dot', 'width', '22px'],
     ['.row', 'padding', '11px 0px 10px'], ['.row-name', 'font-size', '15px'], ['.row-sub', 'font-size', '12px'], ['.row-side', 'font-size', '12px'], ['.row-sub.c-orange', 'color', 'rgb(255, 170, 0)'],
     ['.card', 'padding', '14px'], ['.card', 'border-radius', '18px'], ['.card-name', 'font-size', '17px'], ['.card-box', 'padding', '10px 12px'], ['.card-box', 'border-radius', '14px'],
@@ -37,12 +38,12 @@ const MEASURES = [
     ['.step-dot.dot-current', 'box-shadow', 'rgb(92, 200, 255) 0px 0px 14px 0px'],
   ]],
   ['Blaze path', '#/guide/blaze-slayer/path', [
-    ['.screen', 'row-gap', '12px'], ['.stats', 'padding', '12px 14px'], ['.stats', 'row-gap', '10px'], ['.stats', 'column-gap', '8px'],
-    ['.stat-label', 'font-size', '11px'], ['.stat-value', 'font-size', '18px'], ['.stat-delta', 'font-size', '12px'],
-    ['.chip', 'padding', '8px 12px'], ['.chip', 'border-radius', '14px'], ['.chips', 'font-size', '12px'],
+    ['.screen', 'row-gap', '12px'], ['.stats', 'padding', '12px 14px', COMPACT], ['.stats', 'row-gap', '10px', COMPACT], ['.stats', 'column-gap', '8px'],
+    ['.stat-label', 'font-size', '11px'], ['.stat-value', 'font-size', '18px', COMPACT], ['.stat-delta', 'font-size', '12px'],
+    ['.chip', 'padding', '8px 12px', COMPACT], ['.chip', 'border-radius', '14px', COMPACT], ['.chips', 'font-size', '12px'],
     ['.card', 'padding', '12px 14px'], ['.card-name', 'font-size', '16px'], ['.card-box', 'padding', '8px 12px'], ['.card-box', 'border-radius', '12px'], ['.card-stat', 'font-size', '14px'], ['.row', 'padding', '10px 0px 9px'],
   ]],
-  ['Farming', '#/guide/farming/path', [['.screen', 'padding', '18px 20px 12px'], ['.ring-title h1', 'font-size', '22px']]],
+  ['Farming', '#/guide/farming/path', [['.screen', 'padding', '18px 20px 12px'], ['.ring-title h1', 'font-size', '22px', COMPACT]]],
 ];
 const NO_TEMPLATE = ['Stats of all guides', 'Settings'];
 
@@ -171,6 +172,19 @@ async function pathParts(page, base) {
   await page.screenshot({ path: path.join(OUT, 'settings-brake.png') });
 }
 
+// The app's own scroll to the card keeps the head open, a scroll by hand folds it, a tap on its line opens it.
+async function folds(page, base) {
+  await open(page, base, '#/guide/mining/path');
+  const min = () => page.locator('.screen.head-min').count();
+  if (await min()) fail('the head is folded on opening');
+  await page.mouse.move(195, 600);
+  await page.mouse.wheel(0, 200);
+  await page.waitForFunction(() => document.querySelector('.head-min'));
+  await page.screenshot({ path: path.join(OUT, 'head-folded.png') });
+  await page.locator('.ring-head').click();
+  if (await min()) fail('a tap on the folded head does not open it');
+}
+
 async function keepsPlace(page, base) {
   await open(page, base, '#/guide/mining/path');
   // not the last rows: a done row is lower, and at the very end the browser would have to move the list
@@ -267,14 +281,14 @@ async function swipes(browser, base) {
   await page.locator('.ring-head').waitFor();
   await pull(100);
   await wait(50);
-  if (Math.abs(await shift('.ring-head') - 100) > 1) fail('the head does not follow the finger');
+  if (Math.abs(await shift('.head') - 100) > 1) fail('the head does not follow the finger');
   if (await page.locator('.peek .screen').count() !== 1) fail('no next screen beside this one');
   await page.screenshot({ path: path.join(OUT, 'swipe-mid.png') });
   await lift(150);
   await at(MINING, 'under 30 %');
   await pull(-200);
   await wait(50);
-  if (Math.abs(await shift('.ring-head') + 50) > 1) fail('the only tab does not hold back the pull');
+  if (Math.abs(await shift('.head') + 50) > 1) fail('the only tab does not hold back the pull');
   await lift(150);
   await at(MINING, 'past the only tab');
 
@@ -323,6 +337,7 @@ try {
     await layoutChecks(page, name);
   }
   await opensOnCard(page, base);
+  await folds(page, base);
   await keepsPlace(page, base);
   await pathParts(page, base);
   await keepsTyped(page, base);

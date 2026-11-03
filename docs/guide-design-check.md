@@ -28,15 +28,15 @@ Erzeugt von `npm run guide:shots` auf 390×844 mit Fixtures. Soll aus `docs/desi
 | `.screen` | row-gap | 14px | 14px | keine |
 | `.back` | height | 36px | 44px | Raised to 44 px for the touch target rule. |
 | `.back` | font-size | 13px | 13px | keine |
-| `.ring-title h1` | font-size | 22px | 22px | keine |
+| `.ring-title h1` | font-size | 22px | 20px | Smaller head from the device test, so the open step fits without a scroll. |
 | `.legend` | font-size | 12px | 12px | keine |
 | `.legend i` | width | 9px | 9px | keine |
-| `.stats` | padding | 14px 16px | 14px 16px | keine |
-| `.stats` | border-radius | 20px | 20px | keine |
-| `.stats` | row-gap | 12px | 12px | keine |
-| `.stat-label` | font-size | 12px | 12px | keine |
-| `.stat-value` | font-size | 22px | 22px | keine |
-| `.stat-delta` | font-size | 13px | 13px | keine |
+| `.stats` | padding | 14px 16px | 8px 12px | Smaller head from the device test, so the open step fits without a scroll. |
+| `.stats` | border-radius | 20px | 16px | Smaller head from the device test, so the open step fits without a scroll. |
+| `.stats` | row-gap | 12px | 6px | Smaller head from the device test, so the open step fits without a scroll. |
+| `.stat-label` | font-size | 12px | 11px | Smaller head from the device test, so the open step fits without a scroll. |
+| `.stat-value` | font-size | 22px | 17px | Smaller head from the device test, so the open step fits without a scroll. |
+| `.stat-delta` | font-size | 13px | 12px | Smaller head from the device test, so the open step fits without a scroll. |
 | `.step-rail` | width | 28px | 28px | keine |
 | `.rail-top` | width | 3px | 3px | keine |
 | `.rail-top` | height | 14px | 14px | keine |
@@ -55,9 +55,6 @@ Erzeugt von `npm run guide:shots` auf 390×844 mit Fixtures. Soll aus `docs/desi
 | `.card-gain` | font-size | 13px | 13px | keine |
 | `.card-foot` | font-size | 13px | 13px | keine |
 | `.primary` | height | 44px | 44px | keine |
-| `.bar` | height | 56px | 56px | keine |
-| `.bar button` | height | 44px | 44px | keine |
-| `.bar button[aria-current]` | background-color | rgb(21, 32, 44) | rgb(21, 32, 44) | keine |
 | `.step-dot.dot-current` | box-shadow | rgb(92, 200, 255) 0px 0px 14px 0px | rgb(92, 200, 255) 0px 0px 14px 0px | keine |
 
 ## Blaze path
@@ -65,14 +62,14 @@ Erzeugt von `npm run guide:shots` auf 390×844 mit Fixtures. Soll aus `docs/desi
 | Selektor | Eigenschaft | Vorlage | Berechnet | Abweichung |
 |---|---|---|---|---|
 | `.screen` | row-gap | 12px | 12px | keine |
-| `.stats` | padding | 12px 14px | 12px 14px | keine |
-| `.stats` | row-gap | 10px | 10px | keine |
+| `.stats` | padding | 12px 14px | 8px 12px | Smaller head from the device test, so the open step fits without a scroll. |
+| `.stats` | row-gap | 10px | 6px | Smaller head from the device test, so the open step fits without a scroll. |
 | `.stats` | column-gap | 8px | 8px | keine |
 | `.stat-label` | font-size | 11px | 11px | keine |
-| `.stat-value` | font-size | 18px | 18px | keine |
+| `.stat-value` | font-size | 18px | 15px | Smaller head from the device test, so the open step fits without a scroll. |
 | `.stat-delta` | font-size | 12px | 12px | keine |
-| `.chip` | padding | 8px 12px | 8px 12px | keine |
-| `.chip` | border-radius | 14px | 14px | keine |
+| `.chip` | padding | 8px 12px | 6px 10px | Smaller head from the device test, so the open step fits without a scroll. |
+| `.chip` | border-radius | 14px | 12px | Smaller head from the device test, so the open step fits without a scroll. |
 | `.chips` | font-size | 12px | 12px | keine |
 | `.card` | padding | 12px 14px | 12px 14px | keine |
 | `.card-name` | font-size | 16px | 16px | keine |
@@ -86,8 +83,7 @@ Erzeugt von `npm run guide:shots` auf 390×844 mit Fixtures. Soll aus `docs/desi
 | Selektor | Eigenschaft | Vorlage | Berechnet | Abweichung |
 |---|---|---|---|---|
 | `.screen` | padding | 18px 20px 12px | 18px 20px 12px | keine |
-| `.ring-title h1` | font-size | 22px | 22px | keine |
-| `.bar` | height | 56px | 56px | keine |
+| `.ring-title h1` | font-size | 22px | 20px | Smaller head from the device test, so the open step fits without a scroll. |
 
 ## Ohne Vorlage
 

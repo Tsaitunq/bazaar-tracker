@@ -21,6 +21,7 @@ const SETTLE_MS = 220; // as in guide.css
 const EDGE_PULL = 0.25;
 const FLICK_FRESH_MS = 80;
 const CARD_GAP = 8;
+const FOLD_PX = 24;
 
 const load = (key, fallback) => {
   try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
@@ -60,6 +61,9 @@ let touch = null;
 let settling = false;
 let redrawDue = false;
 let shownRoute = '';
+let folded = false; // the head of a guide, down to its title line
+let byHand = false; // a finger, wheel or key was used; the app's own scroll to the card does not fold the head
+let foldFrom = 0; // where the list was when the head last opened
 let pathEpoch = 0; // a new order of the path: on opening a guide, on a tick, on the first prices and when a setting changes
 
 const guides = () => mergeGuides(bundled, imported);
@@ -126,8 +130,14 @@ function draw() {
   const after = root.querySelector('.path, .scroll');
   if (after && after.className === list) after.scrollTop = top;
   const shown = JSON.stringify(route());
-  if (shown !== shownRoute) showCard(root);
+  if (shown !== shownRoute) {
+    folded = false;
+    byHand = false;
+    showCard(root);
+    foldFrom = root.querySelector('.path')?.scrollTop ?? 0;
+  }
   shownRoute = shown;
+  root.firstElementChild?.classList.toggle('head-min', folded);
   if (focused !== undefined) {
     const same = [...root.querySelectorAll('[data-step]')].filter((el) => el.dataset.step === focused);
     (same.find((el) => el.className === focusClass) ?? same[0])?.focus({ preventScroll: true });
@@ -435,7 +445,31 @@ function settle(to) {
   setTimeout(() => landed(to), SETTLE_MS);
 }
 
+// Scrolled down by hand the head folds, at the top or on a tap of its line it opens again. One class change, no work per frame.
+let foldFrame = 0;
+function fold(next) {
+  if (next === folded) return;
+  folded = next;
+  if (!next) foldFrom = root.querySelector('.path')?.scrollTop ?? 0;
+  root.firstElementChild?.classList.toggle('head-min', folded);
+}
+root.addEventListener('scroll', (e) => {
+  if (!byHand || !e.target.classList?.contains('path') || foldFrame) return;
+  foldFrame = requestAnimationFrame(() => {
+    foldFrame = 0;
+    const top = e.target.scrollTop;
+    if (top <= 0) fold(false);
+    else if (Math.abs(top - foldFrom) > FOLD_PX) fold(true);
+  });
+}, { capture: true, passive: true });
+// set before the scroll it causes: a passive wheel may already have moved the list when its event comes
+const handScroll = () => { byHand = true; };
+root.addEventListener('wheel', handScroll, { passive: true });
+root.addEventListener('keydown', handScroll);
+root.addEventListener('click', (e) => { if (folded && e.target.closest('.ring-head')) fold(false); });
+
 root.addEventListener('touchstart', (e) => {
+  handScroll();
   if (touch?.axis === 'x') { settle(null); return; } // a second finger ends the swipe
   const [first] = e.touches;
   const free = e.touches.length === 1 && !settling && route().page === 'guide' && !scrollsSideways(e.target);

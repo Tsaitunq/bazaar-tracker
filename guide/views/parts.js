@@ -12,7 +12,7 @@ export const icon = (name, size = 18) => (ICONS[name] ? svgIcon(ICONS[name], siz
 
 const percent = (share) => `${Math.round(share * 100)}%`;
 // r, stroke, gap, text position and size of the two rings of the mockups
-const RINGS = { 116: { r: 47, stroke: 11, gap: 15, textY: 64, font: 22 }, 70: { r: 28, stroke: 7, gap: 10, textY: 40, font: 14 } };
+const RINGS = { 88: { r: 36, stroke: 9, gap: 12, textY: 50, font: 18 }, 70: { r: 28, stroke: 7, gap: 10, textY: 40, font: 14 } };
 
 export function ring({ chapters, total, size, label = 'Chapter progress', showTotal = true }) {
   const { r, stroke, gap, textY, font } = RINGS[size];
