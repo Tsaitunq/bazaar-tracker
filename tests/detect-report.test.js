@@ -69,7 +69,7 @@ test('the evidence names the piece, its parts and where it is', () => {
   const report = reportOf(guide, profile, []);
   const html = (name) => evidence(report.find((e) => e.name === name), (id) => ({ DRILL_B: 'epic' })[id] ?? '');
   const drill = html('efficiency');
-  for (const want of ['DRILL_B', 'epic +1 (recombobulated)', 'reforge auspicious', 'efficiency 5', 'compact 10', 'JADE_0 JADE FINE', 'AMBER_0 AMBER FLAWED', 'Divan coating', 'polarvoid 2', 'engine ENGINE_A', 'Backpack 3', 'Result: fulfilled']) assert.ok(drill.includes(want), want);
+  for (const want of ['DRILL_B', 'epic +1 (recombobulated)', 'reforge auspicious', 'efficiency 5', 'compact 10', 'JADE_0 JADE FINE', 'AMBER_0 AMBER FLAWED', 'coating', 'polarvoid 2', 'engine ENGINE_A', 'Backpack 3', 'Result: fulfilled']) assert.ok(drill.includes(want), want);
   assert.match(html('jade fine'), /Result: partly: 1 \/ 2, missing 1/);
   assert.match(html('mole'), /MOLE · EPIC · holding QUICK_CLAW.*Pets/);
   assert.match(html('perk'), /Profile: 3/);

@@ -80,7 +80,7 @@ export const backLink = () => `<a class="back" href="#/"><svg width="16" height=
 // The detection report: one step, what each rule asked for and what the profile showed for it.
 const RULES = {
   owned: () => 'Owns the item', enchant: (d) => `Enchant ${d.enchant} ${d.level}`, reforge: (d) => `Reforge ${d.value.join(' or ')}`, recomb: () => 'Recombobulated',
-  coating: () => 'Divan coating', polarvoid: () => 'Polarvoid book', scroll: (d) => `Scroll ${d.value}`, part: (d) => `Drill part ${d.ids.join(' or ')}`,
+  coating: () => 'Coating', polarvoid: () => 'Polarvoid book', scroll: (d) => `Scroll ${d.value}`, part: (d) => `Drill part ${d.ids.join(' or ')}`,
   gem: (d) => `${d.type ?? 'Any'} gem, ${d.quality} or better`, pet: (d) => `Pet ${d.types.join(' or ')}, ${d.tier ?? 'COMMON'} or better`, held: (d) => `Pet item ${d.item}`,
   petItem: (d) => `${d.item} on ${d.types.join(' or ')}`, essence: (d) => `Perk ${d.perk} ${d.level}`, perk: (d) => `Perk ${d.perk} ${d.level}`, power: (d) => `Power ${d.value}`,
   attr: (d) => `Attribute ${d.attr} ${d.need}`, coll: (d) => `Collection ${d.id} ${d.tier}`, skill: (d) => `${d.skill} ${number(d.xp)} XP`,
@@ -102,7 +102,7 @@ function itemText(item, tierOf) {
     item.reforge && `reforge ${item.reforge}`,
     Object.keys(item.enchants ?? {}).length && `enchants ${Object.entries(item.enchants).map(([e, l]) => `${e} ${l}`).join(', ')}`,
     item.gems?.length && `gems ${item.gems.map((g) => `${g.slot} ${g.type} ${g.quality}`).join(', ')}`,
-    item.coating && 'Divan coating',
+    item.coating && 'coating',
     item.polarvoid > 0 && `polarvoid ${item.polarvoid}`,
     Object.keys(item.parts ?? {}).length && `modules ${Object.entries(item.parts).map(([k, v]) => `${k} ${v}`).join(', ')}`,
   ].filter(Boolean);
