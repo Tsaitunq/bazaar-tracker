@@ -22,6 +22,8 @@ const EDGE_PULL = 0.25; // only where no screen waits: the last guide of an area
 const FLICK_FRESH_MS = 80;
 const SPEED_KEEP = 0.4; // the speed of a flick: the last moves count most, one jittery event does not decide
 const CARD_GAP = 8;
+const MARK_MS = 250; // as in guide.css
+const HAND_QUIET_MS = 700; // a flicked list still glides this long after the finger lifts
 const FOLD_PX = 24;
 
 const load = (key, fallback) => {
@@ -67,6 +69,7 @@ let evidenceKey = null; // the step whose API tag was tapped: its sheet stays op
 let tiers = {};
 let folded = false; // the head of a guide, down to its title line
 let byHand = false; // a finger, wheel or key was used; the app's own scroll to the card does not fold the head
+let handAt = -Infinity; // when a hand last moved the list: no reveal scroll pulls against it
 let follow = false; // the list still sits where the app put it, so a redraw puts it on the card again
 let foldFrom = 0; // where the list was when the head last opened
 let pathEpoch = 0; // a new order of all paths: on a tick, on the first prices and when a setting changes
@@ -219,7 +222,34 @@ async function refreshPrices() {
   } catch { /* no connection: costs stay as they were, or as … */ }
 }
 
-function toggle(key) {
+// After Mark done the next card comes fully into sight, unless a hand is moving the list right now.
+function revealCard() {
+  const path = root.querySelector('.path');
+  const card = path?.querySelector('.card');
+  if (!card) return;
+  const box = path.getBoundingClientRect();
+  const at = card.getBoundingClientRect(); // measured before the opening scale
+  card.classList.add('card-open');
+  if (performance.now() - handAt < HAND_QUIET_MS) return;
+  const below = at.bottom + CARD_GAP - box.bottom;
+  const above = at.top - CARD_GAP - box.top;
+  const by = above < 0 || at.height + 2 * CARD_GAP > box.height ? above : Math.max(below, 0);
+  if (!by) return;
+  byHand = false; // the app's own scroll does not fold the head
+  path.scrollBy({ top: by, behavior: stillMotion() ? 'auto' : 'smooth' });
+}
+
+// The card closes (tick pops, dot fills, line runs on), then the next step opens as a card.
+let marking = false;
+function markCard(step, key) {
+  if (marking) return;
+  if (stillMotion()) { toggle(key, true); return; }
+  marking = true;
+  step.closest('.step')?.classList.add('marking');
+  setTimeout(() => { marking = false; toggle(key, true); }, MARK_MS);
+}
+
+function toggle(key, fromCard = false) {
   const r = route();
   const guide = guides().find((g) => g.id === r.id);
   if (!guide) return;
@@ -235,6 +265,7 @@ function toggle(key) {
   pathEpoch++;
   stamp();
   draw();
+  if (fromCard) revealCard();
 }
 
 const profileSync = createSync({ store: { getApiKey, loadProfile, saveProfile }, summarize });
@@ -379,7 +410,7 @@ root.addEventListener('click', (e) => {
   const why = el('[data-evidence]');
   if (why) { evidenceKey = why.dataset.evidence; draw(); return; }
   const step = el('[data-step]');
-  if (step) { toggle(step.dataset.step); return; }
+  if (step) { if (step.closest('.card')) markCard(step, step.dataset.step); else toggle(step.dataset.step); return; }
   const sync = el('[data-sync="run"]');
   if (sync) { runSync(); return; }
   const pick = el('[data-sync-pick]');
@@ -550,7 +581,9 @@ function fold(next) {
   root.firstElementChild?.classList.toggle('head-min', folded);
 }
 root.addEventListener('scroll', (e) => {
-  if (!byHand || !e.target.classList?.contains('path') || foldFrame) return;
+  if (!byHand || !e.target.classList?.contains('path')) return;
+  handAt = performance.now();
+  if (foldFrame) return;
   foldFrame = requestAnimationFrame(() => {
     foldFrame = 0;
     const top = e.target.scrollTop;

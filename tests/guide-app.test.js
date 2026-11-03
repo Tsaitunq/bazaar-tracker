@@ -141,3 +141,15 @@ test('removing the profile saves the typed stats before the key goes, and surviv
   assert.ok(body.includes('statsOnly(await loadStand() ?? state)'));
   assert.ok(body.indexOf('saveStand(kept)') < body.indexOf('clearApiKeyOnly()'));
 });
+
+test('mark done closes the card first, then scrolls the next card into sight unless a hand moves the list', () => {
+  assert.match(app, /step\.closest\('\.card'\)\) markCard\(/);
+  assert.match(app, /setTimeout\(\(\) => \{ marking = false; toggle\(key, true\); \}, MARK_MS\)/);
+  assert.match(app, /if \(stillMotion\(\)\) \{ toggle\(key, true\); return; \}/);
+  assert.match(app, /if \(fromCard\) revealCard\(\)/);
+  assert.match(app, /performance\.now\(\) - handAt < HAND_QUIET_MS\) return/);
+  assert.match(app, /behavior: stillMotion\(\) \? 'auto' : 'smooth'/);
+  const css = readFileSync(new URL('../guide/guide.css', import.meta.url), 'utf8');
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{ \.card-open/);
+  assert.match(css, /\.marking \.rail-bottom::after/);
+});
