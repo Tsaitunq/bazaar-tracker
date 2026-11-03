@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.6.1",
+      "date": "2026-11-03",
+      "entries": [
+        { "title": "Mark done animates and scrolls to the next step", "text": "Ticking a step closes its card with a short animation and brings the next step fully into view." }
+      ]
+    },
+    {
       "version": "0.6.0",
       "date": "2026-11-03",
       "entries": [
