@@ -285,3 +285,13 @@ test('guides of one area share one home card and switch at the top', () => {
   assert.match(html, /<nav class="switch"[^>]*><span class="switch-thumb" aria-hidden="true" style="--n:2;--at:1"><\/span><a href="#\/guide\/mine\/path">Gear progression<\/a><a href="#\/guide\/shaft\/path" aria-current="page">Shafting gear<\/a><\/nav>/);
   assert.doesNotMatch(guideView(w, 'fire', 'path'), /class="switch"/);
 });
+
+test('overview: a figure canvas with tags for the pet and the power stone', () => {
+  const overview = (build) => statsView(world({ build }), { page: 'stats', tab: 'overview', area: 'mining' });
+  const none = overview(emptyBuild());
+  assert.ok(none.includes('<canvas data-figure'));
+  assert.ok(none.includes('Pet: <b>none</b>') && none.includes('Power: <b>none</b>'));
+  const set = overview({ ...emptyBuild(), pet: { id: 'SCATHA', rarity: 'EPIC', level: 100 }, power: { stone: 'SCORCHED_BOOKS', mp: null, tuning: {} } });
+  assert.ok(set.includes('Pet: <b>Scatha (Epic)</b>'));
+  assert.ok(set.includes('Power: <b>Scorching</b>'));
+});

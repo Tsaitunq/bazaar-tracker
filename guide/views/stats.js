@@ -7,6 +7,7 @@ import { HOME_TABS } from './home.js';
 import { hotmView } from './stats-hotm.js';
 import { attrsView } from './stats-attrs.js';
 import { powerView } from './stats-power.js';
+import { petLabel } from './stats-pet.js';
 
 const TAB_NAME = { overview: 'Overview', hotm: 'HOTM', attributes: 'Attributes', power: 'Power' };
 const AREAS = Object.keys(AREA_NAME);
@@ -31,8 +32,13 @@ function overview(world, r) {
   const rows = m.rows.map((x) => `<div class="stat-row"><span class="c-${x.color}">${esc(x.icon)} ${esc(x.label)}</span><span>${esc(x.base)}</span><span class="c-green">${esc(x.gear)}</span><b class="c-${x.color}">${esc(x.total)}</b></div>`).join('');
   const moved = m.changes.length ? `<section class="panel changes"><h2>Changes since measurement</h2>${m.changes.map((c) => `<small><b class="c-${c.color}">${esc(c.text)} ${esc(c.label)}</b> (${esc(c.parts)})</small>`).join('')}</section>` : '';
   const listed = m.listed.length ? `<section class="panel"><h2>Only when the condition holds</h2>${m.listed.map((l) => `<small>${esc(l.text)}</small>`).join('')}</section>` : '';
+  const stone = world.gamedata?.power.powerStones.find((s) => s.id === world.build.power?.stone);
+  const pet = m.pet.step ?? (m.pet.chosen ? petLabel(m.pet.chosen) : null);
+  const tag = (label, value) => `<a class="tag" href="#/stats/power/${esc(r.area)}">${label}: <b>${esc(value ?? 'none')}</b></a>`;
+  const figure = `<div class="panel figure-panel"><canvas data-figure class="figure" role="img" aria-label="Your player"></canvas><div class="tags">${tag('Pet', pet)}${tag('Power', stone?.power)}</div></div>`;
   const note = m.missing === 'data' ? '<p class="note">Loading game data…</p>' : m.missing === 'items' ? '<p class="note">Loading item data… gear shows when it is there.</p>' : '';
   return `<div class="scroll">${tabs(r)}${areas(r)}
+    ${figure}
     <div class="panel"><small>${when}</small><small>${gear}</small>${note}<a class="primary-link" href="#/stats/measure/${esc(r.area)}">${m.measured ? 'Measure base again' : `Measure ${esc(m.name)} base`}</a></div>
     <div class="panel stat-table"><div class="stat-row stat-head"><span>All ${esc(m.name.toLowerCase())} stats</span><span>Base</span><span>Gear</span><span>Total</span></div>${rows}</div>${moved}${listed}</div>`;
 }

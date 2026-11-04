@@ -13,6 +13,7 @@ import { homeView } from './views/home.js';
 import { guideView } from './views/guide.js';
 import { statsView } from './views/stats.js';
 import { settingsView } from './views/settings.js';
+import { paintFigures } from './skin.js';
 
 const BAZAAR = 'https://api.hypixel.net/v2/skyblock/bazaar';
 const PRICE_EVERY = 300e3;
@@ -131,6 +132,7 @@ function draw() {
     root.querySelectorAll('details[data-keep-open]').forEach((d) => { d.open = openParts.includes(d.dataset.keepOpen); });
   }
   document.documentElement.dataset.theme = root.firstElementChild?.dataset.theme ?? 'home';
+  paintFigures(root);
   const after = root.querySelector('.path, .scroll');
   if (after && after.className === list) after.scrollTop = top;
   const shown = JSON.stringify(route());
