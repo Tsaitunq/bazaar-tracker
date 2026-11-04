@@ -153,3 +153,9 @@ test('a tap or a vertical scroll over a perk is no swipe', () => {
   assert.equal(swipeAxis(6, 30), 'y');
   assert.equal(swipeAxis(-12, 30), 'y');
 });
+
+test('the attribute sheet closes on its backdrop and button, does not swipe, and does not follow to another page', () => {
+  assert.ok(app.includes("if (el('[data-attr-close]')) { ui = { ...ui, attr: undefined }; draw(); return; }"));
+  assert.ok(app.includes("!e.target.closest('input, select, .bsheet, .sheet-back')"));
+  assert.ok(app.includes('if (ui.attr && shownRoute && JSON.stringify(route()) !== shownRoute)'));
+});

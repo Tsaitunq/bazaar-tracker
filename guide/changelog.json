@@ -1,6 +1,15 @@
 {
   "versions": [
     {
+      "version": "0.8.2",
+      "date": "2026-11-04",
+      "entries": [
+        { "title": "Your pet floats next to you", "text": "On the Overview your pet hovers beside your player; tap it to open the pet picker on that pet." },
+        { "title": "Attributes in a sheet", "text": "Tap an attribute to open a sheet with its icon, level buttons, effect now and next level, and the shards you still need." },
+        { "title": "Attribute list with icons", "text": "Every row shows the shard icon, level and a short effect line, and attributes you have not set are greyed out." }
+      ]
+    },
+    {
       "version": "0.8.1",
       "date": "2026-11-04",
       "entries": [

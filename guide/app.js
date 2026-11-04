@@ -111,6 +111,7 @@ function showCard(box) {
 
 // A redraw keeps the scroll position of the list and the keyboard on the same step.
 function draw() {
+  if (ui.attr && shownRoute && JSON.stringify(route()) !== shownRoute) ui = { ...ui, attr: undefined }; // a sheet does not follow you to another page
   // a redraw would pull the screen from under the finger; it follows when the swipe is over
   // nor during Mark done: a new screen would drop the running line, dot and card; the tick draws once it is over
   if (settling || touch?.axis === 'x' || marking) { redrawDue = true; return; }
@@ -376,6 +377,7 @@ root.addEventListener('click', (e) => {
   if (perk) { ui = { ...ui, perk: perk.dataset.perk }; draw(); return; }
   const attr = el('[data-attr]');
   if (attr) { ui = { ...ui, attr: attr.dataset.attr }; draw(); return; }
+  if (el('[data-attr-close]')) { ui = { ...ui, attr: undefined }; draw(); return; }
   if (el('[data-attr-all]')) { ui = { ...ui, attrAll: !ui.attrAll }; draw(); return; }
   const stepBy = el('[data-perk-step], [data-attr-step]');
   if (stepBy) {
@@ -626,7 +628,7 @@ root.addEventListener('touchstart', (e) => {
   handScroll();
   if (touch?.axis === 'x') { settle(null); return; } // a second finger ends the swipe
   const [first] = e.touches;
-  const free = e.touches.length === 1 && !settling && !marking && swipeable(route()) && !e.target.closest('input, select') && !scrollsSideways(e.target);
+  const free = e.touches.length === 1 && !settling && !marking && swipeable(route()) && !e.target.closest('input, select, .bsheet, .sheet-back') && !scrollsSideways(e.target);
   touch = free ? { x: first.clientX, y: first.clientY, lastX: first.clientX, at: e.timeStamp, speed: 0, axis: null, dx: 0, to: null } : null;
 }, { passive: true });
 

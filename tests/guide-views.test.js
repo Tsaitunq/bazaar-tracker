@@ -349,3 +349,32 @@ test('a floating pet stands beside the figure and opens the picker on its card; 
   assert.match(html, /<a class="pet-float" href="#\/stats\/power\/mining" data-goto-pet="GLACITE_GOLEM:LEGENDARY"[^>]*><span class="pic pet-pic"[^>]*><img src="img\/hypixel\/pets\/GLACITE_GOLEM_LEGENDARY\.png"/);
   assert.match(editor('power', { base: {} }), /data-pet-card="GLACITE_GOLEM:LEGENDARY"/);
 });
+
+test('attribute rows: icon, name, level and a short effect line; level 0 is greyed', () => {
+  const g = { ...mining, sections: [{ name: 'Main', steps: [{ text: 'Ruler', items: [], detect: { kind: 'attr', attr: 'nature_elemental', need: 4 } }] }] };
+  const zero = editor('attributes', { guides: [g] });
+  assert.ok(zero.includes('class="attr attr-zero"'));
+  assert.ok(zero.includes('src="img/hypixel/shards/SHARD_GROVE.png"'));
+  assert.ok(zero.includes('data-fb="Na"'));
+  assert.ok(zero.includes('<small class="attr-fx">+2 Health</small>')); // level 1 while not set
+  const set = editor('attributes', { guides: [g], build: { ...emptyBuild(), attrs: { nature_elemental: 3 } } });
+  assert.ok(!set.includes('attr-zero'));
+  assert.ok(set.includes('<small class="attr-fx">+6 Health</small>'));
+  assert.ok(set.includes('<span class="attr-lv">3/10'));
+});
+
+test('the attribute sheet sits over the list with stepper, effects now and next, and the shards', () => {
+  const g = { ...mining, sections: [{ name: 'Main', steps: [{ text: 'Ruler', items: [], detect: { kind: 'attr', attr: 'nature_elemental', need: 4 } }] }] };
+  const html = editor('attributes', { guides: [g], build: { ...emptyBuild(), attrs: { nature_elemental: 2 } }, ui: { attr: 'nature_elemental' } });
+  assert.ok(html.includes('class="bsheet" role="dialog"'));
+  assert.ok(html.includes('data-attr-step="-1"') && html.includes('data-attr-level') && html.includes('data-attr-step="1"') && html.includes('data-attr-max'));
+  assert.ok(html.includes('Level 2: +4 Health'));
+  assert.ok(html.includes('Level 3: +6 Health'));
+  // COMMON: 5 + 6 + 7 + 8 + 10 + 14 + 18 + 24 from level 2 on, the first two levels cost 1 + 3
+  assert.ok(html.includes('<b>5</b> to level 3, <b>92</b> to max'));
+  assert.ok(html.includes('data-attr-close'));
+  const maxed = editor('attributes', { guides: [g], build: { ...emptyBuild(), attrs: { nature_elemental: 10 } }, ui: { attr: 'nature_elemental' } });
+  assert.ok(maxed.includes('<small>Maxed.</small>'));
+  assert.ok(!maxed.includes('to max'));
+  assert.ok(!editor('attributes', { guides: [g] }).includes('bsheet'));
+});

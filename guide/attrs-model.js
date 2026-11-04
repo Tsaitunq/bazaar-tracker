@@ -31,3 +31,9 @@ export function effectLines(data, attr, level) {
     return { stat: e.stat, cond: e.cond, text: `${v >= 0 ? '+' : ''}${Math.round(v * 100) / 100} ${name(e.stat)}` };
   });
 }
+
+// Shards from the current level up to the maximum (0 at the top).
+export const shardsToMax = (data, attr, level) => data.attributes.shardsPerLevel[attr.rarity].slice(level, attr.maxLevel).reduce((a, b) => a + b, 0);
+
+// The short line of a list row: every effect at the level, at level 1 while the attribute is not set.
+export const effectShort = (data, attr, level) => effectLines(data, attr, Math.max(level, 1)).map((l) => l.text).join(' · ');
