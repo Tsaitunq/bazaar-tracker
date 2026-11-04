@@ -12,6 +12,17 @@ export function lockOf(perk, hotm) {
   return null;
 }
 
+// A perk switched off in the game keeps its level but does not count.
+export const isOff = (hotm, perk) => perk.type === 'perk' && (hotm?.disabled ?? []).includes(perk.id);
+
+// The picture of a tree cell like in the game: coal = not unlocked, emerald = unlocked, diamond = maxed, redstone block = Core and ready ability, emerald block = the selected ability, coal block = locked ability.
+export function iconOf(perk, hotm) {
+  const level = levelOf(hotm, perk.id);
+  if (perk.type === 'core') return 'redstone_block';
+  if (perk.type === 'ability') return lockOf(perk, hotm) || level < 1 ? 'coal_block' : hotm?.ability === perk.id ? 'emerald_block' : 'redstone_block';
+  return level < 1 ? 'coal' : level >= perk.maxLevel ? 'diamond' : 'emerald';
+}
+
 export const LOCK_TEXT = { tier: 'Locked by your HOTM level', requires: 'Requirement missing' };
 
 // Cost of reaching one level: { powder, amount }, { tokens: 1 } for a one-level perk, {} for free, null for unknown.

@@ -23,7 +23,7 @@ export function setPart(build, base, part, value) {
 // the first entry is the whole state that is inside the measured base, so it is written once, through setPart.
 // Every later edit goes straight to the build and is a delta.
 export const EMPTY_PART = {
-  hotm: () => ({ tier: null, levels: {}, omelette: false }),
+  hotm: () => ({ tier: null, levels: {}, omelette: false, disabled: [], ability: null }),
   attrs: () => ({}),
   power: () => ({ stone: null, mp: null, tuning: {} }),
 };
@@ -52,6 +52,9 @@ export function discardDraft(state, part) {
 const whole = (n, max) => Math.min(Math.max(Math.trunc(Number(n)) || 0, 0), max);
 export const perkLevel = (perk, level) => (h) => ({ ...h, levels: { ...h.levels, [perk.id]: whole(level, perk.maxLevel) } });
 export const hotmTier = (tier) => (h) => ({ ...h, tier: Number.isInteger(tier) && tier >= 1 && tier <= 10 ? tier : null });
+// disabled: perk ids switched off in the game (kept at their level, not counted). ability: the one selected pickaxe ability, null = none.
+export const perkEnabled = (perk, on) => (h) => ({ ...h, disabled: [...(h.disabled ?? []).filter((id) => id !== perk.id), ...(on ? [] : [perk.id])] });
+export const abilityPick = (perk) => (h) => ({ ...h, ability: h.ability === perk.id ? null : perk.id });
 export const omelette = (on) => (h) => ({ ...h, omelette: on === true });
 export const attrLevel = (attr, level) => (a) => ({ ...a, [attr.key]: whole(level, attr.maxLevel) });
 export const powerStone = (id) => (p) => ({ ...p, stone: id || null });

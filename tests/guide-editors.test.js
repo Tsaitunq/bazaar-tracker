@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { loadGameData } from '../guide/gamedata.js';
 import { statsOf, totalFor } from '../guide/totals.js';
-import { emptyBuild, measure, editPart, commitDraft, needsDraft, perkLevel, hotmTier, attrLevel, powerStone, powerMp, tuningPoints } from '../guide/build.js';
+import { emptyBuild, measure, editPart, commitDraft, needsDraft, EMPTY_PART, perkEnabled, abilityPick, perkLevel, hotmTier, attrLevel, powerStone, powerMp, tuningPoints } from '../guide/build.js';
 import { lockOf, costOf, costBetween, effectsAt, spent } from '../guide/hotm-model.js';
 
 const read = (f) => JSON.parse(fs.readFileSync(new URL(`../gamedata/${f}.json`, import.meta.url), 'utf8'));
@@ -106,4 +106,24 @@ test('spent powder counts the set levels', () => {
   const s = spent(data, { levels: { mining_fortune: 2, sky_mall: 1 } });
   assert.equal(s.mithril, Math.floor(2 ** 3.05) + Math.floor(3 ** 3.05));
   assert.equal(s.tokens, 1);
+});
+
+test('a perk switched off keeps its level but adds nothing', () => {
+  const on = { tier: 10, levels: { mining_fortune: 10, maniac_miner: 1, mining_speed_boost: 1 }, omelette: false };
+  const withFortune = statsOf({ ...emptyBuild(), hotm: on }, data, 'mining').add.MINING_FORTUNE;
+  const off = statsOf({ ...emptyBuild(), hotm: { ...on, disabled: ['mining_fortune'] } }, data, 'mining').add.MINING_FORTUNE ?? 0;
+  assert.ok(withFortune > off);
+});
+
+test('perkEnabled and abilityPick: off list without doubles, one ability at a time, a second pick clears it', () => {
+  const p = perk('mining_fortune'), a = perk('pickobulus'), b = perk('maniac_miner');
+  let h = EMPTY_PART.hotm();
+  assert.deepEqual([h.disabled, h.ability], [[], null]);
+  h = perkEnabled(p, false)(perkEnabled(p, false)(h));
+  assert.deepEqual(h.disabled, ['mining_fortune']);
+  assert.deepEqual(perkEnabled(p, true)(h).disabled, []);
+  h = abilityPick(b)(abilityPick(a)(h));
+  assert.equal(h.ability, 'maniac_miner');
+  assert.equal(abilityPick(b)(h).ability, null);
+  assert.deepEqual(perkEnabled(p, false)({ tier: 1, levels: {} }).disabled, ['mining_fortune']); // an old save has no list yet
 });

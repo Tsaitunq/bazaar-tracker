@@ -17,6 +17,7 @@ function hotmStats(hotm, data, out, area) {
     const base = hotm.levels?.[perk.id] ?? 0;
     if (!(base > 0)) continue;
     if (lockOf(perk, hotm)) continue; // a locked perk is shown, never counted
+    if (perk.type === 'ability' ? hotm.ability !== perk.id : (hotm.disabled ?? []).includes(perk.id)) continue; // only the selected ability counts; a perk switched off does not
     const level = base + (omelette && perk.omeletteBonus ? 1 : 0);
     for (const e of perk.effects) {
       if (e.hidden) continue;
