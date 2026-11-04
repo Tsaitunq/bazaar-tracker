@@ -6,29 +6,21 @@ import { formEdited, guideModel, typedFields, restoreTyped, settled } from '../g
 import { stepCard } from '../guide/views/parts.js';
 import { guideView } from '../guide/views/guide.js';
 import { settingsView } from '../guide/views/settings.js';
+import { gamedata, baseOf, emptyBuild } from './fixtures/guide-world.js';
 import { miningSettings } from '../optimizer.js';
 import { coins } from '../format.js';
 
 const sold = (price) => ({ buy_summary: [{ pricePerUnit: price, amount: 100 }] });
 const DRILL = 'TITANIUM_DRILL_4';
 const items = { [DRILL]: { category: 'DRILL', tier: 'LEGENDARY', stats: {} }, A: { name: 'Nice Gem' } };
-const summary = { items: [{ id: DRILL, where: 'inventory', gems: [], enchants: {}, parts: {}, reforge: null, recomb: false, polarvoid: 0, coating: false, lore: { MINING_SPEED: 1000, MINING_FORTUNE: 100 } }], pets: [], hotm: { experience: 0, nodes: {} }, skills: null, collTiers: null, attrs: {}, slayer: null, wardrobe: { armor: { equipped: 1, sets: [1] }, equipment: { equipped: 1, sets: [1] } } };
 const guide = (steps) => ({ id: 'm', title: 'Mine', area: 'mining', groups: {}, sections: [{ name: 'Main', steps }] });
 const step = (text, id = 'A') => ({ text, gain: { MINING_FORTUNE: 8 }, items: [{ id, qty: 2 }] });
-const world = (over = {}) => ({ marks: new Set(), checks: {}, guides: [], state: { summary, syncedAt: 1 }, products: { A: sold(1e6) }, prices: { items }, settings: miningSettings(null), name: (id) => items[id]?.name ?? id, now: 2, ...over });
+const world = (over = {}) => ({ marks: new Set(), checks: {}, guides: [], owned: [DRILL], base: baseOf({ mining: { values: { MINING_SPEED: 1000, MINING_FORTUNE: 100 } } }), build: emptyBuild(), gamedata, products: { A: sold(1e6) }, prices: { items }, settings: miningSettings(null), name: (id) => items[id]?.name ?? id, now: 2, ...over });
 
 test('the path never calls a step without a price free', () => {
   const sides = (w) => guideModel(guide([step('Z', 'Z')]), w).rows.map((r) => r.side);
   assert.deepEqual(sides(world()), ['no price']);
   assert.deepEqual(sides(world({ products: null })), ['…']);
-});
-
-test('a key that cannot be read is not called missing', () => {
-  const base = { guides: [], personal: true, settings: miningSettings(null), canSync: true, state: null, now: 1, choices: [], message: '' };
-  const html = settingsView({ ...base, keyMessage: 'Could not read the key.' });
-  assert.match(html, /Could not read the key\./);
-  assert.doesNotMatch(html, /No key saved/);
-  assert.match(readFileSync(new URL('../guide/app.js', import.meta.url), 'utf8'), /syncMessage\('keyread'\)/);
 });
 
 test('a form with edits holds back a redraw, a clean one takes it', () => {
@@ -42,7 +34,7 @@ test('a form with edits holds back a redraw, a clean one takes it', () => {
 });
 
 test('import from a file and from the text field are two buttons', () => {
-  const html = settingsView({ guides: [], personal: true, settings: miningSettings(null), canSync: true, state: null, now: 1, choices: [], message: '' });
+  const html = settingsView({ guides: [], settings: miningSettings(null), now: 1 });
   assert.match(html, /data-act="import-file"/);
   assert.match(html, /data-act="import"/);
   const app = readFileSync(new URL('../guide/app.js', import.meta.url), 'utf8');
@@ -51,7 +43,7 @@ test('import from a file and from the text field are two buttons', () => {
 
 test('an imported guide can be removed, a shipped one not', () => {
   const list = [{ id: 'mine', title: 'Mine' }, { id: 'own', title: 'Own' }];
-  const html = settingsView({ guides: list, importedIds: ['own'], personal: true, settings: miningSettings(null), canSync: true, state: null, now: 1, choices: [], message: '' });
+  const html = settingsView({ guides: list, importedIds: ['own'], settings: miningSettings(null), now: 1 });
   assert.match(html, /data-remove-guide="own"/);
   assert.doesNotMatch(html, /data-remove-guide="mine"/);
 });
@@ -78,7 +70,7 @@ test('prices from SkyCofl are credited', () => {
 });
 
 test('the bazaar tax can be set', () => {
-  const html = settingsView({ guides: [], personal: true, settings: miningSettings(null), tax: 1, canSync: true, state: null, now: 1, choices: [], message: '' });
+  const html = settingsView({ guides: [], settings: miningSettings(null), tax: 1, now: 1 });
   assert.match(html, /<select data-tax>/);
   assert.match(html, /<option value="1" selected>/);
 });
@@ -94,13 +86,11 @@ test('the font licence comes along', () => {
 });
 
 test('the card shows the net cost beside the net rate', () => {
-  const helmet = { id: 'OLD', where: 'armor', sets: ['armor:1'], gems: [], enchants: {}, parts: {}, reforge: null, recomb: false, lore: {} };
   const g = guide([{ text: 'new', detect: { kind: 'owned', on: [['NEW']] }, items: [{ id: 'NEW', qty: 1 }] }]);
   g.groups = { armor: [['NEW', 'OLD']] };
   const data = { ...items, NEW: { category: 'HELMET', tier: 'LEGENDARY', stats: { MINING_FORTUNE: 20 } }, OLD: { category: 'HELMET', tier: 'COMMON', stats: {} } };
-  const state = { summary: { ...summary, items: [...summary.items, helmet], wardrobe: { armor: { equipped: 1, sets: [1] }, equipment: { equipped: 1, sets: [1] } } }, syncedAt: 1 };
   const products = { NEW: sold(20e6), OLD: { sell_summary: [{ pricePerUnit: 8e6, amount: 100 }], buy_summary: [] } };
-  const { card, leader: row } = guideModel(g, world({ state, products, prices: { items: data } }));
+  const { card, leader: row } = guideModel(g, world({ owned: [DRILL, 'OLD'], products, prices: { items: data } }));
   assert.ok(row.resale > 0 && row.net < row.coins);
   assert.ok(card.cost.startsWith('Net '));
   assert.ok(card.cost.includes(coins(row.net)));

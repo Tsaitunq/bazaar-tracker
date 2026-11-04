@@ -104,6 +104,15 @@ export function checkPower(d, stats) {
   for (const e of d.boosterCookie.effects) if (!stats.has(e.stat)) fail('power.boosterCookie', `unknown stat ${e.stat}`);
 }
 
+// The one place that evaluates an effect formula: a + b·L, plus a step every stepEvery levels, rounded down on floor, capped on cap.
+// Level 0 gives nothing. Everything that adds up perk values calls this.
+export function valueAt(e, level) {
+  if (!(level > 0)) return 0;
+  let v = e.a + e.b * level + (e.stepEvery ? Math.floor(level / e.stepEvery) * e.stepAdd : 0);
+  if (e.floor) v = Math.floor(v);
+  return e.cap === undefined ? v : Math.min(v, e.cap);
+}
+
 // read: (name) -> parsed JSON (or a promise of it).
 export async function loadGameData(read) {
   const [stats, hotm, attributes, power] = await Promise.all(FILES.map((f) => read(f)));

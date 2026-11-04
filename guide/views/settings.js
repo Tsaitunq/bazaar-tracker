@@ -1,9 +1,7 @@
-// Settings and profile. The key is only ever written, never read back into the page.
+// Settings: prices, the mining target and the guide data.
 import { esc } from '../../format.js';
-import { syncView } from '../../sync.js';
 import { PRESETS } from '../../optimizer.js';
-import { bottomBar, evidence } from './parts.js';
-import { reportOf } from '../model.js';
+import { bottomBar } from './parts.js';
 import { HOME_TABS } from './home.js';
 
 const WEIGHTS = [['wF', 'Fortune weight'], ['wS', 'Speed weight'], ['wP', 'Pristine weight'], ['blockStrength', 'Block strength']];
@@ -19,29 +17,8 @@ function resetRow(guide, armed, removable) {
     : `<div class="actions"><button type="button" class="ghost" data-reset="${id}">Reset ${name}</button>${removable ? `<button type="button" class="ghost" data-remove-guide="${id}">Remove imported copy</button>` : ''}</div>`;
 }
 
-// Every step the sync ticked or found in part, with the piece it looked at and where that piece is. Only with the sync on.
-function report(world) {
-  if (!world.personal) return '';
-  const summary = world.state?.summary;
-  const guides = summary ? world.guides.map((g) => ({ g, entries: reportOf(g, summary, world.owned) })) : [];
-  const body = !summary ? '<small>Sync first: the report shows what the last sync found.</small>'
-    : guides.map(({ g, entries }) => `<details class="ev-guide" data-keep-open="${esc(g.id)}"><summary>${esc(g.title)} · ${entries.length} ${entries.length === 1 ? 'step' : 'steps'}</summary>${entries.length ? entries.map((e) => evidence(e, world.tierOf ?? (() => ''))).join('') : '<small>Nothing found for this guide.</small>'}</details>`).join('');
-  return `<section class="panel"><h2>Detection report</h2><small>Steps ticked or found in part by the sync: the piece it looked at, where it is, and what is missing.</small>${body}</section>`;
-}
-
 export function settingsView(world) {
   const s = world.settings;
-  const sync = world.personal ? `
-    <label class="field">Minecraft UUID<input type="text" data-set="uuid" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(world.uuid ?? '')}"></label>
-    <label class="field">API key<input type="password" data-set="key" autocomplete="off" autocapitalize="off" spellcheck="false" value=""></label>
-    <small>${esc(world.keyMessage ?? (world.hasKey ? 'Key saved' : 'No key saved'))}</small>
-    ${world.canSync ? syncView(world.state, world.now, esc, { message: world.message, choices: world.choices }) : '<p>Sync needs the Android app.</p>'}
-    <small role="status">${esc(world.profileMessage ?? '')}</small>
-    <div class="actions"><button type="button" class="ghost" data-act="remove">${world.removeArmed ? 'Tap again to remove' : 'Remove key and profile data'}</button></div>` : '';
-  const profile = `<section class="panel"><h2>Profile</h2>
-    ${check('personal', 'Sync with my own API key', world.personal)}
-    <small>Off: type in your /stats under <a href="#/stats">Stats</a> and tick steps by hand.</small>${sync}
-  </section>`;
   const mining = `<section class="panel"><h2>Prices and mining target</h2>
     <label class="field">Bazaar tax<select data-tax>${TAXES.map(([v, label]) => `<option value="${v}"${Number(v) === (world.tax ?? 1.25) ? ' selected' : ''}>${label}</option>`).join('')}</select></label>
     <label class="field">Preset<select data-mining="preset">${Object.keys(PRESETS).map((p) => `<option value="${p}"${p === s.preset ? ' selected' : ''}>${words(p)}</option>`).join('')}</select></label>
@@ -50,8 +27,6 @@ export function settingsView(world) {
     <label class="field">Budget brake<input type="number" step="any" min="0" inputmode="decimal" data-brake value="${esc(world.brake ?? 5)}"></label>
     <small>A step waits while it costs more than this many times what you spent, or 1M if you spent less.</small>
     ${check('keepOldGear', 'I keep old gear', world.keepOldGear)}
-    ${check('godPotion', 'God Potion active', world.boosts?.godPotion)}
-    ${check('boosterCookie', 'Booster Cookie active', world.boosts?.boosterCookie)}
     <small>Prices: Bazaar from the Hypixel API, lowest BIN from <a href="https://sky.coflnet.com" rel="noopener">SkyCofl</a>.</small>
   </section>`;
   const data = `<section class="panel"><h2>Guides and data</h2>
@@ -61,5 +36,5 @@ export function settingsView(world) {
     <small role="status">${esc(world.dataMessage ?? '')}</small>
     ${world.guides.map((g) => resetRow(g, world.armed, world.importedIds?.includes(g.id))).join('')}
   </section>`;
-  return `<div class="screen screen-home" data-theme="home" data-page="settings"><div class="home-title"><h1>Settings</h1></div><div class="scroll">${profile}${report(world)}${mining}${data}</div>${bottomBar(HOME_TABS, 'settings')}</div>`;
+  return `<div class="screen screen-home" data-theme="home" data-page="settings"><div class="home-title"><h1>Settings</h1></div><div class="scroll">${mining}${data}</div>${bottomBar(HOME_TABS, 'settings')}</div>`;
 }

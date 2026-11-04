@@ -1,14 +1,11 @@
 // What the screens of the guide app show, worked out from the shared logic. No markup in here.
 import { stepKey, doneSet, setMark, guideStats, openStep, stepCost, mergeGuides, priceItem } from '../progress.js';
-import { isItemStep, idsOfStep, idsToOwn, ownedAuto, mergeAuto, impliedDone } from '../owned.js';
-import { syncMessage } from '../sync.js';
-import { SCORES, miningSettings, stepDelta, blazeDelta, offsetNotes, pathsOf, LEFT_OUT } from '../optimizer.js';
+import { isItemStep, idsOfStep, idsToOwn, ownedAuto, impliedDone } from '../owned.js';
+import { SCORES, miningSettings, pathsOf, LEFT_OUT } from '../optimizer.js';
 import { pathOf, entryPrice } from '../path.js';
-import { virtualProfile, virtualLoadout, applyStep, baseStats, doneSince } from '../virtual.js';
-import { computeStats, loadoutOf, withOffset } from '../stats.js';
 import { blazeState, daggersOf } from '../blaze.js';
-import { detectGuide, explainGuide } from '../detect.js';
-import { checkStep } from '../requires.js';
+import { gearOf } from './gear.js';
+import { totalFor, statsFor } from './totals.js';
 import { coins, number } from '../format.js';
 
 const DAY = 24 * 3600e3;
@@ -157,110 +154,57 @@ function openSide(step, rank, score, ctx) {
   return rank?.group === 'noPrice' ? 'no price' : '';
 }
 
-function subOf(status, rank, reasons, lines, fromSync, skipped) {
-  if (status === 'done') return { sub: skipped ? 'skipped' : fromSync ? 'from sync' : '', subColor: '' };
+function subOf(status, rank, reasons, lines, skipped) {
+  if (status === 'done') return { sub: skipped ? 'skipped' : '', subColor: '' };
   if (status === 'locked') return { sub: reasons.join(' · '), subColor: '' };
   if (rank?.group === 'locked') return { sub: rank.reasons.join(' · '), subColor: '' };
   return { sub: lines.map((l) => l.text).join(' · '), subColor: lines[0]?.color ?? '' };
 }
 
-// What the sync found and what is ticked as owned, for one guide.
-export const autoOf = (guide, summary, owned) => mergeAuto(detectGuide(guide, summary ?? null, stepKey), ownedAuto(guide, new Set(owned ?? []), stepKey));
-
-// The detection report: each step the sync or a tick in another guide counts, with what was found for it. have and need
-// are those of autoOf, so the report says what the path does. A tick of an item counts like a piece "ticked by hand".
-export function reportOf(guide, summary, owned) {
-  const auto = autoOf(guide, summary, owned);
-  const synced = explainGuide(guide, summary ?? null, stepKey);
-  const ticked = explainGuide(guide, { items: (owned ?? []).map((id) => ({ id, where: 'tick' })) }, stepKey);
-  return guide.sections.flatMap((section) => section.steps.flatMap((step) => {
-    const key = stepKey(section, step);
-    const found = auto.get(key);
-    if (!found?.have) return [];
-    const why = (found.ticked ? ticked : synced).get(key) ?? { parts: [], by: null };
-    return [{ key, name: step.text, section: section.name, have: found.have, need: found.need, ticked: !!found.ticked, parts: why.parts, by: why.by }];
-  }));
-}
+// What the ticked items make of the steps of one guide: an item step is met once its pieces are owned.
+export const autoOf = (guide, owned) => ownedAuto(guide, new Set(owned ?? []), stepKey);
 
 // One tick. An item step goes to the state of all guides, anything else stays a mark of this guide. Gives the new owned state.
-export function tickStep({ guide, key, on, marks, owned, summary }) {
+export function tickStep({ guide, key, on, marks, owned }) {
   const step = guide.sections.flatMap((s) => s.steps.filter((one) => stepKey(s, one) === key))[0];
   const next = new Set(owned);
   const item = step && isItemStep(step);
   if (item && on) for (const id of idsToOwn(step, guide, next)) next.add(id);
   if (item && !on) for (const id of idsOfStep(step, guide)) next.delete(id);
-  setMark(guide, marks, key, on, autoOf(guide, summary, next));
+  setMark(guide, marks, key, on, autoOf(guide, next));
   if (item) marks.delete(key);
   return next;
 }
 
-// The typed-in stats, moved on by what was done after they were saved. The ticks before that are in them already.
-function virtualStart(guide, world, ctx, checked, entry, settings) {
-  const steps = new Map(guide.sections.flatMap((s) => s.steps.map((step) => [stepKey(s, step), step])));
-  const since = doneSince(world.dates?.[guide.id], entry.at).filter((key) => checked.has(key) && steps.has(key));
-  const before = new Set(checked);
-  const owned = new Set(world.owned ?? []);
-  for (const key of since) {
-    before.delete(key);
-    if (isItemStep(steps.get(key))) for (const id of idsOfStep(steps.get(key), guide)) owned.delete(id);
-  }
-  let profile = virtualProfile(guide, before, owned, ctx.items, entry.mp ?? null);
-  let base = { ...entry.values };
-  for (const key of since) {
-    const step = steps.get(key);
-    const loadout = virtualLoadout(profile, ctx.items, guide.area);
-    const change = guide.area === 'blaze'
-      ? blazeDelta(step, blazeState(base, loadout, loadout.daggers), loadout, profile, ctx.items, settings, guide)
-      : stepDelta(step, loadout, profile, ctx.items, settings, guide);
-    base = baseStats(base, [change?.common ?? change ?? {}]);
-    profile = applyStep(profile, step, guide, ctx.items);
-    if (change?.mp && profile.mp !== null) profile.mp += change.mp;
-  }
-  return { profile, base };
-}
-
-// What the path is worked out from: the synced profile, or else the typed-in stats and the ticks. missing: not enough to rank.
+// What the path is worked out from: the base typed in at the measurement, the changes since and the gear of the ticks.
+// missing: not enough to rank.
 function planOf(guide, world, ctx, checked, scores) {
-  if (!ctx.items) return { missing: 'items' };
+  if (!ctx.items || !world.gamedata) return { missing: 'items' };
   if (!scores[guide.area]) return { missing: 'score' };
   const area = guide.area;
-  const otherArea = area === 'blaze' ? 'mining' : 'blaze';
+  const entry = world.base?.[area] ?? null;
+  if (!Object.keys(entry?.values ?? {}).length) return { missing: 'stats' };
   const settings = guide.preset ? miningSettings({ preset: guide.preset }) : world.settings;
-  const entry = world.state?.statsInput?.[area] ?? world.preset?.[area] ?? null;
-  const summary = world.state?.summary;
-  const loadoutFor = (name, choice) => (name === 'mining' ? loadoutOf(summary, ctx.items, name, choice, settings) : loadoutOf(summary, ctx.items, name, choice));
-  let start;
-  let picked;
-  let other = null;
-  if (summary) {
-    picked = loadoutFor(area, entry?.choice);
-    const otherChoice = world.state?.statsInput?.[otherArea]?.choice ?? world.preset?.[otherArea]?.choice;
-    if (otherChoice) other = loadoutFor(otherArea, otherChoice);
-    start = { profile: summary, base: withOffset(computeStats(summary, ctx.items, picked, area, world.boosts ?? {}).total, entry) };
-  } else {
-    if (!Object.keys(entry?.values ?? {}).length) return { missing: 'stats' };
-    start = virtualStart(guide, world, ctx, checked, entry, settings);
-    picked = virtualLoadout(start.profile, ctx.items, area);
-  }
-  const daggers = area === 'blaze' ? daggersOf(start.profile) : null;
-  const loadout = daggers ? { ...picked, daggers } : picked;
-  const state = daggers ? blazeState(start.base, loadout, daggers) : null;
-  const path = pathOf({ guide, checked, ctx, profile: start.profile, loadout, base: start.base, settings, brake: world.brake, other, keepOldGear: world.keepOldGear, state });
-  let notes = summary ? offsetNotes(entry, world.state, picked) : [];
-  if (!settings.gemFortune && area === 'mining') notes = ['Gemstone Fortune does not count here, and Ore, Block and Dwarven Metal Fortune are not counted, so fortune steps read low.', ...notes];
+  const worn = gearOf({ guides: world.guides ?? [guide], checks: world.checks ?? { [guide.id]: [...world.marks] }, owned: world.owned ?? [], items: ctx.items, area, build: world.build, settings, values: entry.values, mp: entry.mp ?? null });
+  const base = totalFor({ area, entry, build: world.build, gear: worn.gear, data: world.gamedata, stats: statsFor(area, world.gamedata) }).total;
+  const daggers = area === 'blaze' ? daggersOf(worn.profile) : null;
+  const loadout = daggers ? { ...worn.loadout, daggers } : worn.loadout;
+  const state = daggers ? blazeState(base, loadout, daggers) : null;
+  const path = pathOf({ guide, checked, ctx, profile: worn.profile, loadout, base, settings, brake: world.brake, other: null, keepOldGear: world.keepOldGear, state });
+  let notes = [];
+  if (!settings.gemFortune && area === 'mining') notes = ['Gemstone Fortune does not count here, and Ore, Block and Dwarven Metal Fortune are not counted, so fortune steps read low.'];
   if (state) {
     const paths = pathsOf(state);
     notes = [`Enchants: ×${paths.guide.toFixed(2)} · One For All: ×${paths.ofa.toFixed(2)} · ${paths.leader} leads by ${paths.lead.toFixed(1)} % (estimate). In use: ${paths.inUse}.`, ...notes];
   }
-  return { path, base: start.base, typed: !summary, other, notes, leftOut: state ? LEFT_OUT : null, daggerMissing: !!daggers && Object.values(daggers).includes(null) };
+  return { path, base, other: null, notes, leftOut: state ? LEFT_OUT : null, daggerMissing: !!daggers && Object.values(daggers).includes(null) };
 }
 
 // Worked out when a guide opens, on a tick and when the first prices come. A later price only changes the numbers on the row.
 const plans = new Map();
 function planCached(guide, world, ctx, checked, scores) {
   if (world.pathEpoch === undefined) return planOf(guide, world, ctx, checked, scores);
-  const entry = world.state?.statsInput?.[guide.area];
-  const key = `${guide.id}|${world.pathEpoch}|${world.opened?.[guide.id] ?? 0}|${world.state?.syncedAt}|${entry?.at}`;
+  const key = `${guide.id}|${world.pathEpoch}|${world.opened?.[guide.id] ?? 0}|${world.base?.[guide.area]?.at}`;
   if (plans.get(guide.id)?.key !== key) plans.set(guide.id, { key, plan: planOf(guide, world, ctx, checked, scores) });
   return plans.get(guide.id).plan;
 }
@@ -305,13 +249,12 @@ const withNext = (n) => (n === 1 ? 'with the next step' : `with the next ${n} st
 // The world holds what the app knows: marks, the synced state, prices and settings. rows: done first in guide order, then the path, then the extras.
 export function guideModel(guide, world) {
   const scores = world.scores ?? SCORES;
-  const profile = world.state?.summary ?? null;
   const owned = new Set(world.owned ?? []);
-  const auto = autoOf(guide, profile, owned);
-  const ctx = { ...world.prices, products: world.products, auto, profile, marks: world.marks, owned };
+  const auto = autoOf(guide, owned);
+  const ctx = { ...world.prices, products: world.products, auto, profile: null, marks: world.marks, owned };
   const checked = doneSet(guide, world.marks, auto);
   const implied = impliedDone(guide, checked, stepKey);
-  const held = new Set([...(profile?.items ?? []).map((i) => i.id), ...owned]);
+  const held = owned;
   const costs = guideStats(guide, checked, ctx); // also sets what the cost of a book line needs
   const plan = planCached(guide, world, ctx, checked, scores);
   const score = scores[guide.area];
@@ -325,23 +268,21 @@ export function guideModel(guide, world) {
   let card = null;
   const rows = shownSteps.map(({ section, step, key }) => {
     const done = checked.has(key);
-    const { status: check, reasons } = checkStep(step, ctx.items, ctx.profile);
-    const status = stepStatus({ done, locked: check === 'locked', first: !card && !section.extra });
+    // without a profile no requirement can be checked, so a step is never locked here
+    const status = stepStatus({ done, locked: false, first: !card && !section.extra });
+    const reasons = [];
     const entry = done ? null : entries.get(step);
     const rank = entry ? rankOf(entry, guide, ctx, world, plan.other) : null;
     const lines = statLines(rank?.delta ?? null);
     const found = auto.get(key);
     const met = !!found && found.have >= found.need;
-    const fromSync = met && done && !world.marks.has(key) && !found.ticked;
     // done without the player having the piece itself: something better replaced it
     const skipped = done && !world.marks.has(key) && (implied.has(key) || (met && isItemStep(step) && !idsOfStep(step, guide).some((id) => held.has(id))));
     const row = {
       key, name: step.text, status, tier: rank?.tier ?? null,
-      ...subOf(status, rank, reasons, lines, fromSync, skipped),
+      ...subOf(status, rank, reasons, lines, skipped),
       side: status === 'done' || status === 'locked' ? status : openSide(step, rank, score, ctx),
       progress: found?.have && !met ? `${number(found.have)} / ${number(found.need)}` : '',
-      api: !!found?.have && !found.ticked && (!met || fromSync),
-      undo: fromSync,
       group: entry?.group?.head && entry.group.left > 0 ? withNext(entry.group.left) : '',
       member: !!entry?.group && !entry.group.head,
     };
@@ -356,7 +297,7 @@ export function guideModel(guide, world) {
         badge: !!leader && leader.step === step && ['value', 'free'].includes(rank?.group),
         delta: rank?.delta ?? null,
         group: row.group,
-        notes: [...new Set(rank?.notes ?? []), ...(rank?.resale > 0 ? [`Net ${coins(rank.net)} (buy ${coins(rank.coins)} − resale ${coins(rank.resale)})`] : []), ...(rank?.ahead ? [`Counted up to: ${rank.ahead.text}`] : []), ...(rank?.status === 'unknown' && !plan.typed ? ['Requirements could not be checked.'] : [])],
+        notes: [...new Set(rank?.notes ?? []), ...(rank?.resale > 0 ? [`Net ${coins(rank.net)} (buy ${coins(rank.coins)} − resale ${coins(rank.resale)})`] : []), ...(rank?.ahead ? [`Counted up to: ${rank.ahead.text}`] : []), ],
       };
     }
     return row;
@@ -373,9 +314,9 @@ export function guideModel(guide, world) {
 
   const milestones = milestonesOf(guide, inPlace, checked, ctx, world.products);
   const chapters = chaptersOf(guide, checked, costs, card?.key).map((c) => ({ ...c, leftText: c.current && c.done < c.total ? leftText(c.left, world.products) : '' }));
-  // typed-in /stats: a field left empty is unknown, not 0
+  // a stat with no typed base is unknown, not 0
   const shown = plan.base ?? null;
-  const grid = shown ? (GRIDS[guide.area] ?? []).map((k) => ({ key: k, icon: STATS[k].icon, label: STATS[k].short ?? STATS[k].label, color: STATS[k].color, value: plan.typed && shown[k] === undefined ? '–' : number(shown[k] ?? 0), delta: '' })) : [];
+  const grid = shown ? (GRIDS[guide.area] ?? []).map((k) => ({ key: k, icon: STATS[k].icon, label: STATS[k].short ?? STATS[k].label, color: STATS[k].color, value: shown[k] === undefined ? '–' : number(shown[k]), delta: '' })) : [];
   return {
     id: guide.id, source: guide.source ?? '', products: world.products, area: guide.area, theme: guide.area ?? 'home', name: guide.title, chapters, milestones, total: totalShare(chapters),
     stats: statDelta(grid, card?.delta ?? null), chips: plan.path?.limits ?? null, rows, card, score, leader, missing: plan.missing ?? null, notes: plan.notes ?? [], leftOut: plan.leftOut ?? null, daggerMissing: !!plan.daggerMissing, usedCofl: !!ctx.usedCofl,
@@ -383,9 +324,17 @@ export function guideModel(guide, world) {
 }
 
 const GUIDE_TABS = ['path'];
+export const STATS_TABS = ['overview', 'hotm', 'attributes', 'power'];
+export const STATS_AREAS = ['mining', 'blaze', 'farming'];
+// #/stats, #/stats/<overview|hotm|attributes|power>, #/stats/overview/<area> and #/stats/measure/<area>
 export function parseRoute(hash, guides) {
   const [, page, id, tab] = String(hash).split('/');
-  if (page === 'stats' || page === 'settings') return { page };
+  if (page === 'settings') return { page };
+  if (page === 'stats') {
+    const area = STATS_AREAS.includes(tab) ? tab : 'mining';
+    if (id === 'measure') return { page, tab: 'measure', area };
+    return { page, tab: STATS_TABS.includes(id) ? id : 'overview', area };
+  }
   if (page === 'guide' && (id === 'farming' || guides.some((g) => g.id === id))) return { page, id, tab: GUIDE_TABS.includes(tab) ? tab : 'path' };
   return { page: 'home' };
 }
@@ -415,28 +364,18 @@ export function swipeLands(dx, speed, width) {
   return ahead * dx > 0 && Math.abs(ahead) >= LAND_SHARE * width;
 }
 
-// What a sync run means for the screen. Anything but success keeps the last state.
-export function syncOutcome(result, last) {
-  if (result.status === 'ok') return { state: result.state, message: 'Synced.', choices: [] };
-  if (result.status === 'choose') return { state: last, message: 'Pick your profile.', choices: result.choices };
-  if (result.status === 'error') return { state: last, message: syncMessage(result.error, result.retryIn), choices: [] };
-  return { state: last, message: '', choices: [] };
-}
-
 // A shipped guide coming back unchanged stays shipped, so a later app update can still change it.
 export function applyImport({ imported, checks, bundled, owned = [] }, data) {
   const same = (g) => JSON.stringify(g) === JSON.stringify(bundled.find((b) => b.id === g.id));
   return { imported: mergeGuides(imported, data.guides).filter((g) => !same(g)), checks: { ...checks, ...data.progress }, owned: [...new Set([...owned, ...(data.owned ?? [])])] };
 }
 
-// firstRun: what is done now is older than the app. That holds per guide too, and for what the first sync finds.
-// state undefined: the profile is not loaded yet, so what the sync found cannot be told from what is new. Nothing gets a date.
-export function stampAll(guides, checks, dates, state, now, firstRun = false, owned = []) {
-  if (state === undefined) return dates;
+// What is done at the first run is older than the app, so it gets 0 and never counts as new. That holds per guide.
+export function stampAll(guides, checks, dates, now, owned = []) {
   const out = { ...dates };
   for (const guide of guides) {
-    const done = doneSet(guide, new Set(checks[guide.id] ?? []), autoOf(guide, state?.summary, owned));
-    out[guide.id] = stampDone(dates[guide.id], [...done].filter((k) => !k.startsWith('undone:')), now, firstRun || dates[guide.id] === undefined);
+    const done = doneSet(guide, new Set(checks[guide.id] ?? []), autoOf(guide, owned));
+    out[guide.id] = stampDone(dates[guide.id], [...done].filter((k) => !k.startsWith('undone:')), now, dates[guide.id] === undefined);
   }
   return out;
 }
@@ -468,13 +407,6 @@ export function settled(f) {
   if (f.tagName === 'SELECT') for (const o of f.options) o.defaultSelected = o.selected;
   else if (f.type === 'checkbox') f.defaultChecked = f.checked;
   else f.defaultValue = f.value;
-}
-
-// What stays after removing key and profile: the typed-in /stats, without what was measured against a sync.
-export function statsOnly(stand) {
-  const entries = Object.entries(stand?.statsInput ?? {});
-  if (!entries.length) return null;
-  return { statsInput: Object.fromEntries(entries.map(([area, { offset, offsetFor, offsetNote, ...kept }]) => [area, kept])) };
 }
 
 // Guides of one area belong together: home shows the first, the head switches between them. Owned items are shared anyway.

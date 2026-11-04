@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { blazeOutput, blazeState, OFA } from '../blaze.js';
 import { SCORES, blazeDelta, applyBlaze, accessoryPower, stepDelta, PRESETS, miningSettings, netCost } from '../optimizer.js';
 import { pathOf } from '../path.js';
-import { summarize } from '../profile.js';
+import { gamedata, baseOf, emptyBuild } from './fixtures/guide-world.js';
 import { GEMSTONE, miningScore, loadoutOf } from '../stats.js';
 import { guideStats, validGuide, exportData } from '../progress.js';
 import { guideView } from '../guide/views/guide.js';
@@ -416,14 +416,15 @@ const stat = (id, lore, where = 'armor') => piece(id, { where, lore });
 
 const mineGuide = (over = {}) => ({ id: 'm', title: 'Mine', area: 'mining', groups: guide.groups, sections: [{ name: 'Main', steps: [{ text: 'cheap', gain: { MINING_FORTUNE: 10, MINING_SPEED: 40 }, items: [{ id: 'A', qty: 1 }] }] }], ...over });
 const summary = () => ({ ...profile([piece(DRILL, { where: 'inventory', lore: { MINING_SPEED: 1000 } })]), wardrobe: { armor: { equipped: 1, sets: [1] }, equipment: { equipped: 1, sets: [1] } } });
-const bestHtml = (g, state, products, data, settings = miningSettings(null)) => guideView({ guides: [g], checks: {}, state, products, prices: { items: data }, name: (id) => id, settings }, g.id);
+// The old tests described a synced profile; the guide app knows the owned pieces and a typed base. The pieces become owned ids,
+// the stats on their lore the base (as if measured with them on), the Magical Power stays.
+const LORE = (summary) => (summary?.items ?? []).reduce((all, i) => { for (const [k, v] of Object.entries(i.lore ?? {})) all[k] = (all[k] ?? 0) + v; return all; }, {});
+const bestHtml = (g, state, products, data, settings = miningSettings(null)) => guideView({
+  guides: [g], checks: {}, products, prices: { items: data }, items: data, name: (id) => id, settings, gamedata, build: emptyBuild(),
+  owned: (state?.summary?.items ?? []).map((i) => i.id),
+  base: state?.summary ? baseOf({ [g.area]: { values: { ...LORE(state.summary), MINING_SPEED: 1000 }, mp: state.summary.mp ?? '' } }) : {},
+}, g.id);
 const view = (g, { state = { summary: summary(), syncedAt: 1 }, products = { A: sold(5e6) }, data = items } = {}) => bestHtml(g, state, products, data);
-
-test('without a sync and without typed stats the path says what is missing and links to the stats', () => {
-  const html = view(mineGuide(), { state: null });
-  assert.match(html, /Type in your \/stats/);
-  assert.match(html, /href="#\/stats"/);
-});
 
 test('without item data the mode waits and does not throw', () => {
   assert.match(view(mineGuide(), { data: null }), /Loading item data/);
@@ -440,24 +441,6 @@ test('the row shows yield, per million, raw stats and the net line', () => {
   assert.match(html, /\+5 ⸕ Mining Speed/);
   assert.match(html, /Net .* \(buy .* − resale .*\)/);
   assert.match(view(mineGuide()), /\+10 ☘ Mining Fortune/);
-});
-
-test('locked rows stand under the ranking with their reason, no rank', () => {
-  const html = view(mineGuide({ sections: [{ name: 'Main', steps: [{ text: 'open', gain: { MINING_SPEED: 10 }, items: [{ id: 'A', qty: 1 }] }, { text: 'hard', gain: { MINING_SPEED: 10 }, items: [{ id: 'HARD', qty: 1 }] }] }] }), { products: { A: sold(1e6), HARD: sold(1e6) }, data: lockedData });
-  const locked = html.indexOf('row-locked');
-  assert.ok(html.indexOf('open') < locked);
-  assert.match(html.slice(locked), /hard/);
-  assert.match(html.slice(locked), /HOTM 7 needed/);
-  assert.doesNotMatch(html.slice(locked), /per 1 %/);
-});
-
-test('the notes say when the offset is not in use', () => {
-  const base = { summary: summary(), syncedAt: 5 };
-  assert.match(view(mineGuide(), { state: base }), /Save your \/stats/);
-  const entry = { choice: { armor: 1, equipment: 1, pet: null }, values: {}, offset: {}, offsetFor: { armor: 1, equipment: 1, pet: null }, offsetNote: 'boost', at: 1 };
-  const html = view(mineGuide(), { state: { ...base, statsInput: { mining: entry } } });
-  assert.match(html, /do not match the God Potion/);
-  assert.match(html, /older than the last sync/);
 });
 
 test('the mithril preset warns that fortune reads low', () => {
@@ -478,28 +461,9 @@ test('the export after a sync still holds no offset or in-game value', () => {
   assert.doesNotMatch(text, /offset|statsInput|inGame/);
 });
 
-test('a piece in the picked Blaze slot keeps its resale out of the view', () => {
-  const helmet = piece('OLD_HELMET', { sets: ['armor:1'] });
-  const steps = [{ text: 's', detect: { kind: 'owned', on: [['NEW_HELMET']] }, items: [{ id: 'NEW_HELMET', qty: 1 }] }];
-  const state = { summary: { ...profile([helmet]), wardrobe: { armor: { equipped: 1, sets: [1] }, equipment: { equipped: 1, sets: [1] } } }, syncedAt: 1, statsInput: { blaze: { choice: { armor: 1, equipment: 1 } } } };
-  const html = view(mineGuide({ sections: [{ name: 'Main', steps }] }), { state, products: { NEW_HELMET: sold(20e6), OLD_HELMET: orders(8e6) } });
-  assert.doesNotMatch(html, /resale/);
-});
-
-const FIXTURE = 'personal/fixtures/profile-fixture.json';
 const ITEMS = 'personal/items.json';
 const GUIDE = 'personal/guides/mining.json';
-test('the real mining guide ranks without error and every group is an array', { skip: !(existsSync(FIXTURE) && existsSync(ITEMS) && existsSync(GUIDE)) }, async () => {
-  const realGuide = validGuide(JSON.parse(readFileSync(GUIDE, 'utf8')));
-  const prof = await summarize(JSON.parse(readFileSync(FIXTURE, 'utf8')).members.self);
-  const data = JSON.parse(readFileSync(ITEMS, 'utf8')).r;
-  const settings = miningSettings(null);
-  const loadout = loadoutOf(prof, data, 'mining', null, settings);
-  const out = rankUpgrades(realGuide, new Set(), { products: {}, profile: prof, items: data }, loadout, settings, {});
-  for (const rows of Object.values(out)) assert.ok(Array.isArray(rows));
-  assert.equal(realGuide.area, 'mining');
-});
-
+const BLAZE = 'personal/guides/blaze-slayer.json';
 // Blaze
 const DAGGERS_TEST = new Set(['FIREDUST_DAGGER', 'MAWDUST_DAGGER']);
 const FIRE = 'FIREDUST_DAGGER'; const KINDLE = 'BURSTFIRE_DAGGER'; const MAW = 'MAWDUST_DAGGER';
@@ -776,23 +740,6 @@ const blazeG = (steps, over = {}) => ({ id: 'b', title: 'Blaze', area: 'blaze', 
 const blazeHtml = (g, { state = { summary: blazeProfile(), syncedAt: 1 }, products = { A: sold(5e6) }, data = blazeItems } = {}) => bestHtml(g, state, products, data);
 const sharpStep = { text: 'sharp', detect: onDaggers('sharpness', 7), items: [{ id: 'A', qty: 1 }] };
 
-test('the row says damage, marks the estimate and shows the raw stats', () => {
-  const html = blazeHtml(blazeG([{ text: 'x', detect: onDaggers('critical', 7), items: [{ id: 'A', qty: 1 }] }]));
-  assert.match(html, /\+\d+(\.\d+)? % damage/);
-  assert.match(html, /[\d.]+[kMB]? per 1 %/);
-  assert.match(html, /Ashen: \+100 ☠ Crit Damage/);
-  assert.match(html, /Estimate/);
-});
-
-test('below a limit both chips turn red with their values', () => {
-  const summary = blazeProfile({ mp: 700 });
-  summary.items = summary.items.map((i) => (i.id === 'PLATE' ? { ...i, lore: { TRUE_DEFENSE: 100 } } : i));
-  const html = blazeHtml(blazeG([sharpStep]), { state: { summary, syncedAt: 1 } });
-  assert.match(html, /c-red">100 ✗/);
-  assert.match(html, /c-red">700 ✗<\/span> \/ 800/);
-  assert.doesNotMatch(html, /role="alert"/);
-});
-
 test('steps that close a gap stand first, the rest keeps its rank', () => {
   const summary = blazeProfile();
   summary.items = summary.items.map((i) => (i.id === 'PLATE' ? { ...i, lore: { TRUE_DEFENSE: 100 } } : i));
@@ -816,20 +763,6 @@ test('the path line compares enchants and one for all', () => {
   const html = blazeHtml(blazeG([sharpStep]));
   assert.match(html, /Enchants: ×1\.00 · One For All: ×6\.00 · One For All leads by 500\.0 %/);
   assert.match(html, /In use: Enchants/);
-});
-
-test('the active path is named and never changes by itself', () => {
-  const summary = blazeProfile();
-  summary.items = summary.items.map((i) => (DAGGERS_TEST.has(i.id) ? { ...i, enchants: { [OFA]: 1 } } : i));
-  const html = blazeHtml(blazeG([sharpStep]), { state: { summary, syncedAt: 1 } });
-  assert.match(html, /In use: One For All/);
-  assert.match(html, /Not used with One For All/);
-});
-
-test('the offset moves the blaze base, also in the limits', () => {
-  const entry = { choice: { armor: 1, equipment: 1, pet: null }, values: {}, offset: { TRUE_DEFENSE: -120 }, offsetFor: { armor: 1, equipment: 1, pet: null }, offsetNote: null, at: 2 };
-  const html = blazeHtml(blazeG([sharpStep]), { state: { summary: blazeProfile(), syncedAt: 1, statsInput: { blaze: entry } } });
-  assert.match(html, /c-red">80 ✗/);
 });
 
 test('the page names what the model leaves out', () => {
@@ -859,19 +792,20 @@ test('a guide without any dagger still draws', () => {
   assert.match(html, /maw/);
 });
 
-const BLAZE = 'personal/guides/blaze-slayer.json';
-test('the real blaze guide ranks without error', { skip: !(existsSync(FIXTURE) && existsSync(ITEMS) && existsSync(BLAZE)) }, async () => {
-  const realGuide = { id: 'b', ...validGuide(JSON.parse(readFileSync(BLAZE, 'utf8'))) };
-  assert.equal(realGuide.area, 'blaze');
-  const summary = await summarize(JSON.parse(readFileSync(FIXTURE, 'utf8')).members.self);
-  const html = bestHtml(realGuide, { summary, syncedAt: 1 }, {}, JSON.parse(readFileSync(ITEMS, 'utf8')).r);
-  assert.match(html, /Estimate/);
-  assert.doesNotMatch(html, /NaN/);
-});
-
 
 test('an attribute without a value in the tables stays without one', () => {
   const profile = { items: [], attrs: {}, hotm: null };
   const change = blazeDelta({ text: 'x', detect: { kind: 'attr', attr: 'no_such_attribute', need: 10 } }, { common: {}, daggers: { ashen: null, spirit: null }, armorIds: [], path: 'guide' }, { armor: [], equipment: [], held: null, accessories: [], gaps: [], daggers: { ashen: null, spirit: null } }, profile, {}, miningSettings(null), {});
   assert.equal(change, null);
 });
+
+// The real guides and item data stay out of git; where they are there, each guide ranks without error and without NaN.
+for (const [file, area, values] of [[GUIDE, 'mining', { MINING_SPEED: 1000, MINING_FORTUNE: 100 }], [BLAZE, 'blaze', { STRENGTH: 300, TRUE_DEFENSE: 200, CRITICAL_DAMAGE: 100 }]]) {
+  test(`the real ${area} guide draws with a measured base`, { skip: !(existsSync(file) && existsSync(ITEMS)) }, () => {
+    const real = { id: area, ...validGuide(JSON.parse(readFileSync(file, 'utf8'))) };
+    const data = JSON.parse(readFileSync(ITEMS, 'utf8')).r;
+    const html = guideView({ guides: [real], checks: {}, owned: [], products: {}, prices: { items: data }, items: data, name: (id) => id, settings: miningSettings(null), gamedata, build: emptyBuild(), base: baseOf({ [area]: { values, mp: 1200 } }) }, real.id);
+    assert.doesNotMatch(html, /NaN/);
+    assert.match(html, /class="path"/);
+  });
+}
