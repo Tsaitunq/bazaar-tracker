@@ -1,0 +1,5197 @@
+{
+ "shardsPerLevel": {
+  "COMMON": [
+   1,
+   3,
+   5,
+   6,
+   7,
+   8,
+   10,
+   14,
+   18,
+   24
+  ],
+  "UNCOMMON": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   12,
+   16
+  ],
+  "RARE": [
+   1,
+   2,
+   3,
+   3,
+   4,
+   4,
+   5,
+   6,
+   8,
+   12
+  ],
+  "EPIC": [
+   1,
+   1,
+   2,
+   2,
+   3,
+   3,
+   4,
+   4,
+   5,
+   7
+  ],
+  "LEGENDARY": [
+   1,
+   1,
+   1,
+   2,
+   2,
+   2,
+   3,
+   3,
+   4,
+   5
+  ]
+ },
+ "shardsPerLevelNote": "index 0 = shards for level 1; same table on the wiki Attribute Shards page",
+ "effectNote": "effect = perLevel x level (linear, level 1..10); fixed = no scaling",
+ "attributes": [
+  {
+   "id": "ATTRIBUTE_SHARD_NATURE_ELEMENTAL",
+   "key": "nature_elemental",
+   "shardId": "C1",
+   "shard": "Grove",
+   "name": "Nature Elemental",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_GROVE",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "HEALTH",
+     "perLevel": 2,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FOG_ELEMENTAL",
+   "key": "fog_elemental",
+   "shardId": "C2",
+   "shard": "Mist",
+   "name": "Fog Elemental",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_MIST",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "INTELLIGENCE",
+     "perLevel": 1,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_LIGHT_ELEMENTAL",
+   "key": "light_elemental",
+   "shardId": "C3",
+   "shard": "Flash",
+   "name": "Light Elemental",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_FLASH",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "STRENGTH",
+     "perLevel": 1,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_NOCTURNAL_ANIMAL",
+   "key": "nocturnal_animal",
+   "shardId": "C4",
+   "shard": "Phanpyre",
+   "name": "Nocturnal Animal",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_PHANPYRE",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_CHEAPSTAKE",
+   "key": "cheapstake",
+   "shardId": "C5",
+   "shard": "Cod",
+   "name": "Cheapstake",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_COD",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ANIMAL_RESISTANCE",
+   "key": "animal_resistance",
+   "shardId": "C6",
+   "shard": "Howling Spirit",
+   "name": "Animal Resistance",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_HOWLING_SPIRIT",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "DEFENSE",
+     "perLevel": 4,
+     "cond": "vs_mob_family"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_MOONGLADE_MASTERY",
+   "key": "moonglade_mastery",
+   "shardId": "C7",
+   "shard": "Phanflare",
+   "name": "Moonglade Mastery",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_PHANFLARE",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_AQUATIC_RESISTANCE",
+   "key": "aquatic_resistance",
+   "shardId": "C8",
+   "shard": "Dumpster Diver",
+   "name": "Aquatic Resistance",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_DUMPSTER_DIVER",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "DEFENSE",
+     "perLevel": 4,
+     "cond": "vs_mob_family"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_EXPERIENCE",
+   "key": "experience",
+   "shardId": "C9",
+   "shard": "Lapis Zombie",
+   "name": "Experience",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_LAPIS_ZOMBIE",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_MOSSY_BOX",
+   "key": "mossy_box",
+   "shardId": "C10",
+   "shard": "Hideonleaf",
+   "name": "Mossy Box",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_HIDEONLEAF",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "BLOCK_FORTUNE",
+     "perLevel": 5,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "mining"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FOREST_FISHING",
+   "key": "forest_fishing",
+   "shardId": "C11",
+   "shard": "Verdant",
+   "name": "Forest Fishing",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_VERDANT",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_SKELETAL_RULER",
+   "key": "skeletal_ruler",
+   "shardId": "C12",
+   "shard": "Chill",
+   "name": "Skeletal Ruler",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_CHILL",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FORTUNATE_FARMER",
+   "key": "fortunate_farmer",
+   "shardId": "C13",
+   "shard": "Fly",
+   "name": "Fortunate Farmer",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_FLY",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "FARMING_FORTUNE",
+     "perLevel": 2.5,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "farming"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_HUNTER",
+   "key": "creature_fisher",
+   "shardId": "C14",
+   "shard": "Bogged",
+   "name": "Creature Fisher",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_SEA_ARCHER",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ARACHNO_RESISTANCE",
+   "key": "arthropod_resistance",
+   "shardId": "C15",
+   "shard": "Voracious Spider",
+   "name": "Arthropod Resistance",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_VORACIOUS_SPIDER",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "DEFENSE",
+     "perLevel": 4,
+     "cond": "vs_mob_family"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_HAPPY_BOX",
+   "key": "happy_box",
+   "shardId": "C16",
+   "shard": "Hideongift",
+   "name": "Happy Box",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_HIDEONGIFT",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_YUMMY",
+   "key": "yummy",
+   "shardId": "C17",
+   "shard": "Birries",
+   "name": "Yummy",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_BIRRIES",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_UNDEAD_RESISTANCE",
+   "key": "undead_resistance",
+   "shardId": "C18",
+   "shard": "Tank Zombie",
+   "name": "Undead Resistance",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_TANK_ZOMBIE",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "DEFENSE",
+     "perLevel": 4,
+     "cond": "vs_mob_family"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FIG_SHARPENING",
+   "key": "fig_sharpening",
+   "shardId": "C19",
+   "shard": "Crow",
+   "name": "Fig Sharpening",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_CROW",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_UNITY_IS_STRENGTH",
+   "key": "unity_is_strength",
+   "shardId": "C20",
+   "shard": "Tadgang",
+   "name": "Unity is Strength",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_TADGANG",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ENDER_RESISTANCE",
+   "key": "ender_resistance",
+   "shardId": "C21",
+   "shard": "Zealot",
+   "name": "Ender Resistance",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_ZEALOT",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "DEFENSE",
+     "perLevel": 4,
+     "cond": "vs_mob_family"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_HITMAN_COOLDOWN",
+   "key": "hitman_cooldown",
+   "shardId": "C22",
+   "shard": "Rabbit Mafioso",
+   "name": "Hitman Cooldown",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_RABBIT_MAFIOSO",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_BUCKET_LOVER",
+   "key": "bucket_lover",
+   "shardId": "C23",
+   "shard": "Coralot",
+   "name": "Bucket Lover",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_CORALOT",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_TREE_LURKER",
+   "key": "tree_lurker",
+   "shardId": "C24",
+   "shard": "Harpy",
+   "name": "Tree Lurker",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_HARPY",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_VISITOR_BAIT",
+   "key": "visitor_speed",
+   "shardId": "C25",
+   "shard": "Mudworm",
+   "name": "Visitor Speed",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_MUDWORM",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_LOTUS_TROPHY",
+   "key": "lotus_trophy",
+   "shardId": "C26",
+   "shard": "Lotusfish",
+   "name": "Lotus Trophy",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_LOTUS_FISH",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_MIDAS_TOUCH",
+   "key": "midas_touch",
+   "shardId": "C27",
+   "shard": "Golden Ghoul",
+   "name": "Midas Touch",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_GOLDEN_GHOUL",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_CROP_SPEED",
+   "key": "crop_speed",
+   "shardId": "C28",
+   "shard": "Locust",
+   "name": "Crop Speed",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_LOCUST",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FOREST_STRENGTH",
+   "key": "forest_strength",
+   "shardId": "C29",
+   "shard": "Azure",
+   "name": "Forest Strength",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_AZURE",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "STRENGTH",
+     "perLevel": 5,
+     "cond": "on_foraging_islands"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_BLAZING_RESISTANCE",
+   "key": "blazing_resistance",
+   "shardId": "C30",
+   "shard": "Bezal",
+   "name": "Blazing Resistance",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_BEZAL",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "DEFENSE",
+     "perLevel": 4,
+     "cond": "vs_mob_family"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_WOODLAND_RESISTANCE",
+   "key": "woodland_resistance",
+   "shardId": "C31",
+   "shard": "Stag Beetle",
+   "name": "Woodland Resistance",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_STAG_BEETLE",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "DEFENSE",
+     "perLevel": 4,
+     "cond": "vs_mob_family"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FISHERMAN",
+   "key": "fisherman",
+   "shardId": "C32",
+   "shard": "Inkling",
+   "name": "Fisherman",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_NIGHT_SQUID",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_YOG_MEMBRANE",
+   "key": "yog_membrane",
+   "shardId": "C33",
+   "shard": "Yog",
+   "name": "Yog Membrane",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_YOG",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "HEAT_RESISTANCE",
+     "perLevel": 1,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "mining"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_OWL_FRIEND",
+   "key": "owl_friend",
+   "shardId": "C34",
+   "shard": "Boreal Owl",
+   "name": "Owl Friend",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_BOREAL_OWL",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_DECENT_KARMA",
+   "key": "decent_karma",
+   "shardId": "C35",
+   "shard": "Newt",
+   "name": "Decent Karma",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_NEWT",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ROTTEN_PICKAXE",
+   "key": "rotten_pickaxe",
+   "shardId": "C36",
+   "shard": "Miner Zombie",
+   "name": "Rotten Pickaxe",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_MINER_ZOMBIE",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "MINING_SPEED",
+     "perLevel": 3,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "mining"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FORTUNATE_MINER",
+   "key": "fortunate_miner",
+   "shardId": "C37",
+   "shard": "Flitter",
+   "name": "Fortunate Miner",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_FLITTER",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "MINING_FORTUNE",
+     "perLevel": 2.5,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "mining"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_LAKE_FISHING",
+   "key": "lake_fishing",
+   "shardId": "C38",
+   "shard": "Tepid",
+   "name": "Lake Fishing",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_TEPID",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_MYTHOLOGICAL_RESISTANCE",
+   "key": "mythological_resistance",
+   "shardId": "C39",
+   "shard": "Cretan Bull",
+   "name": "Mythological Resistance",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_CRETAN_BULL",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "DEFENSE",
+     "perLevel": 4,
+     "cond": "vs_mob_family"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_QUEEN_TRACKER",
+   "key": "queen_tracker",
+   "shardId": "C40",
+   "shard": "Ant",
+   "name": "Queen Tracker",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_ANT",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_CAVE_FISHING",
+   "key": "cave_fishing",
+   "shardId": "C41",
+   "shard": "Cavernfish",
+   "name": "Cave Fishing",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_CAVERNFISH",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FROZEN_RESISTANCE",
+   "key": "frozen_resistance",
+   "shardId": "C42",
+   "shard": "Strongarm",
+   "name": "Frozen Resistance",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_STRONGARM",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "DEFENSE",
+     "perLevel": 4,
+     "cond": "vs_mob_family"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_GOLD_BOX",
+   "key": "gold_box",
+   "shardId": "C43",
+   "shard": "Hideonsun",
+   "name": "Gold Box",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_HIDEONSUN",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "ORE_FORTUNE",
+     "perLevel": 5,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "mining"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_SKELETAL_RESISTANCE",
+   "key": "skeletal_resistance",
+   "shardId": "C44",
+   "shard": "Haggard",
+   "name": "Skeletal Resistance",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_HAGGARD",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "DEFENSE",
+     "perLevel": 4,
+     "cond": "vs_mob_family"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_HONEY_SPEED",
+   "key": "honey_speed",
+   "shardId": "C45",
+   "shard": "Honeyhog",
+   "name": "Honey Speed",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_HONEYHOG",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_SUBTERRANEAN_RESISTANCE",
+   "key": "subterranean_resistance",
+   "shardId": "C46",
+   "shard": "Shyworm",
+   "name": "Subterranean Resistance",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_SHYWORM",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "DEFENSE",
+     "perLevel": 4,
+     "cond": "vs_mob_family"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ARCANE_RESISTANCE",
+   "key": "arcane_resistance",
+   "shardId": "C47",
+   "shard": "Brineling",
+   "name": "Arcane Resistance",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_BRINELING",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "DEFENSE",
+     "perLevel": 4,
+     "cond": "vs_mob_family"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_RABBIT_YOUTH",
+   "key": "rabbit_youth",
+   "shardId": "C48",
+   "shard": "Chocobun",
+   "name": "Rabbit Youth",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_CHOCOBUN",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FORAGING_SPEED",
+   "key": "foraging_speed",
+   "shardId": "C49",
+   "shard": "Foxtrot",
+   "name": "Foraging Speed",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_FOXTROT",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "SPEED",
+     "perLevel": 3,
+     "cond": "on_foraging_islands"
+    }
+   ],
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_TORRHUS_MASTERY",
+   "key": "torrhus_mastery",
+   "shardId": "C52",
+   "shard": "Firefox",
+   "name": "Torrhus Mastery",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_FIREFOX",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_DIURNAL_ANIMAL",
+   "key": "diurnal_animal",
+   "shardId": "C55",
+   "shard": "Groundhog",
+   "name": "Diurnal Animal",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_GROUNDHOG",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_TORRHUS_DIVER",
+   "key": "torrhus_diver",
+   "shardId": "C56",
+   "shard": "Timil",
+   "name": "Torrhus Diver",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_TIMIL",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_AIRBORNE_RESISTANCE",
+   "key": "airborne_resistance",
+   "shardId": "C58",
+   "shard": "Blue Jay",
+   "name": "Airborne Resistance",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_BLUE_JAY",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "DEFENSE",
+     "perLevel": 4,
+     "cond": "vs_mob_family"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_CHOCOLATE_SPEED",
+   "key": "chocolate_speed",
+   "shardId": "C61",
+   "shard": "Bunbun",
+   "name": "Chocolate Speed",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_BUNBUN",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_HONEY_HAUL",
+   "key": "honey_haul",
+   "shardId": "C64",
+   "shard": "Honeybuzz",
+   "name": "Honey Haul",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_HONEYBUZZ",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_HONEY_LUCK",
+   "key": "honey_luck",
+   "shardId": "C67",
+   "shard": "Pollendart",
+   "name": "Honey Luck",
+   "rarity": "COMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_POLLENDART",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_EARTH_ELEMENTAL",
+   "key": "earth_elemental",
+   "shardId": "E1",
+   "shard": "Terra",
+   "name": "Earth Elemental",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_TERRA",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "HEALTH",
+     "perLevel": 2,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FROST_ELEMENTAL",
+   "key": "frost_elemental",
+   "shardId": "E2",
+   "shard": "Cryo",
+   "name": "Frost Elemental",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_CRYO",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "INTELLIGENCE",
+     "perLevel": 1,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_WIND_ELEMENTAL",
+   "key": "wind_elemental",
+   "shardId": "E3",
+   "shard": "Aero",
+   "name": "Wind Elemental",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_AERO",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "STRENGTH",
+     "perLevel": 1,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FORAGING_WISDOM",
+   "key": "foraging_wisdom",
+   "shardId": "E4",
+   "shard": "Pandarai",
+   "name": "Foraging Wisdom",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_PANDARAI",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_EXCELLENT_KARMA",
+   "key": "excellent_karma",
+   "shardId": "E5",
+   "shard": "Leviathan",
+   "name": "Excellent Karma",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_LEVIATHAN",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ECHO_OF_RESISTANCE",
+   "key": "echo_of_resistance",
+   "shardId": "E6",
+   "shard": "Alligator",
+   "name": "Echo of Resistance",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_ALLIGATOR",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_BERRY_MOGUL",
+   "key": "berry_mogul",
+   "shardId": "E7",
+   "shard": "Fenlord",
+   "name": "Berry Mogul",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_FENLORD",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_PICKAXE_COOLDOWN",
+   "key": "pickaxe_cooldown",
+   "shardId": "E8",
+   "shard": "Abyssal Miner",
+   "name": "Pickaxe Cooldown",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_ABYSSAL_MINER",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": [
+    "mining"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_HUNTERS_SUPPRESS",
+   "key": "hunter_s_suppress",
+   "shardId": "E9",
+   "shard": "Basilisk",
+   "name": "Hunter's Suppress",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_BASILISK",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ECHO_OF_ATOMIZED",
+   "key": "echo_of_atomized",
+   "shardId": "E10",
+   "shard": "Iguana",
+   "name": "Echo of Atomized",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_IGUANA",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_LUCKY_ROD",
+   "key": "lucky_rod",
+   "shardId": "E11",
+   "shard": "Moray Eel",
+   "name": "Lucky Rod",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_MORAY_EEL",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_SPECIAL_UPGRADES",
+   "key": "special_upgrades",
+   "shardId": "E12",
+   "shard": "Special Zealot",
+   "name": "Special Upgrades",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_SPECIAL_ZEALOT",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_LUNAR_POWER",
+   "key": "lunar_power",
+   "shardId": "E13",
+   "shard": "Lunar Moth",
+   "name": "Lunar Power",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_LUNAR_MOTH",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "FARMING_FORTUNE",
+     "perLevel": 5,
+     "cond": "night"
+    }
+   ],
+   "areas": [
+    "farming"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_TROPHY_HUNTER",
+   "key": "trophy_hunter",
+   "shardId": "E14",
+   "shard": "Fire Eel",
+   "name": "Trophy Hunter",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_FIRE_EEL",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_DEEP_TECHNIQUE",
+   "key": "deep_technique",
+   "shardId": "E15",
+   "shard": "Bal",
+   "name": "Deep Technique",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_BAL",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": [
+    "mining"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_SACK_SIZE",
+   "key": "sack_size",
+   "shardId": "E16",
+   "shard": "Hideonsack",
+   "name": "Sack Size",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_HIDEONSACK",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FISHING_SPEED",
+   "key": "fishing_speed",
+   "shardId": "E17",
+   "shard": "Water Hydra",
+   "name": "Fishing Speed",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_WATER_HYDRA",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_BLAZING",
+   "key": "infernal_ruler",
+   "shardId": "E18",
+   "shard": "Flare",
+   "name": "Infernal Ruler",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_FLARE",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_SKY_HIGH",
+   "key": "sky_high",
+   "shardId": "E19",
+   "shard": "Murderwing",
+   "name": "Sky High",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_MURDERWING",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FISHING_EXPERIENCE",
+   "key": "sea_wisdom",
+   "shardId": "E20",
+   "shard": "Loch Emperor",
+   "name": "Sea Wisdom",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_SEA_EMPEROR",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_REBORN",
+   "key": "reborn",
+   "shardId": "E21",
+   "shard": "Prince",
+   "name": "Reborn",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_PRINCE",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ECHO_OF_ESSENCE",
+   "key": "echo_of_essence",
+   "shardId": "E22",
+   "shard": "Komodo Dragon",
+   "name": "Echo of Essence",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_KOMODO_DRAGON",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_OUTSTANDING_FISHER",
+   "key": "outstanding_fisher",
+   "shardId": "E23",
+   "shard": "Blue Crab",
+   "name": "Outstanding Fisher",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_BLUE_CRAB",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FAKER",
+   "key": "faker",
+   "shardId": "E24",
+   "shard": "Mimic",
+   "name": "Faker",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_MIMIC",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_SLAYER_PROGRESS",
+   "key": "slayer_progress",
+   "shardId": "E25",
+   "shard": "Wolverine",
+   "name": "Slayer Progress",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_WOLVERINE",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_SHELL",
+   "key": "shell",
+   "shardId": "E26",
+   "shard": "Shellwise",
+   "name": "Shell",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_SHELLWISE",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_WARRIOR",
+   "key": "warrior",
+   "shardId": "E27",
+   "shard": "Barbarian Duke X",
+   "name": "Warrior",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_BARBARIAN_DUKE_X",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_WHY_NOT_MORE",
+   "key": "why_not_more",
+   "shardId": "E28",
+   "shard": "Toucan",
+   "name": "Why Not More",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_TOUCAN",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ECHO_OF_RULER",
+   "key": "echo_of_ruler",
+   "shardId": "E30",
+   "shard": "Caiman",
+   "name": "Echo of Ruler",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_CAIMAN",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_SOLAR_POWER",
+   "key": "solar_power",
+   "shardId": "E31",
+   "shard": "Firefly",
+   "name": "Solar Power",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_FIREFLY",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "FARMING_FORTUNE",
+     "perLevel": 5,
+     "cond": "day"
+    }
+   ],
+   "areas": [
+    "farming"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ECHO_OF_HUNTER",
+   "key": "echo_of_hunter",
+   "shardId": "E32",
+   "shard": "Sea Serpent",
+   "name": "Echo of Hunter",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_SEA_SERPENT",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_VEIL",
+   "key": "veil",
+   "shardId": "E33",
+   "shard": "Ghost",
+   "name": "Veil",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_GHOST",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "TRUE_DEFENSE",
+     "perLevel": 1,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_MANA_REGENERATION",
+   "key": "mana_regeneration",
+   "shardId": "E34",
+   "shard": "XYZ",
+   "name": "Mana Regeneration",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_XYZ",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_HUNT_WISDOM",
+   "key": "hunt_wisdom",
+   "shardId": "E35",
+   "shard": "Leatherback",
+   "name": "Hunt Wisdom",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_LEATHERBACK",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_CAVERN_WISDOM",
+   "key": "cavern_wisdom",
+   "shardId": "E36",
+   "shard": "Cavernshade",
+   "name": "Cavern Wisdom",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_CAVERNSHADE",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "MINING_WISDOM",
+     "perLevel": 0.5,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "mining"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_GARDEN_WISDOM",
+   "key": "garden_wisdom",
+   "shardId": "E37",
+   "shard": "Dragonfly",
+   "name": "Garden Wisdom",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_DRAGONFLY",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "FARMING_WISDOM",
+     "perLevel": 0.5,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "farming"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_BIG_GAME_HUNTER",
+   "key": "mythological_tracker",
+   "shardId": "E39",
+   "shard": "Sphinx",
+   "name": "Mythological Tracker",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_SPHINX",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "TRACKING",
+     "perLevel": 0.5,
+     "cond": "griffin_burrows"
+    }
+   ],
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_KING_OF_GREED",
+   "key": "king_of_greed",
+   "shardId": "E42",
+   "shard": "King Minos",
+   "name": "King of Greed",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_KING_MINOS",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_GHASTLY_DISTRACTION",
+   "key": "ghastly_distraction",
+   "shardId": "E43",
+   "shard": "Dive Ghast",
+   "name": "Ghastly Distraction",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_DIVE_GHAST",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FORAGERS_FORTUNE",
+   "key": "forager_s_fortune",
+   "shardId": "E44",
+   "shard": "Silkbreeze",
+   "name": "Forager's Fortune",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_SILKBREEZE",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "MAGIC_FIND",
+     "perLevel": 0.5,
+     "cond": "on_foraging_islands"
+    }
+   ],
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_DEVOURING_SPREAD",
+   "key": "devouring_spread",
+   "shardId": "E45",
+   "shard": "Gemzie",
+   "name": "Devouring Spread",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_GEMZIE",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "GEMSTONE_SPREAD",
+     "perLevel": 0.25,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "mining"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_DIVINE_RABBIT_LUCK",
+   "key": "divine_rabbit_luck",
+   "shardId": "E46",
+   "shard": "Rabbit Godmother",
+   "name": "Divine Rabbit Luck",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_RABBIT_GODMOTHER",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FISHERS_FORTUNE",
+   "key": "fisher_s_fortune",
+   "shardId": "E47",
+   "shard": "Giant Isopod",
+   "name": "Fisher's Fortune",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_GIANT_ISOPOD",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ATTACK_SPEED",
+   "key": "attack_speed",
+   "shardId": "E48",
+   "shard": "Inferno Demonlord",
+   "name": "Attack Speed",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_BURNINGSOUL",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "ATTACK_SPEED",
+     "perLevel": 1,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_HONEY_REFILL",
+   "key": "honey_refill",
+   "shardId": "E49",
+   "shard": "Queen Bee",
+   "name": "Honey Refill",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_QUEEN_BEE",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_CATACOMBS_EXPLORER",
+   "key": "catacombs_explorer",
+   "shardId": "E51",
+   "shard": "Bonzo",
+   "name": "Catacombs Explorer",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_BONZO",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_LATHERING_GREED",
+   "key": "lathering_greed",
+   "shardId": "E52",
+   "shard": "Beeheemoth",
+   "name": "Lathering Greed",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_BEEHEEMOTH",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_CATACOMBS_GRADUATE",
+   "key": "catacombs_graduate",
+   "shardId": "E54",
+   "shard": "Scarf",
+   "name": "Catacombs Graduate",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_SCARF",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_DOMINANCE",
+   "key": "dominance",
+   "shardId": "E57",
+   "shard": "Thorn",
+   "name": "Dominance",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_THORN",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_SOCIAL_WISDOM",
+   "key": "social_wisdom",
+   "shardId": "E58",
+   "shard": "Mountain Goat",
+   "name": "Social Wisdom",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_MOUNTAIN_GOAT",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "SOCIAL_WISDOM",
+     "perLevel": 0.5,
+     "cond": "always"
+    }
+   ],
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_GLOSSY_FORTUNE",
+   "key": "glossy_fortune",
+   "shardId": "E60",
+   "shard": "Scatha",
+   "name": "Glossy Fortune",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_SCATHA",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": [
+    "mining"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ROYAL_RICHES",
+   "key": "royal_riches",
+   "shardId": "E63",
+   "shard": "Nilbog",
+   "name": "Royal Riches",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_NILBOG",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "MINING_SPEED",
+     "perLevel": 5,
+     "cond": "in_mines_of_divan"
+    },
+    {
+     "stat": "ORE_FORTUNE",
+     "perLevel": 2.5,
+     "cond": "in_mines_of_divan"
+    }
+   ],
+   "areas": [
+    "mining"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FREEZING_SPREAD",
+   "key": "freezing_spread",
+   "shardId": "E66",
+   "shard": "Littlefoot",
+   "name": "Freezing Spread",
+   "rarity": "EPIC",
+   "maxLevel": 10,
+   "icon": "SHARD_LITTLEFOOT",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": [
+    "mining"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_SHADOW_ELEMENTAL",
+   "key": "shadow_elemental",
+   "shardId": "L1",
+   "shard": "Tenebris",
+   "name": "Shadow Elemental",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_TENEBRIS",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "HEALTH",
+     "perLevel": 2,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_SNOW_ELEMENTAL",
+   "key": "snow_elemental",
+   "shardId": "L2",
+   "shard": "Blizzard",
+   "name": "Snow Elemental",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_BLIZZARD",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "INTELLIGENCE",
+     "perLevel": 1,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_STORM_ELEMENTAL",
+   "key": "storm_elemental",
+   "shardId": "L3",
+   "shard": "Tempest",
+   "name": "Storm Elemental",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_TEMPEST",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "STRENGTH",
+     "perLevel": 1,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_REPTILOID",
+   "key": "reptiloid",
+   "shardId": "L4",
+   "shard": "Chameleon",
+   "name": "Reptiloid",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_CHAMELEON",
+   "src": "neu",
+   "unconsumable": true,
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_LOCH_HOOK",
+   "key": "loch_hook",
+   "shardId": "L5",
+   "shard": "Nessie",
+   "name": "Loch Hook",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_NESSIE",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ECHO_OF_ECHOES",
+   "key": "echo_of_echoes",
+   "shardId": "L6",
+   "shard": "Tiamat",
+   "name": "Echo of Echoes",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_TIAMAT",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ECHO_OF_WISDOM",
+   "key": "echo_of_wisdom",
+   "shardId": "L7",
+   "shard": "Wyvern",
+   "name": "Echo of Wisdom",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_WYVERN",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_CLOAK_IMPROVEMENT",
+   "key": "cloak_improvement",
+   "shardId": "L8",
+   "shard": "Tortoise",
+   "name": "Cloak Improvement",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_TORTOISE",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FORTITUDE",
+   "key": "unlimited_fortitude",
+   "shardId": "L9",
+   "shard": "End Stone Protector",
+   "name": "Unlimited Fortitude",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_ENDSTONE_PROTECTOR",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_EGG_FINDER",
+   "key": "egg_finder",
+   "shardId": "L10",
+   "shard": "Rabbit Godfather",
+   "name": "Egg Finder",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_RABBIT_GODFATHER",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_CHARMED",
+   "key": "charmed",
+   "shardId": "L11",
+   "shard": "Naga",
+   "name": "Charmed",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_NAGA",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_BOOK_WISDOM",
+   "key": "book_wisdom",
+   "shardId": "L12",
+   "shard": "Lapis Creeper",
+   "name": "Book Wisdom",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_LAPIS_CREEPER",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "ENCHANTING_WISDOM",
+     "perLevel": 0.5,
+     "cond": "always"
+    }
+   ],
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_WART_EATER",
+   "key": "wart_eater",
+   "shardId": "L13",
+   "shard": "Wartybug",
+   "name": "Wart Eater",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_WARTYBUG",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_PAYBACK",
+   "key": "payback",
+   "shardId": "L14",
+   "shard": "Spike",
+   "name": "Payback",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_SPIKE",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_MENDING",
+   "key": "vitality",
+   "shardId": "L15",
+   "shard": "Kraken",
+   "name": "Vitality",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_KRAKEN",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "VITALITY",
+     "perLevel": 1,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_MAXIMAL_TORMENT",
+   "key": "unlimited_torment",
+   "shardId": "L17",
+   "shard": "Taurus",
+   "name": "Unlimited Torment",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_TAURUS",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_PITY",
+   "key": "pity",
+   "shardId": "L18",
+   "shard": "Daemon",
+   "name": "Pity",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_DAEMON",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_STAR_BAIT",
+   "key": "star_bait",
+   "shardId": "L20",
+   "shard": "Moltenfish",
+   "name": "Star Bait",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_MOLTENFISH",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ECHO_OF_TRACKING",
+   "key": "echo_of_tracking",
+   "shardId": "L21",
+   "shard": "Doomspiral",
+   "name": "Echo of Tracking",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_DOOMSPIRAL",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_SPLENDOR",
+   "key": "splendor",
+   "shardId": "L22",
+   "shard": "Macaw",
+   "name": "Splendor",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_MACAW",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_LIFE_REGENERATION",
+   "key": "help_from_above",
+   "shardId": "L23",
+   "shard": "Shinyfish",
+   "name": "Help From Above",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_SHINYFISH",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "HEALTH_REGEN",
+     "perLevel": 1.25,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_WINGS_OF_DESTINY",
+   "key": "wings_of_destiny",
+   "shardId": "L24",
+   "shard": "Ananke",
+   "name": "Wings of Destiny",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_ANANKE",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_TUNING_BOX",
+   "key": "tuning_box",
+   "shardId": "L25",
+   "shard": "Hideonbox",
+   "name": "Tuning Box",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_HIDEONBOX",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_DOUBLE_HOOK",
+   "key": "crimson_hook",
+   "shardId": "L26",
+   "shard": "Lord Jawbus",
+   "name": "Crimson Hook",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_LORD_JAWBUS",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_MATRIARCH_CUBS",
+   "key": "matriarch_cubs",
+   "shardId": "L27",
+   "shard": "Hellwisp",
+   "name": "Matriarch Cubs",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_HELLWISP",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_MAGIC_FIND",
+   "key": "magic_find",
+   "shardId": "L28",
+   "shard": "Cinderbat",
+   "name": "Magic Find",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_CINDER_BAT",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "MAGIC_FIND",
+     "perLevel": 0.5,
+     "cond": "always"
+    }
+   ],
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_HUNTER_KARMA",
+   "key": "hunter_s_karma",
+   "shardId": "L29",
+   "shard": "Megalith",
+   "name": "Hunter's Karma",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_MEGALITH",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ELITE",
+   "key": "elite",
+   "shardId": "L30",
+   "shard": "Power Dragon",
+   "name": "Elite",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_POWER_DRAGON",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_PET_WISDOM",
+   "key": "pet_wisdom",
+   "shardId": "L31",
+   "shard": "Condor",
+   "name": "Pet Wisdom",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_CONDOR",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_STARBORN",
+   "key": "starborn",
+   "shardId": "L32",
+   "shard": "Sun Fish",
+   "name": "Starborn",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_SUN_FISH",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_VETERAN",
+   "key": "veteran",
+   "shardId": "L33",
+   "shard": "Apex Dragon",
+   "name": "Veteran",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_APEX_DRAGON",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "COMBAT_WISDOM",
+     "perLevel": 1,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_RARE_BIRD",
+   "key": "tracking",
+   "shardId": "L34",
+   "shard": "Dodo",
+   "name": "Tracking",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_DODO",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "TRACKING",
+     "perLevel": 0.5,
+     "cond": "always"
+    }
+   ],
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_QUEENLY_ECHO",
+   "key": "queenly_echo",
+   "shardId": "L35",
+   "shard": "Queen Snake",
+   "name": "Queenly Echo",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_QUEEN_SNAKE",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_UNLIMITED_POWER",
+   "key": "unlimited_power",
+   "shardId": "L36",
+   "shard": "Jormung",
+   "name": "Unlimited Power",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_JORMUNG",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_TREASURE_FISHER",
+   "key": "treasure_fisher",
+   "shardId": "L38",
+   "shard": "Ghost Crab",
+   "name": "Treasure Fisher",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_GHOST_CRAB",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "TREASURE_CHANCE",
+     "perLevel": 0.1,
+     "cond": "always"
+    }
+   ],
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_UNLIMITED_ENERGY",
+   "key": "unlimited_energy",
+   "shardId": "L39",
+   "shard": "Etherdrake",
+   "name": "Unlimited Energy",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_ETHERDRAKE",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_TOUGH_CLAWS",
+   "key": "tough_claws",
+   "shardId": "L40",
+   "shard": "Grizzly Bear",
+   "name": "Tough Claws",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_GRIZZLY_BEAR",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ULTIMATE_DNA",
+   "key": "ultimate_dna",
+   "shardId": "L41",
+   "shard": "Galaxy Fish",
+   "name": "Ultimate DNA",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_GALAXY_FISH",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "MINING_FORTUNE",
+     "perLevel": 1,
+     "cond": "always"
+    },
+    {
+     "stat": "FARMING_FORTUNE",
+     "perLevel": 1,
+     "cond": "always"
+    },
+    {
+     "stat": "FORAGING_FORTUNE",
+     "perLevel": 1,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "farming",
+    "mining"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ALMIGHTY",
+   "key": "almighty_echo",
+   "shardId": "L42",
+   "shard": "Molthorn",
+   "name": "Almighty Echo",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_MOLTHORN",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ECHO_OF_ELEMENTAL",
+   "key": "echo_of_elemental",
+   "shardId": "L44",
+   "shard": "Starborn",
+   "name": "Echo of Elemental",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_STARBORN",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_COCOON_CHANCE",
+   "key": "cocoon_chance",
+   "shardId": "L45",
+   "shard": "Primordial",
+   "name": "Cocoon Chance",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_PRIMORDIAL",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_GROOVY_RADAR",
+   "key": "groovy_radar",
+   "shardId": "L46",
+   "shard": "Cocoaleech",
+   "name": "Groovy Radar",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_COCOALEECH",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_BAYOU_BITER",
+   "key": "bayou_hook",
+   "shardId": "L47",
+   "shard": "Titanoboa",
+   "name": "Bayou Hook",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_TITANOBOA",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_MIRACLE_CHANCE",
+   "key": "miracle_chance",
+   "shardId": "L49",
+   "shard": "Rainbug",
+   "name": "Miracle Chance",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FLORA",
+   "key": "unique_bonus",
+   "shardId": "L52",
+   "shard": "Flora",
+   "name": "Unique Bonus",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_FLORA",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_SLAYER_DISCOUNT",
+   "key": "slayer_discount",
+   "shardId": "L54",
+   "shard": "Paragon",
+   "name": "Slayer Discount",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_PARAGON",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_GREENHOUSE_SPEED",
+   "key": "greenhouse_speed",
+   "shardId": "L57",
+   "shard": "Timestalk Clone",
+   "name": "Greenhouse Speed",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_TIMESTALK_CLONE",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_COLD_RESISTANCE",
+   "key": "cold_resistance",
+   "shardId": "L60",
+   "shard": "Wumpa",
+   "name": "Cold Resistance",
+   "rarity": "LEGENDARY",
+   "maxLevel": 10,
+   "icon": "SHARD_WUMPA",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "COLD_RESISTANCE",
+     "perLevel": 0.5,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "mining"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FOREST_ELEMENTAL",
+   "key": "forest_elemental",
+   "shardId": "R1",
+   "shard": "Sylvan",
+   "name": "Forest Elemental",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_SYLVAN",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "HEALTH",
+     "perLevel": 2,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_TORRENT_ELEMENTAL",
+   "key": "torrent_elemental",
+   "shardId": "R2",
+   "shard": "Cascade",
+   "name": "Torrent Elemental",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_CASCADE",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "INTELLIGENCE",
+     "perLevel": 1,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_LIGHTNING_ELEMENTAL",
+   "key": "lightning_elemental",
+   "shardId": "R3",
+   "shard": "Bolt",
+   "name": "Lightning Elemental",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_BOLT",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "STRENGTH",
+     "perLevel": 1,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ANIMAL_EXPERTISE",
+   "key": "animal_expertise",
+   "shardId": "R4",
+   "shard": "Bambloom",
+   "name": "Animal Expertise",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_BAMBLOOM",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "FORAGING_FORTUNE",
+     "perLevel": 10,
+     "cond": "always"
+    }
+   ],
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FROG_LEGS",
+   "key": "frog_legs",
+   "shardId": "R5",
+   "shard": "Toad",
+   "name": "Frog Legs",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_TOAD",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ICE_ESSENCE",
+   "key": "essence_of_ice",
+   "shardId": "R6",
+   "shard": "Glacite Walker",
+   "name": "Essence of Ice",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_GLACITE_WALKER",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_BEACON_ZEALOT",
+   "key": "beacon_zealot",
+   "shardId": "R7",
+   "shard": "Beaconmite",
+   "name": "Beacon Zealot",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_BEACONMITE",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_GREAT_KARMA",
+   "key": "great_karma",
+   "shardId": "R8",
+   "shard": "Lizard King",
+   "name": "Great Karma",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_LIZARD_KING",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_HUNTERS_PRESSURE",
+   "key": "hunter_s_pressure",
+   "shardId": "R9",
+   "shard": "Python",
+   "name": "Hunter's Pressure",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_PYTHON",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FANCY_VISIT",
+   "key": "fancy_visit",
+   "shardId": "R10",
+   "shard": "Invisibug",
+   "name": "Fancy Visit",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_INVISIBUG",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_MOONGLADE_SERENDIPITY",
+   "key": "moonglade_serendipity",
+   "shardId": "R11",
+   "shard": "Piranha",
+   "name": "Moonglade Serendipity",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_PIRANHA",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_CATACOMB_BOX",
+   "key": "catacombs_box",
+   "shardId": "R13",
+   "shard": "Hideongeon",
+   "name": "Catacombs Box",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_HIDEONGEON",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_BONE_FONT",
+   "key": "bone_font",
+   "shardId": "R15",
+   "shard": "Lapis Skeleton",
+   "name": "Bone Font",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_LAPIS_SKELETON",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_CROP_BUG",
+   "key": "crop_bug",
+   "shardId": "R16",
+   "shard": "Beetle",
+   "name": "Crop Bug",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_CROPEETLE",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "OVERBLOOM",
+     "perLevel": 1,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "farming"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_HUMANOID_RULER",
+   "key": "undead_fortune",
+   "shardId": "R18",
+   "shard": "Drowned",
+   "name": "Undead Fortune",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_DROWNED",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "MAGIC_FIND",
+     "perLevel": 0.5,
+     "cond": "vs_mob_family"
+    }
+   ],
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_HELIX_SHARPENING",
+   "key": "helix_sharpening",
+   "shardId": "R19",
+   "shard": "Vulture",
+   "name": "Helix Sharpening",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_VULTURE",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ATOMIZED_MITHRIL",
+   "key": "atomized_mithril",
+   "shardId": "R21",
+   "shard": "Star Sentry",
+   "name": "Atomized Mithril",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_STAR_SENTRY",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": [
+    "mining"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_KUUDRA_BOX",
+   "key": "kuudra_s_box",
+   "shardId": "R22",
+   "shard": "Hideondra",
+   "name": "Kuudra's Box",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_HIDEONDRA",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_DWARVEN_SERENDIPITY",
+   "key": "dwarven_serendipity",
+   "shardId": "R23",
+   "shard": "Abyssal Lanternfish",
+   "name": "Dwarven Serendipity",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_ABYSSAL_LANTERN",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_SPIDER_ESSENCE",
+   "key": "essence_of_arthropods",
+   "shardId": "R24",
+   "shard": "Arachne",
+   "name": "Essence of Arthropods",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_ARACHNE",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_COOKIE_EATER",
+   "key": "cookie_eater",
+   "shardId": "R25",
+   "shard": "Bitbug",
+   "name": "Cookie Eater",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_BITBUG",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_CRIMSON_ESSENCE",
+   "key": "essence_of_crimson",
+   "shardId": "R26",
+   "shard": "Lava Leech",
+   "name": "Essence of Crimson",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_LAVA_LEECH",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_UNDEAD_ESSENCE",
+   "key": "essence_of_unliving",
+   "shardId": "R27",
+   "shard": "Revenant",
+   "name": "Essence of Unliving",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_REVENANT",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_CATACOMBS_CAP",
+   "key": "catacombs_cap",
+   "shardId": "R28",
+   "shard": "Folf",
+   "name": "Catacombs Cap",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_FOLF",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_CRYSTAL_SERENDIPITY",
+   "key": "crystal_serendipity",
+   "shardId": "R29",
+   "shard": "Silentdepth",
+   "name": "Crystal Serendipity",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_SILENTDEPTH",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": [
+    "mining"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_DEADEYE",
+   "key": "deadeye",
+   "shardId": "R30",
+   "shard": "Skeletor",
+   "name": "Deadeye",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_SKELETOR",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ATOMIZED_CRYSTALS",
+   "key": "atomized_crystals",
+   "shardId": "R31",
+   "shard": "Thyst",
+   "name": "Atomized Crystals",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_THYST",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": [
+    "mining"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_DIAMOND_FROG",
+   "key": "diamond_frog",
+   "shardId": "R32",
+   "shard": "Seashine",
+   "name": "Diamond Frog",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_SEA_SHINE",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_QUARTZ_SPEED",
+   "key": "quartz_speed",
+   "shardId": "R33",
+   "shard": "Quartzfang",
+   "name": "Quartz Speed",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_QUARTZFANG",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "MINING_SPEED",
+     "fixed": 100,
+     "cond": "weather_on_mining_islands"
+    }
+   ],
+   "areas": [
+    "mining"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ACCESSORY_SIZE",
+   "key": "accessory_size",
+   "shardId": "R34",
+   "shard": "Hideonring",
+   "name": "Accessory Size",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_HIDEONRING",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_WINTER_SERENDIPITY",
+   "key": "winter_s_serendipity",
+   "shardId": "R35",
+   "shard": "Snowfin",
+   "name": "Winter's Serendipity",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_SNOWFIN",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_LIFELINE",
+   "key": "lifeline",
+   "shardId": "R36",
+   "shard": "Kada Knight",
+   "name": "Lifeline",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_KADA_KNIGHT",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_CHOP",
+   "key": "chop",
+   "shardId": "R37",
+   "shard": "Hummingbird",
+   "name": "Chop",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_HUMMINGBIRD",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_RABBIT_CREW",
+   "key": "rabbit_crew",
+   "shardId": "R38",
+   "shard": "Carrot King",
+   "name": "Rabbit Crew",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_CARROT_KING",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_BREEZE",
+   "key": "breeze",
+   "shardId": "R39",
+   "shard": "Wither Spectre",
+   "name": "Breeze",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_WITHER_SPECTER",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_BATTLE_TRACKER",
+   "key": "battle_tracker",
+   "shardId": "R40",
+   "shard": "Badger",
+   "name": "Battle Tracker",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_BADGER",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_IGNITION",
+   "key": "ignition",
+   "shardId": "R42",
+   "shard": "Matcho",
+   "name": "Ignition",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_MATCHO",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_PRETTY_CLOTHES",
+   "key": "visitor_copper",
+   "shardId": "R43",
+   "shard": "Ladybug",
+   "name": "Visitor Copper",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_LADYBUG",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_EXTREME_PRESSURE",
+   "key": "extreme_pressure",
+   "shardId": "R44",
+   "shard": "Lumisquid",
+   "name": "Extreme Pressure",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_LUMISQUID",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "PRESSURE_RESISTANCE",
+     "perLevel": 1,
+     "cond": "always"
+    }
+   ],
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_PURE_REPTILE",
+   "key": "pure_reptile",
+   "shardId": "R45",
+   "shard": "Crocodile",
+   "name": "Pure Reptile",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_CROCODILE",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ANIMAL_FORTUNE",
+   "key": "animal_fortune",
+   "shardId": "R46",
+   "shard": "Wild Hog",
+   "name": "Animal Fortune",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_WILD_HOG",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "MAGIC_FIND",
+     "perLevel": 0.5,
+     "cond": "vs_mob_family"
+    }
+   ],
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_BERRY_ENJOYER",
+   "key": "berry_enjoyer",
+   "shardId": "R47",
+   "shard": "Bullfrog",
+   "name": "Berry Enjoyer",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_BULLFROG",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FOREST_ESSENCE",
+   "key": "essence_of_the_forest",
+   "shardId": "R49",
+   "shard": "Dreadwing",
+   "name": "Essence of the Forest",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_DREADWING",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_DEEP_DIVING",
+   "key": "deep_diving",
+   "shardId": "R50",
+   "shard": "Joydive",
+   "name": "Deep Diving",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_JOYDIVE",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "RESPIRATION",
+     "perLevel": 1,
+     "cond": "always"
+    }
+   ],
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ATOMIZED_GLACITE",
+   "key": "atomized_glacite",
+   "shardId": "R51",
+   "shard": "Stalagmight",
+   "name": "Atomized Glacite",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_STALAGMIGHT",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": [
+    "mining"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FUNGY_LUCK",
+   "key": "fungy_luck",
+   "shardId": "R52",
+   "shard": "Fungloom",
+   "name": "Fungy Luck",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_FUNGLOOM",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": [
+    "mining"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_EELASTIC",
+   "key": "eelastic",
+   "shardId": "R53",
+   "shard": "Eel",
+   "name": "Eelastic",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_EEL",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_HUNTERS_GRASP",
+   "key": "hunter_s_grasp",
+   "shardId": "R54",
+   "shard": "King Cobra",
+   "name": "Hunter's Grasp",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_KING_COBRA",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_CRITTER_FORTUNE",
+   "key": "critter_fortune",
+   "shardId": "R55",
+   "shard": "Hewver",
+   "name": "Critter Fortune",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_HEWVER",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "MAGIC_FIND",
+     "perLevel": 0.5,
+     "cond": "vs_mob_family"
+    }
+   ],
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_BLAZING_FORTUNE",
+   "key": "blazing_fortune",
+   "shardId": "R56",
+   "shard": "Lava Flame",
+   "name": "Blazing Fortune",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_LAVA_FLAME",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "MAGIC_FIND",
+     "perLevel": 1,
+     "cond": "vs_mob_family"
+    }
+   ],
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_DRAGON_ESSENCE",
+   "key": "essence_of_dragons",
+   "shardId": "R57",
+   "shard": "Draconic",
+   "name": "Essence of Dragons",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_DRACONIC",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_BATTLE_EXPERIENCE",
+   "key": "battle_experience",
+   "shardId": "R58",
+   "shard": "Falcon",
+   "name": "Battle Experience",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_FALCON",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_CRIMSON_SERENDIPITY",
+   "key": "crimson_serendipity",
+   "shardId": "R59",
+   "shard": "Inferno Koi",
+   "name": "Crimson Serendipity",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_INFERNO_KOI",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_WITHER_ESSENCE",
+   "key": "essence_of_wither",
+   "shardId": "R60",
+   "shard": "Wither",
+   "name": "Essence of Wither",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_WITHER",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ECHO_OF_SHARPENING",
+   "key": "echo_of_sharpening",
+   "shardId": "R61",
+   "shard": "Gecko",
+   "name": "Echo of Sharpening",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_GECKO",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_CONSTRUCT_FORTUNE",
+   "key": "construct_fortune",
+   "shardId": "R62",
+   "shard": "Wiki Tiki",
+   "name": "Construct Fortune",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_WIKI_TIKI",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "MAGIC_FIND",
+     "perLevel": 0.5,
+     "cond": "vs_mob_family"
+    }
+   ],
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_MYTHOLOGICAL_FORTUNE",
+   "key": "mythological_fortune",
+   "shardId": "R63",
+   "shard": "Minotaur",
+   "name": "Mythological Fortune",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_MINOTAUR",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "MAGIC_FIND",
+     "perLevel": 0.5,
+     "cond": "vs_mob_family"
+    }
+   ],
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_CUBIC_FORTUNE",
+   "key": "cubic_fortune",
+   "shardId": "R64",
+   "shard": "Hivethief",
+   "name": "Cubic Fortune",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_HIVETHIEF",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "MAGIC_FIND",
+     "perLevel": 0.5,
+     "cond": "vs_mob_family"
+    }
+   ],
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_BOOT_FISHER",
+   "key": "boot_fisher",
+   "shardId": "R65",
+   "shard": "Maggot",
+   "name": "Boot Fisher",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_MAGGOT",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_SLEEPY_SPREAD",
+   "key": "sleepy_spread",
+   "shardId": "R66",
+   "shard": "Snoozle",
+   "name": "Sleepy Spread",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_SNOOZLE",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "MINING_SPREAD",
+     "perLevel": 1,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "mining"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FLYING_FORTUNE",
+   "key": "flying_fortune",
+   "shardId": "R67",
+   "shard": "Parakeet",
+   "name": "Flying Fortune",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_PARAKEET",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "MAGIC_FIND",
+     "perLevel": 0.5,
+     "cond": "vs_mob_family"
+    }
+   ],
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_THUNDER_SPEED",
+   "key": "thunder_speed",
+   "shardId": "R68",
+   "shard": "Thunder",
+   "name": "Thunder Speed",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_THUNDER",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_CAVERNOUS_TRACKER",
+   "key": "cavernous_tracker",
+   "shardId": "R69",
+   "shard": "Rockmite",
+   "name": "Cavernous Tracker",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_ROCKMITE",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FLOOR_FORTUNE",
+   "key": "floor_fortune",
+   "shardId": "R70",
+   "shard": "Anteater",
+   "name": "Floor Fortune",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_ANTEATER",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_SCRAP_CHANCE",
+   "key": "scrap_chance",
+   "shardId": "R72",
+   "shard": "Scrappy",
+   "name": "Scrap Chance",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_SCRAPPY",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": [
+    "mining"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ELUSIVE_FORTUNE",
+   "key": "elusive_fortune",
+   "shardId": "R73",
+   "shard": "Hideyho",
+   "name": "Elusive Fortune",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_HIDEYHO",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "MAGIC_FIND",
+     "perLevel": 0.5,
+     "cond": "vs_mob_family"
+    }
+   ],
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_GREAT_TREASURE",
+   "key": "great_treasure",
+   "shardId": "R74",
+   "shard": "Mantis Shrimp",
+   "name": "Great Treasure",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_MANTIS_SHRIMP",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_SUBTERRANEAN_FORTUNE",
+   "key": "subterranean_fortune",
+   "shardId": "R75",
+   "shard": "Chuckwalla",
+   "name": "Subterranean Fortune",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_CHUCKWALLA",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "MAGIC_FIND",
+     "perLevel": 0.5,
+     "cond": "vs_mob_family"
+    }
+   ],
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_WOODLAND_FORTUNE",
+   "key": "woodland_fortune",
+   "shardId": "R76",
+   "shard": "Hideonfloor",
+   "name": "Woodland Fortune",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_HIDEONFLOOR",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "MAGIC_FIND",
+     "perLevel": 0.5,
+     "cond": "vs_mob_family"
+    }
+   ],
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_GREEDY_GOBLIN",
+   "key": "greedy_goblin",
+   "shardId": "R77",
+   "shard": "Gimmiegold",
+   "name": "Greedy Goblin",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_GIMMIEGOLD",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FROZEN_FORTUNE",
+   "key": "frozen_fortune",
+   "shardId": "R78",
+   "shard": "Billygoat",
+   "name": "Frozen Fortune",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_BILLYGOAT",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "MAGIC_FIND",
+     "perLevel": 0.5,
+     "cond": "vs_mob_family"
+    }
+   ],
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ARCANE_FORTUNE",
+   "key": "arcane_fortune",
+   "shardId": "R79",
+   "shard": "Hideonwall",
+   "name": "Arcane Fortune",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_HIDEONWALL",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "MAGIC_FIND",
+     "perLevel": 0.5,
+     "cond": "vs_mob_family"
+    }
+   ],
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_UNDERWATER_TRACKER",
+   "key": "underwater_tracker",
+   "shardId": "R80",
+   "shard": "Nozzlenose",
+   "name": "Underwater Tracker",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_NOZZLENOSE",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_REFINED_LUCK",
+   "key": "refined_luck",
+   "shardId": "R81",
+   "shard": "Stoneworm",
+   "name": "Refined Luck",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_STONEWORM",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": [
+    "mining"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FORAGING_TRACKER",
+   "key": "foraging_tracker",
+   "shardId": "R82",
+   "shard": "Fluffling",
+   "name": "Foraging Tracker",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_FLUFFLING",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_TORRHUS_SERENDIPITY",
+   "key": "torrhus_serendipity",
+   "shardId": "R83",
+   "shard": "Stingray",
+   "name": "Torrhus Serendipity",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_STINGRAY",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_MUTATION_SERENDIPITY",
+   "key": "mutation_serendipity",
+   "shardId": "R84",
+   "shard": "Zombuddy",
+   "name": "Mutation Serendipity",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_ZOMBUDDY",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FOREST_SERENDIPITY",
+   "key": "forest_serendipity",
+   "shardId": "R85",
+   "shard": "Puck",
+   "name": "Forest Serendipity",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_PUCK",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ESSENCE_OF_FOSSILS",
+   "key": "essence_of_fossils",
+   "shardId": "R86",
+   "shard": "Troodon",
+   "name": "Essence of Fossils",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_TROODON",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ARTHROPOD_FORTUNE",
+   "key": "arthropod_fortune",
+   "shardId": "R87",
+   "shard": "Black Widow",
+   "name": "Arthropod Fortune",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_BLACK_WIDOW",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "MAGIC_FIND",
+     "perLevel": 0.5,
+     "cond": "vs_mob_family"
+    }
+   ],
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ATOMIZED_WHISPERS",
+   "key": "atomized_whispers",
+   "shardId": "R88",
+   "shard": "Pangolin",
+   "name": "Atomized Whispers",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_PANGOLIN",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_AQUATIC_FORTUNE",
+   "key": "aquatic_fortune",
+   "shardId": "R89",
+   "shard": "Giant Water Bug",
+   "name": "Aquatic Fortune",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_GIANT_WATER_BUG",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "MAGIC_FIND",
+     "perLevel": 0.5,
+     "cond": "vs_mob_family"
+    }
+   ],
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_REKINDLE",
+   "key": "rekindle",
+   "shardId": "R91",
+   "shard": "Murkbat",
+   "name": "Rekindle",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_MURKBAT",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ECHO_OF_BUCKETS",
+   "key": "echo_of_buckets",
+   "shardId": "R92",
+   "shard": "Goldolot",
+   "name": "Echo of Buckets",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_GOLDOLOT",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_MYTHIC_RABBIT_LUCK",
+   "key": "mythic_rabbit_luck",
+   "shardId": "R94",
+   "shard": "Rabbit Neighbor",
+   "name": "Mythic Rabbit Luck",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_RABBIT_NEIGHBOR",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FIRST_SWEEP",
+   "key": "first_sweep",
+   "shardId": "R95",
+   "shard": "Torrid",
+   "name": "First Sweep",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_TORRID",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_AXE_COOLDOWN",
+   "key": "axe_cooldown",
+   "shardId": "R97",
+   "shard": "Drybark",
+   "name": "Axe Cooldown",
+   "rarity": "RARE",
+   "maxLevel": 10,
+   "icon": "SHARD_DRYBARK",
+   "src": "neu",
+   "effects": [],
+   "unknown": true,
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_WOOD_ELEMENTAL",
+   "key": "wood_elemental",
+   "shardId": "U1",
+   "shard": "Bramble",
+   "name": "Wood Elemental",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_BRAMBLE",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "HEALTH",
+     "perLevel": 2,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_PEST_COOLDOWN",
+   "key": "pest_cooldown",
+   "shardId": "U100",
+   "shard": "Moth",
+   "name": "Pest Cooldown",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_MOTH",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ENCHANTED_FARMER",
+   "key": "enchanted_farmer",
+   "shardId": "U103",
+   "shard": "Mosquito",
+   "name": "Enchanted Farmer",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_MOSQUITO",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_LEGENDARY_RABBIT_LUCK",
+   "key": "legendary_rabbit_luck",
+   "shardId": "U106",
+   "shard": "Rabbit Cat",
+   "name": "Legendary Rabbit Luck",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_RABBIT_CAT",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_WATER_ELEMENTAL",
+   "key": "water_elemental",
+   "shardId": "U2",
+   "shard": "Tide",
+   "name": "Water Elemental",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_TIDE",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "INTELLIGENCE",
+     "perLevel": 1,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_STONE_ELEMENTAL",
+   "key": "stone_elemental",
+   "shardId": "U3",
+   "shard": "Quake",
+   "name": "Stone Elemental",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_QUAKE",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "STRENGTH",
+     "perLevel": 1,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "combat"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FIG_COLLECTOR",
+   "key": "fig_collector",
+   "shardId": "U4",
+   "shard": "Sparrow",
+   "name": "Fig Collector",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_SPARROW",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_GOLD_BAIT",
+   "key": "gold_bait",
+   "shardId": "U5",
+   "shard": "Goldfin",
+   "name": "Gold Bait",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_GOLDFIN",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_MOUNTAIN_CLIMBER",
+   "key": "mountain_climber",
+   "shardId": "U6",
+   "shard": "Troglobyte",
+   "name": "Mountain Climber",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_TROGLOBYTE",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": [
+    "mining"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_BIGGER_BOX",
+   "key": "bigger_box",
+   "shardId": "U7",
+   "shard": "Hideoncave",
+   "name": "Bigger Box",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_HIDEONCAVE",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": [
+    "mining"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_GOOD_KARMA",
+   "key": "good_karma",
+   "shardId": "U8",
+   "shard": "Salamander",
+   "name": "Good Karma",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_SALAMANDER",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ECHO_OF_BOXES",
+   "key": "echo_of_boxes",
+   "shardId": "U9",
+   "shard": "Cuboa",
+   "name": "Echo of Boxes",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_CUBOA",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_PEST_LUCK",
+   "key": "pest_luck",
+   "shardId": "U10",
+   "shard": "Field Mouse",
+   "name": "Pest Luck",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_PEST",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "OVERBLOOM",
+     "perLevel": 0.5,
+     "cond": "on_pest"
+    }
+   ],
+   "areas": [
+    "farming"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FOREST_TRAP",
+   "key": "forest_trap",
+   "shardId": "U11",
+   "shard": "Mossybit",
+   "name": "Forest Trap",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_MOSSYBIT",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_MANA_STEAL",
+   "key": "mana_steal",
+   "shardId": "U12",
+   "shard": "Rain Slime",
+   "name": "Mana Steal",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_RAIN_SLIME",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_HUMANOID_RULER_NEW",
+   "key": "humanoid_ruler",
+   "shardId": "U14",
+   "shard": "Wetwing",
+   "name": "Humanoid Ruler",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_WETWING",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_DRAGON_SHORTBOW_IMPROVEMENT",
+   "key": "dragon_shortbow_improvement",
+   "shardId": "U15",
+   "shard": "Seer",
+   "name": "Dragon Shortbow Improvement",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_SEER",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_MANGROVE_SHARPENING",
+   "key": "mangrove_sharpening",
+   "shardId": "U16",
+   "shard": "Heron",
+   "name": "Mangrove Sharpening",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_HERON",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_WITCHS_FORTUNE",
+   "key": "witch_s_fortune",
+   "shardId": "U17",
+   "shard": "Sea Witch",
+   "name": "Witch's Fortune",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_SEA_WITCH",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_SPEED",
+   "key": "speed",
+   "shardId": "U18",
+   "shard": "Obsidian Defender",
+   "name": "Speed",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_OBSIDIAN_DEFENDER",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "SPEED",
+     "perLevel": 1,
+     "cond": "always"
+    }
+   ],
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_PEST_FORTUNE",
+   "key": "pest_fortune",
+   "shardId": "U19",
+   "shard": "Cricket",
+   "name": "Pest Fortune",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_CRICKET",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "FARMING_FORTUNE",
+     "perLevel": 5,
+     "cond": "on_pest"
+    }
+   ],
+   "areas": [
+    "farming"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_LOST_AND_FOUND",
+   "key": "lost_and_found",
+   "shardId": "U20",
+   "shard": "Salmon",
+   "name": "Lost and Found",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_SALMON",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_HUNTERS_FANGS",
+   "key": "hunter_s_fang",
+   "shardId": "U21",
+   "shard": "Viper",
+   "name": "Hunter's Fang",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_VIPER",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_INSECT_POWER",
+   "key": "pest_ruler",
+   "shardId": "U22",
+   "shard": "Praying Mantis",
+   "name": "Pest Ruler",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_PRAYING_MANTIS",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_LILY_TRACKER",
+   "key": "lily_tracker",
+   "shardId": "U23",
+   "shard": "Lotum",
+   "name": "Lily Tracker",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_LOTUM",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_UNDEAD",
+   "key": "undead_ruler",
+   "shardId": "U24",
+   "shard": "Zombie Soldier",
+   "name": "Undead Ruler",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_ZOMBIE_SOLDIER",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_STRONG_ARMS",
+   "key": "strong_arms",
+   "shardId": "U25",
+   "shard": "Bambuleaf",
+   "name": "Strong Arms",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_BAMBULEAF",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_DWARVEN_TRAINING",
+   "key": "dwarven_training",
+   "shardId": "U26",
+   "shard": "Treasure Hoarder",
+   "name": "Dwarven Training",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_TREASURE_HOARDER",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": [
+    "mining"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_LIFE_RECOVERY",
+   "key": "life_recovery",
+   "shardId": "U27",
+   "shard": "Sycophant",
+   "name": "Life Recovery",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_SYCOPHANT",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_MANGROVE_COLLECTOR",
+   "key": "mangrove_collector",
+   "shardId": "U28",
+   "shard": "Seagull",
+   "name": "Mangrove Collector",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_SEAGULL",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_SPIRIT_AXE",
+   "key": "woodland_ruler",
+   "shardId": "U29",
+   "shard": "Ent",
+   "name": "Woodland Ruler",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_ENT",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_COMBO",
+   "key": "combo",
+   "shardId": "U30",
+   "shard": "Soul of the Alpha",
+   "name": "Combo",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_SOUL_OF_THE_ALPHA",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_STRONG_LEGS",
+   "key": "strong_legs",
+   "shardId": "U31",
+   "shard": "Mochibear",
+   "name": "Strong Legs",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_MOCHIBEAR",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_INFECTION",
+   "key": "infection",
+   "shardId": "U32",
+   "shard": "Magma Slug",
+   "name": "Infection",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_MAGMA_SLUG",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ARACHNO",
+   "key": "arthropod_ruler",
+   "shardId": "U33",
+   "shard": "Flaming Spider",
+   "name": "Arthropod Ruler",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_FLAMING_SPIDER",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_KAT_FAVORITE",
+   "key": "kat_s_favorite",
+   "shardId": "U34",
+   "shard": "Kiwi",
+   "name": "Kat's Favorite",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_KIWI",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ENDER",
+   "key": "ender_ruler",
+   "shardId": "U36",
+   "shard": "Zealot Bruiser",
+   "name": "Ender Ruler",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_BRUISER",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_MAGMATIC_RULER",
+   "key": "magmatic_ruler",
+   "shardId": "U38",
+   "shard": "Stridersurfer",
+   "name": "Magmatic Ruler",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_STRIDER_SURFER",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_BATTLE_FROG",
+   "key": "battle_frog",
+   "shardId": "U39",
+   "shard": "Rana",
+   "name": "Battle Frog",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_RANA",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_INFILTRATION",
+   "key": "infiltration",
+   "shardId": "U40",
+   "shard": "Earthworm",
+   "name": "Infiltration",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_TERMITE",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "FARMING_FORTUNE",
+     "perLevel": 3,
+     "cond": "pest_in_plot"
+    }
+   ],
+   "areas": [
+    "farming"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_GOLDEN_FROG",
+   "key": "golden_frog",
+   "shardId": "U41",
+   "shard": "Flipflopper",
+   "name": "Golden Frog",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_FLIP_FLOPPER",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FROZEN_RULER",
+   "key": "frozen_ruler",
+   "shardId": "U42",
+   "shard": "Polaris",
+   "name": "Frozen Ruler",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_POLARIS",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FORAGING_FROG",
+   "key": "foraging_frog",
+   "shardId": "U43",
+   "shard": "Treefrog",
+   "name": "Foraging Frog",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_TREEFROG",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_COMPOST_SPEED",
+   "key": "compost_speed",
+   "shardId": "U44",
+   "shard": "Bayou Sludge",
+   "name": "Compost Speed",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_BAYOU_SLUDGE",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_BATTLE_ARACHNID",
+   "key": "battle_arachnid",
+   "shardId": "U45",
+   "shard": "Areita",
+   "name": "Battle Arachnid",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_AREITA",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_AIRBORNE_RULER",
+   "key": "airborne_ruler",
+   "shardId": "U46",
+   "shard": "Bluebird",
+   "name": "Airborne Ruler",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_BLUEBIRD",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FLEXIBLE_FISHER",
+   "key": "flexible_fisher",
+   "shardId": "U47",
+   "shard": "Osedax",
+   "name": "Flexible Fisher",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_OSEDAX",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ARCANE_RULER",
+   "key": "arcane_ruler",
+   "shardId": "U48",
+   "shard": "Duplico",
+   "name": "Arcane Ruler",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_DUPLICO",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_BUCKLE_FISHER",
+   "key": "buckle_fisher",
+   "shardId": "U49",
+   "shard": "Litterbug",
+   "name": "Buckle Fisher",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_LITTERBUG",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_TITANOBOA_TRACKER",
+   "key": "titanoboa_tracker",
+   "shardId": "U50",
+   "shard": "Water Snake",
+   "name": "Titanoboa Tracker",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_WATER_SNAKE",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ZEALOT_TRACKER",
+   "key": "zealot_tracker",
+   "shardId": "U51",
+   "shard": "Gazer",
+   "name": "Zealot Tracker",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_GAZER",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "TRACKING",
+     "perLevel": 0.5,
+     "cond": "vs_special_zealots"
+    }
+   ],
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_VISITOR_HONEY",
+   "key": "visitor_honey",
+   "shardId": "U52",
+   "shard": "Honeybug",
+   "name": "Visitor Honey",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_HONEYBUG",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_YETI_TRACKER",
+   "key": "yeti_tracker",
+   "shardId": "U53",
+   "shard": "Shuddersquid",
+   "name": "Yeti Tracker",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_SHUDDERSQUID",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_SOUL_SNATCHER",
+   "key": "soul_snatcher",
+   "shardId": "U55",
+   "shard": "Solsnatcher",
+   "name": "Soul Snatcher",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_SOLSNATCHER",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_BUCKET_GREED",
+   "key": "bucket_greed",
+   "shardId": "U56",
+   "shard": "Sepialot",
+   "name": "Bucket Greed",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_SEPIALOT",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_HONEY_SERENDIPITY",
+   "key": "honey_serendipity",
+   "shardId": "U57",
+   "shard": "Honey Badger",
+   "name": "Honey Serendipity",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_HONEY_BADGER",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_SUBTERRANEAN_RULER",
+   "key": "subterranean_ruler",
+   "shardId": "U58",
+   "shard": "Driftling",
+   "name": "Subterranean Ruler",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_DRIFTLING",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_LILY_PUNCHER",
+   "key": "lily_puncher",
+   "shardId": "U59",
+   "shard": "Tewtil",
+   "name": "Lily Puncher",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_TEWTIL",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_MYTHOLOGICAL_RULER",
+   "key": "mythological_ruler",
+   "shardId": "U60",
+   "shard": "Minos Hunter",
+   "name": "Mythological Ruler",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_MINOS_HUNTER",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_BUILDER_DISCOUNT",
+   "key": "builder_discount",
+   "shardId": "U61",
+   "shard": "Woodchucker",
+   "name": "Builder Discount",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_WOODCHUCKER",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_STARLYN_TRAINING",
+   "key": "starlyn_training",
+   "shardId": "U62",
+   "shard": "Solar",
+   "name": "Starlyn Training",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_SOLAR",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_VISITOR_COMPOST",
+   "key": "visitor_compost",
+   "shardId": "U63",
+   "shard": "Parched",
+   "name": "Visitor Compost",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_PARCHED",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_BARTENDER_DISCOUNT",
+   "key": "bartender_discount",
+   "shardId": "U64",
+   "shard": "Bloodbat",
+   "name": "Bartender Discount",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_BLOODBAT",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_COMBAT_TRAP",
+   "key": "combat_trap",
+   "shardId": "U65",
+   "shard": "Dustybit",
+   "name": "Combat Trap",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_DUSTYBIT",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_VISITOR_CHEESE",
+   "key": "visitor_cheese",
+   "shardId": "U67",
+   "shard": "Woodlouse",
+   "name": "Visitor Cheese",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_WOODLOUSE",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_GALATEA_TRAINING",
+   "key": "galatea_training",
+   "shardId": "U68",
+   "shard": "Ember",
+   "name": "Galatea Training",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_EMBER",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_BAYOU_TREASURE",
+   "key": "bayou_treasure",
+   "shardId": "U69",
+   "shard": "Cheeky Tiki",
+   "name": "Bayou Treasure",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_CHEEKY_TIKI",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_VISITOR_PLANT",
+   "key": "visitor_plant",
+   "shardId": "U70",
+   "shard": "Red Panda",
+   "name": "Visitor Plant",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_RED_PANDA",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ANIMAL_RULER",
+   "key": "animal_ruler",
+   "shardId": "U71",
+   "shard": "Sprawl",
+   "name": "Animal Ruler",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_SPRAWL",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_TIKI_TRACKER",
+   "key": "tiki_tracker",
+   "shardId": "U72",
+   "shard": "Sneaky Tiki",
+   "name": "Tiki Tracker",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_SNEAKY_TIKI",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FIESTA_FORTUNE",
+   "key": "fiesta_fortune",
+   "shardId": "U73",
+   "shard": "Packrat",
+   "name": "Fiesta Fortune",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_PACKRAT_SKULL",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "GEMSTONE_FORTUNE",
+     "perLevel": 5,
+     "cond": "mining_fiesta_active"
+    }
+   ],
+   "areas": [
+    "mining"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_CONSTRUCT_RULER",
+   "key": "construct_ruler",
+   "shardId": "U75",
+   "shard": "Shrieky Tiki",
+   "name": "Construct Ruler",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_SHRIEKY_TIKI",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FOREST_FELLING",
+   "key": "helix_timber",
+   "shardId": "U76",
+   "shard": "Woodpecker",
+   "name": "Helix Timber",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_WOODPECKER",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_MITE_SPAWNER",
+   "key": "mite_spawner",
+   "shardId": "U78",
+   "shard": "Honeymite",
+   "name": "Mite Spawner",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_HONEYMITE",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": [
+    "mining"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_ELUSIVE_RULER",
+   "key": "elusive_ruler",
+   "shardId": "U79",
+   "shard": "Queen Ant",
+   "name": "Elusive Ruler",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_QUEEN_ANT",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_HELIX_COLLECTOR",
+   "key": "helix_collector",
+   "shardId": "U82",
+   "shard": "Hawk",
+   "name": "Helix Collector",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_HAWK",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_TICKET_DISCOUNT",
+   "key": "ticket_discount",
+   "shardId": "U85",
+   "shard": "June Bug",
+   "name": "Ticket Discount",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_JUNE_BUG",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_VISITOR_DUNG",
+   "key": "visitor_dung",
+   "shardId": "U88",
+   "shard": "Dung Beetle",
+   "name": "Visitor Dung",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_DUNG_BEETLE",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_SPRAYONATOR_SERENDIPITY",
+   "key": "sprayonator_serendipity",
+   "shardId": "U91",
+   "shard": "Rat",
+   "name": "Sprayonator Serendipity",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_RAT",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_BONUS_PEST_CHANCE",
+   "key": "bonus_pest_chance",
+   "shardId": "U94",
+   "shard": "Keeled Slug",
+   "name": "Bonus Pest Chance",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_KEELED_SLUG",
+   "src": "neu+wiki",
+   "effects": [
+    {
+     "stat": "BONUS_PEST_CHANCE",
+     "perLevel": 1,
+     "cond": "always"
+    }
+   ],
+   "areas": [
+    "farming"
+   ]
+  },
+  {
+   "id": "ATTRIBUTE_SHARD_FILTER_UPGRADE",
+   "key": "filter_upgrade",
+   "shardId": "U97",
+   "shard": "Mite",
+   "name": "Filter Upgrade",
+   "rarity": "UNCOMMON",
+   "maxLevel": 10,
+   "icon": "SHARD_MITE",
+   "src": "neu+wiki",
+   "effects": [],
+   "effectKind": "other",
+   "areas": []
+  }
+ ]
+}
