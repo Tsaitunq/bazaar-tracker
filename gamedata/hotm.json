@@ -46,7 +46,7 @@
   "rows": 10,
   "tierOfRow": "tier = 10 - row"
  },
- "neighborNote": "neighbors = orthogonal grid neighbours that exist; derived from NEU x/y, not checked against the in-game picture",
+ "neighborNote": "neighbors = orthogonal grid neighbours that exist; derived from the grid; positions checked against the in-game grid 2026-11-04",
  "perks": [
   {
    "id": "mining_speed",
@@ -482,29 +482,8 @@
    ],
    "neighbors": [
     "daily_powder",
-    "front_loaded",
     "gem_lover",
     "quick_forge"
-   ]
-  },
-  {
-   "id": "front_loaded",
-   "name": "Front Loaded",
-   "tier": 4,
-   "col": 6,
-   "row": 6,
-   "type": "perk",
-   "maxLevel": 1,
-   "powder": "GEMSTONE",
-   "requiresTier": 4,
-   "src": "neu+wiki",
-   "cost": {
-    "kind": "free"
-   },
-   "effects": [],
-   "note": "one-level utility perk, no stat",
-   "neighbors": [
-    "seasoned_mineman"
    ]
   },
   {

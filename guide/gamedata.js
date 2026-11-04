@@ -66,7 +66,9 @@ export function checkAttributes(d, stats) {
     if (!a.effects.length && !a.unknown && a.effectKind !== 'other') fail(w, 'no effect and not marked unknown/other');
     for (const e of a.effects) {
       checkEffect(w, e, stats);
-      if ((e.perLevel === undefined) === (e.fixed === undefined)) fail(w, 'effect needs exactly one of perLevel/fixed');
+      if (e.kind === 'per_stat') {
+        if (!stats.has(e.per?.stat) || typeof e.value !== 'number') fail(w, 'per_stat needs value and a known per.stat');
+      } else if ((e.perLevel === undefined) === (e.fixed === undefined)) fail(w, 'effect needs exactly one of perLevel/fixed');
     }
   }
 }

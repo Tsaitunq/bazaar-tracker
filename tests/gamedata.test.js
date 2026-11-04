@@ -8,7 +8,7 @@ const copy = (o) => structuredClone(o);
 
 test('all four files load and validate', async () => {
   const d = await loadGameData(read);
-  assert.equal(d.hotm.perks.length, 46);
+  assert.equal(d.hotm.perks.length, 45);
   assert.equal(d.attributes.attributes.length, 325);
   assert.equal(d.hotm.tiers[9].cumulativeXp, 1247000);
 });
@@ -48,4 +48,32 @@ test('shards per level match the wiki table totals', () => {
 
 test('accessory power multiplier gives 9.64 at 250', () => {
   assert.equal(read('power').multiplier.checkAt250, 9.64);
+});
+
+// Occupied columns (1..7) per tier, read from the in-game HOTM menu on 2026-11-04. Positions only.
+const GAME_GRID = { 10: [1, 2, 3, 4, 5, 6, 7], 9: [2, 4, 6], 8: [1, 2, 3, 4, 5, 6, 7], 7: [2, 4, 6], 6: [1, 2, 3, 4, 5, 6, 7], 5: [2, 4, 6], 4: [1, 2, 3, 4, 5, 6], 3: [2, 4, 6], 2: [2, 3, 4, 5, 6], 1: [4] };
+
+test('hotm: perk positions match the in-game grid', () => {
+  const perks = read('hotm').perks;
+  for (const [tier, cols] of Object.entries(GAME_GRID)) {
+    assert.deepEqual(perks.filter((p) => p.tier === Number(tier)).map((p) => p.col + 1).sort((a, b) => a - b), cols, `tier ${tier}`);
+  }
+});
+
+test('hotm: neighbours are exactly the occupied orthogonal fields', () => {
+  const perks = read('hotm').perks;
+  const at = new Map(perks.map((p) => [`${p.col},${p.row}`, p.id]));
+  for (const p of perks) {
+    const want = [[0, 1], [0, -1], [1, 0], [-1, 0]].map(([x, y]) => at.get(`${p.col + x},${p.row + y}`)).filter(Boolean).sort();
+    assert.deepEqual([...p.neighbors].sort(), want, p.id);
+  }
+});
+
+test('attributes: in-game checked entries', () => {
+  const a = (id) => read('attributes').attributes.find((x) => x.shardId === id);
+  assert.equal(a('C36').effects[0].perLevel, 3);
+  const f = a('E66').effects[0];
+  assert.deepEqual([f.stat, f.value, f.per.stat, f.per.every.level10, f.cond], ['GEMSTONE_SPREAD', 0.5, 'COLD_RESISTANCE', 20, 'in_mineshaft']);
+  assert.equal(a('E8').effectKind, 'other');
+  for (const id of ['C36', 'E66', 'E8']) assert.equal(a(id).src, 'ingame tooltip 2026-11-04');
 });

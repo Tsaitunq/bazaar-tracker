@@ -62,7 +62,7 @@
   ]
  },
  "shardsPerLevelNote": "index 0 = shards for level 1; same table on the wiki Attribute Shards page",
- "effectNote": "effect = perLevel x level (linear, level 1..10); fixed = no scaling",
+ "effectNote": "effect = perLevel x level (linear, level 1..10); fixed = no scaling; per_stat = value per `every` points of another stat",
  "attributes": [
   {
    "id": "ATTRIBUTE_SHARD_NATURE_ELEMENTAL",
@@ -661,7 +661,7 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_MINER_ZOMBIE",
-   "src": "neu+wiki",
+   "src": "ingame tooltip 2026-11-04",
    "effects": [
     {
      "stat": "MINING_SPEED",
@@ -1142,9 +1142,10 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_ABYSSAL_MINER",
-   "src": "neu+wiki",
+   "src": "ingame tooltip 2026-11-04",
    "effects": [],
    "effectKind": "other",
+   "note": "Pickaxe ability cooldown -10 % at level 10",
    "areas": [
     "mining"
    ]
@@ -1854,9 +1855,24 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_LITTLEFOOT",
-   "src": "neu+wiki",
-   "effects": [],
-   "effectKind": "other",
+   "src": "ingame tooltip 2026-11-04",
+   "effects": [
+    {
+     "stat": "GEMSTONE_SPREAD",
+     "kind": "per_stat",
+     "value": 0.5,
+     "per": {
+      "stat": "COLD_RESISTANCE",
+      "every": {
+       "level1": 29,
+       "level10": 20
+      },
+      "everyBetween": "unknown"
+     },
+     "cond": "in_mineshaft"
+    }
+   ],
+   "note": "Gemstone Spread only in Glacite Mineshafts, scales with Cold Resistance; every-N for level 2-9 unknown",
    "areas": [
     "mining"
    ]

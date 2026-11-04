@@ -5,8 +5,10 @@
 //   stats.json      Wiki "Stats" (names, areas). Icons and colours: guide/model.js, docs/design-guide-app.md. No icon = unknown.
 //   hotm.json       NEU constants/hotmlayout.json (grid x/y, max level, powder, cost, stat formulas), checked against
 //                   Wiki "Heart of the Mountain" (cost table, ability table, tier XP, 0.20.6 rework notes).
-//                   Neighbours are derived from the grid, not checked against the in-game picture.
-//   attributes.json NEU constants/attribute_shards.json (shard, rarity, level table); effects: Wiki "Attribute Shards" list.
+//                   Positions checked against the in-game grid (HOTM menu, 2026-11-04, occupied columns per tier only): front_loaded
+//                   sits on an empty field in the game, so it is dropped. Neighbours are derived from the grid.
+//   attributes.json NEU constants/attribute_shards.json (shard, rarity, level table); effects: Wiki "Attribute Shards" list;
+//                   Rotten Pickaxe, Freezing Spread, Pickaxe Cooldown checked on the in-game tooltip (2026-11-04).
 //   power.json      Wiki "Power Stones"/"Powers" (stats at 250 AP, unique bonus), "Accessory Power" (multiplier, AP per rarity),
 //                   "Maxwell" (tuning points, templates), "Booster Cookie", "God Potion".
 // Anything the sources do not settle carries unknown:true; never fill it with a guess.
@@ -127,7 +129,9 @@ const TYPE = { mining_speed_boost: 'ability', pickobulus: 'ability', anomalous_d
 const COST_CONFLICT = { quick_forge: 'NEU (level+2)^4, wiki table (N+1)^3.2; the wiki row mapping is ambiguous', subterranean_fisher: 'NEU (level+2)^3.7, wiki (N+1)^3.07' };
 const MOLE_EXP = 2.17883; // wiki; NEU rounds to 2.2
 
-const perks = Object.entries(L.perks).map(([id, p]) => {
+// Not in the in-game grid (field empty at tier 4, column 7). NEU still lists it; the wiki page read shows no such perk.
+const NOT_IN_GAME = new Set(['front_loaded']);
+const perks = Object.entries(L.perks).filter(([id]) => !NOT_IN_GAME.has(id)).map(([id, p]) => {
   const type = TYPE[id] ?? 'perk';
   const tier = 10 - p.y;
   const e = { id, name: p.name, tier, col: p.x, row: p.y, type, maxLevel: p.maxLevel, powder: id === 'core_of_the_mountain' ? null : p.powder, requiresTier: tier, src: 'neu+wiki' };
@@ -172,7 +176,7 @@ for (const p of perks) {
   p.neighbors = [[0, -1], [0, 1], [-1, 0], [1, 0]].map(([dx, dy]) => at.get(`${p.col + dx},${p.row + dy}`)).filter(Boolean).sort();
 }
 const hotmXp = [0, 3000, 12000, 37000, 97000, 197000, 347000, 557000, 847000, 1247000];
-write('hotm.json', { tiers: hotmXp.map((xp, i) => ({ tier: i + 1, cumulativeXp: xp })), grid: { cols: 7, rows: 10, tierOfRow: 'tier = 10 - row' }, neighborNote: 'neighbors = orthogonal grid neighbours that exist; derived from NEU x/y, not checked against the in-game picture', perks });
+write('hotm.json', { tiers: hotmXp.map((xp, i) => ({ tier: i + 1, cumulativeXp: xp })), grid: { cols: 7, rows: 10, tierOfRow: 'tier = 10 - row' }, neighborNote: 'neighbors = orthogonal grid neighbours that exist; derived from the grid; positions checked against the in-game grid 2026-11-04', perks });
 
 // ---------- attributes ----------
 const A = read('attribute_shards.json');
@@ -188,6 +192,8 @@ add('L41', eff('MINING_FORTUNE', 1), eff('FARMING_FORTUNE', 1), eff('FORAGING_FO
 add('C49', eff('SPEED', 3, 'on_foraging_islands')); add('R4', eff('FORAGING_FORTUNE', 10));
 add('C10', eff('BLOCK_FORTUNE', 5)); add('C36', eff('MINING_SPEED', 3)); add('C37', eff('MINING_FORTUNE', 2.5)); add('C43', eff('ORE_FORTUNE', 5));
 add('U73', eff('GEMSTONE_FORTUNE', 5, 'mining_fiesta_active')); add('R66', eff('MINING_SPREAD', 1)); add('E36', eff('MINING_WISDOM', 0.5)); add('E45', eff('GEMSTONE_SPREAD', 0.25));
+// Freezing Spread: tooltip at level 10: +0.5 Gemstone Spread per 20 Cold Resistance in Glacite Mineshafts. Wiki range 29-20 for level 1-10; levels 2-9 not read.
+SE.E66 = [{ stat: 'GEMSTONE_SPREAD', kind: 'per_stat', value: 0.5, per: { stat: 'COLD_RESISTANCE', every: { level1: 29, level10: 20 }, everyBetween: 'unknown' }, cond: 'in_mineshaft' }];
 add('E63', eff('MINING_SPEED', 5, 'in_mines_of_divan'), eff('ORE_FORTUNE', 2.5, 'in_mines_of_divan'));
 add('C29', eff('STRENGTH', 5, 'on_foraging_islands')); add('E33', eff('TRUE_DEFENSE', 1)); add('E48', eff('ATTACK_SPEED', 1)); add('L23', eff('HEALTH_REGEN', 1.25)); add('L33', eff('COMBAT_WISDOM', 1)); add('L12', eff('ENCHANTING_WISDOM', 0.5));
 for (const id of ['C6', 'C8', 'C15', 'C18', 'C21', 'C30', 'C31', 'C39', 'C42', 'C44', 'C47', 'C58', 'C46']) add(id, eff('DEFENSE', 4, 'vs_mob_family'));
@@ -202,6 +208,12 @@ const OTHER = new Set(('C16 C22 C27 C48 C61 U61 U64 U85 U97 U106 R6 R11 R13 R22 
   'U17 C9 R15 C25 C28 U44 U52 U63 U67 U70 U88 U91 U100 U103 R10 R43 R84 L13 L52 L57 U6 U7 U26 U78 R21 R29 R31 R51 R52 R72 R81 E8 E15 E60 E66 R77 ' +
   'U4 U5 U8 U9 U11 U16 U20 U21 U23 U25 U28 U31 U32 U34 U39 U41 U43 U45 U47 U49 U50 U53 U56 U57 U59 U62 U65 U68 U69 U72 U76 U82 R5 R7 R8 R9 R19 R32 R37 R40 R45 R47 R53 R54 R58 R61 R65').split(' '));
 const MINING_IDS = new Set(['C10', 'C36', 'C37', 'C43', 'U6', 'U7', 'U26', 'U73', 'U78', 'R21', 'R29', 'R31', 'R33', 'R51', 'R52', 'R66', 'R72', 'R81', 'E8', 'E15', 'E36', 'E45', 'E60', 'E63', 'E66']);
+// Checked on the in-game tooltip. Pickaxe Cooldown: level 10 = -10 % ability cooldown (wiki range 1-10 %, level 2-9 not read).
+const INGAME = {
+  C36: {},
+  E66: { note: 'Gemstone Spread only in Glacite Mineshafts, scales with Cold Resistance; every-N for level 2-9 unknown' },
+  E8: { effectKind: 'other', note: 'Pickaxe ability cooldown -10 % at level 10' },
+};
 const attributes = A.attributes.map((a) => {
   const e = { id: a.internalName.replace(/;\d+$/, ''), key: a.abilityName.toLowerCase().replace(/[^a-z0-9]+/g, '_'), shardId: a.shardId, shard: a.displayName, name: a.abilityName, rarity: a.rarity, maxLevel: 10, icon: a.bazaarName, src: 'neu' };
   if (A.unconsumable_attributes.includes(a.bazaarName)) e.unconsumable = true;
@@ -210,13 +222,14 @@ const attributes = A.attributes.map((a) => {
   else if (FIXED[a.shardId]) { e.effects = [{ stat: FIXED[a.shardId].stat, fixed: FIXED[a.shardId].value, cond: FIXED[a.shardId].cond }]; e.src = 'neu+wiki'; }
   else if (OTHER.has(a.shardId)) { e.effects = []; e.effectKind = 'other'; e.src = 'neu+wiki'; }
   else { e.effects = []; e.unknown = true; }
+  if (INGAME[a.shardId]) { e.src = 'ingame tooltip 2026-11-04'; Object.assign(e, INGAME[a.shardId]); }
   const areas = new Set();
   for (const f of e.effects) for (const ar of stats.find((s) => s.id === f.stat).areas) if (ar !== 'general') areas.add(ar);
   if (MINING_IDS.has(a.shardId)) areas.add('mining');
   e.areas = [...areas].sort();
   return e;
 });
-write('attributes.json', { shardsPerLevel: A.attribute_levelling, shardsPerLevelNote: 'index 0 = shards for level 1; same table on the wiki Attribute Shards page', effectNote: 'effect = perLevel x level (linear, level 1..10); fixed = no scaling', attributes });
+write('attributes.json', { shardsPerLevel: A.attribute_levelling, shardsPerLevelNote: 'index 0 = shards for level 1; same table on the wiki Attribute Shards page', effectNote: 'effect = perLevel x level (linear, level 1..10); fixed = no scaling; per_stat = value per `every` points of another stat', attributes });
 
 // ---------- power ----------
 const P = [
