@@ -91,7 +91,14 @@
    "cost": {
     "kind": "free"
    },
-   "effects": [
+   "effects": [],
+   "abilityLevels": 3,
+   "coreLevelNeeded": [
+    1,
+    2,
+    null
+   ],
+   "activeEffects": [
     {
      "stat": "MINING_SPEED",
      "kind": "percent",
@@ -102,12 +109,6 @@
      ],
      "cond": "ability_active"
     }
-   ],
-   "abilityLevels": 3,
-   "coreLevelNeeded": [
-    1,
-    2,
-    null
    ],
    "duration": [
     10,
@@ -197,6 +198,15 @@
    },
    "effects": [],
    "note": "Titanium replace chance 2 + 0.1 x level %",
+   "otherEffects": [
+    {
+     "key": "titanium_replace_chance",
+     "unit": "%",
+     "a": 2,
+     "b": 0.1,
+     "cond": "always"
+    }
+   ],
    "neighbors": [
     "mining_fortune",
     "pickobulus"
@@ -223,6 +233,7 @@
     2,
     null
    ],
+   "activeEffects": [],
    "note": "3-block radius explosion",
    "cooldown": [
     60,
@@ -254,6 +265,15 @@
    },
    "effects": [],
    "note": "Dwarven Mines luck 5 + level %",
+   "otherEffects": [
+    {
+     "key": "dwarven_mines_luck",
+     "unit": "%",
+     "a": 5,
+     "b": 1,
+     "cond": "always"
+    }
+   ],
    "neighbors": [
     "mining_speed_boost",
     "old_school"
@@ -305,6 +325,17 @@
    "costConflict": "NEU (level+2)^4, wiki table (N+1)^3.2; the wiki row mapping is ambiguous",
    "effects": [],
    "note": "Forge time reduction min(30, 10 + 0.5 x level + floor(0.05 x level) x 10) %",
+   "otherEffects": [
+    {
+     "key": "forge_time_reduction",
+     "unit": "%",
+     "a": 10,
+     "b": 0.5,
+     "cond": "always",
+     "cap": 30,
+     "formula": "min(30, 10 + 0.5 L + floor(0.05 L) * 10)"
+    }
+   ],
    "neighbors": [
     "pickobulus",
     "seasoned_mineman"
@@ -413,11 +444,12 @@
    "effects": [
     {
      "stat": "MINING_SPREAD",
-     "a": 48.24120603015076,
-     "b": 1.7587939698492463,
+     "a": 0,
+     "b": 2,
      "cond": "mining_hard_stone"
     }
    ],
+   "wikiAlt": "wiki/NEU: 50 + (L - 1) * 350 / 199 Mining Spread on Hard Stone; in-game check says +2 per level",
    "neighbors": [
     "core_of_the_mountain",
     "efficient_miner",
@@ -482,8 +514,32 @@
    ],
    "neighbors": [
     "daily_powder",
+    "front_loaded",
     "gem_lover",
     "quick_forge"
+   ]
+  },
+  {
+   "id": "front_loaded",
+   "name": "Front Loaded",
+   "tier": 4,
+   "col": 6,
+   "row": 6,
+   "type": "perk",
+   "maxLevel": 1,
+   "powder": "GEMSTONE",
+   "requiresTier": 4,
+   "src": "neu+wiki",
+   "requires": [
+    "seasoned_mineman"
+   ],
+   "cost": {
+    "kind": "free"
+   },
+   "effects": [],
+   "note": "one-level utility perk, no stat",
+   "neighbors": [
+    "seasoned_mineman"
    ]
   },
   {
@@ -570,7 +626,7 @@
    ]
   },
   {
-   "id": "anomalous_desire",
+   "id": "tunnel_vision",
    "name": "Tunnel Vision",
    "tier": 6,
    "col": 0,
@@ -590,6 +646,7 @@
     2,
     null
    ],
+   "activeEffects": [],
    "note": "Tunnel Vision: rare event chance +30/40/50 %",
    "duration": [
     30,
@@ -632,10 +689,10 @@
     }
    ],
    "neighbors": [
-    "anomalous_desire",
     "daily_grind",
     "speedy_mineman",
-    "subterranean_fisher"
+    "subterranean_fisher",
+    "tunnel_vision"
    ]
   },
   {
@@ -723,35 +780,41 @@
    "effects": [
     {
      "stat": "STRENGTH",
-     "a": 4.5,
-     "b": 0.5,
-     "cond": "on_mining_islands"
+     "a": 0,
+     "b": 0.6,
+     "cond": "on_mining_islands",
+     "kind": "percent_multiplier"
     },
     {
      "stat": "CRITICAL_CHANCE",
-     "a": 4.5,
-     "b": 0.5,
-     "cond": "on_mining_islands"
+     "a": 0,
+     "b": 0.6,
+     "cond": "on_mining_islands",
+     "kind": "percent_multiplier"
     },
     {
      "stat": "CRITICAL_DAMAGE",
-     "a": 4.5,
-     "b": 0.5,
-     "cond": "on_mining_islands"
+     "a": 0,
+     "b": 0.6,
+     "cond": "on_mining_islands",
+     "kind": "percent_multiplier"
     },
     {
      "stat": "DEFENSE",
-     "a": 4.5,
-     "b": 0.5,
-     "cond": "on_mining_islands"
+     "a": 0,
+     "b": 0.6,
+     "cond": "on_mining_islands",
+     "kind": "percent_multiplier"
     },
     {
      "stat": "HEALTH",
-     "a": 4.5,
-     "b": 0.5,
-     "cond": "on_mining_islands"
+     "a": 0,
+     "b": 0.6,
+     "cond": "on_mining_islands",
+     "kind": "percent_multiplier"
     }
    ],
+   "wikiAlt": "wiki/NEU: flat 4.5 + 0.5 L per stat",
    "neighbors": [
     "great_explorer",
     "keep_it_cool"
@@ -776,6 +839,16 @@
    },
    "effects": [],
    "note": "Crystal Hollows treasure chance 20 + 4 x (level - 1) %, locks -floor(1 + level / 5)",
+   "otherEffects": [
+    {
+     "key": "crystal_hollows_treasure_chance",
+     "unit": "%",
+     "a": 16,
+     "b": 4,
+     "cond": "always",
+     "note": "locks -floor(1 + L / 5)"
+    }
+   ],
    "neighbors": [
     "daily_powder",
     "fortunate_mineman",
@@ -797,7 +870,14 @@
    "cost": {
     "kind": "free"
    },
-   "effects": [
+   "effects": [],
+   "abilityLevels": 3,
+   "coreLevelNeeded": [
+    1,
+    2,
+    null
+   ],
+   "activeEffects": [
     {
      "stat": "BREAKING_POWER",
      "kind": "flat",
@@ -819,12 +899,6 @@
      "cap": 500,
      "cond": "ability_active"
     }
-   ],
-   "abilityLevels": 3,
-   "coreLevelNeeded": [
-    1,
-    2,
-    null
    ],
    "duration": [
     25,
@@ -860,6 +934,15 @@
    },
    "effects": [],
    "note": "Powder gain + level %",
+   "otherEffects": [
+    {
+     "key": "powder_gain",
+     "unit": "%",
+     "a": 0,
+     "b": 1,
+     "cond": "always"
+    }
+   ],
    "neighbors": [
     "keep_it_cool",
     "steady_hand"
@@ -969,8 +1052,14 @@
    "cost": {
     "kind": "free"
    },
-   "effects": [],
-   "note": "one-level utility perk, no stat",
+   "effects": [
+    {
+     "stat": "MAGIC_FIND",
+     "a": 30,
+     "b": 0,
+     "cond": "on_mining_islands"
+    }
+   ],
    "neighbors": [
     "no_stone_unturned"
    ]
@@ -994,6 +1083,15 @@
    },
    "effects": [],
    "note": "Suspicious Scrap chance in Mineshafts 0.5 x level %",
+   "otherEffects": [
+    {
+     "key": "suspicious_scrap_chance",
+     "unit": "%",
+     "a": 0,
+     "b": 0.5,
+     "cond": "in_mineshaft"
+    }
+   ],
    "neighbors": [
     "metal_head",
     "miners_blessing",
@@ -1102,6 +1200,15 @@
    },
    "effects": [],
    "note": "Mineshaft chance from Glacite Tunnels 0.75 x level %",
+   "otherEffects": [
+    {
+     "key": "mineshaft_chance_from_glacite_tunnels",
+     "unit": "%",
+     "a": 0,
+     "b": 0.75,
+     "cond": "always"
+    }
+   ],
    "neighbors": [
     "eager_adventurer",
     "fortunate_mineman",
@@ -1220,6 +1327,7 @@
     2,
     null
    ],
+   "activeEffects": [],
    "note": "+100 % gemstone effectiveness",
    "duration": [
     20,
@@ -1255,6 +1363,15 @@
    },
    "effects": [],
    "note": "Crystal chance in Mineshafts 0.5 x level %",
+   "otherEffects": [
+    {
+     "key": "crystal_chance",
+     "unit": "%",
+     "a": 0,
+     "b": 0.5,
+     "cond": "in_mineshaft"
+    }
+   ],
    "neighbors": [
     "gemstone_infusion",
     "gifts_from_the_departed",
@@ -1280,6 +1397,15 @@
    },
    "effects": [],
    "note": "Frozen Corpse extra loot 0.2 x level %",
+   "otherEffects": [
+    {
+     "key": "frozen_corpse_extra_loot",
+     "unit": "%",
+     "a": 0,
+     "b": 0.2,
+     "cond": "always"
+    }
+   ],
    "neighbors": [
     "crystalline",
     "mining_master"
@@ -1335,6 +1461,15 @@
    },
    "effects": [],
    "note": "Extra Frozen Corpse spawn 0.5 x level %",
+   "otherEffects": [
+    {
+     "key": "extra_frozen_corpse_spawn",
+     "unit": "%",
+     "a": 0,
+     "b": 0.5,
+     "cond": "always"
+    }
+   ],
    "neighbors": [
     "mining_master",
     "vanguard_seeker"
@@ -1359,6 +1494,15 @@
    },
    "effects": [],
    "note": "Vanguard Corpse chance level %",
+   "otherEffects": [
+    {
+     "key": "vanguard_corpse_chance",
+     "unit": "%",
+     "a": 0,
+     "b": 1,
+     "cond": "always"
+    }
+   ],
    "neighbors": [
     "dead_mans_chest",
     "eager_adventurer",
@@ -1379,7 +1523,14 @@
    "cost": {
     "kind": "free"
    },
-   "effects": [
+   "effects": [],
+   "abilityLevels": 3,
+   "coreLevelNeeded": [
+    1,
+    2,
+    null
+   ],
+   "activeEffects": [
     {
      "stat": "MINING_SPREAD",
      "kind": "flat",
@@ -1390,12 +1541,6 @@
      ],
      "cond": "ability_active"
     }
-   ],
-   "abilityLevels": 3,
-   "coreLevelNeeded": [
-    1,
-    2,
-    null
    ],
    "duration": [
     20,

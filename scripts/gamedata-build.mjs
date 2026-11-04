@@ -5,8 +5,8 @@
 //   stats.json      Wiki "Stats" (names, areas). Icons and colours: guide/model.js, docs/design-guide-app.md. No icon = unknown.
 //   hotm.json       NEU constants/hotmlayout.json (grid x/y, max level, powder, cost, stat formulas), checked against
 //                   Wiki "Heart of the Mountain" (cost table, ability table, tier XP, 0.20.6 rework notes).
-//                   Positions checked against the in-game grid (HOTM menu, 2026-11-04, occupied columns per tier only): front_loaded
-//                   sits on an empty field in the game, so it is dropped. Neighbours are derived from the grid.
+//                   Positions, max levels and per-level values checked against the in-game HOTM menu (2026-11-04). Neighbours are derived
+//                   from the grid (orthogonal, occupied fields only).
 //   attributes.json NEU constants/attribute_shards.json (shard, rarity, level table); effects: Wiki "Attribute Shards" list;
 //                   Rotten Pickaxe, Freezing Spread, Pickaxe Cooldown checked on the in-game tooltip (2026-11-04).
 //   power.json      Wiki "Power Stones"/"Powers" (stats at 250 AP, unique bonus), "Accessory Power" (multiplier, AP per rarity),
@@ -86,20 +86,21 @@ const STAT = new Set(stats.map((s) => s.id));
 const L = read('hotmlayout.json').hotm;
 // stat effect = a + b * level. cond = where it applies.
 const E = (stat, a, b, cond = 'always') => ({ stat, a, b, cond });
-const moleB = 350 / 199;
 const FX = {
   mining_speed: [E('MINING_SPEED', 0, 20)],
   mining_fortune: [E('MINING_FORTUNE', 0, 2)],
   efficient_miner: [E('MINING_SPREAD', 0, 3)],
   professional: [E('MINING_SPEED', 50, 5, 'mining_gemstones')],
-  mole: [E('MINING_SPREAD', 50 - moleB, moleB, 'mining_hard_stone')],
+  mole: [E('MINING_SPREAD', 0, 2, 'mining_hard_stone')], // in-game: +2 per level. Wiki/NEU say 50 + (L-1) * 350/199; kept as wikiAlt
   gem_lover: [E('GEMSTONE_FORTUNE', 20, 4)],
   old_school: [E('ORE_FORTUNE', 0, 5)],
   seasoned_mineman: [E('MINING_WISDOM', 5, 0.1)],
   blockhead: [E('BLOCK_FORTUNE', 0, 5)],
   subterranean_fisher: [E('FISHING_SPEED', 5, 0.5, 'on_mining_islands'), E('SEA_CREATURE_CHANCE', 1, 0.1, 'on_mining_islands')],
   keep_it_cool: [E('HEAT_RESISTANCE', 0, 0.4)],
-  lonesome_miner: ['STRENGTH', 'CRITICAL_CHANCE', 'CRITICAL_DAMAGE', 'DEFENSE', 'HEALTH'].map((s) => E(s, 4.5, 0.5, 'on_mining_islands')),
+  // in-game: +0.6 % per level as a multiplier on the stat, not a flat add. NEU/wiki list a flat 4.5 + 0.5 L.
+  lonesome_miner: ['STRENGTH', 'CRITICAL_CHANCE', 'CRITICAL_DAMAGE', 'DEFENSE', 'HEALTH'].map((s) => ({ ...E(s, 0, 0.6, 'on_mining_islands'), kind: 'percent_multiplier' })),
+  miners_blessing: [E('MAGIC_FIND', 30, 0, 'on_mining_islands')],
   speedy_mineman: [E('MINING_SPEED', 0, 40)],
   fortunate_mineman: [E('MINING_FORTUNE', 0, 3)],
   warm_heart: [E('COLD_RESISTANCE', 0, 0.4)],
@@ -124,17 +125,34 @@ const NOTE = {
   dead_mans_chest: 'Extra Frozen Corpse spawn 0.5 x level %',
   vanguard_seeker: 'Vanguard Corpse chance level %',
 };
-const TYPE = { mining_speed_boost: 'ability', pickobulus: 'ability', anomalous_desire: 'ability', maniac_miner: 'ability', gemstone_infusion: 'ability', sheer_force: 'ability', core_of_the_mountain: 'core' };
+// Non-stat effects as numbers: value = a + b * level (unit %), cond = where it applies. formula = exact rule where not linear.
+const OX = (key, a, b, cond = 'always', extra = {}) => [{ key, unit: '%', a, b, cond, ...extra }];
+const OTHER_FX = {
+  titanium_insanium: OX('titanium_replace_chance', 2, 0.1),
+  luck_of_the_cave: OX('dwarven_mines_luck', 5, 1),
+  quick_forge: OX('forge_time_reduction', 10, 0.5, 'always', { cap: 30, formula: 'min(30, 10 + 0.5 L + floor(0.05 L) * 10)' }),
+  powder_buff: OX('powder_gain', 0, 1),
+  great_explorer: OX('crystal_hollows_treasure_chance', 16, 4, 'always', { note: 'locks -floor(1 + L / 5)' }),
+  no_stone_unturned: OX('suspicious_scrap_chance', 0, 0.5, 'in_mineshaft'),
+  surveyor: OX('mineshaft_chance_from_glacite_tunnels', 0, 0.75),
+  crystalline: OX('crystal_chance', 0, 0.5, 'in_mineshaft'),
+  gifts_from_the_departed: OX('frozen_corpse_extra_loot', 0, 0.2),
+  dead_mans_chest: OX('extra_frozen_corpse_spawn', 0, 0.5),
+  vanguard_seeker: OX('vanguard_corpse_chance', 0, 1),
+};
+const RENAME = { anomalous_desire: { id: 'tunnel_vision', name: 'Tunnel Vision' } }; // in-game name; NEU calls it Anomalous Desire
+const REQUIRES = { front_loaded: ['seasoned_mineman'] }; // in-game: needs a direct neighbour to be unlocked
+const TYPE = { mining_speed_boost: 'ability', pickobulus: 'ability', tunnel_vision: 'ability', maniac_miner: 'ability', gemstone_infusion: 'ability', sheer_force: 'ability', core_of_the_mountain: 'core' };
 // Cost conflicts between NEU and wiki that cannot be settled from either source: cost stays null.
 const COST_CONFLICT = { quick_forge: 'NEU (level+2)^4, wiki table (N+1)^3.2; the wiki row mapping is ambiguous', subterranean_fisher: 'NEU (level+2)^3.7, wiki (N+1)^3.07' };
 const MOLE_EXP = 2.17883; // wiki; NEU rounds to 2.2
 
-// Not in the in-game grid (field empty at tier 4, column 7). NEU still lists it; the wiki page read shows no such perk.
-const NOT_IN_GAME = new Set(['front_loaded']);
-const perks = Object.entries(L.perks).filter(([id]) => !NOT_IN_GAME.has(id)).map(([id, p]) => {
+const perks = Object.entries(L.perks).map(([neuId, p]) => {
+  const id = RENAME[neuId]?.id ?? neuId;
   const type = TYPE[id] ?? 'perk';
   const tier = 10 - p.y;
-  const e = { id, name: p.name, tier, col: p.x, row: p.y, type, maxLevel: p.maxLevel, powder: id === 'core_of_the_mountain' ? null : p.powder, requiresTier: tier, src: 'neu+wiki' };
+  const e = { id, name: RENAME[neuId]?.name ?? p.name, tier, col: p.x, row: p.y, type, maxLevel: p.maxLevel, powder: id === 'core_of_the_mountain' ? null : p.powder, requiresTier: tier, src: 'neu+wiki' };
+  if (REQUIRES[id]) e.requires = REQUIRES[id];
   const m = /^\(pow \(\+ level (\d+)\) ([\d.]+)\)$/.exec(p.cost);
   if (id === 'core_of_the_mountain') {
     e.cost = { kind: 'table', values: [50000, 100000, 200000, 300000, 400000, 600000, 750000, 1000000, 1250000], from: 2, note: 'cost to reach level 2..10' };
@@ -153,13 +171,16 @@ const perks = Object.entries(L.perks).filter(([id]) => !NOT_IN_GAME.has(id)).map
   } else if (FX[id]) e.effects = FX[id];
   else if (id !== 'core_of_the_mountain') { e.effects = []; if (NOTE[id]) e.note = NOTE[id]; else e.note = 'no stat effect'; }
   if (p.maxLevel === 1 && type === 'perk' && !NOTE[id] && !FX[id]) e.note = 'one-level utility perk, no stat';
+  if (OTHER_FX[id]) e.otherEffects = OTHER_FX[id];
+  if (id === 'mole') e.wikiAlt = 'wiki/NEU: 50 + (L - 1) * 350 / 199 Mining Spread on Hard Stone; in-game check says +2 per level';
+  if (id === 'lonesome_miner') e.wikiAlt = 'wiki/NEU: flat 4.5 + 0.5 L per stat';
   return e;
 });
 // Abilities: level comes from Core of the Mountain, wiki ability table.
 const AB = {
   mining_speed_boost: { effects: [{ stat: 'MINING_SPEED', kind: 'percent', values: [200, 250, 300], cond: 'ability_active' }], duration: [10, 15, 20], cooldown: [120, 120, 120] },
   pickobulus: { effects: [], note: '3-block radius explosion', cooldown: [60, 50, 40] },
-  anomalous_desire: { effects: [], note: 'Tunnel Vision: rare event chance +30/40/50 %', duration: [30, 30, 30], cooldown: [120, 110, 110] },
+  tunnel_vision: { effects: [], note: 'Tunnel Vision: rare event chance +30/40/50 %', duration: [30, 30, 30], cooldown: [120, 110, 110] },
   maniac_miner: { effects: [{ stat: 'BREAKING_POWER', kind: 'flat', values: [1, 1, 1], cond: 'ability_active' }, { stat: 'MINING_FORTUNE', kind: 'per_block', values: [5, 10, 15], cap: 500, cond: 'ability_active' }], duration: [25, 30, 35], cooldown: [120, 120, 120] },
   gemstone_infusion: { effects: [], note: '+100 % gemstone effectiveness', duration: [20, 25, 30], cooldown: [120, 120, 120] },
   sheer_force: { effects: [{ stat: 'MINING_SPREAD', kind: 'flat', values: [200, 200, 200], cond: 'ability_active' }], duration: [20, 25, 30], cooldown: [120, 120, 120] },
@@ -167,7 +188,8 @@ const AB = {
 for (const p of perks) {
   const a = AB[p.id];
   if (!a) continue;
-  Object.assign(p, { abilityLevels: 3, coreLevelNeeded: [1, 2, null], ...a });
+  const { effects, ...rest } = a;
+  Object.assign(p, { abilityLevels: 3, coreLevelNeeded: [1, 2, null], effects: [], activeEffects: effects, ...rest });
   p.unknown = true; // core level for ability level 3 is not on the wiki page read (NEU only knows level 1 and 2)
 }
 // neighbours: same-row/column grid neighbours that are perks

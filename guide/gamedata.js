@@ -45,7 +45,8 @@ export function checkHotm(d, stats) {
     cell.add(key);
     if (p.type !== 'core' && !POWDERS.has(p.powder)) fail(w, `bad powder ${p.powder}`);
     if (p.cost === undefined || (p.cost === null && !p.unknown)) fail(w, 'cost missing (null needs unknown:true)');
-    for (const e of p.effects) checkEffect(w, e, stats);
+    for (const e of [...p.effects, ...(p.activeEffects ?? [])]) checkEffect(w, e, stats);
+    for (const r of p.requires ?? []) if (!p.neighbors.includes(r)) fail(w, `requires ${r}, which is not a direct neighbour`);
     for (const n of p.neighbors) {
       const o = byId.get(n);
       if (!o) fail(w, `neighbour ${n} does not exist`);
