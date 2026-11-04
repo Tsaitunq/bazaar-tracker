@@ -1,0 +1,730 @@
+{
+ "stoneNote": "statsAt250 = wiki Powers page value at 250 Accessory Power. base = statsAt250 / 9.64, derived (the page lists no base values). uniqueBonus does not scale with Accessory Power.",
+ "multiplier": {
+  "formula": "a * ln(b * ap + 1) ^ exp",
+  "a": 29.97,
+  "b": 0.0019,
+  "exp": 1.2,
+  "checkAt250": 9.64,
+  "src": "wiki Accessory Power"
+ },
+ "accessoryPower": {
+  "COMMON": 3,
+  "UNCOMMON": 5,
+  "RARE": 8,
+  "EPIC": 12,
+  "LEGENDARY": 16,
+  "MYTHIC": 22,
+  "DIVINE": 28,
+  "SPECIAL": 3,
+  "VERY_SPECIAL": 5,
+  "ULTIMATE": 1,
+  "ADMIN": 22,
+  "src": "wiki Accessory Power"
+ },
+ "powerStones": [
+  {
+   "id": "ACACIA_BIRDHOUSE",
+   "item": "Acacia Birdhouse",
+   "power": "Forceful",
+   "statsAt250": {
+    "CRITICAL_DAMAGE": 46.28,
+    "STRENGTH": 173.56,
+    "HEALTH": 16.2
+   },
+   "base": {
+    "CRITICAL_DAMAGE": 4.8,
+    "STRENGTH": 18,
+    "HEALTH": 1.68
+   },
+   "baseDerived": true,
+   "uniqueBonus": {
+    "FEROCITY": 4
+   },
+   "uniqueScales": false,
+   "src": "wiki"
+  },
+  {
+   "id": "BEATING_HEART",
+   "item": "Beating Heart",
+   "power": "Bloody",
+   "statsAt250": {
+    "CRITICAL_DAMAGE": 104.13,
+    "STRENGTH": 104.13,
+    "INTELLIGENCE": 34.71
+   },
+   "base": {
+    "CRITICAL_DAMAGE": 10.8,
+    "STRENGTH": 10.8,
+    "INTELLIGENCE": 3.6
+   },
+   "baseDerived": true,
+   "uniqueBonus": {
+    "ATTACK_SPEED": 10
+   },
+   "uniqueScales": false,
+   "src": "wiki"
+  },
+  {
+   "id": "BUBBA_BLISTER",
+   "item": "Bubba Blister",
+   "power": "Bubba",
+   "statsAt250": {
+    "DEFENSE": -92.56,
+    "HEALTH": 48.6,
+    "CRITICAL_DAMAGE": 104.13,
+    "TRUE_DEFENSE": 7.87,
+    "STRENGTH": 46.28,
+    "ATTACK_SPEED": 17.36,
+    "CRITICAL_CHANCE": 9.26
+   },
+   "base": {
+    "DEFENSE": -9.6,
+    "HEALTH": 5.04,
+    "CRITICAL_DAMAGE": 10.8,
+    "TRUE_DEFENSE": 0.82,
+    "STRENGTH": 4.8,
+    "ATTACK_SPEED": 1.8,
+    "CRITICAL_CHANCE": 0.96
+   },
+   "baseDerived": true,
+   "uniqueBonus": {
+    "COMBAT_WISDOM": 2
+   },
+   "uniqueScales": false,
+   "src": "wiki"
+  },
+  {
+   "id": "DARK_ORB",
+   "item": "Dark Orb",
+   "power": "Shaded",
+   "statsAt250": {
+    "SPEED": 5.79,
+    "CRITICAL_DAMAGE": 173.56,
+    "STRENGTH": 46.28
+   },
+   "base": {
+    "SPEED": 0.6,
+    "CRITICAL_DAMAGE": 18,
+    "STRENGTH": 4.8
+   },
+   "baseDerived": true,
+   "uniqueBonus": {
+    "ATTACK_SPEED": 3,
+    "FEROCITY": 3
+   },
+   "uniqueScales": false,
+   "src": "wiki"
+  },
+  {
+   "id": "DISPLACED_LEECH",
+   "item": "Displaced Leech",
+   "power": "Sanguisuge",
+   "statsAt250": {
+    "CRITICAL_CHANCE": 9.26,
+    "CRITICAL_DAMAGE": 46.28,
+    "HEALTH": 32.4,
+    "STRENGTH": 138.85
+   },
+   "base": {
+    "CRITICAL_CHANCE": 0.96,
+    "CRITICAL_DAMAGE": 4.8,
+    "HEALTH": 3.36,
+    "STRENGTH": 14.4
+   },
+   "baseDerived": true,
+   "uniqueBonus": {
+    "INTELLIGENCE": 100
+   },
+   "uniqueScales": false,
+   "src": "wiki"
+  },
+  {
+   "id": "ECCENTRIC_PAINTING",
+   "item": "Eccentric Painting",
+   "power": "Bizarre",
+   "statsAt250": {
+    "CRITICAL_DAMAGE": -23.14,
+    "INTELLIGENCE": 416.54,
+    "STRENGTH": -23.14
+   },
+   "base": {
+    "CRITICAL_DAMAGE": -2.4,
+    "INTELLIGENCE": 43.21,
+    "STRENGTH": -2.4
+   },
+   "baseDerived": true,
+   "uniqueBonus": {
+    "ABILITY_DAMAGE": 5
+   },
+   "uniqueScales": false,
+   "src": "wiki"
+  },
+  {
+   "id": "END_STONE_SHULKER",
+   "item": "End Stone Shulker",
+   "power": "Adept",
+   "statsAt250": {
+    "DEFENSE": 92.56,
+    "INTELLIGENCE": 34.71,
+    "HEALTH": 161.99
+   },
+   "base": {
+    "DEFENSE": 9.6,
+    "INTELLIGENCE": 3.6,
+    "HEALTH": 16.8
+   },
+   "baseDerived": true,
+   "uniqueBonus": {
+    "HEALTH": 100,
+    "DEFENSE": 50
+   },
+   "uniqueScales": false,
+   "src": "wiki"
+  },
+  {
+   "id": "ENDER_MONOCLE",
+   "item": "Ender Monocle",
+   "power": "Sighted",
+   "statsAt250": {
+    "INTELLIGENCE": 347.11
+   },
+   "base": {
+    "INTELLIGENCE": 36.01
+   },
+   "baseDerived": true,
+   "uniqueBonus": {
+    "ABILITY_DAMAGE": 3
+   },
+   "uniqueScales": false,
+   "src": "wiki"
+  },
+  {
+   "id": "FANG_TASTIC_CHOCOLATE_CHIP",
+   "item": "Fang-tastic Chocolate Chip",
+   "power": "Crumbly",
+   "statsAt250": {
+    "HEALTH": 97.19,
+    "CRITICAL_CHANCE": 4.63,
+    "ATTACK_SPEED": 6.94,
+    "INTELLIGENCE": 52.07,
+    "TRUE_DEFENSE": 15.74
+   },
+   "base": {
+    "HEALTH": 10.08,
+    "CRITICAL_CHANCE": 0.48,
+    "ATTACK_SPEED": 0.72,
+    "INTELLIGENCE": 5.4,
+    "TRUE_DEFENSE": 1.63
+   },
+   "baseDerived": true,
+   "uniqueBonus": {
+    "SPEED": 25
+   },
+   "uniqueScales": false,
+   "src": "wiki"
+  },
+  {
+   "id": "FURBALL",
+   "item": "Furball",
+   "power": "Itchy",
+   "statsAt250": {
+    "SPEED": 5.79,
+    "CRITICAL_DAMAGE": 80.99,
+    "STRENGTH": 69.42,
+    "ATTACK_SPEED": 20.83
+   },
+   "base": {
+    "SPEED": 0.6,
+    "CRITICAL_DAMAGE": 8.4,
+    "STRENGTH": 7.2,
+    "ATTACK_SPEED": 2.16
+   },
+   "baseDerived": true,
+   "uniqueBonus": {
+    "STRENGTH": 15,
+    "CRITICAL_DAMAGE": 15
+   },
+   "uniqueScales": false,
+   "src": "wiki"
+  },
+  {
+   "id": "GLACITE_CHUNK",
+   "item": "Glacite Chunk",
+   "power": "Frozen",
+   "statsAt250": {
+    "TRUE_DEFENSE": 17.7,
+    "DEFENSE": 127.27
+   },
+   "base": {
+    "TRUE_DEFENSE": 1.84,
+    "DEFENSE": 13.2
+   },
+   "baseDerived": true,
+   "uniqueBonus": {
+    "TRUE_DEFENSE": 10,
+    "CRITICAL_DAMAGE": 25,
+    "STRENGTH": 25
+   },
+   "uniqueScales": false,
+   "src": "wiki"
+  },
+  {
+   "id": "HAZMAT_ENDERMAN",
+   "item": "Hazmat Enderman",
+   "power": "Slender",
+   "statsAt250": {
+    "CRITICAL_DAMAGE": 57.85,
+    "HEALTH": 80.99,
+    "ATTACK_SPEED": 10.41,
+    "SPEED": 5.79,
+    "INTELLIGENCE": 86.78,
+    "STRENGTH": 57.85,
+    "DEFENSE": 57.85
+   },
+   "base": {
+    "CRITICAL_DAMAGE": 6,
+    "HEALTH": 8.4,
+    "ATTACK_SPEED": 1.08,
+    "SPEED": 0.6,
+    "INTELLIGENCE": 9,
+    "STRENGTH": 6,
+    "DEFENSE": 6
+   },
+   "baseDerived": true,
+   "uniqueBonus": {
+    "STRENGTH": 50,
+    "DEFENSE": 100
+   },
+   "uniqueScales": false,
+   "src": "wiki"
+  },
+  {
+   "id": "HORNS_OF_TORMENT",
+   "item": "Horns of Torment",
+   "power": "Demonic",
+   "statsAt250": {
+    "STRENGTH": 53.22,
+    "INTELLIGENCE": 267.28
+   },
+   "base": {
+    "STRENGTH": 5.52,
+    "INTELLIGENCE": 27.73
+   },
+   "baseDerived": true,
+   "uniqueBonus": {
+    "CRITICAL_DAMAGE": 50
+   },
+   "uniqueScales": false,
+   "src": "wiki"
+  },
+  {
+   "id": "LUXURIOUS_SPOOL",
+   "item": "Luxurious Spool",
+   "power": "Silky",
+   "statsAt250": {
+    "SPEED": 5.79,
+    "CRITICAL_DAMAGE": 219.84
+   },
+   "base": {
+    "SPEED": 0.6,
+    "CRITICAL_DAMAGE": 22.8
+   },
+   "baseDerived": true,
+   "uniqueBonus": {
+    "ATTACK_SPEED": 5
+   },
+   "uniqueScales": false,
+   "src": "wiki"
+  },
+  {
+   "id": "MAGMA_URCHIN",
+   "item": "Magma Urchin",
+   "power": "Hurtful",
+   "statsAt250": {
+    "STRENGTH": 46.28,
+    "CRITICAL_DAMAGE": 185.13
+   },
+   "base": {
+    "STRENGTH": 4.8,
+    "CRITICAL_DAMAGE": 19.2
+   },
+   "baseDerived": true,
+   "uniqueBonus": {
+    "ATTACK_SPEED": 15
+   },
+   "uniqueScales": false,
+   "src": "wiki"
+  },
+  {
+   "id": "MANDRAA",
+   "item": "Mandraa",
+   "power": "Strong",
+   "statsAt250": {
+    "STRENGTH": 115.7,
+    "CRITICAL_DAMAGE": 115.7
+   },
+   "base": {
+    "STRENGTH": 12,
+    "CRITICAL_DAMAGE": 12
+   },
+   "baseDerived": true,
+   "uniqueBonus": {
+    "STRENGTH": 25,
+    "CRITICAL_DAMAGE": 25
+   },
+   "uniqueScales": false,
+   "src": "wiki"
+  },
+  {
+   "id": "OBSIDIAN_TABLET",
+   "item": "Obsidian Tablet",
+   "power": "Mythical",
+   "statsAt250": {
+    "DEFENSE": 39.34,
+    "HEALTH": 55.08,
+    "CRITICAL_DAMAGE": 39.34,
+    "SPEED": 9.26,
+    "STRENGTH": 39.34,
+    "INTELLIGENCE": 59.01,
+    "CRITICAL_CHANCE": 15.74
+   },
+   "base": {
+    "DEFENSE": 4.08,
+    "HEALTH": 5.71,
+    "CRITICAL_DAMAGE": 4.08,
+    "SPEED": 0.96,
+    "STRENGTH": 4.08,
+    "INTELLIGENCE": 6.12,
+    "CRITICAL_CHANCE": 1.63
+   },
+   "baseDerived": true,
+   "uniqueBonus": {
+    "STRENGTH": 40,
+    "HEALTH": 150
+   },
+   "uniqueScales": false,
+   "src": "wiki"
+  },
+  {
+   "id": "PRECIOUS_PEARL",
+   "item": "Precious Pearl",
+   "power": "Pleasant",
+   "statsAt250": {
+    "HEALTH": 129.59,
+    "DEFENSE": 138.85
+   },
+   "base": {
+    "HEALTH": 13.44,
+    "DEFENSE": 14.4
+   },
+   "baseDerived": true,
+   "uniqueBonus": {},
+   "uniqueScales": false,
+   "src": "wiki"
+  },
+  {
+   "id": "ROCK_CANDY",
+   "item": "Rock Candy",
+   "power": "Sweet",
+   "statsAt250": {
+    "SPEED": 11.57,
+    "DEFENSE": 104.13,
+    "HEALTH": 145.79
+   },
+   "base": {
+    "SPEED": 1.2,
+    "DEFENSE": 10.8,
+    "HEALTH": 15.12
+   },
+   "baseDerived": true,
+   "uniqueBonus": {
+    "SPEED": 5
+   },
+   "uniqueScales": false,
+   "src": "wiki"
+  },
+  {
+   "id": "SCORCHED_BOOKS",
+   "item": "Scorched Books",
+   "power": "Scorching",
+   "statsAt250": {
+    "CRITICAL_DAMAGE": 92.56,
+    "STRENGTH": 80.99,
+    "ATTACK_SPEED": 17.36
+   },
+   "base": {
+    "CRITICAL_DAMAGE": 9.6,
+    "STRENGTH": 8.4,
+    "ATTACK_SPEED": 1.8
+   },
+   "baseDerived": true,
+   "uniqueBonus": {
+    "FEROCITY": 7
+   },
+   "uniqueScales": false,
+   "src": "wiki"
+  },
+  {
+   "id": "SUNFLOWER_BUTTER",
+   "item": "Sunflower Butter",
+   "power": "Buttery",
+   "statsAt250": {
+    "SPEED": 23.14,
+    "ATTACK_SPEED": 20.83
+   },
+   "base": {
+    "SPEED": 2.4,
+    "ATTACK_SPEED": 2.16
+   },
+   "baseDerived": true,
+   "uniqueBonus": {
+    "ATTACK_SPEED": 5
+   },
+   "uniqueScales": false,
+   "src": "wiki"
+  },
+  {
+   "id": "VITAMIN_DEATH",
+   "item": "Vitamin Death",
+   "power": "Healthy",
+   "statsAt250": {
+    "HEALTH": 323.97
+   },
+   "base": {
+    "HEALTH": 33.61
+   },
+   "baseDerived": true,
+   "uniqueBonus": {
+    "HEALTH": 200
+   },
+   "uniqueScales": false,
+   "src": "wiki"
+  }
+ ],
+ "tuning": {
+  "pointsPerAccessoryPower": 0.1,
+  "templateCostBits": 10000,
+  "maxTemplates": 8,
+  "src": "wiki Maxwell",
+  "stats": [
+   {
+    "stat": "HEALTH",
+    "perPoint": null,
+    "unknown": true
+   },
+   {
+    "stat": "DEFENSE",
+    "perPoint": null,
+    "unknown": true
+   },
+   {
+    "stat": "SPEED",
+    "perPoint": null,
+    "unknown": true
+   },
+   {
+    "stat": "STRENGTH",
+    "perPoint": null,
+    "unknown": true
+   },
+   {
+    "stat": "CRITICAL_CHANCE",
+    "perPoint": null,
+    "unknown": true
+   },
+   {
+    "stat": "CRITICAL_DAMAGE",
+    "perPoint": null,
+    "unknown": true
+   },
+   {
+    "stat": "ATTACK_SPEED",
+    "perPoint": 0.3,
+    "src": "wiki Attack Speed page, found via search snippet only, not confirmed"
+   },
+   {
+    "stat": "INTELLIGENCE",
+    "perPoint": null,
+    "unknown": true
+   }
+  ]
+ },
+ "boosterCookie": {
+  "days": 4,
+  "effects": [
+   {
+    "stat": "COMBAT_WISDOM",
+    "value": 25
+   },
+   {
+    "stat": "MINING_WISDOM",
+    "value": 25
+   },
+   {
+    "stat": "FARMING_WISDOM",
+    "value": 25
+   },
+   {
+    "stat": "FORAGING_WISDOM",
+    "value": 25
+   },
+   {
+    "stat": "FISHING_WISDOM",
+    "value": 25
+   },
+   {
+    "stat": "ENCHANTING_WISDOM",
+    "value": 25
+   },
+   {
+    "stat": "ALCHEMY_WISDOM",
+    "value": 25
+   },
+   {
+    "stat": "MAGIC_FIND",
+    "value": 15
+   }
+  ],
+  "src": "wiki Booster Cookie"
+ },
+ "godPotion": {
+  "src": "wiki God Potion (effect names and levels only)",
+  "unknown": true,
+  "note": "Wiki lists effect names and levels, no stat amounts; per-level values not read",
+  "effects": [
+   {
+    "name": "Critical",
+    "level": "IV"
+   },
+   {
+    "name": "Regeneration",
+    "level": "IX"
+   },
+   {
+    "name": "Strength",
+    "level": "VIII"
+   },
+   {
+    "name": "Agility",
+    "level": "IV"
+   },
+   {
+    "name": "Night Vision",
+    "level": "I"
+   },
+   {
+    "name": "Absorption",
+    "level": "VIII"
+   },
+   {
+    "name": "Burning",
+    "level": "IV"
+   },
+   {
+    "name": "Stun",
+    "level": "IV"
+   },
+   {
+    "name": "Dodge",
+    "level": "IV"
+   },
+   {
+    "name": "Experience",
+    "level": "IV"
+   },
+   {
+    "name": "Mana",
+    "level": "VIII"
+   },
+   {
+    "name": "Speed",
+    "level": "VIII"
+   },
+   {
+    "name": "Water Breathing",
+    "level": "VI"
+   },
+   {
+    "name": "Alchemy XP Boost",
+    "level": "III"
+   },
+   {
+    "name": "Combat XP Boost",
+    "level": "III"
+   },
+   {
+    "name": "Enchanting XP Boost",
+    "level": "III"
+   },
+   {
+    "name": "Farming XP Boost",
+    "level": "III"
+   },
+   {
+    "name": "Fishing XP Boost",
+    "level": "III"
+   },
+   {
+    "name": "Foraging XP Boost",
+    "level": "III"
+   },
+   {
+    "name": "Mining XP Boost",
+    "level": "III"
+   },
+   {
+    "name": "Rabbit",
+    "level": "VI"
+   },
+   {
+    "name": "Resistance",
+    "level": "VIII"
+   },
+   {
+    "name": "Archery",
+    "level": "IV"
+   },
+   {
+    "name": "Jump Boost",
+    "level": "IV"
+   },
+   {
+    "name": "Magic Find",
+    "level": "IV"
+   },
+   {
+    "name": "Pet Luck",
+    "level": "IV"
+   },
+   {
+    "name": "Spirit",
+    "level": "IV"
+   },
+   {
+    "name": "Spelunker",
+    "level": "V"
+   },
+   {
+    "name": "Adrenaline",
+    "level": "VIII"
+   },
+   {
+    "name": "Fire Resistance",
+    "level": "I"
+   },
+   {
+    "name": "Haste",
+    "level": "IV"
+   },
+   {
+    "name": "True Resistance",
+    "level": "IV"
+   },
+   {
+    "name": "Jerry Candy",
+    "level": null
+   }
+  ]
+ }
+}
