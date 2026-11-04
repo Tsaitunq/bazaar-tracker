@@ -65,6 +65,25 @@ export function statsOf(build, data, area) {
   return out;
 }
 
+export const PART_NAME = { hotm: 'HOTM', attrs: 'Attributes', power: 'Power', buffs: 'Buffs' };
+
+// Per stat, what each editor moved since the measurement: the build as it is now against the same build with that one part as it was.
+// A part that was unknown at the measurement moved nothing. Flat stats only.
+function movedBy(build, snapshot, data, area) {
+  const now = statsOf(build, data, area);
+  const out = {};
+  for (const part of Object.keys(PART_NAME)) {
+    if (!entrySnapshot(snapshot, part)) continue;
+    const was = statsOf({ ...build, [part]: snapshot[part] }, data, area);
+    for (const stat of new Set([...Object.keys(now.add), ...Object.keys(was.add)])) {
+      const d = (now.add[stat] ?? 0) - (was.add[stat] ?? 0);
+      if (Math.abs(d) > 1e-9) (out[stat] ??= []).push({ part, value: d });
+    }
+  }
+  return out;
+}
+const entrySnapshot = (snapshot, part) => snapshot?.[part] !== undefined && snapshot[part] !== null;
+
 // gear: flat stats of the ticked steps. entry: pg.base[area]. Gives one row per stat of the area plus the conditional list.
 export function totalFor({ area, entry, build, gear = {}, data, stats }) {
   const now = statsOf(build, data, area);
@@ -80,7 +99,7 @@ export function totalFor({ area, entry, build, gear = {}, data, stats }) {
     total[stat] = sum * (now.mult[stat] ?? 1);
     return { stat, base: typed, gear: g, total: total[stat] };
   });
-  return { rows, total, listed: now.listed };
+  return { rows, total, listed: now.listed, moved: entry?.snapshot ? movedBy(build, entry.snapshot, data, area) : {} };
 }
 
 // The stats of an area in the order of gamedata/stats.json.

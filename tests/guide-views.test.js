@@ -181,6 +181,18 @@ test('pet picker: a ticked pet step wins and the picker says so', () => {
   assert.ok(html.includes('A ticked step already sets the pet (BAL LEGENDARY)'));
 });
 
+test('overview: the changes line names the editor and is hidden when nothing moved', () => {
+  const was = { ...emptyBuild(), hotm: { tier: 10, levels: { mining_speed: 5 }, omelette: false } };
+  const base = baseOf({ mining: { values: { MINING_SPEED: 1000, MINING_FORTUNE: 100 } } });
+  const withSnap = { mining: { ...base.mining, snapshot: was } };
+  const quiet = statsView(world({ base: withSnap, build: was }), { page: 'stats', tab: 'overview', area: 'mining' });
+  assert.ok(!quiet.includes('Changes since measurement'));
+  const now = { ...was, hotm: { ...was.hotm, levels: { mining_speed: 8 } } };
+  const html = statsView(world({ base: withSnap, build: now }), { page: 'stats', tab: 'overview', area: 'mining' });
+  assert.ok(html.includes('Changes since measurement'));
+  assert.ok(html.includes('+60 Mining Speed</b> (HOTM +60)'));
+});
+
 test('settings holds weights, presets, keep gear, import, export, reset and no key', () => {
   const html = settingsView(world());
   assert.doesNotMatch(html, /data-set="key"|data-set="uuid"|data-sync|data-act="remove"|data-flag="personal"|API key/);

@@ -3,7 +3,7 @@ import { doneSet, stepKey } from '../progress.js';
 import { miningSettings } from '../optimizer.js';
 import { number } from '../format.js';
 import { gearOf, buildPet } from './gear.js';
-import { totalFor, statsFor, DATA_AREA } from './totals.js';
+import { totalFor, statsFor, DATA_AREA, PART_NAME } from './totals.js';
 import { autoOf } from './model.js';
 
 export const AREA_NAME = { mining: 'Mining', blaze: 'Blaze', farming: 'Farming' };
@@ -49,11 +49,15 @@ export function statsModel(world, area) {
     gear: r.gear ? signed(r.gear) : '–',
     total: r.total === undefined ? (r.gear ? number(Math.round(r.gear * 100) / 100) : '–') : number(Math.round(r.total * 100) / 100),
   }));
+  // what the editors moved since the measurement, per stat: "+12 Mining Fortune (HOTM +10, Attributes +2)"
+  const changes = Object.entries(t.moved).filter(([id]) => ids.includes(id)).map(([id, parts]) => ({
+    ...label(id), text: signed(parts.reduce((n, p) => n + p.value, 0)), parts: parts.map((p) => `${PART_NAME[p.part]} ${signed(p.value)}`).join(', '),
+  }));
   const guides = tickedSteps(world, area);
   return {
     area, name: AREA_NAME[area], missing: DATA_AREA[area] && !world.items ? 'items' : null,
     measured: entry ? { at: entry.at, buffs: entry.snapshot?.buffs ?? {} } : null,
-    fields: ids.map(label), rows, listed: t.listed,
+    changes, fields: ids.map(label), rows, listed: t.listed,
     gearLine: Object.entries(worn.gear).filter(([id, v]) => v && ids.includes(id)).slice(0, 3).map(([id, v]) => ({ ...label(id), text: signed(v) })),
     pet: { chosen: buildPet(world.build, data.pets?.pets), step: worn.stepPet ? `${worn.stepPet.type} ${worn.stepPet.tier}` : null },
     guides, steps: guides.reduce((n, g) => n + g.n, 0), buffs: world.build?.buffs ?? {},

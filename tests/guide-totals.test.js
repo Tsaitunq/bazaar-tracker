@@ -107,3 +107,15 @@ test('power: the tuning values are the confirmed ones', () => {
   const t = Object.fromEntries(data.power.tuning.stats.map((s) => [s.stat, s.perPoint]));
   assert.deepEqual(t, { HEALTH: 5, DEFENSE: 1, SPEED: 1.5, STRENGTH: 1, CRITICAL_DAMAGE: 1, CRITICAL_CHANCE: 0.2, ATTACK_SPEED: 0.3, INTELLIGENCE: 2 });
 });
+
+test('moved: names the editor that shifted a stat since the measurement', () => {
+  const was = { ...emptyBuild(), hotm: { tier: 10, levels: { mining_speed: 5 }, omelette: false }, power: { stone: null, mp: null, tuning: {} } };
+  const entry = measure({}, 'mining', { values: { MINING_SPEED: 1000 } }, was, NOW).mining;
+  const now = { ...was, hotm: { ...was.hotm, levels: { mining_speed: 8 } }, power: { stone: null, mp: null, tuning: { MINING_SPEED: 1 } }, attrs: { nature_elemental: 3 } };
+  const r = total(entry, now);
+  assert.deepEqual(r.moved.MINING_SPEED.map((m) => m.part), ['hotm']);
+  near(r.moved.MINING_SPEED[0].value, 60);
+  assert.equal(r.moved.STRENGTH, undefined);
+  assert.deepEqual(total(entry, was).moved, {}); // nothing changed: empty
+  near(r.total.MINING_SPEED, 1060);
+});
