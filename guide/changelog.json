@@ -1,6 +1,16 @@
 {
   "versions": [
     {
+      "version": "0.8.0",
+      "date": "2026-11-04",
+      "entries": [
+        { "title": "HOTM, attributes and power", "text": "Three new Stats pages let you enter your HOTM perks, attribute levels, power stone, Magical Power and tuning points; steps above your HOTM level are locked." },
+        { "title": "Pick your pet", "text": "Choose Bal, Glacite Golem, Goblin, Scatha, Snail or Mammoth; its stats count in your total, and perks that need a place or a mob are only listed." },
+        { "title": "Changes since measurement", "text": "The overview shows what each page moved since you measured your base, and your player appears with tags for pet and power." },
+        { "title": "Swipe between Stats pages", "text": "Swipe sideways to go from Overview to HOTM, Attributes and Power." }
+      ]
+    },
+    {
       "version": "0.7.0",
       "date": "2026-11-04",
       "entries": [
