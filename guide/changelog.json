@@ -1,6 +1,15 @@
 {
   "versions": [
     {
+      "version": "0.8.1",
+      "date": "2026-11-04",
+      "entries": [
+        { "title": "Swipe works on every Stats page", "text": "Swiping now also works on the HOTM page and goes on to Attributes and Power, or back, on every phone width." },
+        { "title": "HOTM looks like the game", "text": "Perks show coal, emerald and diamond, the Core and pickaxe abilities show blocks, and you can switch a perk off or select one ability." },
+        { "title": "Pets with heads and perks", "text": "The pet picker lists every pet with its head, stats and perks, and the Pet tag under your player jumps straight to it." }
+      ]
+    },
+    {
       "version": "0.8.0",
       "date": "2026-11-04",
       "entries": [
