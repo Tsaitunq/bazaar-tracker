@@ -15,4 +15,8 @@ export function stepper(prefix, value, max, off = false) {
   return `<div class="stepper"><button type="button" data-${prefix}-step="-1" aria-label="Level down"${dis}>−</button><input type="number" inputmode="numeric" min="0" max="${max}" value="${value}" data-${prefix}-level aria-label="Level, 0 to ${max}"${dis}><button type="button" data-${prefix}-step="1" aria-label="Level up"${dis}>+</button><button type="button" class="max" data-${prefix}-max${dis}>Max</button></div>`;
 }
 
+// A picture with the placeholder behind it: a missing file (the app listens for the error) leaves the placeholder, the letters or nothing.
+export const pic = (src, cls = '', fallback = '') => `<span class="pic ${cls}" data-fb="${esc(fallback)}"><img src="${esc(src)}" alt="" draggable="false"></span>`;
+export const mcPic = (name, cls) => pic(`img/mc/${name}.png`, cls);
+
 export const round2 = (v) => number(Math.round(v * 100) / 100);

@@ -303,3 +303,41 @@ test('overview: an unsaved draft shows a notice that links to its tab', () => {
   assert.ok(!html.includes('Power draft not saved'));
   assert.ok(!statsView(world({ draft: {} }), { page: 'stats', tab: 'overview', area: 'mining' }).includes('draft not saved'));
 });
+
+test('pet picker: every pet shows head, stats and perks without a tap, conditional perks marked', () => {
+  const html = editor('power', { base: {} });
+  assert.equal((html.match(/class="pet-card/g) ?? []).length, 8);
+  assert.match(html, /src="img\/hypixel\/pets\/BAL_LEGENDARY\.png"/);
+  assert.match(html, /<span class="cond">only: Magma Fields<\/span> <b>Furnace<\/b>/);
+  assert.match(html, /Heat Resistance \+150/);
+});
+
+test('the Pet tag on the overview leads to the pet picker', () => {
+  const html = statsView(world(), { page: 'stats', tab: 'overview', area: 'mining' });
+  assert.match(html, /<a class="tag" href="#\/stats\/power\/mining" data-goto-pet>Pet:/);
+  assert.match(editor('power', { base: {} }), /class="panel pet-panel"/);
+});
+
+test('HOTM icons: coal, emerald, diamond, redstone block for Core, ability blocks by state', () => {
+  const hotm = (levels, extra = {}) => editor('hotm', { build: { ...emptyBuild(), hotm: { tier: 10, levels, omelette: false, ...extra } } });
+  const cell = (html, id) => html.match(new RegExp(`data-perk="${id}"[^>]*>(.*?)</button>`))[1];
+  const html = hotm({ mining_speed: 5, mining_fortune: 50, pickobulus: 1, maniac_miner: 1 }, { ability: 'maniac_miner' });
+  assert.match(cell(html, 'mining_speed'), /img\/mc\/emerald\.png/);
+  assert.match(cell(html, 'mining_speed'), /<b class="stack">5<\/b>/);
+  assert.match(cell(html, 'quick_forge'), /img\/mc\/coal\.png/);
+  assert.match(cell(html, 'core_of_the_mountain'), /redstone_block/);
+  assert.match(cell(html, 'tunnel_vision'), /coal_block/);
+  assert.match(cell(html, 'pickobulus'), /redstone_block/);
+  assert.match(cell(html, 'maniac_miner'), /emerald_block/);
+  const maxed = hotm({ precision_mining: 1 });
+  assert.match(cell(maxed, 'precision_mining'), /img\/mc\/diamond\.png/);
+  assert.doesNotMatch(cell(maxed, 'precision_mining'), /class="stack"/); // a one-level perk has no number
+});
+
+test('a disabled perk keeps its icon, greyed with AUS, and its sheet has the switch', () => {
+  const b = { ...emptyBuild(), hotm: { tier: 10, levels: { precision_mining: 1 }, omelette: false, disabled: ['precision_mining'] } };
+  const html = editor('hotm', { build: b, ui: { perk: 'precision_mining' } });
+  assert.match(html, /class="perk perk-max[^"]*perk-off[^"]*"[^>]*>.*?diamond\.png.*?<i class="perk-aus">AUS<\/i>/);
+  assert.match(html, /data-perk-enabled aria-pressed="false">Disabled</);
+  assert.match(editor('hotm', { build: { ...b, hotm: { ...b.hotm, levels: { pickobulus: 1 } } }, ui: { perk: 'pickobulus' } }), /data-ability-pick aria-pressed="false">Select</);
+});

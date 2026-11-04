@@ -6,7 +6,7 @@ import { migrateOwned, resetOwned } from '../owned.js';
 import { fallbackName, loadItems } from '../names.js';
 import { PRESETS, miningSettings } from '../optimizer.js';
 import { loadGameData } from './gamedata.js';
-import { emptyBuild, measure, editPart, commitDraft, discardDraft, EMPTY_PART, perkLevel, hotmTier, omelette, attrLevel, powerStone, powerMp, tuningPoints, setPet } from './build.js';
+import { emptyBuild, measure, editPart, commitDraft, discardDraft, EMPTY_PART, perkLevel, perkEnabled, abilityPick, hotmTier, omelette, attrLevel, powerStone, powerMp, tuningPoints, setPet } from './build.js';
 import { runMigration } from './migrate.js';
 import { STATS_TABS, parseRoute, applyImport, stampAll, formEdited, typedFields, restoreTyped, settled, autoOf, tickStep, swipeTarget, swipeAxis, swipeLands, familyOf } from './model.js';
 import { homeView } from './views/home.js';
@@ -45,6 +45,7 @@ const settings = load('pg.settings', {});
 let base = load('pg.base', {}); // the measured stats per area
 let build = { ...emptyBuild(), ...load('pg.build', {}) }; // HOTM, shards, power and buffs now
 let draft = load('pg.draft', {}); // a part the measurement did not know, typed but not saved yet
+let wantPet = false; // the Pet tag was tapped: the power tab opens on the pet picker
 let ui = {}; // the perk, attribute and search that are open; not saved
 let gamedata = null;
 const bins = load('pg.bins', {});
@@ -149,6 +150,11 @@ function draw() {
     foldFrom = root.querySelector('.path')?.scrollTop ?? 0;
   }
   shownRoute = shown;
+  if (wantPet) {
+    const panel = route().tab === 'power' && root.querySelector('.pet-panel');
+    if (panel) panel.scrollIntoView({ block: 'start' });
+    if (panel || route().tab !== 'power') wantPet = false;
+  }
   root.firstElementChild?.classList.toggle('head-min', folded);
   if (infoOpen) openInfo();
   if (focused !== undefined) {
@@ -378,6 +384,9 @@ root.addEventListener('click', (e) => {
     setLevel(kind, now + Number(stepBy.dataset[kind + 'Step']));
     return;
   }
+  if (el('[data-perk-enabled]') && perkOpen()) { edit('hotm', perkEnabled(perkOpen(), (partNow('hotm').disabled ?? []).includes(perkOpen().id))); return; }
+  if (el('[data-ability-pick]') && perkOpen()) { edit('hotm', abilityPick(perkOpen())); return; }
+  if (el('[data-goto-pet]')) { wantPet = true; return; } // the link itself opens the power tab
   if (el('[data-perk-max]')) { setLevel('perk', perkOpen()?.maxLevel ?? 0); return; }
   if (el('[data-attr-max]')) { setLevel('attr', attrOpen()?.maxLevel ?? 0); return; }
   const pet = el('[data-pet]');
@@ -595,6 +604,8 @@ root.addEventListener('scroll', (e) => {
 }, { capture: true, passive: true });
 // set before the scroll it causes: a passive wheel may already have moved the list when its event comes
 const handScroll = () => { byHand = true; follow = false; };
+// A picture that is not there leaves its placeholder (the error event does not bubble, so it is caught on the way down).
+root.addEventListener('error', (e) => e.target.closest?.('.pic')?.classList.add('pic-miss'), true);
 root.addEventListener('wheel', handScroll, { passive: true });
 root.addEventListener('keydown', handScroll);
 // A tap on the switch slides to the neighbour like a swipe does, so the mark glides over in the same 200 ms.

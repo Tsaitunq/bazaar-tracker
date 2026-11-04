@@ -34,8 +34,8 @@ function overview(world, r) {
   const listed = m.listed.length ? `<section class="panel"><h2>Only when the condition holds</h2>${m.listed.map((l) => `<small>${esc(l.text)}</small>`).join('')}</section>` : '';
   const stone = world.gamedata?.power.powerStones.find((s) => s.id === world.build.power?.stone);
   const pet = m.pet.step ?? (m.pet.chosen ? petLabel(m.pet.chosen) : null);
-  const tag = (label, value) => `<a class="tag" href="#/stats/power/${esc(r.area)}">${label}: <b>${esc(value ?? 'none')}</b></a>`;
-  const figure = `<div class="panel figure-panel"><canvas data-figure class="figure" role="img" aria-label="Your player"></canvas><div class="tags">${tag('Pet', pet)}${tag('Power', stone?.power)}</div></div>`;
+  const tag = (label, value, goto = '') => `<a class="tag" href="#/stats/power/${esc(r.area)}"${goto}>${label}: <b>${esc(value ?? 'none')}</b></a>`;
+  const figure = `<div class="panel figure-panel"><canvas data-figure class="figure" role="img" aria-label="Your player"></canvas><div class="tags">${tag('Pet', pet, ' data-goto-pet')}${tag('Power', stone?.power)}</div></div>`;
   const drafts = ['hotm', 'attrs', 'power'].filter((p) => world.draft?.[p]).map((p) => ({ hotm: ['hotm', 'HOTM'], attrs: ['attributes', 'Attributes'], power: ['power', 'Power'] })[p]);
   const draftNote = drafts.map(([tab, name]) => `<a class="note draft-note" href="#/stats/${tab}/${esc(r.area)}">${name} draft not saved</a>`).join('');
   const note = m.missing === 'data' ? '<p class="note">Loading game data…</p>' : m.missing === 'items' ? '<p class="note">Loading item data… gear shows when it is there.</p>' : '';
