@@ -4,6 +4,7 @@ import { isItemStep, idsOfStep, idsToOwn, ownedAuto, impliedDone } from '../owne
 import { SCORES, miningSettings, pathsOf, LEFT_OUT } from '../optimizer.js';
 import { pathOf, entryPrice } from '../path.js';
 import { blazeState, daggersOf } from '../blaze.js';
+import { checkStep, lockProfile } from '../requires.js';
 import { gearOf } from './gear.js';
 import { totalFor, statsFor } from './totals.js';
 import { coins, number } from '../format.js';
@@ -251,7 +252,7 @@ export function guideModel(guide, world) {
   const scores = world.scores ?? SCORES;
   const owned = new Set(world.owned ?? []);
   const auto = autoOf(guide, owned);
-  const ctx = { ...world.prices, products: world.products, auto, profile: null, marks: world.marks, owned };
+  const ctx = { ...world.prices, products: world.products, auto, profile: null, lockProfile: lockProfile(world.build), marks: world.marks, owned };
   const checked = doneSet(guide, world.marks, auto);
   const implied = impliedDone(guide, checked, stepKey);
   const held = owned;
@@ -268,9 +269,10 @@ export function guideModel(guide, world) {
   let card = null;
   const rows = shownSteps.map(({ section, step, key }) => {
     const done = checked.has(key);
-    // without a profile no requirement can be checked, so a step is never locked here
-    const status = stepStatus({ done, locked: false, first: !card && !section.extra });
-    const reasons = [];
+    // only what the build proves locks a step (the HOTM tier); unknown is never locked
+    const lock = done ? null : checkStep(step, world.items, ctx.lockProfile);
+    const status = stepStatus({ done, locked: lock?.status === 'locked', first: !card && !section.extra });
+    const reasons = lock?.status === 'locked' ? lock.reasons : [];
     const entry = done ? null : entries.get(step);
     const rank = entry ? rankOf(entry, guide, ctx, world, plan.other) : null;
     const lines = statLines(rank?.delta ?? null);

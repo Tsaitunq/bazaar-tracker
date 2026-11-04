@@ -77,3 +77,12 @@ export function checkStep(step, items, profile) {
   if (!items || !profile) return { status: 'unknown', reasons: [] };
   return merge((step.items ?? []).map((line) => checkLine(line, items, profile)));
 }
+
+// What the build alone can prove: the HOTM tier typed in the editor (null = unknown = never locked).
+// Skills, slayers and collections cannot be read from a build, so they stay unknown.
+export function lockProfile(build) {
+  const tier = build?.hotm?.tier;
+  return Number.isInteger(tier) && tier >= 1 && tier <= 10 ? { hotm: { experience: HOTM_XP[tier - 1] } } : null;
+}
+
+export const lockedByBuild = (step, items, build) => checkStep(step, items, lockProfile(build));
