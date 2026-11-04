@@ -295,3 +295,11 @@ test('overview: a figure canvas with tags for the pet and the power stone', () =
   assert.ok(set.includes('Pet: <b>Scatha (Epic)</b>'));
   assert.ok(set.includes('Power: <b>Scorching</b>'));
 });
+
+test('overview: an unsaved draft shows a notice that links to its tab', () => {
+  const draft = { hotm: { tier: 5, levels: {}, omelette: false } };
+  const html = statsView(world({ draft }), { page: 'stats', tab: 'overview', area: 'mining' });
+  assert.ok(html.includes('href="#/stats/hotm/mining">HOTM draft not saved'));
+  assert.ok(!html.includes('Power draft not saved'));
+  assert.ok(!statsView(world({ draft: {} }), { page: 'stats', tab: 'overview', area: 'mining' }).includes('draft not saved'));
+});

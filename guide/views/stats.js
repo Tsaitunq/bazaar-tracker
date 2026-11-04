@@ -36,9 +36,11 @@ function overview(world, r) {
   const pet = m.pet.step ?? (m.pet.chosen ? petLabel(m.pet.chosen) : null);
   const tag = (label, value) => `<a class="tag" href="#/stats/power/${esc(r.area)}">${label}: <b>${esc(value ?? 'none')}</b></a>`;
   const figure = `<div class="panel figure-panel"><canvas data-figure class="figure" role="img" aria-label="Your player"></canvas><div class="tags">${tag('Pet', pet)}${tag('Power', stone?.power)}</div></div>`;
+  const drafts = ['hotm', 'attrs', 'power'].filter((p) => world.draft?.[p]).map((p) => ({ hotm: ['hotm', 'HOTM'], attrs: ['attributes', 'Attributes'], power: ['power', 'Power'] })[p]);
+  const draftNote = drafts.map(([tab, name]) => `<a class="note draft-note" href="#/stats/${tab}/${esc(r.area)}">${name} draft not saved</a>`).join('');
   const note = m.missing === 'data' ? '<p class="note">Loading game data…</p>' : m.missing === 'items' ? '<p class="note">Loading item data… gear shows when it is there.</p>' : '';
   return `<div class="scroll">${tabs(r)}${areas(r)}
-    ${figure}
+    ${draftNote}${figure}
     <div class="panel"><small>${when}</small><small>${gear}</small>${note}<a class="primary-link" href="#/stats/measure/${esc(r.area)}">${m.measured ? 'Measure base again' : `Measure ${esc(m.name)} base`}</a></div>
     <div class="panel stat-table"><div class="stat-row stat-head"><span>All ${esc(m.name.toLowerCase())} stats</span><span>Base</span><span>Gear</span><span>Total</span></div>${rows}</div>${moved}${listed}</div>`;
 }
