@@ -66,14 +66,11 @@ test('the line follows the row data', () => {
   assert.doesNotMatch(pathRow(row()), /rail-on/);
 });
 
-test('a row can be tapped, and shows have / need with API and an Undo apart from the row', () => {
+test('a row can be tapped and shows have / need', () => {
   assert.match(pathRow(row()), /<button type="button" class="row[^"]*" data-step="S\|a"/);
-  const part = pathRow(row({ progress: '3 / 4', api: true }));
+  const part = pathRow(row({ progress: '3 / 4' }));
   assert.match(part, /3 \/ 4/);
-  assert.match(part, /API/);
-  assert.doesNotMatch(part, /Undo/);
-  const auto = pathRow(row({ status: 'done', api: true, undo: true }));
-  assert.match(auto, /<\/button><button type="button" class="undo" data-step="S\|a"[^>]*>Undo</);
+  assert.doesNotMatch(part, /API|Undo/);
 });
 
 test('the card shows the hypixel stat, the gain, the cost and the rate', () => {

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { chaptersOf, totalShare, stampDone, unlockedThisWeek, guideModel, stepStatus, statDelta, statsOnly } from '../guide/model.js';
+import { chaptersOf, totalShare, stampDone, unlockedThisWeek, guideModel, stepStatus, statDelta } from '../guide/model.js';
+import { gamedata, baseOf, emptyBuild } from './fixtures/guide-world.js';
 import { pathRow, stepCard } from '../guide/views/parts.js';
 import { number } from '../format.js';
 import { miningSettings, SCORES } from '../optimizer.js';
@@ -68,7 +69,9 @@ const fighter = (over) => person([piece('PLATE', { sets: ['armor:1'], lore: { TR
 const fortune = (text, id = 'A', extra = {}) => ({ text, gain: { MINING_FORTUNE: 8 }, items: [{ id, qty: 1 }], ...extra });
 const mining = (steps) => ({ id: 'm', title: 'Mine', area: 'mining', groups: { drill: [[DRILL]] }, sections: [{ name: 'Main', steps }] });
 const blaze = (steps) => ({ id: 'b', title: 'Blaze', area: 'blaze', groups: {}, sections: [{ name: 'Main', steps }] });
-const world = (over = {}) => ({ marks: new Set(), state: { summary: miner(), syncedAt: 1 }, products: { A: sold(1e6), B: sold(1e5) }, prices: { items }, settings: miningSettings(null), ...over });
+const MINER = { mining: { values: { MINING_SPEED: 1000, MINING_FORTUNE: 100 } } };
+const FIGHTER = { blaze: { values: { STRENGTH: 3459, TRUE_DEFENSE: 200 }, mp: 1200 } };
+const world = (over = {}) => ({ marks: new Set(), owned: [DRILL], base: baseOf({ ...MINER, ...FIGHTER }), build: emptyBuild(), gamedata, products: { A: sold(1e6), B: sold(1e5) }, prices: { items }, settings: miningSettings(null), ...over });
 const statusOf = (m) => m.rows.map((r) => r.status);
 
 test('stepStatus gives the four states', () => {
@@ -99,16 +102,12 @@ test('the line runs in area up to the current step, after that in line', () => {
   assert.deepEqual(done.rows.map((r) => [r.railTop, r.railBottom]), [[true, true], [true, false]]);
 });
 
-test('a row shows the rate from the score of its area, done in green text, locked with its reason', () => {
-  const gated = { text: 'gated', items: [{ id: 'GATE', qty: 1 }] };
-  const m = guideModel(mining([fortune('a'), fortune('b'), fortune('c'), gated]), world({ marks: new Set(['Main|a']) }));
+test('a row shows the rate from the score of its area and done in green text', () => {
+  const m = guideModel(mining([fortune('a'), fortune('b'), fortune('c')]), world({ marks: new Set(['Main|a']) }));
   assert.equal(m.rows[0].side, 'done');
   assert.match(m.rows[2].side, /^[\d.]+[kMB]? per 1 %$/);
   assert.equal(m.rows[2].sub, '+8 ☘ Mining Fortune');
   assert.equal(m.rows[2].subColor, 'orange');
-  assert.equal(m.rows[3].status, 'locked');
-  assert.equal(m.rows[3].side, 'locked');
-  assert.match(m.rows[3].sub, /\S/);
 });
 
 test('no building block writes a unit of its own', () => {
@@ -135,20 +134,14 @@ test('the card gets the BEST VALUE badge only when it leads the ranking', () => 
   assert.equal(guideModel(mining([fortune('a', 'GONE'), fortune('b', 'GONE')]), world()).card.badge, false);
 });
 
-test('a partly done step shows have / need with API, an API tick has Undo', () => {
-  const owned = { kind: 'owned', on: 'drill', need: 1 };
-  const detected = { text: 'x', detect: owned };
-  const m = guideModel(mining([detected]), world());
-  assert.equal(m.rows[0].status, 'done');
-  assert.equal(m.rows[0].api, true);
-  assert.equal(m.rows[0].undo, true);
-  assert.equal(m.rows[0].sub, 'from sync');
-  const part = guideModel(mining([{ text: 'x', detect: { ...owned, need: 2 } }]), world());
+test('a partly owned step shows have / need, an owned one is done', () => {
+  const owned = { kind: 'owned', on: [[DRILL], ['PLATE']], need: 2 };
+  const part = guideModel(mining([{ text: 'x', detect: owned }]), world());
+  assert.equal(part.rows[0].status, 'current');
   assert.equal(part.rows[0].progress, '1 / 2');
-  assert.equal(part.rows[0].api, true);
-  assert.equal(part.rows[0].undo, false);
-  const mine = guideModel(mining([detected]), world({ marks: new Set(['Main|x']) }));
-  assert.equal(mine.rows[0].undo, false);
+  const all = guideModel(mining([{ text: 'x', detect: owned }]), world({ owned: [DRILL, 'PLATE'] }));
+  assert.equal(all.rows[0].status, 'done');
+  assert.equal(all.rows[0].progress, '');
 });
 
 test('the delta is the preview of the next step and empty without one', () => {
@@ -162,7 +155,7 @@ test('the delta is the preview of the next step and empty without one', () => {
 
 test('numbers use the thousands comma', () => {
   assert.equal(number(3459), '3,459');
-  const m = guideModel(blaze([{ text: 'a', gain: { STRENGTH: 20 }, items: [{ id: 'A', qty: 1 }] }]), world({ state: { summary: fighter(), syncedAt: 1 } }));
+  const m = guideModel(blaze([{ text: 'a', gain: { STRENGTH: 20 }, items: [{ id: 'A', qty: 1 }] }]), world({ owned: ['PLATE'] }));
   assert.equal(m.stats.find((s) => s.key === 'STRENGTH').value, '3,459');
 });
 
@@ -170,7 +163,7 @@ test('mining shows four stats, blaze six and the chips', () => {
   const mine = guideModel(mining([fortune('a')]), world());
   assert.deepEqual(mine.stats.map((s) => s.label), ['Mining Fortune', 'Mining Speed', 'Pristine', 'Gemstone Fortune']);
   assert.equal(mine.chips, null);
-  const fight = guideModel(blaze([{ text: 'a', gain: { STRENGTH: 20 }, items: [{ id: 'A', qty: 1 }] }]), world({ state: { summary: fighter(), syncedAt: 1 } }));
+  const fight = guideModel(blaze([{ text: 'a', gain: { STRENGTH: 20 }, items: [{ id: 'A', qty: 1 }] }]), world({ owned: ['PLATE'] }));
   assert.deepEqual(fight.stats.map((s) => s.label), ['Strength', 'Crit Dmg', 'Crit Ch.', 'Atk Speed', 'Health', 'Defense']);
   assert.equal(fight.chips.mp, 1200);
   assert.equal(fight.theme, 'blaze');
@@ -188,7 +181,7 @@ test('without prices cost shows … and is never 0', () => {
 });
 
 test('without a sync the path still shows, with no stats and no ranking', () => {
-  const m = guideModel(mining([fortune('a')]), world({ state: null }));
+  const m = guideModel(mining([fortune('a')]), world({ base: {} }));
   assert.equal(m.missing, 'stats');
   assert.deepEqual(m.stats, []);
   assert.equal(m.card.cost, '1M coins');
@@ -220,16 +213,6 @@ test('a section with nothing left to pay says nothing', () => {
   assert.equal(m.card.left, '');
 });
 
-test('statsOnly keeps typed stats and drops what came from the sync', () => {
-  const stand = { uuid: 'u', summary: {}, syncedAt: 1, statsInput: { mining: { values: { MINING_SPEED: 1 }, choice: { armor: null }, boost: false, at: 5, offset: { MINING_SPEED: 3 }, offsetFor: {}, offsetNote: null } } };
-  assert.deepEqual(statsOnly(stand), { statsInput: { mining: { values: { MINING_SPEED: 1 }, choice: { armor: null }, boost: false, at: 5 } } });
-});
-
-test('statsOnly without typed stats is null', () => {
-  assert.equal(statsOnly({ uuid: 'u' }), null);
-  assert.equal(statsOnly(null), null);
-});
-
 test('a section marked extra stays out of the ring', () => {
   const g = guide([1, 1], {});
   g.sections[1].extra = true;
@@ -243,7 +226,7 @@ test('the current chapter follows the current step, not the first open one', () 
 
 // the path as the order of the rows
 const coinsOf = (text, id, fortune, extra = {}) => ({ text, gain: { MINING_FORTUNE: fortune }, items: [{ id, qty: 1 }], ...extra });
-const typed = (over = {}) => world({ state: { statsInput: { mining: { values: { MINING_FORTUNE: 100, MINING_SPEED: 1000 }, at: 5 } } }, ...over });
+const typed = (over = {}) => world({ owned: [], base: baseOf(MINER), ...over });
 
 test('rate reads as coins per 1 %', () => assert.equal(SCORES.mining.rateText(0.01 / 1.62), '1.62M per 1 %'));
 
@@ -261,14 +244,14 @@ test('without a sync the rows have a rate from typed stats and ticks', () => {
   assert.match(m.rows[1].side, /per 1 %$/);
   assert.match(m.rows[0].card.rate, /per 1 % yield$/);
   assert.equal(m.missing, null);
-  assert.equal(guideModel(mining([coinsOf('a', 'A', 10)]), world({ state: null })).missing, 'stats');
+  assert.equal(guideModel(mining([coinsOf('a', 'A', 10)]), world({ base: {} })).missing, 'stats');
 });
 
-test('stats typed in before a tick follow it, ticks from before stay out of them', () => {
+test('every ticked step adds to the measured base', () => {
   const g = mining([coinsOf('old', 'A', 10), coinsOf('new', 'A', 20), coinsOf('open', 'A', 5)]);
   const marks = new Set(['Main|old', 'Main|new']);
-  const m = guideModel(g, typed({ marks, dates: { m: { 'Main|old': 1, 'Main|new': 9 } } }));
-  assert.equal(m.stats.find((s) => s.key === 'MINING_FORTUNE').value, '120');
+  const m = guideModel(g, typed({ marks }));
+  assert.equal(m.stats.find((s) => s.key === 'MINING_FORTUNE').value, '130');
 });
 
 test('rows follow the path order, done rows on top in guide order', () => {

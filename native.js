@@ -62,33 +62,22 @@ export async function storeHeld(id, held) {
   }
 }
 
-// The API key and the profile stay on the device: natively, encrypted and outside Android's backup, never in localStorage.
-export const canSync = () => plugin() !== null;
-
-// Null means no key. A key that cannot be read right now rejects, so nobody is told to add it again.
-export async function getApiKey() {
-  return (await plugin()?.getApiKey())?.key ?? null;
+// One-off for the update of the guide app: the old key and profile store. Throws when it cannot be read,
+// so nothing is deleted on a hiccup. Null when there is none.
+export async function readLegacyProfile() {
+  const p = plugin();
+  return p ? JSON.parse((await p.loadProfile())?.json ?? 'null') : null;
 }
 
-const done = async (call) => {
+export async function clearProfileData() {
   try {
-    if (!plugin()) return false;
-    await call(plugin());
+    const p = plugin();
+    if (!p) return false;
+    await p.clearApiKey();
+    await p.clearProfile();
     return true;
   } catch {
     return false;
-  }
-};
-export const setApiKey = (key) => done((p) => p.setApiKey({ key }));
-export const saveProfile = (profile) => done((p) => p.saveProfile({ json: JSON.stringify(profile) }));
-export const clearApiKeyOnly = () => done((p) => p.clearApiKey());
-export const clearProfileData = () => done(async (p) => { await p.clearApiKey(); await p.clearProfile(); });
-
-export async function loadProfile() {
-  try {
-    return JSON.parse((await plugin()?.loadProfile())?.json ?? 'null');
-  } catch {
-    return null;
   }
 }
 

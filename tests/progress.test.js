@@ -255,29 +255,21 @@ const synced = { title: 'S', groups: { armor: [['H'], ['C'], ['L'], ['B']] }, se
 const own = (...ids) => ({ items: ids.map((id) => ({ id, enchants: {}, gems: [], parts: {} })), pets: [] });
 const book = (price) => ({ buy_summary: [{ pricePerUnit: price, amount: 100 }] });
 const synProducts = { H: book(10), C: book(20), L: book(40), B: book(80), X: book(5), ENCHANTMENT_A_6: book(1000), S1: book(1) };
-const syncedRows = (profile, marks = new Set()) => guideModel({ id: 's', ...synced }, { marks, products: synProducts, name: (x) => x, state: { summary: profile } });
+const syncedRows = (profile, marks = new Set()) => guideModel({ id: 's', ...synced }, { marks, products: synProducts, name: (x) => x, owned: (profile?.items ?? []).map((i) => i.id) });
 const syncedRow = (profile, key, marks) => syncedRows(profile, marks).rows.find((r) => r.key === key);
 
 test('a partly owned step shows how far it is and prices only what is open', () => {
   const m = syncedRows(own('H', 'C'));
   const row = m.rows.find((r) => r.key === 'Gear|Set');
   assert.equal(row.progress, '2 / 4');
-  assert.equal(row.api, true);
   assert.deepEqual(m.card.items.map((i) => i.text.split(' · ')[0]), ['1× L', '1× B']);
 });
 
-test('what the sync finds is done and can be taken back', () => {
+test('owned pieces make a step done', () => {
   assert.equal(syncedRow(null, 'Gear|Set').status, 'current');
   const profile = own('H', 'C', 'L', 'B', 'S1');
   assert.equal(syncedRow(profile, 'Gear|Set').status, 'done');
-  assert.equal(syncedRow(profile, 'Gear|Set').undo, true);
   assert.equal(syncedRow(profile, 'Gear|Better').status, 'current');
-});
-
-test('an API check has a badge and undo, a tick of the player has neither', () => {
-  const auto = syncedRow(own('S1'), 'Gear|Sold');
-  assert.deepEqual([auto.api, auto.undo], [true, true]);
-  assert.equal(syncedRow(own('S1'), 'Gear|Sold', new Set(['Gear|Sold'])).undo, false);
 });
 
 test('a sold item loses the API tick, a manual one stays', () => {
@@ -313,13 +305,13 @@ const slotGuide = { title: 'G', sections: [{ name: 'Armor', steps: [
   { text: '655', line: 'd', detect: { kind: 'owned', on: [['DRILL_655']], slot: 'drill' } },
   { text: 'Divan', line: 'd', detect: { kind: 'owned', on: [['DIVAN']], slot: 'drill' } },
 ] }] };
-const slotRow = (ids, key) => guideModel({ id: 'g', ...slotGuide }, { marks: new Set(), products: {}, name: (x) => x, state: { summary: own(...ids) } }).rows.find((r) => r.key === key);
+const slotRow = (ids, key) => guideModel({ id: 'g', ...slotGuide }, { marks: new Set(), products: {}, name: (x) => x, owned: ids }).rows.find((r) => r.key === key);
 
-test('3/4 Crimson checks Frozen Blaze and Necron with the API badge, not the enchants', () => {
+test('3/4 Crimson checks Frozen Blaze and Necron, not the enchants', () => {
   const ids = ['C1', 'C2', 'C3'];
   for (const key of ['Armor|Necron', 'Armor|Frozen Blaze', 'Armor|3/4 Crimson']) {
     const row = slotRow(ids, key);
-    assert.deepEqual([row.status, row.api, row.undo], ['done', true, true], key);
+    assert.equal(row.status, 'done', key);
   }
   assert.notEqual(slotRow(ids, 'Armor|4/4 Infernal').status, 'done');
   assert.notEqual(slotRow(ids, 'Armor|Sharpness VI').status, 'done');
@@ -330,27 +322,8 @@ test('part of a later step is enough for the earlier ones, and Divan checks the 
   assert.notEqual(slotRow(['F1'], 'Armor|Frozen Blaze').status, 'done');
   for (const key of ['Drill|555', 'Drill|655', 'Drill|Divan']) {
     const row = slotRow(['DIVAN'], key);
-    assert.deepEqual([row.status, row.api], ['done', true], key);
+    assert.equal(row.status, 'done', key);
   }
-});
-
-const lockGuide = { title: 'L', sections: [{ name: 'S', steps: [{ text: 'Drill', items: [{ id: 'D', qty: 1 }] }, { text: 'Free', items: [{ id: 'F', qty: 1 }] }, { text: 'Later', items: [{ id: 'U', qty: 1 }] }] }] };
-const lockItems = { D: { requirements: [{ type: 'HEART_OF_THE_MOUNTAIN', tier: 7 }] }, U: { requirements: [{ type: 'GARDEN_LEVEL', level: 1 }] } };
-const lockProfile = { items: [], pets: [], hotm: { experience: 97000 }, skills: {}, slayer: {}, kuudra: {}, collTiers: [] };
-const lockRow = (key, { items = lockItems, profile = lockProfile, marks = new Set() } = {}) => guideModel({ id: 'l', ...lockGuide }, { marks, products: {}, name: (x) => x, prices: { items }, state: profile && { summary: profile } }).rows.find((r) => r.key === key);
-
-test('a locked step says why and stays checkable', () => {
-  const row = lockRow('S|Drill');
-  assert.equal(row.status, 'locked');
-  assert.match(row.sub, /HOTM 7 needed, you have 5/);
-  assert.equal(lockRow('S|Drill', { marks: new Set(['S|Drill']) }).status, 'done');
-});
-
-test('an unknown or met step shows no lock, and neither does a done one', () => {
-  assert.notEqual(lockRow('S|Later').status, 'locked');
-  assert.notEqual(lockRow('S|Free').status, 'locked');
-  assert.notEqual(lockRow('S|Drill', { items: {} }).status, 'locked');
-  assert.notEqual(lockRow('S|Drill', { profile: null }).status, 'locked');
 });
 
 test('validGuide keeps area and numeric gain and drops anything else', () => {

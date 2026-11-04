@@ -6,6 +6,7 @@ const css = readFileSync('guide/guide.css', 'utf8');
 // the table of docs/design-guide-app.md
 const DOC = {
   home: { area: '#9B6BFF', bg: '#0B0A10', surface: '#15131C', raised: '#1A1626', deep: '#0F0D16', line: '#2A2636', track: '#221E2E', muted: '#A39DB5', soft: '#C9C4D6', text: '#F2F0F7', dim: '#3D3750' },
+  stats: { area: '#B794FF', bg: '#0B0A10', surface: '#15131C', raised: '#221E2E', deep: '#0F0D16', line: '#2A2636', track: '#221E2E', muted: '#A39DB5', soft: '#C9C4D6', text: '#F2F0F7', dim: '#3D3750', k1: '#D6C2FF', k2: '#B794FF', k3: '#7A4FD6' },
   mining: { area: '#5CC8FF', bg: '#090B0E', surface: '#111821', raised: '#15202C', deep: '#0C1218', line: '#1E2A36', track: '#1A2532', muted: '#9AAAB8', soft: '#C4D2DD', text: '#EEF3F7', dim: '#2A3A48', k1: '#BDEBFF', k2: '#5CC8FF', k3: '#2F6FD6' },
   blaze: { area: '#FF8A3D', bg: '#0D0908', surface: '#1A1210', raised: '#22160F', deep: '#120C0A', line: '#33221F', track: '#2A1C1A', muted: '#B8A39C', soft: '#DCCBC5', text: '#F6F0EE', dim: '#4A3330', k1: '#FFC27A', k2: '#FF8A3D', k3: '#C24A1F' },
   farming: { area: '#5BD46B', bg: '#0A0C0B', surface: '#121714', raised: '#16201A', deep: '#0E1310', line: '#1F2A22', track: '#18221B', muted: '#A3B3A6', soft: '#C9D6CC', text: '#EFF4F0', dim: '#33463A', k1: '#A8EBB1', k2: '#5BD46B', k3: '#2E8A3C' },

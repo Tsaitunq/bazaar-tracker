@@ -80,3 +80,6 @@ export function totalFor({ area, entry, build, gear = {}, data, stats }) {
   });
   return { rows, total, listed: now.listed };
 }
+
+// The stats of an area in the order of gamedata/stats.json.
+export const statsFor = (area, data) => data.stats.stats.filter((s) => s.areas.includes(DATA_AREA[area])).map((s) => s.id);

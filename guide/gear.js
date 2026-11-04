@@ -8,7 +8,7 @@ import { gearStats, petStats, petStatsAt } from '../stats.js';
 
 // Steps about the build or the pet are not gear: HOTM, shards and power are in the base, the pet is counted once at the end.
 const BUILD_KINDS = new Set(['perk', 'attr', 'power', 'essence', 'pet', 'petItem', 'held', 'coll', 'skill']);
-const isBuildStep = (step) => [step.detect ?? []].flat().every((d) => BUILD_KINDS.has(d.kind));
+const isBuildStep = (step) => { const parts = [step.detect ?? []].flat(); return parts.length > 0 && parts.every((d) => BUILD_KINDS.has(d.kind)); };
 
 const sum = (into, from) => { for (const [k, v] of Object.entries(from ?? {})) into[k] = (into[k] ?? 0) + v; return into; };
 

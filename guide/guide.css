@@ -9,6 +9,7 @@
   --rarity-common: #FFFFFF; --rarity-uncommon: #55FF55; --rarity-rare: #6F7BFF; --rarity-epic: #C355E0; --rarity-legendary: #FFAA00; --rarity-mythic: #FF55FF;
 }
 [data-theme="home"] { --area: #9B6BFF; --bg: #0B0A10; --surface: #15131C; --raised: #1A1626; --deep: #0F0D16; --line: #2A2636; --track: #221E2E; --muted: #A39DB5; --soft: #C9C4D6; --text: #F2F0F7; --dim: #3D3750; --k1: #BDA6FF; --k2: #9B6BFF; --k3: #6B3FD6; }
+[data-theme="stats"] { --area: #B794FF; --bg: #0B0A10; --surface: #15131C; --raised: #221E2E; --deep: #0F0D16; --line: #2A2636; --track: #221E2E; --muted: #A39DB5; --soft: #C9C4D6; --text: #F2F0F7; --dim: #3D3750; --k1: #D6C2FF; --k2: #B794FF; --k3: #7A4FD6; }
 [data-theme="mining"] { --area: #5CC8FF; --bg: #090B0E; --surface: #111821; --raised: #15202C; --deep: #0C1218; --line: #1E2A36; --track: #1A2532; --muted: #9AAAB8; --soft: #C4D2DD; --text: #EEF3F7; --dim: #2A3A48; --k1: #BDEBFF; --k2: #5CC8FF; --k3: #2F6FD6; }
 [data-theme="blaze"] { --area: #FF8A3D; --bg: #0D0908; --surface: #1A1210; --raised: #22160F; --deep: #120C0A; --line: #33221F; --track: #2A1C1A; --muted: #B8A39C; --soft: #DCCBC5; --text: #F6F0EE; --dim: #4A3330; --k1: #FFC27A; --k2: #FF8A3D; --k3: #C24A1F; }
 [data-theme="farming"] { --area: #5BD46B; --bg: #0A0C0B; --surface: #121714; --raised: #16201A; --deep: #0E1310; --line: #1F2A22; --track: #18221B; --muted: #A3B3A6; --soft: #C9D6CC; --text: #EFF4F0; --dim: #33463A; --k1: #A8EBB1; --k2: #5BD46B; --k3: #2E8A3C; }
@@ -242,3 +243,12 @@ a { color: var(--area); }
 .ev-rule ul { margin: 4px 0 0; padding-left: 16px; font-size: 12px; color: var(--soft); overflow-wrap: anywhere; }
 .evidence .ev-yes { color: var(--gain); } .evidence .ev-partly { color: var(--stat-yellow); } .evidence .ev-no, .evidence .ev-miss { color: var(--stat-red); }
 .ev-guide summary { min-height: 44px; display: flex; align-items: center; font-size: 13px; color: var(--soft); cursor: pointer; }
+
+/* stats: base, gear and total */
+.stats-title { margin: 0; font-size: 20px; font-weight: 700; }
+.top-fill { width: 60px; }
+.stat-table { gap: 3px; }
+.stat-row { display: grid; grid-template-columns: 1.9fr 0.9fr 0.9fr 0.9fr; gap: 4px; font-size: 12px; align-items: baseline; min-height: 19px; }
+.stat-row span:not(:first-child), .stat-row b { text-align: right; }
+.stat-head { font-size: 10px; color: var(--muted); padding-bottom: 2px; }
+.primary-link { align-self: flex-start; min-height: 44px; display: inline-flex; align-items: center; padding: 0 16px; border-radius: 22px; background: var(--raised); color: var(--text); font-size: 13px; text-decoration: none; }

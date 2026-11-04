@@ -1,27 +1,25 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { homeView } from '../guide/views/home.js';
-import { guideView, statsView } from '../guide/views/guide.js';
+import { guideView } from '../guide/views/guide.js';
+import { statsView } from '../guide/views/stats.js';
+import { gamedata, baseOf, emptyBuild } from './fixtures/guide-world.js';
 import { settingsView } from '../guide/views/settings.js';
 import { nextPerGuide, guideModel, worldFor } from '../guide/model.js';
 import { miningSettings } from '../optimizer.js';
 
 const sold = (price) => ({ buy_summary: [{ pricePerUnit: price, amount: 100 }] });
-const piece = (id, extra = {}) => ({ id, where: 'armor', gems: [], enchants: {}, parts: {}, reforge: null, recomb: false, polarvoid: 0, coating: false, lore: {}, ...extra });
 const DRILL = 'TITANIUM_DRILL_4';
 const items = { [DRILL]: { category: 'DRILL', tier: 'LEGENDARY', stats: { MINING_SPEED: 1600 } }, PLATE: { category: 'CHESTPLATE', tier: 'LEGENDARY', stats: {} }, GATE: { category: 'BOOTS', tier: 'RARE', stats: {}, requirements: [{ type: 'HEART_OF_THE_MOUNTAIN', tier: 7 }] } };
-const profile = (over = {}) => ({
-  items: [piece(DRILL, { where: 'inventory', lore: { MINING_SPEED: 1000, MINING_FORTUNE: 100 } }), piece('PLATE', { sets: ['armor:1'], lore: { TRUE_DEFENSE: 200, STRENGTH: 45 } })],
-  pets: [], hotm: { experience: 0, nodes: {} }, skills: null, collTiers: null, attrs: {}, slayer: null, mp: 1200,
-  wardrobe: { armor: { equipped: 1, sets: [1] }, equipment: { equipped: 1, sets: [1] } }, ...over,
-});
 const step = (text, id = 'A', gain = { MINING_FORTUNE: 8 }) => ({ text, gain, items: [{ id, qty: 1 }] });
 const mining = { id: 'mine', title: 'Mining', area: 'mining', groups: { drill: [[DRILL]] }, sections: [{ name: 'Main', steps: [step('Jade'), step('Topaz', 'B')] }] };
 const blaze = { id: 'fire', title: 'Blaze Slayer', area: 'blaze', groups: {}, sections: [{ name: 'Start', steps: [step('Boots', 'A', { STRENGTH: 20 })] }] };
 const NOW = 1e12;
+const base = (mp = 1200) => baseOf({ mining: { values: { MINING_SPEED: 1000, MINING_FORTUNE: 100 } }, blaze: { values: { TRUE_DEFENSE: 200, STRENGTH: 45 }, mp } });
+const BASE = base();
 const world = (over = {}) => ({
-  guides: [mining, blaze], checks: {}, dates: {}, state: { summary: profile(), syncedAt: NOW - 2 * 3600e3, profileName: 'P' }, products: { A: sold(1e6), B: sold(2e6) }, prices: { items },
-  personal: true, settings: miningSettings(null), keepOldGear: false, boosts: {}, now: NOW, hasKey: false, uuid: '', canSync: true, message: '', choices: [], armed: null, name: String, ...over,
+  guides: [mining, blaze], checks: {}, dates: {}, owned: [DRILL, 'PLATE'], base: BASE, build: emptyBuild(), gamedata, products: { A: sold(1e6), B: sold(2e6) }, prices: { items }, items,
+  settings: miningSettings(null), keepOldGear: false, now: NOW, armed: null, name: String, ...over,
 });
 
 test('home shows one line per guide with its next step, value and unit, and no shared best deal card', () => {
@@ -41,7 +39,6 @@ test('home has one card per guide in its theme, next step in area colour', () =>
   assert.match(html, /class="guide-card" data-theme="mining" href="#\/guide\/mine\/path"/);
   assert.match(html, /class="guide-card" data-theme="blaze" href="#\/guide\/fire\/path"/);
   assert.match(html, /<em>Next: Jade<\/em>/);
-  assert.match(html, /Synced 2 h ago/);
 });
 
 test('home shows coins for all next steps and unlocked this week', () => {
@@ -75,7 +72,7 @@ test('the path has its card and its rows, and no bar', () => {
 });
 
 test('below a limit the chip row says so, and without a block', () => {
-  const low = world({ state: { summary: profile({ mp: 700 }), syncedAt: 1 } });
+  const low = world({ base: base(700) });
   const html = guideView(low, 'fire', 'path');
   assert.match(html, /chip-low/);
   assert.match(html, /c-red">700 ✗<\/span> \/ 800/);
@@ -83,45 +80,53 @@ test('below a limit the chip row says so, and without a block', () => {
 });
 
 test('stats open from the profile button only: no bar names them', () => {
-  const entry = { choice: { armor: 1, equipment: 1, pet: null }, values: { STRENGTH: '1' }, offset: {}, offsetFor: { armor: 1, equipment: 1, pet: null }, at: 2 };
-  const s = world({ state: { summary: profile(), syncedAt: 1, statsInput: { blaze: entry } } });
-  const all = statsView(s);
-  assert.match(all, /data-stats-area="mining"/);
-  assert.match(all, /data-stats-area="blaze"/);
-  assert.match(all, /data-stats-set="armor"/);
-  assert.match(all, /data-stats-stat="STRENGTH"/);
-  assert.match(all, /class="stats-table"/);
-  for (const html of [all, homeView(s), settingsView(s), guideView(s, 'fire', 'path')]) assert.doesNotMatch(html, /data-tab="stats"/);
+  const s = world();
+  for (const html of [homeView(s), settingsView(s), guideView(s, 'fire', 'path')]) assert.doesNotMatch(html, /data-tab="stats"/);
   for (const html of [homeView(s), guideView(s, 'fire', 'path')]) assert.match(html, /class="profile" href="#\/stats"/);
   assert.doesNotMatch(guideView(s, 'fire', 'stats'), /data-stats-area/);
 });
 
-test('settings holds uuid, key state, weights, presets, keep gear, boosts, import, export, reset', () => {
-  const html = settingsView(world({ uuid: 'abc' }));
-  assert.match(html, /data-set="uuid"[^>]*value="abc"/);
-  assert.match(html, /No key saved/);
+test('the overview shows base, gear and total per stat, with the date of the measurement', () => {
+  const html = statsView(world({ owned: [DRILL] }), { page: 'stats', tab: 'overview', area: 'mining' });
+  assert.match(html, /data-theme="stats"/);
+  assert.match(html, /class="stat-row stat-head"/);
+  assert.match(html, /Mining Speed<\/span><span>1,000<\/span><span class="c-green">\+1,600<\/span><b class="c-orange">2,600<\/b>/);
+  assert.match(html, /Base measured <b>[^<]* ago<\/b>, no gear/);
+  assert.match(html, /href="#\/stats\/measure\/mining"/);
+  assert.doesNotMatch(html, /data-tab="stats"/);
+});
+
+test('an area without a measurement says so and offers to measure', () => {
+  const html = statsView(world({ base: {} }), { page: 'stats', tab: 'overview', area: 'blaze' });
+  assert.match(html, /No base measured yet/);
+  assert.match(html, /Measure Blaze base/);
+});
+
+test('the measure screen asks for each stat of the area, the buffs and the date stays out', () => {
+  const html = statsView(world(), { page: 'stats', tab: 'measure', area: 'mining' });
+  assert.match(html, /data-stats-area="mining"/);
+  assert.match(html, /data-stats-stat="MINING_FORTUNE"/);
+  assert.match(html, /data-buff="godPotion"/);
+  assert.match(html, /data-stats-save/);
+  assert.doesNotMatch(html, /data-stats-mp/);
+  assert.match(statsView(world(), { page: 'stats', tab: 'measure', area: 'blaze' }), /data-stats-mp/);
+});
+
+test('HOTM, attributes and power are placeholders for now', () => {
+  for (const tab of ['hotm', 'attributes', 'power']) assert.match(statsView(world(), { page: 'stats', tab, area: 'mining' }), /comes with the next update/);
+});
+
+test('settings holds weights, presets, keep gear, import, export, reset and no key', () => {
+  const html = settingsView(world());
+  assert.doesNotMatch(html, /data-set="key"|data-set="uuid"|data-sync|data-act="remove"|data-flag="personal"|API key/);
   for (const key of ['wF', 'wS', 'wP', 'blockStrength']) assert.match(html, new RegExp(`data-mining="${key}"`));
   for (const preset of ['gemstone', 'mithril', 'glacite']) assert.match(html, new RegExp(`<option value="${preset}"`));
   assert.match(html, /data-act="import-file"/);
-  for (const flag of ['keepOldGear', 'godPotion', 'boosterCookie']) assert.match(html, new RegExp(`data-flag="${flag}"`));
+  assert.match(html, /data-flag="keepOldGear"/);
   assert.match(html, /data-act="import"/);
   assert.match(html, /data-act="export"/);
   assert.match(html, /data-reset="mine"/);
   assert.match(settingsView(world({ armed: 'mine' })), /data-reset-yes="mine"/);
-});
-
-test('the key field never shows the key', () => {
-  const html = settingsView(world({ hasKey: true, key: 'secret-value' }));
-  assert.match(html, /Key saved/);
-  assert.doesNotMatch(html, /secret-value/);
-  assert.match(html, /<input type="password"[^>]*data-set="key"[^>]*value=""/);
-});
-
-test('a sync without the plugin is not offered', () => {
-  const html = settingsView(world({ canSync: false }));
-  assert.doesNotMatch(html, /data-sync="run"/);
-  assert.match(html, /Sync needs the Android app/);
-  assert.match(settingsView(world()), /data-sync="run"/);
 });
 
 test('farming shows the empty state with its theme and no sample values', () => {
@@ -149,30 +154,20 @@ test('while the guides still load, home shows no empty note', () => {
   assert.match(html, /class="bar"/);
 });
 
-test('the start state offers typed-in stats and hides the key', () => {
-  const off = world({ state: null, personal: false });
-  const settings = settingsView(off);
-  assert.match(settings, /data-flag="personal">/);
-  assert.doesNotMatch(settings, /data-set="key"|data-set="uuid"|data-sync="run"|data-act="remove"/);
-  assert.doesNotMatch(homeView(off), /Not synced yet/);
-  assert.match(settingsView(world({ state: null })), /data-flag="personal" checked[^]*data-set="key"/);
-});
-
 test('typed-in stats fill the grid without a sync, and an empty field stays unknown', () => {
-  const typed = world({ state: { uuid: '', statsInput: { mining: { values: { MINING_FORTUNE: 1234 }, at: 1 } } }, personal: false });
+  const typed = world({ owned: [], base: baseOf({ mining: { values: { MINING_FORTUNE: 1234 } } }) });
   const html = guideView(typed, 'mine', 'path');
   assert.match(html, /1,234/);
   assert.match(html, /–/);
-  assert.doesNotMatch(guideView(world({ state: null, personal: false }), 'mine', 'path'), /class="stat-value/);
+  assert.doesNotMatch(guideView(world({ base: {} }), 'mine', 'path'), /class="stat-value/);
 });
 
 test('no sync shows what is missing and links to settings', () => {
-  const off = world({ state: null });
-  assert.match(homeView(off), /Not synced yet/);
+  const off = world({ base: {} });
   const path = guideView(off, 'mine', 'path');
   assert.match(path, /class="card"/);
-  assert.match(path, /Type in your \/stats/);
-  assert.match(path, /href="#\/stats"/);
+  assert.match(path, /Measure your base/);
+  assert.match(path, /href="#\/stats\/measure\/mining"/);
   assert.match(guideView(world({ prices: {} }), 'mine', 'path'), /Loading item data/);
 });
 
@@ -199,7 +194,7 @@ test('the notes wait behind the ⓘ of the head, not above the path', () => {
   assert.doesNotMatch(before, /Not modelled/);
   assert.match(sheet, /Not modelled/);
   assert.match(html, /class="chips"/);
-  const plain = world({ state: { uuid: '', statsInput: { mining: { values: { MINING_FORTUNE: 1 }, at: 1 } } }, personal: false, settings: { ...miningSettings(null), gemFortune: true } });
+  const plain = world({ owned: [], base: baseOf({ mining: { values: { MINING_FORTUNE: 1 } } }), settings: { ...miningSettings(null), gemFortune: true } });
   assert.doesNotMatch(guideView(plain, 'mine', 'path'), /data-info|<dialog/);
 });
 

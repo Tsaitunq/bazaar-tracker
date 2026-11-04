@@ -1,6 +1,6 @@
 import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { alertConfig, plugin, syncAlerts, syncNames, onRoute, requestAlertPermission, canSync, getApiKey, setApiKey, loadProfile, saveProfile, clearProfileData, clearApiKeyOnly } from '../native.js';
+import { alertConfig, plugin, syncAlerts, syncNames, onRoute, requestAlertPermission, readLegacyProfile, clearProfileData } from '../native.js';
 
 afterEach(() => { delete globalThis.Capacitor; });
 
@@ -76,55 +76,29 @@ test('names for every product and notification routes go through the plugin', as
   assert.deepEqual(opened, ['#/opps']);
 });
 
-test('without the plugin nothing about the key or profile works and nothing throws', async () => {
-  assert.equal(canSync(), false);
-  assert.equal(await getApiKey(), null);
-  assert.equal(await setApiKey('x'), false);
-  assert.equal(await loadProfile(), null);
-  assert.equal(await saveProfile({ a: 1 }), false);
+test('the old profile store: none without the plugin, nothing is cleared', async () => {
+  assert.equal(await readLegacyProfile(), null);
   assert.equal(await clearProfileData(), false);
 });
 
-test('a failing plugin rejects for the key and gives null or false for the rest', async () => {
-  const boom = async () => { throw new Error('boom'); };
-  globalThis.Capacitor = {
-    isNativePlatform: () => true,
-    Plugins: { BazaarAlerts: { getApiKey: boom, setApiKey: boom, clearApiKey: boom, loadProfile: boom, saveProfile: boom, clearProfile: boom } },
-  };
-  assert.equal(canSync(), true);
-  await assert.rejects(getApiKey());
-  assert.equal(await setApiKey('x'), false);
-  assert.equal(await loadProfile(), null);
-  assert.equal(await saveProfile({ a: 1 }), false);
-  assert.equal(await clearProfileData(), false);
-});
-
-test('the profile goes to the plugin as JSON and a broken one reads as none', async () => {
+test('the old profile reads as JSON, a store that fails or is broken rejects so nothing gets deleted', async () => {
   const calls = [];
   let stored = '{"a":1}';
   globalThis.Capacitor = {
     isNativePlatform: () => true,
     Plugins: { BazaarAlerts: {
-      saveProfile: async (c) => { calls.push(c); },
       loadProfile: async () => ({ json: stored }),
-      getApiKey: async () => ({ key: 'K' }),
-      setApiKey: async (c) => { calls.push(c); },
       clearApiKey: async () => { calls.push('key'); },
       clearProfile: async () => { calls.push('profile'); },
     } },
   };
-  assert.equal(await saveProfile({ a: 1 }), true);
-  assert.deepEqual(calls[0], { json: '{"a":1}' });
-  assert.deepEqual(await loadProfile(), { a: 1 });
-  stored = '{broken';
-  assert.equal(await loadProfile(), null);
+  assert.deepEqual(await readLegacyProfile(), { a: 1 });
   stored = null;
-  assert.equal(await loadProfile(), null);
-  assert.equal(await getApiKey(), 'K');
-  assert.equal(await setApiKey('K2'), true);
-  assert.deepEqual(calls[1], { key: 'K2' });
+  assert.equal(await readLegacyProfile(), null);
+  stored = '{broken';
+  await assert.rejects(readLegacyProfile());
   assert.equal(await clearProfileData(), true);
-  assert.deepEqual(calls.slice(2), ['key', 'profile']);
-  assert.equal(await clearApiKeyOnly(), true);
-  assert.deepEqual(calls.slice(4), ['key']);
+  assert.deepEqual(calls, ['key', 'profile']);
+  globalThis.Capacitor.Plugins.BazaarAlerts.clearProfile = async () => { throw new Error('boom'); };
+  assert.equal(await clearProfileData(), false);
 });

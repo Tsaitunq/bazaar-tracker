@@ -5,7 +5,7 @@ Telefon-Layout 390 px breit, Schrift Space Grotesk (400/500/700), Zahlen mit Tau
 
 ## Themes (Tokens)
 
-Die Startseite ist lila. Jeder Guide ist komplett eingefärbt (Hintergrund, Flächen, Linien, Leiste), nicht nur Akzente.
+Die Startseite ist lila, die Stats-Seiten haben ein eigenes helleres Lila (`stats`: area #B794FF, raised #221E2E, k1/k2/k3 #D6C2FF / #B794FF / #7A4FD6, sonst wie Home). Jeder Guide ist komplett eingefärbt (Hintergrund, Flächen, Linien, Leiste), nicht nur Akzente.
 
 | Token   | Home (lila) | Mining (Eisblau) | Blaze (Glut) | Farming (Grün) |
 |---------|-------------|------------------|--------------|----------------|

@@ -1,16 +1,17 @@
-// The guide app: state, routes, sync, prices and events. What it shows is worked out in model.js and views/.
-import { loadItemData, loadStatsPreset, loadForge, loadAh, loadElection, freshBins, fetchBins } from '../data.js';
+// The guide app: state, routes, prices and events. What it shows is worked out in model.js and views/.
+import { loadItemData, loadForge, loadAh, loadElection, freshBins, fetchBins } from '../data.js';
 import { loadBundled, mergeGuides, exportData, importData, doneSet } from '../progress.js';
-import { createSync, syncMessage, normalizeUuid, cleanKey } from '../sync.js';
-import { plugin, canSync, getApiKey, setApiKey, loadProfile, saveProfile, clearProfileData, clearApiKeyOnly } from '../native.js';
-import { summarize } from '../profile.js';
+import { plugin, readLegacyProfile, clearProfileData } from '../native.js';
 import { migrateOwned, resetOwned } from '../owned.js';
 import { fallbackName, loadItems } from '../names.js';
 import { PRESETS, miningSettings } from '../optimizer.js';
-import { computeStats, loadoutOf, offsetStale, statsEntry } from '../stats.js';
-import { parseRoute, syncOutcome, applyImport, stampAll, formEdited, typedFields, restoreTyped, settled, statsOnly, autoOf, tickStep, swipeTarget, swipeAxis, swipeLands, familyOf } from './model.js';
+import { loadGameData } from './gamedata.js';
+import { emptyBuild, measure } from './build.js';
+import { runMigration } from './migrate.js';
+import { parseRoute, applyImport, stampAll, formEdited, typedFields, restoreTyped, settled, autoOf, tickStep, swipeTarget, swipeAxis, swipeLands, familyOf } from './model.js';
 import { homeView } from './views/home.js';
-import { guideView, statsView } from './views/guide.js';
+import { guideView } from './views/guide.js';
+import { statsView } from './views/stats.js';
 import { settingsView } from './views/settings.js';
 
 const BAZAAR = 'https://api.hypixel.net/v2/skyblock/bazaar';
@@ -40,23 +41,19 @@ let checks = load('pg.checks', {});
 let dates = load('pg.dates', {});
 let owned = load('pg.owned', []);
 const settings = load('pg.settings', {});
+let base = load('pg.base', {}); // the measured stats per area
+let build = { ...emptyBuild(), ...load('pg.build', {}) }; // HOTM, shards, power and buffs now
+let gamedata = null;
 const bins = load('pg.bins', {});
-let state; // undefined until the stored profile is loaded, null when there is none
 let products = null;
 let forge = null;
 let ah = {};
 let items = null;
 let election = null;
-let preset = null;
-let hasKey = false;
-let keyMessage = null;
 let names = {};
-let note = { message: '', choices: [] };
-let profileMessage = '';
 let dataMessage = '';
 let dataText = '';
 let armed = null;
-let removeArmed = false;
 let binsBusy = false;
 let binsFailed = 0;
 let pending = new Set();
@@ -65,7 +62,6 @@ let settling = false;
 let redrawDue = false;
 let shownRoute = '';
 let infoOpen = false; // the sheet of notes stays open over a redraw
-let evidenceKey = null; // the step whose API tag was tapped: its sheet stays open over a redraw
 let tiers = {};
 let folded = false; // the head of a guide, down to its title line
 let byHand = false; // a finger, wheel or key was used; the app's own scroll to the card does not fold the head
@@ -84,32 +80,19 @@ const targetOf = (dx) => {
   const guide = guides().find((g) => g.id === r.id);
   return swipeTarget(r, dx, guide ? familyOf(guides(), guide).map((g) => g.id) : [r.id]);
 };
-// Off until asked for, so the app starts on typed-in stats. Whoever already has a key or a sync keeps it.
-const personal = () => settings.personal ?? (hasKey || !!state?.syncedAt);
-// With the sync off, what it found stays stored but counts for nothing. Keeps undefined: the profile is not loaded yet.
-const shownState = () => (state && !personal() ? { ...state, summary: undefined, syncedAt: undefined } : state);
-// Typed-in stats are no secret, so without the Android store they live in the browser.
-const loadStand = () => (plugin() ? loadProfile() : load('pg.profile', null));
-const saveStand = async (stand) => {
-  if (plugin()) return saveProfile(stand);
-  save('pg.profile', stand);
-  return true;
-};
-const boosts = () => ({ godPotion: settings.godPotion ?? preset?.boosts?.godPotion ?? false, boosterCookie: settings.boosterCookie ?? preset?.boosts?.boosterCookie ?? false });
-
 const world = () => {
   pending = new Set();
   return {
-    guides: guides(), checks, owned, dates, state: shownState() ?? null, personal: personal(), products, now: Date.now(),
+    guides: guides(), checks, owned, dates, base, build, gamedata, products, now: Date.now(),
     prices: { forge, ah, cofl: freshBins(bins), wants: pending, items, tax: (settings.tax ?? DEFAULT_TAX) / 100, derpy: election?.mayor?.name === 'Derpy' },
-    settings: miningSettings(settings.mining), keepOldGear: settings.keepOldGear === true, brake: settings.brake > 0 ? settings.brake : 5, pathEpoch, opened, boosts: boosts(), preset,
-    name: (id) => names[id] ?? fallbackName(id), uuid: state?.uuid ?? '', hasKey, keyMessage, tax: settings.tax ?? DEFAULT_TAX, importedIds: imported.map((g) => g.id), canSync: canSync(), message: note.message, choices: note.choices,
-    loading, profileMessage, dataMessage, dataText, armed, removeArmed, evidence: evidenceKey, tierOf: (id) => tiers[id] ?? '',
+    settings: miningSettings(settings.mining), keepOldGear: settings.keepOldGear === true, brake: settings.brake > 0 ? settings.brake : 5, pathEpoch, opened, items,
+    name: (id) => names[id] ?? fallbackName(id), tax: settings.tax ?? DEFAULT_TAX, importedIds: imported.map((g) => g.id),
+    loading, dataMessage, dataText, armed,
   };
 };
 
 function screenOf(r, w) {
-  if (r.page === 'stats') return statsView(w);
+  if (r.page === 'stats') return statsView(w, r);
   if (r.page === 'settings') return settingsView(w);
   if (r.page === 'guide') return guideView(w, r.id) ?? homeView(w);
   return homeView(w);
@@ -152,7 +135,6 @@ function draw() {
   if (shown !== shownRoute) {
     folded = false;
     infoOpen = false;
-    evidenceKey = null;
     byHand = false;
     follow = true;
   }
@@ -164,7 +146,6 @@ function draw() {
   shownRoute = shown;
   root.firstElementChild?.classList.toggle('head-min', folded);
   if (infoOpen) openInfo();
-  if (evidenceKey) openEvidence();
   if (focused !== undefined) {
     const same = [...root.querySelectorAll('[data-step]')].filter((el) => el.dataset.step === focused);
     (same.find((el) => el.className === focusClass) ?? same[0])?.focus({ preventScroll: true });
@@ -181,13 +162,6 @@ function openInfo() {
   infoOpen = true;
   // a sheet thrown away by a redraw may still report its close; only the one on screen counts
   sheet.addEventListener('close', () => { if (root.contains(sheet)) infoOpen = false; }, { once: true });
-}
-
-function openEvidence() {
-  const sheet = root.querySelector('dialog.ev-sheet');
-  if (!sheet) { evidenceKey = null; return; }
-  if (!sheet.open) sheet.showModal();
-  sheet.addEventListener('close', () => { if (root.contains(sheet)) evidenceKey = null; }, { once: true });
 }
 
 function drawInBackground() {
@@ -208,8 +182,8 @@ async function askBins(wants) {
   else drawInBackground();
 }
 
-function stamp(firstRun = false) {
-  dates = stampAll(guides(), checks, dates, shownState(), Date.now(), firstRun, owned);
+function stamp() {
+  dates = stampAll(guides(), checks, dates, Date.now(), owned);
   save('pg.dates', dates);
 }
 
@@ -262,9 +236,8 @@ function toggle(key, fromCard = false) {
   const guide = guides().find((g) => g.id === r.id);
   if (!guide) return;
   const marks = new Set(checks[guide.id] ?? []);
-  const summary = shownState()?.summary;
-  const on = !doneSet(guide, marks, autoOf(guide, summary, owned)).has(key);
-  owned = [...tickStep({ guide, key, on, marks, owned, summary })];
+  const on = !doneSet(guide, marks, autoOf(guide, owned)).has(key);
+  owned = [...tickStep({ guide, key, on, marks, owned })];
   checks = { ...checks, [guide.id]: [...marks] };
   save('pg.checks', checks);
   save('pg.owned', owned);
@@ -274,69 +247,6 @@ function toggle(key, fromCard = false) {
   stamp();
   draw();
   if (fromCard) revealCard();
-}
-
-const profileSync = createSync({ store: { getApiKey, loadProfile, saveProfile }, summarize });
-
-async function runSync(pick) {
-  note = { message: 'Syncing…', choices: [] };
-  draw();
-  const first = !state?.syncedAt;
-  const result = await profileSync.run(pick);
-  if (result.status === 'busy') return;
-  const out = syncOutcome(result, state);
-  state = out.state;
-  note = { message: out.message, choices: out.choices };
-  if (result.status === 'ok') stamp(first);
-  draw();
-}
-
-async function showProfile() {
-  state = await loadStand();
-  // a key that cannot be read right now is not a missing key
-  [hasKey, keyMessage] = await getApiKey().then((key) => [!!key, null], () => [false, syncMessage('keyread')]);
-}
-
-async function saveUuid(input) {
-  const uuid = normalizeUuid(input.value);
-  let stand;
-  if (uuid) settled(input);
-  if (!uuid) profileMessage = syncMessage('input');
-  else if ((stand = await loadStand())?.uuid !== uuid) {
-    // another player's stand must not stay behind under a new UUID; stats typed in before any UUID are the player's own
-    profileSync.invalidate();
-    profileMessage = await saveStand(stand?.uuid ? { uuid } : { ...stand, uuid }) ? 'Saved.' : syncMessage('store');
-    await showProfile();
-  }
-  draw();
-}
-
-async function saveKey(input) {
-  const key = cleanKey(input.value);
-  input.value = '';
-  settled(input);
-  if (key) profileMessage = await setApiKey(key) ? 'Saved.' : 'Could not save the key on this phone.';
-  await showProfile();
-  draw();
-}
-
-async function removeProfile() {
-  if (!removeArmed) { removeArmed = true; return draw(); }
-  removeArmed = false;
-  note = { message: '', choices: [] };
-  const keyField = root.querySelector('[data-set="key"]');
-  keyField.value = '';
-  settled(keyField);
-  profileSync.invalidate();
-  // a store that cannot be read right now gives null: what is on screen still holds the typed-in stats
-  const kept = statsOnly(await loadStand() ?? state);
-  let removed;
-  if (!plugin()) removed = await saveStand(kept);
-  else if (kept) removed = await saveStand(kept) && await clearApiKeyOnly();
-  else removed = await clearProfileData();
-  profileMessage = removed ? 'Key and profile data removed.' : 'Could not remove them.';
-  await showProfile();
-  draw();
 }
 
 function saveSettings() {
@@ -384,23 +294,20 @@ async function runExport() {
   draw();
 }
 
-async function saveStats(box) {
+// The typed /stats become the base of the area, with a snapshot of the build.
+function saveMeasure(box) {
   const area = box.dataset.statsArea;
   const values = Object.fromEntries([...box.querySelectorAll('[data-stats-stat]')].map((input) => [input.dataset.statsStat, input.value]));
-  // the typed-in form has no slots and boxes
-  const pick = (kind) => box.querySelector(`[data-stats-set="${kind}"]`)?.value;
-  const form = { armor: pick('armor'), equipment: pick('equipment'), pet: pick('pet'), emptyHand: box.querySelector('[data-stats-empty-hand]')?.checked, boost: box.querySelector('[data-stats-boost]')?.checked, mp: box.querySelector('[data-stats-mp]')?.value, values };
-  const stand = await loadStand() ?? {};
-  const synced = personal() ? stand.summary : null;
-  const { choice } = statsEntry(area, form, 0);
-  let measured; // nothing to measure against without a sync, so no offset at all
-  if (synced) measured = items ? { total: computeStats(synced, items, loadoutOf(synced, items, area, choice, miningSettings(settings.mining)), area, boosts()).total, boosts: boosts() } : null;
-  const entry = statsEntry(area, form, Date.now(), measured, stand.statsInput?.[area] ?? null);
-  const next = { ...stand, statsInput: { ...stand.statsInput, [area]: entry } };
-  if (await saveStand(next)) {
-    state = next;
-    box.querySelectorAll('input, select').forEach(settled);
-  }
+  base = measure(base, area, { values, mp: box.querySelector('[data-stats-mp]')?.value }, build, Date.now());
+  save('pg.base', base);
+  pathEpoch++;
+  location.hash = `#/stats/overview/${area}`;
+  draw();
+}
+
+function saveBuild() {
+  save('pg.build', build);
+  pathEpoch++;
   draw();
 }
 
@@ -415,15 +322,9 @@ root.addEventListener('click', (e) => {
   const tab = el('[data-tab]');
   if (tab) { location.hash = tabTarget(tab.dataset.tab); return; }
   if (el('[data-info]')) { openInfo(); return; }
-  const why = el('[data-evidence]');
-  if (why) { evidenceKey = why.dataset.evidence; draw(); return; }
   const step = el('[data-step]');
   if (step) { if (step.closest('.card')) markCard(step, step.dataset.step); else toggle(step.dataset.step); return; }
-  const sync = el('[data-sync="run"]');
-  if (sync) { runSync(); return; }
-  const pick = el('[data-sync-pick]');
-  if (pick) { runSync(pick.dataset.syncPick); return; }
-  if (el('[data-stats-save]')) { saveStats(el('[data-stats-area]')); return; }
+  if (el('[data-stats-save]')) { saveMeasure(el('[data-stats-area]')); return; }
   const reset = el('[data-reset]');
   if (reset) { armed = reset.dataset.reset; draw(); return; }
   if (el('[data-reset-no]')) { armed = null; draw(); return; }
@@ -440,7 +341,6 @@ root.addEventListener('click', (e) => {
     return;
   }
   const act = el('[data-act]')?.dataset.act;
-  if (act === 'remove') removeProfile();
   if (act === 'mining-reset') { settings.mining = null; saveSettings(); }
   if (act === 'export') runExport();
   if (act === 'import') runImport(root.querySelector('[data-json]').value);
@@ -455,8 +355,7 @@ root.addEventListener('click', (e) => {
 
 root.addEventListener('change', async (e) => {
   const { dataset } = e.target;
-  if (dataset.set === 'uuid') return saveUuid(e.target);
-  if (dataset.set === 'key') return saveKey(e.target);
+  if (dataset.buff) { settled(e.target); build = { ...build, buffs: { ...build.buffs, [dataset.buff]: e.target.checked } }; return saveBuild(); }
   if (e.target.matches('[data-tax], [data-flag], [data-brake]')) settled(e.target);
   if (e.target.matches('[data-brake]')) { settings.brake = Number(e.target.value) > 0 ? Number(e.target.value) : 5; return saveSettings(); }
   if (e.target.matches('[data-tax]')) { settings.tax = Number(e.target.value); return saveSettings(); }
@@ -472,14 +371,6 @@ root.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (file) runImport(await file.text());
     return undefined;
-  }
-  // a picker that moves away from the measured setup says so before anything is saved
-  if (e.target.matches('[data-stats-set]')) {
-    const box = e.target.closest('[data-stats-area]');
-    if (!box.dataset.offsetFor) return undefined;
-    const was = JSON.parse(box.dataset.offsetFor);
-    const picked = (kind) => (was[kind] === null ? null : box.querySelector(`[data-stats-set="${kind}"]`).value);
-    box.querySelector('[data-stats-setup-hint]').hidden = !offsetStale({ offsetFor: was }, { armor: was.armor === null ? null : Number(picked('armor')), equipment: was.equipment === null ? null : Number(picked('equipment')), pet: picked('pet') });
   }
   return undefined;
 });
@@ -689,16 +580,15 @@ if ('serviceWorker' in navigator && !plugin()) navigator.serviceWorker.register(
 draw();
 await Promise.all([
   loadBundled().then((list) => { bundled = list; }),
-  showProfile(),
-  loadStatsPreset().then((p) => { preset = p; }),
+  loadGameData(async (name) => (await fetch(`gamedata/${name}.json`)).json()).then((d) => { gamedata = d; }).catch(() => {}),
 ]);
 loading = false;
-// once: ticks from before the shared state. Without a guide loaded there is nothing to move yet.
 pathEpoch++;
-if (!load('pg.ownedV1', false) && guides().length) {
-  ({ owned, checks } = migrateOwned(guides(), checks, owned));
-  // the flag only follows when both are stored: a failed save runs it again next start, and twice changes nothing
-  if (save('pg.owned', owned) && save('pg.checks', checks)) save('pg.ownedV1', true);
+// once: recognised ticks become manual ticks, key and profile go. Without a guide loaded there is nothing to move yet.
+const drop = (key) => { try { localStorage.removeItem(key); } catch { /* blocked: the next start tries again */ } };
+if (await runMigration({ read: load, write: save, drop, readLegacy: readLegacyProfile, clearLegacy: async () => !plugin() || clearProfileData() }, guides())) {
+  checks = load('pg.checks', {});
+  owned = load('pg.owned', []);
 }
 stamp();
 draw();
