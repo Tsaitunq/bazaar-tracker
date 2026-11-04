@@ -1,0 +1,50 @@
+{
+ "src": "u2-daten (user, 2026-11-04). Level 100. stats are always on; a perk with a condition is shown, never summed. Crow is left out on purpose.",
+ "pets": [
+  { "id": "BAL", "name": "Bal", "rarity": "LEGENDARY", "level": 100,
+    "stats": { "HEAT_RESISTANCE": 150, "MINING_FORTUNE": 100 },
+    "perks": [
+      { "name": "Furnace", "text": "+3 Pristine in the Magma Fields", "stat": "PRISTINE", "value": 3, "condition": "Magma Fields" },
+      { "name": "Dispersion", "text": "Mob kills in the Crystal Hollows give -4 Heat", "condition": "Crystal Hollows" },
+      { "name": "Cannibal", "text": "+100 % damage against Bal", "condition": "against Bal" } ] },
+  { "id": "GLACITE_GOLEM", "name": "Glacite Golem", "rarity": "LEGENDARY", "level": 100,
+    "stats": { "COLD_RESISTANCE": 10, "MINING_SPEED": 125 },
+    "perks": [
+      { "name": "Powder-powered", "text": "+20 % Glacite Powder" },
+      { "name": "Iceborn", "text": "+100 Mining Fortune in the Glacite Mineshafts", "stat": "MINING_FORTUNE", "value": 100, "condition": "Glacite Mineshafts" },
+      { "name": "Frozen Perfection", "text": "+1 Pristine per Frozen Corpse looted in the current Mineshaft", "condition": "Glacite Mineshafts" } ] },
+  { "id": "GOBLIN", "name": "Goblin", "rarity": "LEGENDARY", "level": 100,
+    "stats": { "MAGIC_FIND": 7, "ORE_FORTUNE": 100 },
+    "perks": [
+      { "name": "Grunt Work", "text": "+250 Mining Speed when mining ore", "stat": "MINING_SPEED", "value": 250, "condition": "mining ore" },
+      { "name": "Fetid Thief", "text": "+100 Mining Spread in the Mines of Divan", "stat": "MINING_SPREAD", "value": 100, "condition": "Mines of Divan" },
+      { "name": "Free-range Eggs", "text": "+50 % rare Goblin eggs" } ] },
+  { "id": "SCATHA", "name": "Scatha", "rarity": "LEGENDARY", "level": 100,
+    "stats": { "MINING_SPEED": 100, "MINING_FORTUNE": 125 },
+    "perks": [
+      { "name": "Burrowing", "text": "+50 % treasure chests" },
+      { "name": "Drill Infusion", "text": "+125 Gemstone Fortune for drills", "stat": "GEMSTONE_FORTUNE", "value": 125, "condition": "holding a drill" },
+      { "name": "Bejeweled Eyes", "text": "+20 % Gemstone Powder" } ] },
+  { "id": "SCATHA", "name": "Scatha", "rarity": "EPIC", "level": 100,
+    "stats": { "MINING_SPEED": 100, "MINING_FORTUNE": 125 },
+    "perks": [
+      { "name": "Burrowing", "text": "+40 % treasure chests" },
+      { "name": "Drill Infusion", "text": "+100 Gemstone Fortune for drills", "stat": "GEMSTONE_FORTUNE", "value": 100, "condition": "holding a drill" } ] },
+  { "id": "SCATHA", "name": "Scatha", "rarity": "RARE", "level": 100,
+    "stats": { "MINING_SPEED": 100, "MINING_FORTUNE": 125 },
+    "perks": [
+      { "name": "Burrowing", "text": "+30 % treasure chests" } ] },
+  { "id": "SNAIL", "name": "Snail", "rarity": "LEGENDARY", "level": 100,
+    "stats": { "DEFENSE": 100, "INTELLIGENCE": 100 },
+    "perks": [
+      { "name": "Red Sand Enjoyer", "text": "Red Sand minions +30 % (Private Island)", "condition": "Private Island" },
+      { "name": "Slow and Steady", "text": "+1 Block Fortune per 2 Speed above 100", "condition": "Speed above 100" },
+      { "name": "Slimy Reach", "text": "+400 Mining Spread when breaking blocks", "stat": "MINING_SPREAD", "value": 400, "condition": "breaking blocks" } ] },
+  { "id": "MAMMOTH", "name": "Mammoth", "rarity": "LEGENDARY", "level": 100,
+    "stats": { "DEFENSE": 50, "COLD_RESISTANCE": 10 },
+    "perks": [
+      { "name": "Wooly Coat", "text": "No Cold from mobs in Mineshafts", "condition": "Mineshafts" },
+      { "name": "Tusk Luck", "text": "+0.5 Magic Find per 100 Mining Fortune (double in Glacite Tunnels and Mineshafts)", "condition": "Glacite Tunnels, Mineshafts" },
+      { "name": "Corpse Crusher", "text": "+30 Mining Fortune per Frozen Corpse looted in the current Mineshaft", "condition": "Glacite Mineshafts" } ] }
+ ]
+}

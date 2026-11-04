@@ -34,6 +34,9 @@ export function copyGuide(root, out) {
     }
   }
   fs.writeFileSync(path.join(out, 'sw.js'), worker.replace(/'\.\.\//g, "'"));
+  // pictures from Hypixel are not in git; whatever fetch-icons.mjs put here goes into the build, a missing one shows the placeholder
+  const pics = path.join(guide, 'img', 'hypixel');
+  if (fs.existsSync(pics)) fs.cpSync(pics, path.join(out, 'img', 'hypixel'), { recursive: true });
   copyPersonal(root, out);
   return shell.length;
 }

@@ -4,6 +4,7 @@ import { isItemStep, idsOfStep, idsToOwn, ownedAuto, impliedDone } from '../owne
 import { SCORES, miningSettings, pathsOf, LEFT_OUT } from '../optimizer.js';
 import { pathOf, entryPrice } from '../path.js';
 import { blazeState, daggersOf } from '../blaze.js';
+import { checkStep, lockProfile } from '../requires.js';
 import { gearOf } from './gear.js';
 import { totalFor, statsFor } from './totals.js';
 import { coins, number } from '../format.js';
@@ -185,7 +186,7 @@ function planOf(guide, world, ctx, checked, scores) {
   const entry = world.base?.[area] ?? null;
   if (!Object.keys(entry?.values ?? {}).length) return { missing: 'stats' };
   const settings = guide.preset ? miningSettings({ preset: guide.preset }) : world.settings;
-  const worn = gearOf({ guides: world.guides ?? [guide], checks: world.checks ?? { [guide.id]: [...world.marks] }, owned: world.owned ?? [], items: ctx.items, area, build: world.build, settings, values: entry.values, mp: entry.mp ?? null });
+  const worn = gearOf({ guides: world.guides ?? [guide], checks: world.checks ?? { [guide.id]: [...world.marks] }, owned: world.owned ?? [], items: ctx.items, area, build: world.build, settings, values: entry.values, mp: entry.mp ?? null, pets: world.gamedata?.pets?.pets ?? null, pets: world.gamedata?.pets?.pets ?? null });
   const base = totalFor({ area, entry, build: world.build, gear: worn.gear, data: world.gamedata, stats: statsFor(area, world.gamedata) }).total;
   const daggers = area === 'blaze' ? daggersOf(worn.profile) : null;
   const loadout = daggers ? { ...worn.loadout, daggers } : worn.loadout;
@@ -251,7 +252,7 @@ export function guideModel(guide, world) {
   const scores = world.scores ?? SCORES;
   const owned = new Set(world.owned ?? []);
   const auto = autoOf(guide, owned);
-  const ctx = { ...world.prices, products: world.products, auto, profile: null, marks: world.marks, owned };
+  const ctx = { ...world.prices, products: world.products, auto, profile: null, lockProfile: lockProfile(world.build), marks: world.marks, owned };
   const checked = doneSet(guide, world.marks, auto);
   const implied = impliedDone(guide, checked, stepKey);
   const held = owned;
@@ -268,9 +269,10 @@ export function guideModel(guide, world) {
   let card = null;
   const rows = shownSteps.map(({ section, step, key }) => {
     const done = checked.has(key);
-    // without a profile no requirement can be checked, so a step is never locked here
-    const status = stepStatus({ done, locked: false, first: !card && !section.extra });
-    const reasons = [];
+    // only what the build proves locks a step (the HOTM tier); unknown is never locked
+    const lock = done ? null : checkStep(step, world.items, ctx.lockProfile);
+    const status = stepStatus({ done, locked: lock?.status === 'locked', first: !card && !section.extra });
+    const reasons = lock?.status === 'locked' ? lock.reasons : [];
     const entry = done ? null : entries.get(step);
     const rank = entry ? rankOf(entry, guide, ctx, world, plan.other) : null;
     const lines = statLines(rank?.delta ?? null);
@@ -339,9 +341,15 @@ export function parseRoute(hash, guides) {
   return { page: 'home' };
 }
 
-// Where a sideways drag leads from a guide: the next guide of its area, the one before, and from the first one home. family: the guide ids of the area in order.
+// Where a sideways drag leads: from a guide the next guide of its area, the one before, and from the first one home; from a stats page the next tab. family: the guide ids of the area in order.
 export function swipeTarget(r, dx, family) {
-  if (r.page !== 'guide' || !dx) return null;
+  if (!dx) return null;
+  if (r.page === 'stats' && STATS_TABS.includes(r.tab)) {
+    // Overview, HOTM, Attributes, Power in a row; the ends do not lead anywhere
+    const to = STATS_TABS[STATS_TABS.indexOf(r.tab) + (dx > 0 ? -1 : 1)];
+    return to ? { hash: `#/stats/${to}/${r.area}`, back: dx > 0 } : null;
+  }
+  if (r.page !== 'guide') return null;
   const at = Math.max(family.indexOf(r.id), 0);
   if (dx > 0) return { hash: at > 0 ? `#/guide/${family[at - 1]}/path` : '#/', back: true };
   return at + 1 < family.length ? { hash: `#/guide/${family[at + 1]}/path`, back: false } : null;

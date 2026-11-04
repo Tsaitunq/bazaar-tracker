@@ -97,3 +97,7 @@ test('the android project keeps to its own id, shares the store and has no alert
 test('the build carries no private sources', () => {
   assert.equal(fs.existsSync(path.join(out, 'personal', 'sources')), false);
 });
+
+test('the player skin is copied into the build', () => {
+  assert.ok(fs.existsSync(path.join(out, 'img', 'skin.png')));
+});

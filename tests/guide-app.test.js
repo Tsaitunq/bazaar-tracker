@@ -130,3 +130,32 @@ test('no redraw while mark done runs: the path is drawn again and scrolled to th
   // a redraw held back is not lost when the tick itself draws nothing
   assert.match(app, /toggle\(key, true\);\s+\/\/ [^\n]*\s+if \(root\.querySelector\('\.marking'\)\) draw\(\);/);
 });
+
+test('a sideways drag on a stats tab leads to the next tab and stops at the ends', () => {
+  const at = (tab) => ({ page: 'stats', tab, area: 'blaze' });
+  assert.deepEqual(swipeTarget(at('overview'), -50, []), { hash: '#/stats/hotm/blaze', back: false });
+  assert.deepEqual(swipeTarget(at('attributes'), 50, []), { hash: '#/stats/hotm/blaze', back: true });
+  assert.equal(swipeTarget(at('overview'), 50, []), null);
+  assert.equal(swipeTarget(at('power'), -50, []), null);
+  assert.equal(swipeTarget({ page: 'stats', tab: 'measure', area: 'mining' }, -50, []), null);
+});
+
+test('a stats list never scrolls sideways, so the HOTM tree cannot swallow the swipe on a narrow phone', () => {
+  const css = readFileSync(new URL('../guide/guide.css', import.meta.url), 'utf8');
+  assert.match(css, /\.scroll \{[^}]*overflow-x: hidden/);
+  assert.match(app, /function fitTrees/);
+  assert.match(app, /paintFigures\(root\);\s+fitTrees\(root\);/);
+  assert.match(app, /root\.append\(peek\);\s+fitTrees\(peek\);/);
+});
+
+test('a tap or a vertical scroll over a perk is no swipe', () => {
+  assert.equal(swipeAxis(3, 2), null); // a tap with a little jitter
+  assert.equal(swipeAxis(6, 30), 'y');
+  assert.equal(swipeAxis(-12, 30), 'y');
+});
+
+test('the attribute sheet closes on its backdrop and button, does not swipe, and does not follow to another page', () => {
+  assert.ok(app.includes("if (el('[data-attr-close]')) { ui = { ...ui, attr: undefined }; draw(); return; }"));
+  assert.ok(app.includes("!e.target.closest('input, select, .bsheet, .sheet-back')"));
+  assert.ok(app.includes('if (ui.attr && shownRoute && JSON.stringify(route()) !== shownRoute)'));
+});

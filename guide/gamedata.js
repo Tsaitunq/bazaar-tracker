@@ -1,5 +1,5 @@
-// Loads and checks the game data in gamedata/*.json (stats, HOTM, attributes, power). A broken file throws with a path to the fault.
-export const FILES = ['stats', 'hotm', 'attributes', 'power'];
+// Loads and checks the game data in gamedata/*.json (stats, HOTM, attributes, power, pets). A broken file throws with a path to the fault.
+export const FILES = ['stats', 'hotm', 'attributes', 'power', 'pets'];
 const AREAS = new Set(['mining', 'combat', 'farming', 'general']);
 const RARITIES = ['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGENDARY'];
 const POWDERS = new Set(['mithril', 'gemstone', 'glacite']);
@@ -104,6 +104,22 @@ export function checkPower(d, stats) {
   for (const e of d.boosterCookie.effects) if (!stats.has(e.stat)) fail('power.boosterCookie', `unknown stat ${e.stat}`);
 }
 
+// A pet is one entry per id and rarity. stats are always on; a perk with a condition is only shown.
+export function checkPets(d, stats) {
+  need('pets', d, ['pets']);
+  unique('pets', d.pets.map((p) => `${p.id}:${p.rarity}`));
+  for (const p of d.pets) {
+    const w = `pets.${p.id}:${p.rarity}`;
+    need(w, p, ['id', 'name', 'rarity', 'level', 'stats', 'perks']);
+    if (!RARITIES.includes(p.rarity)) fail(w, `bad rarity ${p.rarity}`);
+    for (const [s, v] of Object.entries(p.stats)) if (!stats.has(s) || typeof v !== 'number') fail(w, `bad stat ${s}`);
+    for (const k of p.perks) {
+      need(`${w}.${k.name}`, k, ['name', 'text']);
+      if (k.stat !== undefined && (!stats.has(k.stat) || typeof k.value !== 'number')) fail(`${w}.${k.name}`, 'stat needs a known stat and a number value');
+    }
+  }
+}
+
 // The one place that evaluates an effect formula: a + b·L, plus a step every stepEvery levels, rounded down on floor, capped on cap.
 // Level 0 gives nothing. Everything that adds up perk values calls this.
 export function valueAt(e, level) {
@@ -115,10 +131,11 @@ export function valueAt(e, level) {
 
 // read: (name) -> parsed JSON (or a promise of it).
 export async function loadGameData(read) {
-  const [stats, hotm, attributes, power] = await Promise.all(FILES.map((f) => read(f)));
+  const [stats, hotm, attributes, power, pets] = await Promise.all(FILES.map((f) => read(f)));
   const ids = checkStats(stats);
   checkHotm(hotm, ids);
   checkAttributes(attributes, ids);
   checkPower(power, ids);
-  return { stats, hotm, attributes, power };
+  checkPets(pets, ids);
+  return { stats, hotm, attributes, power, pets };
 }

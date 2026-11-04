@@ -31,6 +31,10 @@ test('the worker shell holds the page, its style and fonts', () => {
   for (const f of ['index.html', 'guide.css', 'brand.json', 'changelog.json', 'manifest.webmanifest', 'fonts/space-grotesk-latin-400-normal.woff2']) assert.ok(shell.includes(f), f);
 });
 
+test('the worker shell holds every game data file', () => {
+  for (const f of ['stats', 'hotm', 'attributes', 'power', 'pets']) assert.ok(shell.includes(`../gamedata/${f}.json`), f);
+});
+
 test('the app pulls no market view', () => {
   const files = [...closure(join(guideDir, 'app.js'))].map((f) => relative(root, f).replaceAll('\\', '/'));
   for (const f of ['flips.js', 'render.js', 'app.js', 'minions.js', 'tour.js']) assert.ok(!files.includes(f), f);

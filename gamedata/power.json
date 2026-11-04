@@ -1,7 +1,7 @@
 {
  "stoneNote": "statsAt250 = wiki Powers page value at 250 Accessory Power. base = statsAt250 / 9.64, derived (the page lists no base values). uniqueBonus does not scale with Accessory Power.",
  "multiplier": {
-  "formula": "a * ln(b * ap + 1) ^ exp",
+  "formula": "a * ln(b * mp + 1) ^ exp",
   "a": 29.97,
   "b": 0.0019,
   "exp": 1.2,
@@ -510,43 +510,43 @@
   "stats": [
    {
     "stat": "HEALTH",
-    "perPoint": null,
-    "unknown": true
+    "perPoint": 5,
+    "src": "u2-daten, confirmed by the player 2026-11-04"
    },
    {
     "stat": "DEFENSE",
-    "perPoint": null,
-    "unknown": true
+    "perPoint": 1,
+    "src": "u2-daten, confirmed by the player 2026-11-04"
    },
    {
     "stat": "SPEED",
-    "perPoint": null,
-    "unknown": true
+    "perPoint": 1.5,
+    "src": "u2-daten, confirmed by the player 2026-11-04"
    },
    {
     "stat": "STRENGTH",
-    "perPoint": null,
-    "unknown": true
+    "perPoint": 1,
+    "src": "u2-daten, confirmed by the player 2026-11-04"
    },
    {
     "stat": "CRITICAL_CHANCE",
-    "perPoint": null,
-    "unknown": true
+    "perPoint": 0.2,
+    "src": "u2-daten, confirmed by the player 2026-11-04"
    },
    {
     "stat": "CRITICAL_DAMAGE",
-    "perPoint": null,
-    "unknown": true
+    "perPoint": 1,
+    "src": "u2-daten, confirmed by the player 2026-11-04"
    },
    {
     "stat": "ATTACK_SPEED",
     "perPoint": 0.3,
-    "src": "wiki Attack Speed page, found via search snippet only, not confirmed"
+    "src": "u2-daten, confirmed by the player 2026-11-04"
    },
    {
     "stat": "INTELLIGENCE",
-    "perPoint": null,
-    "unknown": true
+    "perPoint": 2,
+    "src": "u2-daten, confirmed by the player 2026-11-04"
    }
   ]
  },

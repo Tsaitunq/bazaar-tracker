@@ -6,13 +6,14 @@ import { migrateOwned, resetOwned } from '../owned.js';
 import { fallbackName, loadItems } from '../names.js';
 import { PRESETS, miningSettings } from '../optimizer.js';
 import { loadGameData } from './gamedata.js';
-import { emptyBuild, measure } from './build.js';
+import { emptyBuild, measure, editPart, commitDraft, discardDraft, EMPTY_PART, perkLevel, perkEnabled, abilityPick, hotmTier, omelette, attrLevel, powerStone, powerMp, tuningPoints, setPet } from './build.js';
 import { runMigration } from './migrate.js';
-import { parseRoute, applyImport, stampAll, formEdited, typedFields, restoreTyped, settled, autoOf, tickStep, swipeTarget, swipeAxis, swipeLands, familyOf } from './model.js';
+import { STATS_TABS, parseRoute, applyImport, stampAll, formEdited, typedFields, restoreTyped, settled, autoOf, tickStep, swipeTarget, swipeAxis, swipeLands, familyOf } from './model.js';
 import { homeView } from './views/home.js';
 import { guideView } from './views/guide.js';
 import { statsView } from './views/stats.js';
 import { settingsView } from './views/settings.js';
+import { paintFigures } from './skin.js';
 
 const BAZAAR = 'https://api.hypixel.net/v2/skyblock/bazaar';
 const PRICE_EVERY = 300e3;
@@ -43,6 +44,9 @@ let owned = load('pg.owned', []);
 const settings = load('pg.settings', {});
 let base = load('pg.base', {}); // the measured stats per area
 let build = { ...emptyBuild(), ...load('pg.build', {}) }; // HOTM, shards, power and buffs now
+let draft = load('pg.draft', {}); // a part the measurement did not know, typed but not saved yet
+let wantPet = false; // the Pet tag or the floating pet was tapped: the power tab opens on the pet picker (true) or on that pet's card (its key)
+let ui = {}; // the perk, attribute and search that are open; not saved
 let gamedata = null;
 const bins = load('pg.bins', {});
 let products = null;
@@ -83,7 +87,7 @@ const targetOf = (dx) => {
 const world = () => {
   pending = new Set();
   return {
-    guides: guides(), checks, owned, dates, base, build, gamedata, products, now: Date.now(),
+    guides: guides(), checks, owned, dates, base, build, draft, ui, gamedata, products, now: Date.now(),
     prices: { forge, ah, cofl: freshBins(bins), wants: pending, items, tax: (settings.tax ?? DEFAULT_TAX) / 100, derpy: election?.mayor?.name === 'Derpy' },
     settings: miningSettings(settings.mining), keepOldGear: settings.keepOldGear === true, brake: settings.brake > 0 ? settings.brake : 5, pathEpoch, opened, items,
     name: (id) => names[id] ?? fallbackName(id), tax: settings.tax ?? DEFAULT_TAX, importedIds: imported.map((g) => g.id),
@@ -107,6 +111,7 @@ function showCard(box) {
 
 // A redraw keeps the scroll position of the list and the keyboard on the same step.
 function draw() {
+  if (ui.attr && shownRoute && JSON.stringify(route()) !== shownRoute) ui = { ...ui, attr: undefined }; // a sheet does not follow you to another page
   // a redraw would pull the screen from under the finger; it follows when the swipe is over
   // nor during Mark done: a new screen would drop the running line, dot and card; the tick draws once it is over
   if (settling || touch?.axis === 'x' || marking) { redrawDue = true; return; }
@@ -129,6 +134,8 @@ function draw() {
     root.querySelectorAll('details[data-keep-open]').forEach((d) => { d.open = openParts.includes(d.dataset.keepOpen); });
   }
   document.documentElement.dataset.theme = root.firstElementChild?.dataset.theme ?? 'home';
+  paintFigures(root);
+  fitTrees(root);
   const after = root.querySelector('.path, .scroll');
   if (after && after.className === list) after.scrollTop = top;
   const shown = JSON.stringify(route());
@@ -144,6 +151,11 @@ function draw() {
     foldFrom = root.querySelector('.path')?.scrollTop ?? 0;
   }
   shownRoute = shown;
+  if (wantPet) {
+    const panel = route().tab === 'power' && root.querySelector('.pet-panel');
+    if (panel) (root.querySelector(`[data-pet-card="${wantPet}"]`) ?? panel).scrollIntoView({ block: 'start' });
+    if (panel || route().tab !== 'power') wantPet = false;
+  }
   root.firstElementChild?.classList.toggle('head-min', folded);
   if (infoOpen) openInfo();
   if (focused !== undefined) {
@@ -305,6 +317,38 @@ function saveMeasure(box) {
   draw();
 }
 
+// An editor change: the build, the measured bases (the first entry backfills them) and the draft are saved together.
+function edit(part, change) {
+  ({ build, base, draft } = editPart({ build, base, draft }, part, change));
+  save('pg.draft', draft);
+  save('pg.base', base);
+  saveBuild();
+}
+
+function draftDone(part, keep) {
+  ({ build, base, draft } = (keep ? commitDraft : discardDraft)({ build, base, draft }, part));
+  save('pg.draft', draft);
+  save('pg.base', base);
+  saveBuild();
+}
+
+const partNow = (part) => draft[part] ?? build[part] ?? EMPTY_PART[part]();
+const perkOpen = () => gamedata?.hotm.perks.find((p) => p.id === ui.perk);
+const attrOpen = () => gamedata?.attributes.attributes.find((a) => a.key === ui.attr);
+
+// The level buttons and the number field of the open perk or attribute.
+function setLevel(kind, level) {
+  if (kind === 'perk' && perkOpen()) edit('hotm', perkLevel(perkOpen(), level));
+  if (kind === 'attr' && attrOpen()) edit('attrs', attrLevel(attrOpen(), level));
+}
+
+// The pet picker: "ID:RARITY" or empty for none. The pet is gear, so it is saved without a draft.
+function setPetChoice(key) {
+  const [id, rarity] = key.split(':');
+  build = setPet(build, key ? { id, rarity } : null);
+  saveBuild();
+}
+
 function saveBuild() {
   save('pg.build', build);
   pathEpoch++;
@@ -325,6 +369,35 @@ root.addEventListener('click', (e) => {
   const step = el('[data-step]');
   if (step) { if (step.closest('.card')) markCard(step, step.dataset.step); else toggle(step.dataset.step); return; }
   if (el('[data-stats-save]')) { saveMeasure(el('[data-stats-area]')); return; }
+  const save1 = el('[data-draft-save]');
+  if (save1) { draftDone(save1.dataset.draftSave, true); return; }
+  const drop = el('[data-draft-discard]');
+  if (drop) { draftDone(drop.dataset.draftDiscard, false); return; }
+  const perk = el('[data-perk]');
+  if (perk) { ui = { ...ui, perk: perk.dataset.perk }; draw(); return; }
+  const attr = el('[data-attr]');
+  if (attr) { ui = { ...ui, attr: attr.dataset.attr }; draw(); return; }
+  if (el('[data-attr-close]')) { ui = { ...ui, attr: undefined }; draw(); return; }
+  if (el('[data-attr-all]')) { ui = { ...ui, attrAll: !ui.attrAll }; draw(); return; }
+  const stepBy = el('[data-perk-step], [data-attr-step]');
+  if (stepBy) {
+    const kind = stepBy.hasAttribute('data-perk-step') ? 'perk' : 'attr';
+    const now = kind === 'perk' ? partNow('hotm').levels[ui.perk] ?? 0 : partNow('attrs')[ui.attr] ?? 0;
+    setLevel(kind, now + Number(stepBy.dataset[kind + 'Step']));
+    return;
+  }
+  if (el('[data-perk-enabled]') && perkOpen()) { edit('hotm', perkEnabled(perkOpen(), (partNow('hotm').disabled ?? []).includes(perkOpen().id))); return; }
+  if (el('[data-ability-pick]') && perkOpen()) { edit('hotm', abilityPick(perkOpen())); return; }
+  const goPet = el('[data-goto-pet]');
+  if (goPet) { wantPet = goPet.dataset.gotoPet || true; return; } // the link itself opens the power tab
+  if (el('[data-perk-max]')) { setLevel('perk', perkOpen()?.maxLevel ?? 0); return; }
+  if (el('[data-attr-max]')) { setLevel('attr', attrOpen()?.maxLevel ?? 0); return; }
+  const pet = el('[data-pet]');
+  if (pet) { setPetChoice(pet.dataset.pet); return; }
+  const stone = el('[data-power-stone]');
+  if (stone) { edit('power', powerStone(stone.dataset.powerStone)); return; }
+  const tune = el('[data-tune]');
+  if (tune) { edit('power', tuningPoints(tune.dataset.tune, (partNow('power').tuning?.[tune.dataset.tune] ?? 0) + Number(tune.dataset.tuneStep))); return; }
   const reset = el('[data-reset]');
   if (reset) { armed = reset.dataset.reset; draw(); return; }
   if (el('[data-reset-no]')) { armed = null; draw(); return; }
@@ -353,8 +426,19 @@ root.addEventListener('click', (e) => {
   }
 });
 
+root.addEventListener('input', (e) => {
+  if (!e.target.matches('[data-attr-query]')) return;
+  ui = { ...ui, attrQuery: e.target.value };
+  draw();
+});
+
 root.addEventListener('change', async (e) => {
   const { dataset } = e.target;
+  if (e.target.matches('[data-hotm-tier]')) { settled(e.target); return edit('hotm', hotmTier(e.target.value === '' ? null : Number(e.target.value))); }
+  if (e.target.matches('[data-hotm-omelette]')) { settled(e.target); return edit('hotm', omelette(e.target.checked)); }
+  if (e.target.matches('[data-perk-level]')) { settled(e.target); return setLevel('perk', e.target.value); }
+  if (e.target.matches('[data-attr-level]')) { settled(e.target); return setLevel('attr', e.target.value); }
+  if (e.target.matches('[data-power-mp]')) { settled(e.target); return edit('power', powerMp(e.target.value)); }
   if (dataset.buff) { settled(e.target); build = { ...build, buffs: { ...build.buffs, [dataset.buff]: e.target.checked } }; return saveBuild(); }
   if (e.target.matches('[data-tax], [data-flag], [data-brake]')) settled(e.target);
   if (e.target.matches('[data-brake]')) { settings.brake = Number(e.target.value) > 0 ? Number(e.target.value) : 5; return saveSettings(); }
@@ -375,6 +459,14 @@ root.addEventListener('change', async (e) => {
   return undefined;
 });
 
+// The HOTM tree is 336 px wide; on a narrower screen it shrinks to fit, so the list never scrolls sideways and keeps the swipe.
+function fitTrees(el) {
+  for (const tree of el.querySelectorAll('.tree')) {
+    const room = tree.parentElement.clientWidth;
+    tree.style.zoom = room > 0 && room < tree.offsetWidth ? String(room / tree.offsetWidth) : '';
+  }
+}
+
 // A list that scrolls sideways keeps its own swipe.
 function scrollsSideways(el) {
   for (; el && el !== root; el = el.parentElement) {
@@ -382,6 +474,9 @@ function scrollsSideways(el) {
   }
   return false;
 }
+
+// guide pages and the four stats tabs swipe; the measure form does not
+const swipeable = (r) => r.page === 'guide' || (r.page === 'stats' && STATS_TABS.includes(r.tab));
 
 const stillMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -399,6 +494,7 @@ function buildPeek(to) {
   peek.dataset.hash = to.hash;
   peek.innerHTML = screenOf(parseRoute(to.hash, guides()), world());
   root.append(peek);
+  fitTrees(peek);
   showCard(peek); // already on its card while hidden, so the slide in shows no done steps and no jump at landing
   return peek;
 }
@@ -511,6 +607,8 @@ root.addEventListener('scroll', (e) => {
 }, { capture: true, passive: true });
 // set before the scroll it causes: a passive wheel may already have moved the list when its event comes
 const handScroll = () => { byHand = true; follow = false; };
+// A picture that is not there leaves its placeholder (the error event does not bubble, so it is caught on the way down).
+root.addEventListener('error', (e) => e.target.closest?.('.pic')?.classList.add('pic-miss'), true);
 root.addEventListener('wheel', handScroll, { passive: true });
 root.addEventListener('keydown', handScroll);
 // A tap on the switch slides to the neighbour like a swipe does, so the mark glides over in the same 200 ms.
@@ -530,7 +628,7 @@ root.addEventListener('touchstart', (e) => {
   handScroll();
   if (touch?.axis === 'x') { settle(null); return; } // a second finger ends the swipe
   const [first] = e.touches;
-  const free = e.touches.length === 1 && !settling && !marking && route().page === 'guide' && !scrollsSideways(e.target);
+  const free = e.touches.length === 1 && !settling && !marking && swipeable(route()) && !e.target.closest('input, select, .bsheet, .sheet-back') && !scrollsSideways(e.target);
   touch = free ? { x: first.clientX, y: first.clientY, lastX: first.clientX, at: e.timeStamp, speed: 0, axis: null, dx: 0, to: null } : null;
 }, { passive: true });
 

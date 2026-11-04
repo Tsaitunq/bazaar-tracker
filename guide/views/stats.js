@@ -1,9 +1,14 @@
-// The Stats screens: overview (base, gear, total), measure, and a placeholder for the editors that come with the next update.
+// The Stats screens: overview (base, gear, total), measure, and the three editors (HOTM, attributes, power).
 import { esc } from '../../format.js';
 import { statsModel, AREA_NAME, ago } from '../stats-model.js';
 import { STATS_TABS } from '../model.js';
 import { bottomBar } from './parts.js';
 import { HOME_TABS } from './home.js';
+import { hotmView } from './stats-hotm.js';
+import { attrsView } from './stats-attrs.js';
+import { powerView } from './stats-power.js';
+import { petLabel, petKey } from './stats-pet.js';
+import { pic } from './editors.js';
 
 const TAB_NAME = { overview: 'Overview', hotm: 'HOTM', attributes: 'Attributes', power: 'Power' };
 const AREAS = Object.keys(AREA_NAME);
@@ -26,11 +31,23 @@ function overview(world, r) {
   const when = m.measured ? `Base measured <b>${esc(ago(m.measured.at, world.now))}</b>, no gear${buffs ? `, ${esc(buffs)} on` : ''}.` : 'No base measured yet.';
   const gear = m.guides.length ? `Gear: <b class="c-green">${m.steps} ${m.steps === 1 ? 'step' : 'steps'}</b> ticked in ${esc(m.guides.map((g) => g.title).join(' + '))}.` : 'No guide for this area yet, so no gear.';
   const rows = m.rows.map((x) => `<div class="stat-row"><span class="c-${x.color}">${esc(x.icon)} ${esc(x.label)}</span><span>${esc(x.base)}</span><span class="c-green">${esc(x.gear)}</span><b class="c-${x.color}">${esc(x.total)}</b></div>`).join('');
+  const moved = m.changes.length ? `<section class="panel changes"><h2>Changes since measurement</h2>${m.changes.map((c) => `<small><b class="c-${c.color}">${esc(c.text)} ${esc(c.label)}</b> (${esc(c.parts)})</small>`).join('')}</section>` : '';
   const listed = m.listed.length ? `<section class="panel"><h2>Only when the condition holds</h2>${m.listed.map((l) => `<small>${esc(l.text)}</small>`).join('')}</section>` : '';
+  const stone = world.gamedata?.power.powerStones.find((s) => s.id === world.build.power?.stone);
+  const pet = m.pet.step ?? (m.pet.chosen ? petLabel(m.pet.chosen) : null);
+  const tag = (label, value, goto = '') => `<a class="tag" href="#/stats/power/${esc(r.area)}"${goto}>${label}: <b>${esc(value ?? 'none')}</b></a>`;
+  // the pet next to the figure: the one a ticked step sets wins, like in the total; no pet, no float
+  const [stepType, stepTier] = (m.pet.step ?? '').split(' ');
+  const shown = (m.pet.step && world.gamedata?.pets?.pets.find((p) => p.id === stepType && p.rarity === stepTier)) || m.pet.chosen;
+  const float = shown ? `<a class="pet-float" href="#/stats/power/${esc(r.area)}" data-goto-pet="${esc(petKey(shown))}" aria-label="${esc(petLabel(shown))}, open the pet picker">${pic(`img/hypixel/pets/${shown.id}_${shown.rarity}.png`, 'pet-pic', shown.name[0])}</a>` : '';
+  const figure = `<div class="panel figure-panel"><canvas data-figure class="figure" role="img" aria-label="Your player"></canvas>${float}<div class="tags">${tag('Pet', pet, ' data-goto-pet=""')}${tag('Power', stone?.power)}</div></div>`;
+  const drafts = ['hotm', 'attrs', 'power'].filter((p) => world.draft?.[p]).map((p) => ({ hotm: ['hotm', 'HOTM'], attrs: ['attributes', 'Attributes'], power: ['power', 'Power'] })[p]);
+  const draftNote = drafts.map(([tab, name]) => `<a class="note draft-note" href="#/stats/${tab}/${esc(r.area)}">${name} draft not saved</a>`).join('');
   const note = m.missing === 'data' ? '<p class="note">Loading game data…</p>' : m.missing === 'items' ? '<p class="note">Loading item data… gear shows when it is there.</p>' : '';
   return `<div class="scroll">${tabs(r)}${areas(r)}
+    ${draftNote}${figure}
     <div class="panel"><small>${when}</small><small>${gear}</small>${note}<a class="primary-link" href="#/stats/measure/${esc(r.area)}">${m.measured ? 'Measure base again' : `Measure ${esc(m.name)} base`}</a></div>
-    <div class="panel stat-table"><div class="stat-row stat-head"><span>All ${esc(m.name.toLowerCase())} stats</span><span>Base</span><span>Gear</span><span>Total</span></div>${rows}</div>${listed}</div>`;
+    <div class="panel stat-table"><div class="stat-row stat-head"><span>All ${esc(m.name.toLowerCase())} stats</span><span>Base</span><span>Gear</span><span>Total</span></div>${rows}</div>${moved}${listed}</div>`;
 }
 
 function measure(world, r) {
@@ -47,12 +64,10 @@ function measure(world, r) {
   return body;
 }
 
-function placeholder(r) {
-  return `<div class="scroll">${tabs(r)}<div class="empty"><strong>${esc(TAB_NAME[r.tab])}</strong><p>The editor for this page comes with the next update. Until then it changes nothing in your totals.</p></div></div>`;
-}
+const EDITORS = { hotm: hotmView, attributes: attrsView, power: powerView };
 
 export function statsView(world, r) {
-  const inner = r.tab === 'measure' ? measure(world, r) : r.tab === 'overview' ? overview(world, r) : placeholder(r);
+  const inner = r.tab === 'measure' ? measure(world, r) : r.tab === 'overview' ? overview(world, r) : EDITORS[r.tab](world, r, tabs(r));
   const title = r.tab === 'measure' ? { name: 'Measure base', back: 'Stats' } : { name: 'Your stats', back: 'Home' };
   return frame(inner, title, r.tab === 'measure' ? `#/stats/overview/${r.area}` : '#/');
 }

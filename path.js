@@ -104,7 +104,7 @@ function moveOf(list, world, env) {
   for (const chain of list) {
     const rules = rulesOf(now, env);
     // a profile out of the ticks does not know skills and collections, so it cannot say a step is locked
-    const walked = walkLine(chain, { ...env.ctx, profile: now.profile.virtual ? null : now.profile }, rules);
+    const walked = walkLine(chain, { ...env.ctx, profile: now.profile.virtual ? (env.ctx.lockProfile ?? null) : now.profile }, rules);
     unknown ||= !!walked.unknown;
     notes.push(...(walked.notes ?? []));
     if (walked.group === 'locked') return { list, tier: 'locked', status: 'locked', reasons: walked.reasons, notes };

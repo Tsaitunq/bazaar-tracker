@@ -1,6 +1,34 @@
 {
   "versions": [
     {
+      "version": "0.8.2",
+      "date": "2026-11-04",
+      "entries": [
+        { "title": "Your pet floats next to you", "text": "On the Overview your pet hovers beside your player; tap it to open the pet picker on that pet." },
+        { "title": "Attributes in a sheet", "text": "Tap an attribute to open a sheet with its icon, level buttons, effect now and next level, and the shards you still need." },
+        { "title": "Attribute list with icons", "text": "Every row shows the shard icon, level and a short effect line, and attributes you have not set are greyed out." }
+      ]
+    },
+    {
+      "version": "0.8.1",
+      "date": "2026-11-04",
+      "entries": [
+        { "title": "Swipe works on every Stats page", "text": "Swiping now also works on the HOTM page and goes on to Attributes and Power, or back, on every phone width." },
+        { "title": "HOTM looks like the game", "text": "Perks show coal, emerald and diamond, the Core and pickaxe abilities show blocks, and you can switch a perk off or select one ability." },
+        { "title": "Pets with heads and perks", "text": "The pet picker lists every pet with its head, stats and perks, and the Pet tag under your player jumps straight to it." }
+      ]
+    },
+    {
+      "version": "0.8.0",
+      "date": "2026-11-04",
+      "entries": [
+        { "title": "HOTM, attributes and power", "text": "Three new Stats pages let you enter your HOTM perks, attribute levels, power stone, Magical Power and tuning points; steps above your HOTM level are locked." },
+        { "title": "Pick your pet", "text": "Choose Bal, Glacite Golem, Goblin, Scatha, Snail or Mammoth; its stats count in your total, and perks that need a place or a mob are only listed." },
+        { "title": "Changes since measurement", "text": "The overview shows what each page moved since you measured your base, and your player appears with tags for pet and power." },
+        { "title": "Swipe between Stats pages", "text": "Swipe sideways to go from Overview to HOTM, Attributes and Power." }
+      ]
+    },
+    {
       "version": "0.7.0",
       "date": "2026-11-04",
       "entries": [

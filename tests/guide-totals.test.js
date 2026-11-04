@@ -92,3 +92,30 @@ test('the God Potion toggled after the measurement moves the total', () => {
   const on = { ...emptyBuild(), buffs: { godPotion: true, boosterCookie: false } };
   assert.equal(total(entry, on).total.MINING_SPEED, 300);
 });
+
+test('power: stone = base x multiplier + unique bonus, tuning per point, mp 250 gives 9.642', () => {
+  const m = data.power.multiplier;
+  assert.equal(Math.round(m.a * Math.log(m.b * 250 + 1) ** m.exp * 1000) / 1000, 9.642);
+  const out = statsOf({ ...emptyBuild(), power: { stone: 'MANDRAA', mp: 250, tuning: { STRENGTH: 10, CRITICAL_CHANCE: 5, HEALTH: 2 } } }, data, 'blaze');
+  const scale = m.a * Math.log(m.b * 250 + 1) ** m.exp;
+  near(out.add.STRENGTH, 12 * scale + 25 + 10);
+  near(out.add.CRITICAL_CHANCE, 1);
+  near(out.add.HEALTH, 10);
+});
+
+test('power: the tuning values are the confirmed ones', () => {
+  const t = Object.fromEntries(data.power.tuning.stats.map((s) => [s.stat, s.perPoint]));
+  assert.deepEqual(t, { HEALTH: 5, DEFENSE: 1, SPEED: 1.5, STRENGTH: 1, CRITICAL_DAMAGE: 1, CRITICAL_CHANCE: 0.2, ATTACK_SPEED: 0.3, INTELLIGENCE: 2 });
+});
+
+test('moved: names the editor that shifted a stat since the measurement', () => {
+  const was = { ...emptyBuild(), hotm: { tier: 10, levels: { mining_speed: 5 }, omelette: false }, power: { stone: null, mp: null, tuning: {} } };
+  const entry = measure({}, 'mining', { values: { MINING_SPEED: 1000 } }, was, NOW).mining;
+  const now = { ...was, hotm: { ...was.hotm, levels: { mining_speed: 8 } }, power: { stone: null, mp: null, tuning: { MINING_SPEED: 1 } }, attrs: { nature_elemental: 3 } };
+  const r = total(entry, now);
+  assert.deepEqual(r.moved.MINING_SPEED.map((m) => m.part), ['hotm']);
+  near(r.moved.MINING_SPEED[0].value, 60);
+  assert.equal(r.moved.STRENGTH, undefined);
+  assert.deepEqual(total(entry, was).moved, {}); // nothing changed: empty
+  near(r.total.MINING_SPEED, 1060);
+});

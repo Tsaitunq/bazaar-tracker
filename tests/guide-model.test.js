@@ -313,3 +313,14 @@ test('without a sync the piece a new one replaces is sold, as with a sync', () =
   assert.equal(m.leader.resale, 5e5);
   assert.equal(m.leader.net, 5e5);
 });
+
+test('a step is locked by the HOTM tier of the build; unknown is never locked', () => {
+  const g = mining([fortune('a'), fortune('gate', 'GATE')]);
+  const rowOf = (hotm) => guideModel(g, world({ items, build: { ...emptyBuild(), hotm } })).rows.find((r) => r.name === 'gate');
+  assert.notEqual(rowOf(null).status, 'locked');
+  assert.notEqual(rowOf({ tier: null, levels: {} }).status, 'locked');
+  const low = rowOf({ tier: 5, levels: {} });
+  assert.equal(low.status, 'locked');
+  assert.match(low.sub, /HOTM 7 needed, you have 5/);
+  assert.notEqual(rowOf({ tier: 7, levels: {} }).status, 'locked');
+});
