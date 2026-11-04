@@ -1,14 +1,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { loadGameData, checkStats, checkHotm, checkAttributes } from '../guide/gamedata.js';
+import { loadGameData, checkStats, checkHotm, checkAttributes, checkPets } from '../guide/gamedata.js';
 
 const read = (f) => JSON.parse(fs.readFileSync(new URL(`../gamedata/${f}.json`, import.meta.url), 'utf8'));
 const copy = (o) => structuredClone(o);
 
-test('all four files load and validate', async () => {
+test('all five files load and validate', async () => {
   const d = await loadGameData(read);
   assert.equal(d.hotm.perks.length, 46);
+  assert.equal(d.pets.pets.length, 8);
+  assert.ok(!d.pets.pets.some((p) => p.id === 'CROW'));
   assert.equal(d.attributes.attributes.length, 325);
   assert.equal(d.hotm.tiers[9].cumulativeXp, 1247000);
 });
@@ -186,4 +188,22 @@ test('hotm: Core of the Mountain table', () => {
 
 test('hotm: no wikiAlt and no top-level powder are left', () => {
   assert.ok(read('hotm').perks.every((p) => p.wikiAlt === undefined && p.powder === undefined));
+});
+
+test('pets: Scatha has three rarities, a bad stat or rarity fails with a path', () => {
+  const stats = checkStats(read('stats'));
+  const p = read('pets');
+  assert.deepEqual(p.pets.filter((x) => x.id === 'SCATHA').map((x) => x.rarity), ['LEGENDARY', 'EPIC', 'RARE']);
+  const bad = copy(p);
+  bad.pets[0].stats.NOPE = 1;
+  assert.throws(() => checkPets(bad, stats), /pets.BAL:LEGENDARY: bad stat NOPE/);
+  const rare = copy(p);
+  rare.pets[0].rarity = 'SHINY';
+  assert.throws(() => checkPets(rare, stats), /bad rarity SHINY/);
+  const twice = copy(p);
+  twice.pets.push(copy(twice.pets[0]));
+  assert.throws(() => checkPets(twice, stats), /duplicate id BAL:LEGENDARY/);
+  const perk = copy(p);
+  perk.pets[0].perks[0].value = 'x';
+  assert.throws(() => checkPets(perk, stats), /Furnace/);
 });
