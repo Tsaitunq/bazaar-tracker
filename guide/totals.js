@@ -2,6 +2,7 @@
 // The multipliers come last: the base was measured with the multipliers of its snapshot inside, so they are divided out first.
 import { valueAt } from './gamedata.js';
 import { GOD_POTION } from '../stats.js';
+import { lockOf } from './hotm-model.js';
 
 // The guide areas and the area names of gamedata/stats.json.
 export const DATA_AREA = { mining: 'mining', blaze: 'combat', farming: 'farming' };
@@ -15,6 +16,7 @@ function hotmStats(hotm, data, out, area) {
   for (const perk of data.hotm.perks) {
     const base = hotm.levels?.[perk.id] ?? 0;
     if (!(base > 0)) continue;
+    if (lockOf(perk, hotm)) continue; // a locked perk is shown, never counted
     const level = base + (omelette && perk.omeletteBonus ? 1 : 0);
     for (const e of perk.effects) {
       if (e.hidden) continue;
