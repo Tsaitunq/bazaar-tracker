@@ -133,6 +133,7 @@ function draw() {
   }
   document.documentElement.dataset.theme = root.firstElementChild?.dataset.theme ?? 'home';
   paintFigures(root);
+  fitTrees(root);
   const after = root.querySelector('.path, .scroll');
   if (after && after.className === list) after.scrollTop = top;
   const shown = JSON.stringify(route());
@@ -446,6 +447,14 @@ root.addEventListener('change', async (e) => {
   return undefined;
 });
 
+// The HOTM tree is 336 px wide; on a narrower screen it shrinks to fit, so the list never scrolls sideways and keeps the swipe.
+function fitTrees(el) {
+  for (const tree of el.querySelectorAll('.tree')) {
+    const room = tree.parentElement.clientWidth;
+    tree.style.zoom = room > 0 && room < tree.offsetWidth ? String(room / tree.offsetWidth) : '';
+  }
+}
+
 // A list that scrolls sideways keeps its own swipe.
 function scrollsSideways(el) {
   for (; el && el !== root; el = el.parentElement) {
@@ -473,6 +482,7 @@ function buildPeek(to) {
   peek.dataset.hash = to.hash;
   peek.innerHTML = screenOf(parseRoute(to.hash, guides()), world());
   root.append(peek);
+  fitTrees(peek);
   showCard(peek); // already on its card while hidden, so the slide in shows no done steps and no jump at landing
   return peek;
 }

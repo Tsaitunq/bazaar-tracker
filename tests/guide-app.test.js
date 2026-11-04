@@ -139,3 +139,17 @@ test('a sideways drag on a stats tab leads to the next tab and stops at the ends
   assert.equal(swipeTarget(at('power'), -50, []), null);
   assert.equal(swipeTarget({ page: 'stats', tab: 'measure', area: 'mining' }, -50, []), null);
 });
+
+test('a stats list never scrolls sideways, so the HOTM tree cannot swallow the swipe on a narrow phone', () => {
+  const css = readFileSync(new URL('../guide/guide.css', import.meta.url), 'utf8');
+  assert.match(css, /\.scroll \{[^}]*overflow-x: hidden/);
+  assert.match(app, /function fitTrees/);
+  assert.match(app, /paintFigures\(root\);\s+fitTrees\(root\);/);
+  assert.match(app, /root\.append\(peek\);\s+fitTrees\(peek\);/);
+});
+
+test('a tap or a vertical scroll over a perk is no swipe', () => {
+  assert.equal(swipeAxis(3, 2), null); // a tap with a little jitter
+  assert.equal(swipeAxis(6, 30), 'y');
+  assert.equal(swipeAxis(-12, 30), 'y');
+});
