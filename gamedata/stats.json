@@ -1,0 +1,775 @@
+{
+ "stats": [
+  {
+   "id": "MINING_FORTUNE",
+   "name": "Mining Fortune",
+   "icon": "☘",
+   "color": "#FFAA00",
+   "areas": [
+    "mining"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "repo"
+  },
+  {
+   "id": "MINING_SPEED",
+   "name": "Mining Speed",
+   "icon": "⸕",
+   "color": "#FFAA00",
+   "areas": [
+    "mining"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "repo"
+  },
+  {
+   "id": "MINING_SPREAD",
+   "name": "Mining Spread",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "mining"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "GEMSTONE_SPREAD",
+   "name": "Gemstone Spread",
+   "icon": "☘",
+   "color": "#FFAA00",
+   "areas": [
+    "mining"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "repo"
+  },
+  {
+   "id": "PRISTINE",
+   "name": "Pristine",
+   "icon": "✧",
+   "color": "#D255D2",
+   "areas": [
+    "mining"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "repo"
+  },
+  {
+   "id": "GEMSTONE_FORTUNE",
+   "name": "Gemstone Fortune",
+   "icon": "☘",
+   "color": "#FFAA00",
+   "areas": [
+    "mining"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "repo"
+  },
+  {
+   "id": "ORE_FORTUNE",
+   "name": "Ore Fortune",
+   "icon": "☘",
+   "color": "#FFAA00",
+   "areas": [
+    "mining"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "repo"
+  },
+  {
+   "id": "BLOCK_FORTUNE",
+   "name": "Block Fortune",
+   "icon": "☘",
+   "color": "#FFAA00",
+   "areas": [
+    "mining"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "repo"
+  },
+  {
+   "id": "DWARVEN_METAL_FORTUNE",
+   "name": "Dwarven Metal Fortune",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "mining"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "BREAKING_POWER",
+   "name": "Breaking Power",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "mining"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "COLD_RESISTANCE",
+   "name": "Cold Resistance",
+   "icon": "❄",
+   "color": "#55FFFF",
+   "areas": [
+    "mining"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "repo"
+  },
+  {
+   "id": "HEAT_RESISTANCE",
+   "name": "Heat Resistance",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "mining"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "MINING_WISDOM",
+   "name": "Mining Wisdom",
+   "icon": "☯",
+   "color": "#55FFFF",
+   "areas": [
+    "mining"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "repo"
+  },
+  {
+   "id": "STRENGTH",
+   "name": "Strength",
+   "icon": "❁",
+   "color": "#FF5555",
+   "areas": [
+    "combat"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "repo"
+  },
+  {
+   "id": "CRITICAL_DAMAGE",
+   "name": "Crit Damage",
+   "icon": "☠",
+   "color": "#8C96FF",
+   "areas": [
+    "combat"
+   ],
+   "unit": "%",
+   "percent": true,
+   "src": "repo",
+   "percentSrc": "not confirmed"
+  },
+  {
+   "id": "CRITICAL_CHANCE",
+   "name": "Crit Chance",
+   "icon": "☣",
+   "color": "#8C96FF",
+   "areas": [
+    "combat"
+   ],
+   "unit": "%",
+   "percent": true,
+   "src": "repo",
+   "percentSrc": "not confirmed"
+  },
+  {
+   "id": "ATTACK_SPEED",
+   "name": "Attack Speed",
+   "icon": "⚔",
+   "color": "#FFFF55",
+   "areas": [
+    "combat"
+   ],
+   "unit": "%",
+   "percent": true,
+   "src": "repo",
+   "percentSrc": "not confirmed"
+  },
+  {
+   "id": "HEALTH",
+   "name": "Health",
+   "icon": "❤",
+   "color": "#FF5555",
+   "areas": [
+    "combat"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "repo"
+  },
+  {
+   "id": "DEFENSE",
+   "name": "Defense",
+   "icon": "❈",
+   "color": "#55FF55",
+   "areas": [
+    "combat"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "repo"
+  },
+  {
+   "id": "TRUE_DEFENSE",
+   "name": "True Defense",
+   "icon": "❂",
+   "color": "#FFFFFF",
+   "areas": [
+    "combat"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "repo"
+  },
+  {
+   "id": "DAMAGE",
+   "name": "Damage",
+   "icon": "❁",
+   "color": "#FF5555",
+   "areas": [
+    "combat"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "repo"
+  },
+  {
+   "id": "INTELLIGENCE",
+   "name": "Intelligence",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "combat"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "FEROCITY",
+   "name": "Ferocity",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "combat"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "ABILITY_DAMAGE",
+   "name": "Ability Damage",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "combat"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "HEALTH_REGEN",
+   "name": "Health Regen",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "combat"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "VITALITY",
+   "name": "Vitality",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "combat"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "MENDING",
+   "name": "Mending",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "combat"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "SWING_RANGE",
+   "name": "Swing Range",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "combat"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "COMBAT_WISDOM",
+   "name": "Combat Wisdom",
+   "icon": "☯",
+   "color": "#55FFFF",
+   "areas": [
+    "combat"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "repo"
+  },
+  {
+   "id": "FARMING_FORTUNE",
+   "name": "Farming Fortune",
+   "icon": "☘",
+   "color": "#FFAA00",
+   "areas": [
+    "farming"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "repo"
+  },
+  {
+   "id": "BONUS_PEST_CHANCE",
+   "name": "Bonus Pest Chance",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "farming"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "OVERBLOOM",
+   "name": "Overbloom",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "farming"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "FARMING_WISDOM",
+   "name": "Farming Wisdom",
+   "icon": "☯",
+   "color": "#55FFFF",
+   "areas": [
+    "farming"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "repo"
+  },
+  {
+   "id": "WHEAT_FORTUNE",
+   "name": "Wheat Fortune",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "farming"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "CARROT_FORTUNE",
+   "name": "Carrot Fortune",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "farming"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "POTATO_FORTUNE",
+   "name": "Potato Fortune",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "farming"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "PUMPKIN_FORTUNE",
+   "name": "Pumpkin Fortune",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "farming"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "SUGAR_CANE_FORTUNE",
+   "name": "Sugar Cane Fortune",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "farming"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "MELON_SLICE_FORTUNE",
+   "name": "Melon Slice Fortune",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "farming"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "CACTUS_FORTUNE",
+   "name": "Cactus Fortune",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "farming"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "COCOA_BEANS_FORTUNE",
+   "name": "Cocoa Beans Fortune",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "farming"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "MUSHROOM_FORTUNE",
+   "name": "Mushroom Fortune",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "farming"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "NETHER_WART_FORTUNE",
+   "name": "Nether Wart Fortune",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "farming"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "SUNFLOWER_FORTUNE",
+   "name": "Sunflower Fortune",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "farming"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "MOONFLOWER_FORTUNE",
+   "name": "Moonflower Fortune",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "farming"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "WILD_ROSE_FORTUNE",
+   "name": "Wild Rose Fortune",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "farming"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "SPEED",
+   "name": "Speed",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "general"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "MAGIC_FIND",
+   "name": "Magic Find",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "general"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "PET_LUCK",
+   "name": "Pet Luck",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "general"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "TRACKING",
+   "name": "Tracking",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "general"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "TREASURE_CHANCE",
+   "name": "Treasure Chance",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "general"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "FISHING_SPEED",
+   "name": "Fishing Speed",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "general"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "SEA_CREATURE_CHANCE",
+   "name": "Sea Creature Chance",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "general"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "PRESSURE_RESISTANCE",
+   "name": "Pressure Resistance",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "general"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "RESPIRATION",
+   "name": "Respiration",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "general"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "FORAGING_FORTUNE",
+   "name": "Foraging Fortune",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "general"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "SOCIAL_WISDOM",
+   "name": "Social Wisdom",
+   "icon": "☯",
+   "color": "#55FFFF",
+   "areas": [
+    "general"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "repo"
+  },
+  {
+   "id": "ENCHANTING_WISDOM",
+   "name": "Enchanting Wisdom",
+   "icon": "☯",
+   "color": "#55FFFF",
+   "areas": [
+    "general"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "repo"
+  },
+  {
+   "id": "ALCHEMY_WISDOM",
+   "name": "Alchemy Wisdom",
+   "icon": "☯",
+   "color": "#55FFFF",
+   "areas": [
+    "general"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "repo"
+  },
+  {
+   "id": "FORAGING_WISDOM",
+   "name": "Foraging Wisdom",
+   "icon": "☯",
+   "color": "#55FFFF",
+   "areas": [
+    "general"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "repo"
+  },
+  {
+   "id": "FISHING_WISDOM",
+   "name": "Fishing Wisdom",
+   "icon": "☯",
+   "color": "#55FFFF",
+   "areas": [
+    "general"
+   ],
+   "unit": "",
+   "percent": false,
+   "src": "repo"
+  }
+ ]
+}
