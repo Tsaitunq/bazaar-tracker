@@ -112,8 +112,55 @@ test('the measure screen asks for each stat of the area, the buffs and the date 
   assert.match(statsView(world(), { page: 'stats', tab: 'measure', area: 'blaze' }), /data-stats-mp/);
 });
 
-test('HOTM, attributes and power are placeholders for now', () => {
-  for (const tab of ['hotm', 'attributes', 'power']) assert.match(statsView(world(), { page: 'stats', tab, area: 'mining' }), /comes with the next update/);
+const editor = (tab, over = {}) => statsView(world(over), { page: 'stats', tab, area: 'mining' });
+
+test('HOTM editor draws the whole tree, the omelette and the level, and opens a sheet', () => {
+  const html = editor('hotm', { ui: { perk: 'mining_fortune' } });
+  assert.equal((html.match(/data-perk="/g) ?? []).length, 46);
+  assert.match(html, /data-hotm-tier/);
+  assert.match(html, /data-hotm-omelette/);
+  assert.match(html, /data-perk-sheet="mining_fortune"/);
+  assert.match(html, /To max: [0-9,.]+ Mithril powder/);
+  assert.doesNotMatch(html, /comes with the next update/);
+});
+
+test('HOTM editor: rows above the HOTM level are greyed with a reason, unknown level greys nothing', () => {
+  const locked = editor('hotm', { build: { ...emptyBuild(), hotm: { tier: 5, levels: { mining_master: 3 }, omelette: false } }, ui: { perk: 'mining_master' } });
+  assert.match(locked, /perk-locked[^>]*data-perk="mining_master"/);
+  assert.match(locked, /Locked by your HOTM level/);
+  assert.match(locked, /<input type="number"[^>]*disabled/);
+  assert.doesNotMatch(editor('hotm'), /data-perk="mining_master"[^>]*requirement/);
+  assert.doesNotMatch(editor('hotm').replace(/perk-locked[^>]*front_loaded/, ""), /perk-locked/);
+  assert.match(editor('hotm', { ui: { perk: 'front_loaded' } }), /Requirement missing/);
+});
+
+test('HOTM editor: a base measured without HOTM asks for a draft that is saved once', () => {
+  assert.match(editor('hotm'), /data-draft-save="hotm"/);
+  assert.doesNotMatch(statsView(world({ base: {} }), { page: 'stats', tab: 'hotm', area: 'mining' }), /data-draft-save/);
+});
+
+test('attribute editor lists the attributes of the guides first, then all with a search', () => {
+  const g = { ...mining, sections: [{ name: 'Main', steps: [{ text: 'Ruler', items: [], detect: { kind: 'attr', attr: 'nature_elemental', need: 4 } }] }] };
+  const html = editor('attributes', { guides: [g] });
+  assert.match(html, /In your guides/);
+  assert.match(html, /data-attr="nature_elemental"[^]*needs 4/);
+  assert.equal((html.match(/data-attr="/g) ?? []).length, 1);
+  assert.match(html, /Show all 325/);
+  const searched = editor('attributes', { guides: [g], ui: { attrAll: true, attrQuery: 'nature' } });
+  assert.match(searched, /data-attr-query/);
+  assert.ok((searched.match(/data-attr="/g) ?? []).length > 1);
+});
+
+test('power editor: Magical Power, stone chips, tuning rows and both buffs', () => {
+  const html = editor('power', { build: { ...emptyBuild(), power: { stone: 'MANDRAA', mp: 250, tuning: { STRENGTH: 3 } } }, base: {} });
+  assert.match(html, /data-power-mp[^>]*value="250"/);
+  assert.match(html, /data-power-stone="SCORCHED_BOOKS"/);
+  assert.match(html, /Strong gives/);
+  assert.match(html, /Strength [+]140[.]7/);
+  assert.equal((html.match(/data-tune-step="1"/g) ?? []).length, 8);
+  assert.match(html, /Tuning points: 3 of 25 used/);
+  assert.match(html, /data-buff="godPotion"/);
+  assert.match(html, /data-buff="boosterCookie"/);
 });
 
 test('settings holds weights, presets, keep gear, import, export, reset and no key', () => {

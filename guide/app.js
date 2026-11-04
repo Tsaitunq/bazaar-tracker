@@ -6,7 +6,7 @@ import { migrateOwned, resetOwned } from '../owned.js';
 import { fallbackName, loadItems } from '../names.js';
 import { PRESETS, miningSettings } from '../optimizer.js';
 import { loadGameData } from './gamedata.js';
-import { emptyBuild, measure } from './build.js';
+import { emptyBuild, measure, editPart, commitDraft, discardDraft, EMPTY_PART, perkLevel, hotmTier, omelette, attrLevel, powerStone, powerMp, tuningPoints } from './build.js';
 import { runMigration } from './migrate.js';
 import { parseRoute, applyImport, stampAll, formEdited, typedFields, restoreTyped, settled, autoOf, tickStep, swipeTarget, swipeAxis, swipeLands, familyOf } from './model.js';
 import { homeView } from './views/home.js';
@@ -43,6 +43,8 @@ let owned = load('pg.owned', []);
 const settings = load('pg.settings', {});
 let base = load('pg.base', {}); // the measured stats per area
 let build = { ...emptyBuild(), ...load('pg.build', {}) }; // HOTM, shards, power and buffs now
+let draft = load('pg.draft', {}); // a part the measurement did not know, typed but not saved yet
+let ui = {}; // the perk, attribute and search that are open; not saved
 let gamedata = null;
 const bins = load('pg.bins', {});
 let products = null;
@@ -83,7 +85,7 @@ const targetOf = (dx) => {
 const world = () => {
   pending = new Set();
   return {
-    guides: guides(), checks, owned, dates, base, build, gamedata, products, now: Date.now(),
+    guides: guides(), checks, owned, dates, base, build, draft, ui, gamedata, products, now: Date.now(),
     prices: { forge, ah, cofl: freshBins(bins), wants: pending, items, tax: (settings.tax ?? DEFAULT_TAX) / 100, derpy: election?.mayor?.name === 'Derpy' },
     settings: miningSettings(settings.mining), keepOldGear: settings.keepOldGear === true, brake: settings.brake > 0 ? settings.brake : 5, pathEpoch, opened, items,
     name: (id) => names[id] ?? fallbackName(id), tax: settings.tax ?? DEFAULT_TAX, importedIds: imported.map((g) => g.id),
@@ -305,6 +307,31 @@ function saveMeasure(box) {
   draw();
 }
 
+// An editor change: the build, the measured bases (the first entry backfills them) and the draft are saved together.
+function edit(part, change) {
+  ({ build, base, draft } = editPart({ build, base, draft }, part, change));
+  save('pg.draft', draft);
+  save('pg.base', base);
+  saveBuild();
+}
+
+function draftDone(part, keep) {
+  ({ build, base, draft } = (keep ? commitDraft : discardDraft)({ build, base, draft }, part));
+  save('pg.draft', draft);
+  save('pg.base', base);
+  saveBuild();
+}
+
+const partNow = (part) => draft[part] ?? build[part] ?? EMPTY_PART[part]();
+const perkOpen = () => gamedata?.hotm.perks.find((p) => p.id === ui.perk);
+const attrOpen = () => gamedata?.attributes.attributes.find((a) => a.key === ui.attr);
+
+// The level buttons and the number field of the open perk or attribute.
+function setLevel(kind, level) {
+  if (kind === 'perk' && perkOpen()) edit('hotm', perkLevel(perkOpen(), level));
+  if (kind === 'attr' && attrOpen()) edit('attrs', attrLevel(attrOpen(), level));
+}
+
 function saveBuild() {
   save('pg.build', build);
   pathEpoch++;
@@ -325,6 +352,28 @@ root.addEventListener('click', (e) => {
   const step = el('[data-step]');
   if (step) { if (step.closest('.card')) markCard(step, step.dataset.step); else toggle(step.dataset.step); return; }
   if (el('[data-stats-save]')) { saveMeasure(el('[data-stats-area]')); return; }
+  const save1 = el('[data-draft-save]');
+  if (save1) { draftDone(save1.dataset.draftSave, true); return; }
+  const drop = el('[data-draft-discard]');
+  if (drop) { draftDone(drop.dataset.draftDiscard, false); return; }
+  const perk = el('[data-perk]');
+  if (perk) { ui = { ...ui, perk: perk.dataset.perk }; draw(); return; }
+  const attr = el('[data-attr]');
+  if (attr) { ui = { ...ui, attr: attr.dataset.attr }; draw(); return; }
+  if (el('[data-attr-all]')) { ui = { ...ui, attrAll: !ui.attrAll }; draw(); return; }
+  const stepBy = el('[data-perk-step], [data-attr-step]');
+  if (stepBy) {
+    const kind = stepBy.hasAttribute('data-perk-step') ? 'perk' : 'attr';
+    const now = kind === 'perk' ? partNow('hotm').levels[ui.perk] ?? 0 : partNow('attrs')[ui.attr] ?? 0;
+    setLevel(kind, now + Number(stepBy.dataset[kind + 'Step']));
+    return;
+  }
+  if (el('[data-perk-max]')) { setLevel('perk', perkOpen()?.maxLevel ?? 0); return; }
+  if (el('[data-attr-max]')) { setLevel('attr', attrOpen()?.maxLevel ?? 0); return; }
+  const stone = el('[data-power-stone]');
+  if (stone) { edit('power', powerStone(stone.dataset.powerStone)); return; }
+  const tune = el('[data-tune]');
+  if (tune) { edit('power', tuningPoints(tune.dataset.tune, (partNow('power').tuning?.[tune.dataset.tune] ?? 0) + Number(tune.dataset.tuneStep))); return; }
   const reset = el('[data-reset]');
   if (reset) { armed = reset.dataset.reset; draw(); return; }
   if (el('[data-reset-no]')) { armed = null; draw(); return; }
@@ -353,8 +402,19 @@ root.addEventListener('click', (e) => {
   }
 });
 
+root.addEventListener('input', (e) => {
+  if (!e.target.matches('[data-attr-query]')) return;
+  ui = { ...ui, attrQuery: e.target.value };
+  draw();
+});
+
 root.addEventListener('change', async (e) => {
   const { dataset } = e.target;
+  if (e.target.matches('[data-hotm-tier]')) { settled(e.target); return edit('hotm', hotmTier(e.target.value === '' ? null : Number(e.target.value))); }
+  if (e.target.matches('[data-hotm-omelette]')) { settled(e.target); return edit('hotm', omelette(e.target.checked)); }
+  if (e.target.matches('[data-perk-level]')) { settled(e.target); return setLevel('perk', e.target.value); }
+  if (e.target.matches('[data-attr-level]')) { settled(e.target); return setLevel('attr', e.target.value); }
+  if (e.target.matches('[data-power-mp]')) { settled(e.target); return edit('power', powerMp(e.target.value)); }
   if (dataset.buff) { settled(e.target); build = { ...build, buffs: { ...build.buffs, [dataset.buff]: e.target.checked } }; return saveBuild(); }
   if (e.target.matches('[data-tax], [data-flag], [data-brake]')) settled(e.target);
   if (e.target.matches('[data-brake]')) { settings.brake = Number(e.target.value) > 0 ? Number(e.target.value) : 5; return saveSettings(); }

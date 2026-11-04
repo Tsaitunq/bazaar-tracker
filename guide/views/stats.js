@@ -1,9 +1,12 @@
-// The Stats screens: overview (base, gear, total), measure, and a placeholder for the editors that come with the next update.
+// The Stats screens: overview (base, gear, total), measure, and the three editors (HOTM, attributes, power).
 import { esc } from '../../format.js';
 import { statsModel, AREA_NAME, ago } from '../stats-model.js';
 import { STATS_TABS } from '../model.js';
 import { bottomBar } from './parts.js';
 import { HOME_TABS } from './home.js';
+import { hotmView } from './stats-hotm.js';
+import { attrsView } from './stats-attrs.js';
+import { powerView } from './stats-power.js';
 
 const TAB_NAME = { overview: 'Overview', hotm: 'HOTM', attributes: 'Attributes', power: 'Power' };
 const AREAS = Object.keys(AREA_NAME);
@@ -47,12 +50,10 @@ function measure(world, r) {
   return body;
 }
 
-function placeholder(r) {
-  return `<div class="scroll">${tabs(r)}<div class="empty"><strong>${esc(TAB_NAME[r.tab])}</strong><p>The editor for this page comes with the next update. Until then it changes nothing in your totals.</p></div></div>`;
-}
+const EDITORS = { hotm: hotmView, attributes: attrsView, power: powerView };
 
 export function statsView(world, r) {
-  const inner = r.tab === 'measure' ? measure(world, r) : r.tab === 'overview' ? overview(world, r) : placeholder(r);
+  const inner = r.tab === 'measure' ? measure(world, r) : r.tab === 'overview' ? overview(world, r) : EDITORS[r.tab](world, r, tabs(r));
   const title = r.tab === 'measure' ? { name: 'Measure base', back: 'Stats' } : { name: 'Your stats', back: 'Home' };
   return frame(inner, title, r.tab === 'measure' ? `#/stats/overview/${r.area}` : '#/');
 }

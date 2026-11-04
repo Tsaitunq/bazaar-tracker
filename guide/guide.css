@@ -252,3 +252,50 @@ a { color: var(--area); }
 .stat-row span:not(:first-child), .stat-row b { text-align: right; }
 .stat-head { font-size: 10px; color: var(--muted); padding-bottom: 2px; }
 .primary-link { align-self: flex-start; min-height: 44px; display: inline-flex; align-items: center; padding: 0 16px; border-radius: 22px; background: var(--raised); color: var(--text); font-size: 13px; text-decoration: none; }
+
+/* stats editors: HOTM tree, attributes, power */
+.draft small { color: var(--soft); }
+.panel .chips { flex-wrap: wrap; }
+.chip-mithril { color: var(--stat-green); }
+.chip-gemstone { color: var(--stat-pink); }
+.chip-glacite { color: var(--stat-cyan); }
+.tree { position: relative; align-self: center; flex: none; }
+.tree svg { position: absolute; inset: 0; }
+.tree line { stroke: var(--dim); stroke-width: 3; stroke-linecap: round; }
+.tree line.lit { stroke: var(--area); }
+.perk { position: absolute; width: 36px; height: 36px; padding: 0; border-radius: 10px; background: var(--surface); border: 2px solid var(--line); color: var(--text); font-size: 11px; font-weight: 700; }
+.perk::before { content: ''; position: absolute; inset: -6px; } /* a 48 px target around the 36 px square */
+.perk-ability { border-radius: 18px; }
+.perk-on { border-color: var(--area); }
+.perk-max { background: var(--area); border-color: var(--area); color: var(--bg); }
+.perk-cond { border-style: dashed; border-color: var(--stat-orange); }
+.perk-locked { opacity: 0.4; border-style: dotted; }
+.perk-open { outline: 2px solid var(--text); outline-offset: 2px; }
+.legend-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; font-size: 11px; color: var(--muted); }
+.k { display: inline-block; width: 10px; height: 10px; border-radius: 3px; border: 2px solid var(--area); vertical-align: -1px; }
+.k-max { background: var(--area); }
+.k-cond { border: 2px dashed var(--stat-orange); }
+.k-lock { border: 2px dotted var(--muted); }
+.sheet { border-color: var(--area); }
+.sheet em, .attr-lv em { font-style: normal; color: var(--stat-orange); }
+.stepper { display: flex; align-items: center; gap: 8px; }
+.stepper button { min-width: 44px; min-height: 44px; border-radius: 22px; background: var(--raised); border: none; color: var(--text); font-size: 20px; }
+.stepper .max { padding: 0 14px; font-size: 13px; font-weight: 700; color: var(--area); }
+.stepper input { flex: 1 1 0; min-width: 0; min-height: 44px; padding: 8px 12px; border-radius: 12px; background: var(--deep); border: 1px solid var(--line); color: var(--text); font-size: 16px; text-align: center; }
+.stepper :disabled { opacity: 0.4; }
+.count { font-size: 12px; font-weight: 400; color: var(--muted); }
+.attr-list { display: flex; flex-direction: column; gap: 6px; }
+.attr { min-height: 48px; display: flex; align-items: center; gap: 10px; padding: 4px 10px; border-radius: 14px; background: var(--deep); border: 1px solid var(--line); color: var(--text); font-size: 13px; text-align: left; }
+.attr-open { border-color: var(--area); }
+.attr-max .attr-lv { color: var(--area); }
+.attr-icon { width: 32px; height: 32px; flex: none; display: grid; place-items: center; border-radius: 8px; border: 2px solid currentColor; font-size: 11px; font-weight: 700; }
+.r-COMMON { color: var(--rarity-common); } .r-UNCOMMON { color: var(--rarity-uncommon); } .r-RARE { color: var(--rarity-rare); } .r-EPIC { color: var(--rarity-epic); } .r-LEGENDARY { color: var(--rarity-legendary); }
+.attr-name { flex: 1 1 auto; min-width: 0; }
+.attr-lv { flex: none; color: var(--muted); }
+.chip-btn { min-height: 44px; padding: 0 14px; border-radius: 22px; background: var(--deep); border: 1px solid var(--line); color: var(--soft); font-size: 13px; }
+.chip-btn.on { border-color: var(--area); color: var(--text); font-weight: 700; }
+.gives .chips span { padding: 4px 8px; border-radius: 10px; background: var(--deep); font-size: 12px; color: var(--soft); }
+.tune { display: grid; grid-template-columns: 1fr auto 44px 32px 44px; align-items: center; gap: 6px; min-height: 48px; font-size: 13px; }
+.tune small { color: var(--muted); }
+.tune b { text-align: center; }
+.tune button { min-height: 44px; border-radius: 22px; background: var(--raised); border: none; color: var(--text); font-size: 18px; }
