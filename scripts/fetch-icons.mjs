@@ -151,23 +151,35 @@ export function copyMinecraft(jarPath, outDir) {
   return { found, missing };
 }
 
-export async function fetchPets(pets, outDir, get = (url) => fetch(url)) {
+// jobs: { key, ids } with the NEU item ids to try in turn; the head front of the first skull found is written to outDir/key.png.
+export async function fetchHeads(jobs, outDir, get = (url) => fetch(url)) {
   fs.mkdirSync(outDir, { recursive: true });
   const found = [];
   const missing = [];
-  for (const pet of pets) {
-    const key = `${pet.id}_${pet.rarity}`;
-    try {
-      const res = await get(`${NEU}/${encodeURIComponent(`${pet.id};${RARITY_NO[pet.rarity]}`)}.json`);
-      const url = res.ok ? skullUrl(textureValue(await res.json()) ?? '') : null;
-      const skin = url ? await get(url.replace(/^http:/, 'https:')) : null;
-      if (!skin?.ok) throw new Error('no skin');
-      fs.writeFileSync(path.join(outDir, `${key}.png`), encodePng(headFace(decodePng(Buffer.from(await skin.arrayBuffer())))));
-      found.push(key);
-    } catch { missing.push(key); }
-  }
+  const one = async ({ key, ids }) => {
+    for (const id of ids) {
+      try {
+        const res = await get(`${NEU}/${encodeURIComponent(id)}.json`);
+        const url = res.ok ? skullUrl(textureValue(await res.json()) ?? '') : null;
+        if (!url) continue;
+        const skin = await get(url.replace(/^http:/, 'https:'));
+        if (!skin.ok) continue;
+        fs.writeFileSync(path.join(outDir, `${key}.png`), encodePng(headFace(decodePng(Buffer.from(await skin.arrayBuffer())))));
+        found.push(key);
+        return;
+      } catch { /* try the next id */ }
+    }
+    missing.push(key);
+  };
+  for (let i = 0; i < jobs.length; i += 8) await Promise.all(jobs.slice(i, i + 8).map(one)); // 8 at a time, not hundreds
   return { found, missing };
 }
+
+export const petJobs = (pets) => pets.map((p) => ({ key: `${p.id}_${p.rarity}`, ids: [`${p.id};${RARITY_NO[p.rarity]}`] }));
+// An attribute shard item is stored under ID;rarity, and the digit is not the rarity of the attribute: try them all.
+export const shardJobs = (attrs) => attrs.map((a) => ({ key: a.icon ?? a.key, ids: [0, 1, 2, 3, 4].map((n) => `${a.id};${n}`) }));
+
+const report = (label, r) => console.log(`${label}: found ${r.found.length}; missing ${r.missing.length ? r.missing.join(', ') : 'none'}`);
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const jar = findClientJar();
@@ -175,7 +187,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     const r = copyMinecraft(jar, 'guide/img/mc');
     console.log(`Minecraft (${path.basename(jar)}): found ${r.found.join(', ') || 'none'}; missing ${r.missing.join(', ') || 'none'}`);
   } else console.log('Minecraft: no client JAR found in the versions folder of .minecraft or in .lunarclient');
-  const { pets } = JSON.parse(fs.readFileSync('gamedata/pets.json', 'utf8'));
-  const r = await fetchPets(pets, 'guide/img/hypixel/pets');
-  console.log(`Pet heads: found ${r.found.join(', ') || 'none'}; missing ${r.missing.join(', ') || 'none'}`);
+  const read = (f) => JSON.parse(fs.readFileSync(`gamedata/${f}.json`, 'utf8'));
+  report('Pet heads', await fetchHeads(petJobs(read('pets').pets), 'guide/img/hypixel/pets'));
+  report('Shard heads', await fetchHeads(shardJobs(read('attributes').attributes), 'guide/img/hypixel/shards'));
 }

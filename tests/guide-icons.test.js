@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import zlib from 'node:zlib';
-import { decodePng, encodePng, headFace, skullUrl, textureValue, zipEntries, zipRead, MC_TEXTURES, fetchPets } from '../scripts/fetch-icons.mjs';
+import { decodePng, encodePng, headFace, skullUrl, textureValue, zipEntries, zipRead, MC_TEXTURES, fetchHeads, petJobs, shardJobs } from '../scripts/fetch-icons.mjs';
 
 const skin = () => {
   const rgba = Buffer.alloc(64 * 64 * 4);
@@ -57,11 +57,13 @@ test('a stored and a deflated zip entry are read', () => {
   assert.equal(zipRead(zip, entries.get('b.txt')).toString(), 'packed packed packed');
 });
 
-test('a pet whose skin cannot be fetched is reported missing, not thrown', async () => {
+test('a head that cannot be fetched is reported missing, not thrown; the jobs list the ids to try', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pg-'));
-  const r = await fetchPets([{ id: 'BAL', rarity: 'LEGENDARY' }], dir, async () => ({ ok: false }));
+  const r = await fetchHeads([{ key: 'BAL_LEGENDARY', ids: ['BAL;4'] }], dir, async () => ({ ok: false }));
   assert.deepEqual(r, { found: [], missing: ['BAL_LEGENDARY'] });
   fs.rmSync(dir, { recursive: true, force: true });
+  assert.deepEqual(petJobs([{ id: 'BAL', rarity: 'LEGENDARY' }]), [{ key: 'BAL_LEGENDARY', ids: ['BAL;4'] }]);
+  assert.deepEqual(shardJobs([{ id: 'ATTRIBUTE_SHARD_X', icon: 'SHARD_Y' }])[0].ids.slice(0, 2), ['ATTRIBUTE_SHARD_X;0', 'ATTRIBUTE_SHARD_X;1']);
 });
 
 test('the committed Minecraft textures are there and the service worker lists them', () => {
