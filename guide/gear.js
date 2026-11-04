@@ -12,9 +12,14 @@ const isBuildStep = (step) => { const parts = [step.detect ?? []].flat(); return
 
 const sum = (into, from) => { for (const [k, v] of Object.entries(from ?? {})) into[k] = (into[k] ?? 0) + v; return into; };
 
+// The pet of the build in the game data (id and rarity), null when the build has none or it is not in the data.
+export const buildPet = (build, pets) => pets?.find((p) => p.id === build?.pet?.id && p.rarity === build.pet.rarity) ?? null;
+
 // The pet: one a ticked step sets, otherwise the one saved in the build. Never both.
-function petGear(profile, loadout, build) {
+function petGear(loadout, build, pets) {
   if (loadout.pet) return petStats(loadout.pet);
+  const known = buildPet(build, pets);
+  if (known) return { ...known.stats };
   const pet = build?.pet;
   return pet ? petStatsAt(pet.id, pet.rarity, pet.level) ?? {} : {};
 }
@@ -22,7 +27,7 @@ function petGear(profile, loadout, build) {
 // Gear = item stats of the pieces owned + what each ticked step of the guides adds, in guide order.
 // values: the typed base, only as the state the Blaze maths of a step starts from.
 // Gives the flat gear stats, the profile and loadout the ranking works from.
-export function gearOf({ guides, checks, owned, items, area, build, settings, values = {}, mp = null }) {
+export function gearOf({ guides, checks, owned, items, area, build, settings, values = {}, mp = null, pets = null }) {
   let profile = virtualProfile({ sections: [] }, new Set(), owned, items, mp);
   let loadout = virtualLoadout(profile, items, area);
   const gear = sum({}, gearStats([...loadout.armor, ...loadout.equipment, ...(loadout.held ? [loadout.held] : [])]));
@@ -46,6 +51,6 @@ export function gearOf({ guides, checks, owned, items, area, build, settings, va
     }
   }
   loadout = virtualLoadout(profile, items, area);
-  sum(gear, petGear(profile, loadout, build));
-  return { gear, profile, loadout };
+  sum(gear, petGear(loadout, build, pets));
+  return { gear, profile, loadout, stepPet: loadout.pet ?? null };
 }

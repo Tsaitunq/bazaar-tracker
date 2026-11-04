@@ -57,3 +57,7 @@ export const attrLevel = (attr, level) => (a) => ({ ...a, [attr.key]: whole(leve
 export const powerStone = (id) => (p) => ({ ...p, stone: id || null });
 export const powerMp = (mp) => (p) => ({ ...p, mp: mp === '' || mp === null || !(Number(mp) >= 0) ? null : Number(mp) });
 export const tuningPoints = (stat, n) => (p) => ({ ...p, tuning: { ...p.tuning, [stat]: whole(n, 9999) } });
+
+// The pet is gear, not part of the base (the base is measured without it), so it needs no draft and no backfill.
+// pet: { id, rarity, level } or null.
+export const setPet = (build, pet) => ({ ...build, pet: pet ? { id: pet.id, rarity: pet.rarity, level: pet.level ?? 100 } : null });

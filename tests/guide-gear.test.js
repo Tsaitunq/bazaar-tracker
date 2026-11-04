@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import { gearOf } from '../guide/gear.js';
+import { setPet } from '../guide/build.js';
 import { miningSettings } from '../optimizer.js';
 
 const items = {
@@ -34,4 +36,27 @@ test('the pet: a ticked step wins over the build, never both', () => {
 test('another area is left out', () => {
   const blaze = { id: 'z', area: 'blaze', sections: [] };
   assert.deepEqual(gearOf({ guides: [blaze], checks: {}, owned: [], items, area: 'blaze', build: null, settings: miningSettings() }).gear, {});
+});
+
+const pets = JSON.parse(fs.readFileSync(new URL('../gamedata/pets.json', import.meta.url), 'utf8')).pets;
+
+test('the pet of the build comes from pets.json, by id and rarity', () => {
+  const epic = run({ build: setPet({}, { id: 'SCATHA', rarity: 'EPIC' }), pets });
+  assert.equal(epic.gear.MINING_SPEED, 100);
+  assert.equal(epic.gear.MINING_FORTUNE, 125);
+  assert.equal(epic.stepPet, null);
+  const snail = run({ build: setPet({}, { id: 'SNAIL', rarity: 'LEGENDARY' }), pets });
+  assert.deepEqual(snail.gear, { DEFENSE: 100, INTELLIGENCE: 100 });
+});
+
+test('a ticked pet step wins over the pet of the build and is reported', () => {
+  const r = run({ build: setPet({}, { id: 'SCATHA', rarity: 'EPIC' }), pets, checks: { a: ['S|Bal'] } });
+  assert.equal(r.gear.MINING_FORTUNE, 100); // Bal only: nothing of Scatha
+  assert.equal(r.gear.MINING_SPEED, undefined);
+  assert.equal(r.stepPet.type, 'BAL');
+});
+
+test('setPet: no pet clears it, the level defaults to 100', () => {
+  assert.deepEqual(setPet({ pet: null }, { id: 'BAL', rarity: 'LEGENDARY' }).pet, { id: 'BAL', rarity: 'LEGENDARY', level: 100 });
+  assert.equal(setPet({ pet: { id: 'BAL' } }, null).pet, null);
 });
