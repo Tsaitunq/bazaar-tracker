@@ -1,0 +1,1437 @@
+{
+ "tiers": [
+  {
+   "tier": 1,
+   "cumulativeXp": 0
+  },
+  {
+   "tier": 2,
+   "cumulativeXp": 3000
+  },
+  {
+   "tier": 3,
+   "cumulativeXp": 12000
+  },
+  {
+   "tier": 4,
+   "cumulativeXp": 37000
+  },
+  {
+   "tier": 5,
+   "cumulativeXp": 97000
+  },
+  {
+   "tier": 6,
+   "cumulativeXp": 197000
+  },
+  {
+   "tier": 7,
+   "cumulativeXp": 347000
+  },
+  {
+   "tier": 8,
+   "cumulativeXp": 557000
+  },
+  {
+   "tier": 9,
+   "cumulativeXp": 847000
+  },
+  {
+   "tier": 10,
+   "cumulativeXp": 1247000
+  }
+ ],
+ "grid": {
+  "cols": 7,
+  "rows": 10,
+  "tierOfRow": "tier = 10 - row"
+ },
+ "neighborNote": "neighbors = orthogonal grid neighbours that exist; derived from NEU x/y, not checked against the in-game picture",
+ "perks": [
+  {
+   "id": "mining_speed",
+   "name": "Mining Speed",
+   "tier": 1,
+   "col": 3,
+   "row": 9,
+   "type": "perk",
+   "maxLevel": 50,
+   "powder": "MITHRIL",
+   "requiresTier": 1,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "pow",
+    "offset": 1,
+    "exp": 3,
+    "note": "coins-free powder cost to reach level N = floor((N + offset) ^ exp)"
+   },
+   "effects": [
+    {
+     "stat": "MINING_SPEED",
+     "a": 0,
+     "b": 20,
+     "cond": "always"
+    }
+   ],
+   "neighbors": [
+    "mining_fortune"
+   ]
+  },
+  {
+   "id": "mining_speed_boost",
+   "name": "Mining Speed Boost",
+   "tier": 2,
+   "col": 1,
+   "row": 8,
+   "type": "ability",
+   "maxLevel": 1,
+   "powder": "MITHRIL",
+   "requiresTier": 2,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "free"
+   },
+   "effects": [
+    {
+     "stat": "MINING_SPEED",
+     "kind": "percent",
+     "values": [
+      200,
+      250,
+      300
+     ],
+     "cond": "ability_active"
+    }
+   ],
+   "abilityLevels": 3,
+   "coreLevelNeeded": [
+    1,
+    2,
+    null
+   ],
+   "duration": [
+    10,
+    15,
+    20
+   ],
+   "cooldown": [
+    120,
+    120,
+    120
+   ],
+   "unknown": true,
+   "neighbors": [
+    "luck_of_the_cave",
+    "precision_mining"
+   ]
+  },
+  {
+   "id": "precision_mining",
+   "name": "Precision Mining",
+   "tier": 2,
+   "col": 2,
+   "row": 8,
+   "type": "perk",
+   "maxLevel": 1,
+   "powder": "MITHRIL",
+   "requiresTier": 2,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "free"
+   },
+   "effects": [],
+   "note": "one-level utility perk, no stat",
+   "neighbors": [
+    "mining_fortune",
+    "mining_speed_boost"
+   ]
+  },
+  {
+   "id": "mining_fortune",
+   "name": "Mining Fortune",
+   "tier": 2,
+   "col": 3,
+   "row": 8,
+   "type": "perk",
+   "maxLevel": 50,
+   "powder": "MITHRIL",
+   "requiresTier": 2,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "pow",
+    "offset": 1,
+    "exp": 3.05,
+    "note": "coins-free powder cost to reach level N = floor((N + offset) ^ exp)"
+   },
+   "effects": [
+    {
+     "stat": "MINING_FORTUNE",
+     "a": 0,
+     "b": 2,
+     "cond": "always"
+    }
+   ],
+   "neighbors": [
+    "efficient_miner",
+    "mining_speed",
+    "precision_mining",
+    "titanium_insanium"
+   ]
+  },
+  {
+   "id": "titanium_insanium",
+   "name": "Titanium Insanium",
+   "tier": 2,
+   "col": 4,
+   "row": 8,
+   "type": "perk",
+   "maxLevel": 50,
+   "powder": "MITHRIL",
+   "requiresTier": 2,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "pow",
+    "offset": 1,
+    "exp": 3.1,
+    "note": "coins-free powder cost to reach level N = floor((N + offset) ^ exp)"
+   },
+   "effects": [],
+   "note": "Titanium replace chance 2 + 0.1 x level %",
+   "neighbors": [
+    "mining_fortune",
+    "pickobulus"
+   ]
+  },
+  {
+   "id": "pickobulus",
+   "name": "Pickobulus",
+   "tier": 2,
+   "col": 5,
+   "row": 8,
+   "type": "ability",
+   "maxLevel": 1,
+   "powder": "MITHRIL",
+   "requiresTier": 2,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "free"
+   },
+   "effects": [],
+   "abilityLevels": 3,
+   "coreLevelNeeded": [
+    1,
+    2,
+    null
+   ],
+   "note": "3-block radius explosion",
+   "cooldown": [
+    60,
+    50,
+    40
+   ],
+   "unknown": true,
+   "neighbors": [
+    "quick_forge",
+    "titanium_insanium"
+   ]
+  },
+  {
+   "id": "luck_of_the_cave",
+   "name": "Luck of the Cave",
+   "tier": 3,
+   "col": 1,
+   "row": 7,
+   "type": "perk",
+   "maxLevel": 45,
+   "powder": "MITHRIL",
+   "requiresTier": 3,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "pow",
+    "offset": 1,
+    "exp": 3.07,
+    "note": "coins-free powder cost to reach level N = floor((N + offset) ^ exp)"
+   },
+   "effects": [],
+   "note": "Dwarven Mines luck 5 + level %",
+   "neighbors": [
+    "mining_speed_boost",
+    "old_school"
+   ]
+  },
+  {
+   "id": "efficient_miner",
+   "name": "Efficient Miner",
+   "tier": 3,
+   "col": 3,
+   "row": 7,
+   "type": "perk",
+   "maxLevel": 100,
+   "powder": "MITHRIL",
+   "requiresTier": 3,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "pow",
+    "offset": 1,
+    "exp": 2.6,
+    "note": "coins-free powder cost to reach level N = floor((N + offset) ^ exp)"
+   },
+   "effects": [
+    {
+     "stat": "MINING_SPREAD",
+     "a": 0,
+     "b": 3,
+     "cond": "always"
+    }
+   ],
+   "neighbors": [
+    "mining_fortune",
+    "mole"
+   ]
+  },
+  {
+   "id": "quick_forge",
+   "name": "Quick Forge",
+   "tier": 3,
+   "col": 5,
+   "row": 7,
+   "type": "perk",
+   "maxLevel": 20,
+   "powder": "MITHRIL",
+   "requiresTier": 3,
+   "src": "neu+wiki",
+   "cost": null,
+   "unknown": true,
+   "costConflict": "NEU (level+2)^4, wiki table (N+1)^3.2; the wiki row mapping is ambiguous",
+   "effects": [],
+   "note": "Forge time reduction min(30, 10 + 0.5 x level + floor(0.05 x level) x 10) %",
+   "neighbors": [
+    "pickobulus",
+    "seasoned_mineman"
+   ]
+  },
+  {
+   "id": "sky_mall",
+   "name": "Sky Mall",
+   "tier": 4,
+   "col": 0,
+   "row": 6,
+   "type": "perk",
+   "maxLevel": 1,
+   "powder": "MITHRIL",
+   "requiresTier": 4,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "free"
+   },
+   "effects": [],
+   "note": "one-level utility perk, no stat",
+   "neighbors": [
+    "old_school"
+   ]
+  },
+  {
+   "id": "old_school",
+   "name": "Old-School",
+   "tier": 4,
+   "col": 1,
+   "row": 6,
+   "type": "perk",
+   "maxLevel": 20,
+   "powder": "GEMSTONE",
+   "requiresTier": 4,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "pow",
+    "offset": 1,
+    "exp": 4,
+    "note": "coins-free powder cost to reach level N = floor((N + offset) ^ exp)"
+   },
+   "effects": [
+    {
+     "stat": "ORE_FORTUNE",
+     "a": 0,
+     "b": 5,
+     "cond": "always"
+    }
+   ],
+   "neighbors": [
+    "daily_grind",
+    "luck_of_the_cave",
+    "professional",
+    "sky_mall"
+   ]
+  },
+  {
+   "id": "professional",
+   "name": "Professional",
+   "tier": 4,
+   "col": 2,
+   "row": 6,
+   "type": "perk",
+   "maxLevel": 140,
+   "powder": "GEMSTONE",
+   "requiresTier": 4,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "pow",
+    "offset": 1,
+    "exp": 2.3,
+    "note": "coins-free powder cost to reach level N = floor((N + offset) ^ exp)"
+   },
+   "effects": [
+    {
+     "stat": "MINING_SPEED",
+     "a": 50,
+     "b": 5,
+     "cond": "mining_gemstones"
+    }
+   ],
+   "neighbors": [
+    "mole",
+    "old_school"
+   ]
+  },
+  {
+   "id": "mole",
+   "name": "Mole",
+   "tier": 4,
+   "col": 3,
+   "row": 6,
+   "type": "perk",
+   "maxLevel": 200,
+   "powder": "GEMSTONE",
+   "requiresTier": 4,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "pow",
+    "offset": 1,
+    "exp": 2.17883,
+    "note": "coins-free powder cost to reach level N = floor((N + offset) ^ exp)"
+   },
+   "costNote": "NEU has 2.2, wiki 2.17883; wiki used",
+   "effects": [
+    {
+     "stat": "MINING_SPREAD",
+     "a": 48.24120603015076,
+     "b": 1.7587939698492463,
+     "cond": "mining_hard_stone"
+    }
+   ],
+   "neighbors": [
+    "core_of_the_mountain",
+    "efficient_miner",
+    "gem_lover",
+    "professional"
+   ]
+  },
+  {
+   "id": "gem_lover",
+   "name": "Gem Lover",
+   "tier": 4,
+   "col": 4,
+   "row": 6,
+   "type": "perk",
+   "maxLevel": 20,
+   "powder": "GEMSTONE",
+   "requiresTier": 4,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "pow",
+    "offset": 1,
+    "exp": 4,
+    "note": "coins-free powder cost to reach level N = floor((N + offset) ^ exp)"
+   },
+   "effects": [
+    {
+     "stat": "GEMSTONE_FORTUNE",
+     "a": 20,
+     "b": 4,
+     "cond": "always"
+    }
+   ],
+   "neighbors": [
+    "mole",
+    "seasoned_mineman"
+   ]
+  },
+  {
+   "id": "seasoned_mineman",
+   "name": "Seasoned Mineman",
+   "tier": 4,
+   "col": 5,
+   "row": 6,
+   "type": "perk",
+   "maxLevel": 100,
+   "powder": "GEMSTONE",
+   "requiresTier": 4,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "pow",
+    "offset": 1,
+    "exp": 2.3,
+    "note": "coins-free powder cost to reach level N = floor((N + offset) ^ exp)"
+   },
+   "effects": [
+    {
+     "stat": "MINING_WISDOM",
+     "a": 5,
+     "b": 0.1,
+     "cond": "always"
+    }
+   ],
+   "neighbors": [
+    "daily_powder",
+    "front_loaded",
+    "gem_lover",
+    "quick_forge"
+   ]
+  },
+  {
+   "id": "front_loaded",
+   "name": "Front Loaded",
+   "tier": 4,
+   "col": 6,
+   "row": 6,
+   "type": "perk",
+   "maxLevel": 1,
+   "powder": "GEMSTONE",
+   "requiresTier": 4,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "free"
+   },
+   "effects": [],
+   "note": "one-level utility perk, no stat",
+   "neighbors": [
+    "seasoned_mineman"
+   ]
+  },
+  {
+   "id": "daily_grind",
+   "name": "Daily Grind",
+   "tier": 5,
+   "col": 1,
+   "row": 5,
+   "type": "perk",
+   "maxLevel": 1,
+   "powder": "GLACITE",
+   "requiresTier": 5,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "free"
+   },
+   "effects": [],
+   "note": "one-level utility perk, no stat",
+   "neighbors": [
+    "blockhead",
+    "old_school"
+   ]
+  },
+  {
+   "id": "core_of_the_mountain",
+   "name": "Core of the Mountain",
+   "tier": 5,
+   "col": 3,
+   "row": 5,
+   "type": "core",
+   "maxLevel": 10,
+   "powder": null,
+   "requiresTier": 5,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "table",
+    "values": [
+     50000,
+     100000,
+     200000,
+     300000,
+     400000,
+     600000,
+     750000,
+     1000000,
+     1250000
+    ],
+    "from": 2,
+    "note": "cost to reach level 2..10"
+   },
+   "powderByLevel": {
+    "2-4": "MITHRIL",
+    "5-8": "GEMSTONE",
+    "9-10": "GLACITE",
+    "src": "not confirmed"
+   },
+   "effects": [],
+   "unknown": true,
+   "note": "Core of the Mountain per-level rewards not read from the wiki",
+   "neighbors": [
+    "keep_it_cool",
+    "mole"
+   ]
+  },
+  {
+   "id": "daily_powder",
+   "name": "Daily Powder",
+   "tier": 5,
+   "col": 5,
+   "row": 5,
+   "type": "perk",
+   "maxLevel": 1,
+   "powder": "GEMSTONE",
+   "requiresTier": 5,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "free"
+   },
+   "effects": [],
+   "note": "one-level utility perk, no stat",
+   "neighbors": [
+    "great_explorer",
+    "seasoned_mineman"
+   ]
+  },
+  {
+   "id": "anomalous_desire",
+   "name": "Tunnel Vision",
+   "tier": 6,
+   "col": 0,
+   "row": 4,
+   "type": "ability",
+   "maxLevel": 1,
+   "powder": "GEMSTONE",
+   "requiresTier": 6,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "free"
+   },
+   "effects": [],
+   "abilityLevels": 3,
+   "coreLevelNeeded": [
+    1,
+    2,
+    null
+   ],
+   "note": "Tunnel Vision: rare event chance +30/40/50 %",
+   "duration": [
+    30,
+    30,
+    30
+   ],
+   "cooldown": [
+    120,
+    110,
+    110
+   ],
+   "unknown": true,
+   "neighbors": [
+    "blockhead"
+   ]
+  },
+  {
+   "id": "blockhead",
+   "name": "Blockhead",
+   "tier": 6,
+   "col": 1,
+   "row": 4,
+   "type": "perk",
+   "maxLevel": 20,
+   "powder": "GEMSTONE",
+   "requiresTier": 6,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "pow",
+    "offset": 1,
+    "exp": 4,
+    "note": "coins-free powder cost to reach level N = floor((N + offset) ^ exp)"
+   },
+   "effects": [
+    {
+     "stat": "BLOCK_FORTUNE",
+     "a": 0,
+     "b": 5,
+     "cond": "always"
+    }
+   ],
+   "neighbors": [
+    "anomalous_desire",
+    "daily_grind",
+    "speedy_mineman",
+    "subterranean_fisher"
+   ]
+  },
+  {
+   "id": "subterranean_fisher",
+   "name": "Subterranean Fisher",
+   "tier": 6,
+   "col": 2,
+   "row": 4,
+   "type": "perk",
+   "maxLevel": 40,
+   "powder": "GEMSTONE",
+   "requiresTier": 6,
+   "src": "neu+wiki",
+   "cost": null,
+   "unknown": true,
+   "costConflict": "NEU (level+2)^3.7, wiki (N+1)^3.07",
+   "effects": [
+    {
+     "stat": "FISHING_SPEED",
+     "a": 5,
+     "b": 0.5,
+     "cond": "on_mining_islands"
+    },
+    {
+     "stat": "SEA_CREATURE_CHANCE",
+     "a": 1,
+     "b": 0.1,
+     "cond": "on_mining_islands"
+    }
+   ],
+   "neighbors": [
+    "blockhead",
+    "keep_it_cool"
+   ]
+  },
+  {
+   "id": "keep_it_cool",
+   "name": "Keep It Cool",
+   "tier": 6,
+   "col": 3,
+   "row": 4,
+   "type": "perk",
+   "maxLevel": 50,
+   "powder": "GEMSTONE",
+   "requiresTier": 6,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "pow",
+    "offset": 1,
+    "exp": 3.07,
+    "note": "coins-free powder cost to reach level N = floor((N + offset) ^ exp)"
+   },
+   "effects": [
+    {
+     "stat": "HEAT_RESISTANCE",
+     "a": 0,
+     "b": 0.4,
+     "cond": "always"
+    }
+   ],
+   "neighbors": [
+    "core_of_the_mountain",
+    "lonesome_miner",
+    "powder_buff",
+    "subterranean_fisher"
+   ]
+  },
+  {
+   "id": "lonesome_miner",
+   "name": "Lonesome Miner",
+   "tier": 6,
+   "col": 4,
+   "row": 4,
+   "type": "perk",
+   "maxLevel": 45,
+   "powder": "GEMSTONE",
+   "requiresTier": 6,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "pow",
+    "offset": 1,
+    "exp": 3.07,
+    "note": "coins-free powder cost to reach level N = floor((N + offset) ^ exp)"
+   },
+   "effects": [
+    {
+     "stat": "STRENGTH",
+     "a": 4.5,
+     "b": 0.5,
+     "cond": "on_mining_islands"
+    },
+    {
+     "stat": "CRITICAL_CHANCE",
+     "a": 4.5,
+     "b": 0.5,
+     "cond": "on_mining_islands"
+    },
+    {
+     "stat": "CRITICAL_DAMAGE",
+     "a": 4.5,
+     "b": 0.5,
+     "cond": "on_mining_islands"
+    },
+    {
+     "stat": "DEFENSE",
+     "a": 4.5,
+     "b": 0.5,
+     "cond": "on_mining_islands"
+    },
+    {
+     "stat": "HEALTH",
+     "a": 4.5,
+     "b": 0.5,
+     "cond": "on_mining_islands"
+    }
+   ],
+   "neighbors": [
+    "great_explorer",
+    "keep_it_cool"
+   ]
+  },
+  {
+   "id": "great_explorer",
+   "name": "Great Explorer",
+   "tier": 6,
+   "col": 5,
+   "row": 4,
+   "type": "perk",
+   "maxLevel": 20,
+   "powder": "GEMSTONE",
+   "requiresTier": 6,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "pow",
+    "offset": 1,
+    "exp": 4,
+    "note": "coins-free powder cost to reach level N = floor((N + offset) ^ exp)"
+   },
+   "effects": [],
+   "note": "Crystal Hollows treasure chance 20 + 4 x (level - 1) %, locks -floor(1 + level / 5)",
+   "neighbors": [
+    "daily_powder",
+    "fortunate_mineman",
+    "lonesome_miner",
+    "maniac_miner"
+   ]
+  },
+  {
+   "id": "maniac_miner",
+   "name": "Maniac Miner",
+   "tier": 6,
+   "col": 6,
+   "row": 4,
+   "type": "ability",
+   "maxLevel": 1,
+   "powder": "GEMSTONE",
+   "requiresTier": 6,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "free"
+   },
+   "effects": [
+    {
+     "stat": "BREAKING_POWER",
+     "kind": "flat",
+     "values": [
+      1,
+      1,
+      1
+     ],
+     "cond": "ability_active"
+    },
+    {
+     "stat": "MINING_FORTUNE",
+     "kind": "per_block",
+     "values": [
+      5,
+      10,
+      15
+     ],
+     "cap": 500,
+     "cond": "ability_active"
+    }
+   ],
+   "abilityLevels": 3,
+   "coreLevelNeeded": [
+    1,
+    2,
+    null
+   ],
+   "duration": [
+    25,
+    30,
+    35
+   ],
+   "cooldown": [
+    120,
+    120,
+    120
+   ],
+   "unknown": true,
+   "neighbors": [
+    "great_explorer"
+   ]
+  },
+  {
+   "id": "powder_buff",
+   "name": "Powder Buff",
+   "tier": 7,
+   "col": 3,
+   "row": 3,
+   "type": "perk",
+   "maxLevel": 50,
+   "powder": "GEMSTONE",
+   "requiresTier": 7,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "pow",
+    "offset": 1,
+    "exp": 3.2,
+    "note": "coins-free powder cost to reach level N = floor((N + offset) ^ exp)"
+   },
+   "effects": [],
+   "note": "Powder gain + level %",
+   "neighbors": [
+    "keep_it_cool",
+    "steady_hand"
+   ]
+  },
+  {
+   "id": "speedy_mineman",
+   "name": "Speedy Mineman",
+   "tier": 7,
+   "col": 1,
+   "row": 3,
+   "type": "perk",
+   "maxLevel": 50,
+   "powder": "GEMSTONE",
+   "requiresTier": 7,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "pow",
+    "offset": 1,
+    "exp": 3.2,
+    "note": "coins-free powder cost to reach level N = floor((N + offset) ^ exp)"
+   },
+   "effects": [
+    {
+     "stat": "MINING_SPEED",
+     "a": 0,
+     "b": 40,
+     "cond": "always"
+    }
+   ],
+   "neighbors": [
+    "blockhead",
+    "no_stone_unturned"
+   ]
+  },
+  {
+   "id": "fortunate_mineman",
+   "name": "Fortunate Mineman",
+   "tier": 7,
+   "col": 5,
+   "row": 3,
+   "type": "perk",
+   "maxLevel": 50,
+   "powder": "GEMSTONE",
+   "requiresTier": 7,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "pow",
+    "offset": 1,
+    "exp": 3.2,
+    "note": "coins-free powder cost to reach level N = floor((N + offset) ^ exp)"
+   },
+   "effects": [
+    {
+     "stat": "MINING_FORTUNE",
+     "a": 0,
+     "b": 3,
+     "cond": "always"
+    }
+   ],
+   "neighbors": [
+    "great_explorer",
+    "surveyor"
+   ]
+  },
+  {
+   "id": "warm_heart",
+   "name": "Warm Heart",
+   "tier": 8,
+   "col": 4,
+   "row": 2,
+   "type": "perk",
+   "maxLevel": 50,
+   "powder": "GLACITE",
+   "requiresTier": 8,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "pow",
+    "offset": 1,
+    "exp": 3.1,
+    "note": "coins-free powder cost to reach level N = floor((N + offset) ^ exp)"
+   },
+   "effects": [
+    {
+     "stat": "COLD_RESISTANCE",
+     "a": 0,
+     "b": 0.4,
+     "cond": "always"
+    }
+   ],
+   "neighbors": [
+    "steady_hand",
+    "surveyor"
+   ]
+  },
+  {
+   "id": "miners_blessing",
+   "name": "Miner's Blessing",
+   "tier": 8,
+   "col": 0,
+   "row": 2,
+   "type": "perk",
+   "maxLevel": 1,
+   "powder": "GLACITE",
+   "requiresTier": 8,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "free"
+   },
+   "effects": [],
+   "note": "one-level utility perk, no stat",
+   "neighbors": [
+    "no_stone_unturned"
+   ]
+  },
+  {
+   "id": "no_stone_unturned",
+   "name": "No Stone Unturned",
+   "tier": 8,
+   "col": 1,
+   "row": 2,
+   "type": "perk",
+   "maxLevel": 50,
+   "powder": "GLACITE",
+   "requiresTier": 8,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "pow",
+    "offset": 1,
+    "exp": 3.05,
+    "note": "coins-free powder cost to reach level N = floor((N + offset) ^ exp)"
+   },
+   "effects": [],
+   "note": "Suspicious Scrap chance in Mineshafts 0.5 x level %",
+   "neighbors": [
+    "metal_head",
+    "miners_blessing",
+    "speedy_mineman",
+    "strong_arm"
+   ]
+  },
+  {
+   "id": "strong_arm",
+   "name": "Strong Arm",
+   "tier": 8,
+   "col": 2,
+   "row": 2,
+   "type": "perk",
+   "maxLevel": 100,
+   "powder": "GLACITE",
+   "requiresTier": 8,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "pow",
+    "offset": 1,
+    "exp": 2.3,
+    "note": "coins-free powder cost to reach level N = floor((N + offset) ^ exp)"
+   },
+   "effects": [
+    {
+     "stat": "MINING_SPEED",
+     "a": 0,
+     "b": 5,
+     "cond": "mining_dwarven_metals"
+    }
+   ],
+   "neighbors": [
+    "no_stone_unturned",
+    "steady_hand"
+   ]
+  },
+  {
+   "id": "steady_hand",
+   "name": "Steady Hand",
+   "tier": 8,
+   "col": 3,
+   "row": 2,
+   "type": "perk",
+   "maxLevel": 100,
+   "powder": "GLACITE",
+   "requiresTier": 8,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "pow",
+    "offset": 1,
+    "exp": 2.6,
+    "note": "coins-free powder cost to reach level N = floor((N + offset) ^ exp)"
+   },
+   "effects": [
+    {
+     "stat": "GEMSTONE_SPREAD",
+     "a": 0,
+     "b": 0.1,
+     "cond": "in_mineshaft"
+    }
+   ],
+   "neighbors": [
+    "powder_buff",
+    "rags_to_riches",
+    "strong_arm",
+    "warm_heart"
+   ]
+  },
+  {
+   "id": "mineshaft_mayhem",
+   "name": "Mineshaft Mayhem",
+   "tier": 8,
+   "col": 6,
+   "row": 2,
+   "type": "perk",
+   "maxLevel": 1,
+   "powder": "GLACITE",
+   "requiresTier": 8,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "free"
+   },
+   "effects": [],
+   "note": "one-level utility perk, no stat",
+   "neighbors": [
+    "surveyor"
+   ]
+  },
+  {
+   "id": "surveyor",
+   "name": "Surveyor",
+   "tier": 8,
+   "col": 5,
+   "row": 2,
+   "type": "perk",
+   "maxLevel": 20,
+   "powder": "GLACITE",
+   "requiresTier": 8,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "pow",
+    "offset": 1,
+    "exp": 4,
+    "note": "coins-free powder cost to reach level N = floor((N + offset) ^ exp)"
+   },
+   "effects": [],
+   "note": "Mineshaft chance from Glacite Tunnels 0.75 x level %",
+   "neighbors": [
+    "eager_adventurer",
+    "fortunate_mineman",
+    "mineshaft_mayhem",
+    "warm_heart"
+   ]
+  },
+  {
+   "id": "metal_head",
+   "name": "Metal Head",
+   "tier": 9,
+   "col": 1,
+   "row": 1,
+   "type": "perk",
+   "maxLevel": 20,
+   "powder": "GLACITE",
+   "requiresTier": 9,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "pow",
+    "offset": 1,
+    "exp": 4,
+    "note": "coins-free powder cost to reach level N = floor((N + offset) ^ exp)"
+   },
+   "effects": [
+    {
+     "stat": "DWARVEN_METAL_FORTUNE",
+     "a": 0,
+     "b": 5,
+     "cond": "always"
+    }
+   ],
+   "neighbors": [
+    "crystalline",
+    "no_stone_unturned"
+   ]
+  },
+  {
+   "id": "rags_to_riches",
+   "name": "Rags to Riches",
+   "tier": 9,
+   "col": 3,
+   "row": 1,
+   "type": "perk",
+   "maxLevel": 50,
+   "powder": "GLACITE",
+   "requiresTier": 9,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "pow",
+    "offset": 1,
+    "exp": 3.05,
+    "note": "coins-free powder cost to reach level N = floor((N + offset) ^ exp)"
+   },
+   "effects": [
+    {
+     "stat": "MINING_FORTUNE",
+     "a": 0,
+     "b": 4,
+     "cond": "in_mineshaft"
+    }
+   ],
+   "neighbors": [
+    "mining_master",
+    "steady_hand"
+   ]
+  },
+  {
+   "id": "eager_adventurer",
+   "name": "Eager Adventurer",
+   "tier": 9,
+   "col": 5,
+   "row": 1,
+   "type": "perk",
+   "maxLevel": 100,
+   "powder": "GLACITE",
+   "requiresTier": 9,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "pow",
+    "offset": 1,
+    "exp": 2.3,
+    "note": "coins-free powder cost to reach level N = floor((N + offset) ^ exp)"
+   },
+   "effects": [
+    {
+     "stat": "MINING_SPEED",
+     "a": 0,
+     "b": 4,
+     "cond": "in_mineshaft"
+    }
+   ],
+   "neighbors": [
+    "surveyor",
+    "vanguard_seeker"
+   ]
+  },
+  {
+   "id": "gemstone_infusion",
+   "name": "Gemstone Infusion",
+   "tier": 10,
+   "col": 0,
+   "row": 0,
+   "type": "ability",
+   "maxLevel": 1,
+   "powder": "GLACITE",
+   "requiresTier": 10,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "free"
+   },
+   "effects": [],
+   "abilityLevels": 3,
+   "coreLevelNeeded": [
+    1,
+    2,
+    null
+   ],
+   "note": "+100 % gemstone effectiveness",
+   "duration": [
+    20,
+    25,
+    30
+   ],
+   "cooldown": [
+    120,
+    120,
+    120
+   ],
+   "unknown": true,
+   "neighbors": [
+    "crystalline"
+   ]
+  },
+  {
+   "id": "crystalline",
+   "name": "Crystalline",
+   "tier": 10,
+   "col": 1,
+   "row": 0,
+   "type": "perk",
+   "maxLevel": 50,
+   "powder": "GLACITE",
+   "requiresTier": 10,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "pow",
+    "offset": 1,
+    "exp": 3.3,
+    "note": "coins-free powder cost to reach level N = floor((N + offset) ^ exp)"
+   },
+   "effects": [],
+   "note": "Crystal chance in Mineshafts 0.5 x level %",
+   "neighbors": [
+    "gemstone_infusion",
+    "gifts_from_the_departed",
+    "metal_head"
+   ]
+  },
+  {
+   "id": "gifts_from_the_departed",
+   "name": "Gifts from the Departed",
+   "tier": 10,
+   "col": 2,
+   "row": 0,
+   "type": "perk",
+   "maxLevel": 100,
+   "powder": "GLACITE",
+   "requiresTier": 10,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "pow",
+    "offset": 1,
+    "exp": 2.45,
+    "note": "coins-free powder cost to reach level N = floor((N + offset) ^ exp)"
+   },
+   "effects": [],
+   "note": "Frozen Corpse extra loot 0.2 x level %",
+   "neighbors": [
+    "crystalline",
+    "mining_master"
+   ]
+  },
+  {
+   "id": "mining_master",
+   "name": "Mining Master",
+   "tier": 10,
+   "col": 3,
+   "row": 0,
+   "type": "perk",
+   "maxLevel": 10,
+   "powder": "GLACITE",
+   "requiresTier": 10,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "pow",
+    "offset": 7,
+    "exp": 5,
+    "note": "coins-free powder cost to reach level N = floor((N + offset) ^ exp)"
+   },
+   "effects": [
+    {
+     "stat": "PRISTINE",
+     "a": 0,
+     "b": 0.1,
+     "cond": "always"
+    }
+   ],
+   "neighbors": [
+    "dead_mans_chest",
+    "gifts_from_the_departed",
+    "rags_to_riches"
+   ]
+  },
+  {
+   "id": "dead_mans_chest",
+   "name": "Dead Man's Chest",
+   "tier": 10,
+   "col": 4,
+   "row": 0,
+   "type": "perk",
+   "maxLevel": 50,
+   "powder": "GLACITE",
+   "requiresTier": 10,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "pow",
+    "offset": 1,
+    "exp": 3.2,
+    "note": "coins-free powder cost to reach level N = floor((N + offset) ^ exp)"
+   },
+   "effects": [],
+   "note": "Extra Frozen Corpse spawn 0.5 x level %",
+   "neighbors": [
+    "mining_master",
+    "vanguard_seeker"
+   ]
+  },
+  {
+   "id": "vanguard_seeker",
+   "name": "Vanguard Seeker",
+   "tier": 10,
+   "col": 5,
+   "row": 0,
+   "type": "perk",
+   "maxLevel": 50,
+   "powder": "GLACITE",
+   "requiresTier": 10,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "pow",
+    "offset": 1,
+    "exp": 3.1,
+    "note": "coins-free powder cost to reach level N = floor((N + offset) ^ exp)"
+   },
+   "effects": [],
+   "note": "Vanguard Corpse chance level %",
+   "neighbors": [
+    "dead_mans_chest",
+    "eager_adventurer",
+    "sheer_force"
+   ]
+  },
+  {
+   "id": "sheer_force",
+   "name": "Sheer Force",
+   "tier": 10,
+   "col": 6,
+   "row": 0,
+   "type": "ability",
+   "maxLevel": 1,
+   "powder": "GLACITE",
+   "requiresTier": 10,
+   "src": "neu+wiki",
+   "cost": {
+    "kind": "free"
+   },
+   "effects": [
+    {
+     "stat": "MINING_SPREAD",
+     "kind": "flat",
+     "values": [
+      200,
+      200,
+      200
+     ],
+     "cond": "ability_active"
+    }
+   ],
+   "abilityLevels": 3,
+   "coreLevelNeeded": [
+    1,
+    2,
+    null
+   ],
+   "duration": [
+    20,
+    25,
+    30
+   ],
+   "cooldown": [
+    120,
+    120,
+    120
+   ],
+   "unknown": true,
+   "neighbors": [
+    "vanguard_seeker"
+   ]
+  }
+ ]
+}
