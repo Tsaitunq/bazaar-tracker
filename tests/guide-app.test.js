@@ -130,3 +130,12 @@ test('no redraw while mark done runs: the path is drawn again and scrolled to th
   // a redraw held back is not lost when the tick itself draws nothing
   assert.match(app, /toggle\(key, true\);\s+\/\/ [^\n]*\s+if \(root\.querySelector\('\.marking'\)\) draw\(\);/);
 });
+
+test('a sideways drag on a stats tab leads to the next tab and stops at the ends', () => {
+  const at = (tab) => ({ page: 'stats', tab, area: 'blaze' });
+  assert.deepEqual(swipeTarget(at('overview'), -50, []), { hash: '#/stats/hotm/blaze', back: false });
+  assert.deepEqual(swipeTarget(at('attributes'), 50, []), { hash: '#/stats/hotm/blaze', back: true });
+  assert.equal(swipeTarget(at('overview'), 50, []), null);
+  assert.equal(swipeTarget(at('power'), -50, []), null);
+  assert.equal(swipeTarget({ page: 'stats', tab: 'measure', area: 'mining' }, -50, []), null);
+});

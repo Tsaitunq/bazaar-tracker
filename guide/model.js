@@ -341,9 +341,15 @@ export function parseRoute(hash, guides) {
   return { page: 'home' };
 }
 
-// Where a sideways drag leads from a guide: the next guide of its area, the one before, and from the first one home. family: the guide ids of the area in order.
+// Where a sideways drag leads: from a guide the next guide of its area, the one before, and from the first one home; from a stats page the next tab. family: the guide ids of the area in order.
 export function swipeTarget(r, dx, family) {
-  if (r.page !== 'guide' || !dx) return null;
+  if (!dx) return null;
+  if (r.page === 'stats' && STATS_TABS.includes(r.tab)) {
+    // Overview, HOTM, Attributes, Power in a row; the ends do not lead anywhere
+    const to = STATS_TABS[STATS_TABS.indexOf(r.tab) + (dx > 0 ? -1 : 1)];
+    return to ? { hash: `#/stats/${to}/${r.area}`, back: dx > 0 } : null;
+  }
+  if (r.page !== 'guide') return null;
   const at = Math.max(family.indexOf(r.id), 0);
   if (dx > 0) return { hash: at > 0 ? `#/guide/${family[at - 1]}/path` : '#/', back: true };
   return at + 1 < family.length ? { hash: `#/guide/${family[at + 1]}/path`, back: false } : null;

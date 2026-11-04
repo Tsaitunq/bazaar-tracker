@@ -8,7 +8,7 @@ import { PRESETS, miningSettings } from '../optimizer.js';
 import { loadGameData } from './gamedata.js';
 import { emptyBuild, measure, editPart, commitDraft, discardDraft, EMPTY_PART, perkLevel, hotmTier, omelette, attrLevel, powerStone, powerMp, tuningPoints } from './build.js';
 import { runMigration } from './migrate.js';
-import { parseRoute, applyImport, stampAll, formEdited, typedFields, restoreTyped, settled, autoOf, tickStep, swipeTarget, swipeAxis, swipeLands, familyOf } from './model.js';
+import { STATS_TABS, parseRoute, applyImport, stampAll, formEdited, typedFields, restoreTyped, settled, autoOf, tickStep, swipeTarget, swipeAxis, swipeLands, familyOf } from './model.js';
 import { homeView } from './views/home.js';
 import { guideView } from './views/guide.js';
 import { statsView } from './views/stats.js';
@@ -443,6 +443,9 @@ function scrollsSideways(el) {
   return false;
 }
 
+// guide pages and the four stats tabs swipe; the measure form does not
+const swipeable = (r) => r.page === 'guide' || (r.page === 'stats' && STATS_TABS.includes(r.tab));
+
 const stillMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const idle = (job) => (window.requestIdleCallback ? requestIdleCallback(job, { timeout: 1000 }) : setTimeout(job, 200));
@@ -590,7 +593,7 @@ root.addEventListener('touchstart', (e) => {
   handScroll();
   if (touch?.axis === 'x') { settle(null); return; } // a second finger ends the swipe
   const [first] = e.touches;
-  const free = e.touches.length === 1 && !settling && !marking && route().page === 'guide' && !scrollsSideways(e.target);
+  const free = e.touches.length === 1 && !settling && !marking && swipeable(route()) && !e.target.closest('input, select') && !scrollsSideways(e.target);
   touch = free ? { x: first.clientX, y: first.clientY, lastX: first.clientX, at: e.timeStamp, speed: 0, axis: null, dx: 0, to: null } : null;
 }, { passive: true });
 
