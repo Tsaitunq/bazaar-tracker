@@ -2,8 +2,16 @@
 import { esc, number } from '../../format.js';
 import { guideModel, worldFor, nextPerGuide, unlockedThisWeek, firstOfFamilies } from '../model.js';
 import { ring, bottomBar, profileLink, nextMilestone } from './parts.js';
+import { ago } from '../stats-model.js';
 
 export const HOME_TABS = [{ id: 'home', label: 'Home' }, { id: 'settings', label: 'Settings' }];
+
+// The line above the title: when the newest base was measured.
+function measuredText(world) {
+  const at = Math.max(0, ...Object.values(world.base ?? {}).map((e) => e.at ?? 0));
+  return at ? `Base measured ${ago(at, world.now)}` : 'No base measured yet';
+}
+
 function guideCard(m) {
   const at = m.chapters.findIndex((c) => c.current);
   const next = m.card ? `Next: ${m.card.name}` : 'All steps are done';
@@ -17,7 +25,7 @@ const EMPTY_ARCS = ['', '', ''].map((name) => ({ name, share: 0 }));
 const farmingCard = `<a class="guide-card" data-theme="farming" href="#/guide/farming/path">${ring({ chapters: EMPTY_ARCS, total: 0, size: 70, label: 'Farming', showTotal: false })}<span class="guide-info"><strong>Farming</strong><small>Guide coming soon</small></span></a>`;
 
 export function homeView(world) {
-  const head = `<div class="home-head"><div class="home-title"><h1>Your guides</h1></div>${profileLink()}</div>`;
+  const head = `<div class="home-head"><div class="home-title"><small>${esc(measuredText(world))}</small><h1>Your guides</h1></div>${profileLink()}</div>`;
   const bar = bottomBar(HOME_TABS, 'home');
   // still loading: the bare screen, so "No guide yet" never flashes at start
   if (!world.guides.length && world.loading) return `<div class="screen screen-home" data-theme="home">${head}<div class="scroll"></div>${bar}</div>`;

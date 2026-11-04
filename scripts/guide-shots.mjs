@@ -15,7 +15,7 @@ const fixture = JSON.parse(fs.readFileSync('tests/fixtures/guide/world.json', 'u
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.woff2': 'font/woff2', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
 
 const SHOTS = [
-  ['home', '#/'], ['mining-path', '#/guide/mining/path'],
+  ['home', '#/'], ['stats-measure', '#/stats/measure/mining'], ['stats-hotm', '#/stats/hotm/mining'], ['stats-blaze', '#/stats/overview/blaze'], ['mining-path', '#/guide/mining/path'],
   ['shafting-path', '#/guide/shafting/path'], ['blaze-path', '#/guide/blaze-slayer/path'],
   ['farming', '#/guide/farming/path'], ['settings', '#/settings'], ['stats', '#/stats'],
 ];
@@ -47,7 +47,7 @@ const MEASURES = [
   ]],
   ['Farming', '#/guide/farming/path', [['.screen', 'padding', '18px 20px 12px'], ['.ring-title h1', 'font-size', '22px', COMPACT]]],
 ];
-const NO_TEMPLATE = ['Stats of all guides', 'Settings'];
+const NO_TEMPLATE = ['Settings'];
 
 const server = http.createServer((req, res) => {
   const file = path.join(WEB, decodeURIComponent(new URL(req.url, 'http://x').pathname.replace(/\/$/, '/index.html')));
@@ -59,15 +59,18 @@ const server = http.createServer((req, res) => {
 const json = (route, body, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
 
 // The real guides and values in personal/ never reach a picture: all of it comes from the fixture.
-async function stubs(context, withData, { profile = withData ? { ...fixture.profile, syncedAt: Date.now() - 2 * 3600e3 } : null, native = true } = {}) {
-  if (native) await context.addInitScript(({ profile: first }) => {
-    let stand = first;
-    const plugin = {
-      getApiKey: async () => ({ key: stand?.syncedAt ? 'stub' : null }), setApiKey: async () => {}, clearApiKey: async () => {},
-      loadProfile: async () => ({ json: JSON.stringify(stand) }), saveProfile: async ({ json }) => { stand = JSON.parse(json); }, clearProfile: async () => { stand = null; },
-    };
-    window.Capacitor = { isNativePlatform: () => true, Plugins: { BazaarAlerts: plugin } };
-  }, { profile });
+// seed: the measured base and the owned pieces of the fixture are in the stores, as after a measurement and some ticks.
+async function stubs(context, withData, { seed = withData } = {}) {
+  const owned = (fixture.profile.summary?.items ?? []).map((i) => i.id);
+  const base = { mining: { at: Date.now() - 2 * 24 * 3600e3, values: { MINING_FORTUNE: 100, MINING_SPEED: 1000 }, snapshot: { hotm: null, attrs: null, power: null, buffs: { godPotion: false, boosterCookie: false }, pet: null } } };
+  base.blaze = { ...base.mining, values: { STRENGTH: 300, TRUE_DEFENSE: 200, CRITICAL_DAMAGE: 100 }, mp: 1200 };
+  await context.addInitScript(({ on, ids, measured }) => {
+    try {
+      if (localStorage.getItem('pg.schema')) return;
+      localStorage.setItem('pg.schema', '2');
+      if (on) { localStorage.setItem('pg.owned', JSON.stringify(ids)); localStorage.setItem('pg.base', JSON.stringify(measured)); }
+    } catch { /* blocked */ }
+  }, { on: seed, ids: owned, measured: base });
   await context.route('**/*', (route) => {
     const url = new URL(route.request().url());
     const name = url.pathname.split('/').pop();
@@ -243,31 +246,6 @@ async function infoSheet(page, base) {
   if (await page.locator('dialog.sheet[open]').count()) fail('the notes do not close');
 }
 
-// The API tag of a row opens what the sync found; Settings list the same per guide.
-async function evidenceSheet(page, base) {
-  await open(page, base, '#/guide/mining/path');
-  await page.waitForTimeout(1200); // a new order may still come when the app is idle
-  const tag = page.locator('#app > .screen [data-evidence]').first();
-  if (!await tag.count()) { fail('no API tag on the mining path, the check says nothing'); return; }
-  await tag.scrollIntoViewIfNeeded();
-  await tag.click();
-  await page.locator('dialog.ev-sheet[open] .evidence').waitFor();
-  await page.screenshot({ path: path.join(OUT, 'evidence-sheet.png') });
-  await page.evaluate(() => window.dispatchEvent(new HashChangeEvent('hashchange')));
-  if (!await page.locator('dialog.ev-sheet[open]').count()) fail('a redraw closed the evidence');
-  await page.locator('dialog.ev-sheet button').click();
-  if (await page.locator('dialog.ev-sheet[open]').count()) fail('the evidence does not close');
-  await open(page, base, '#/settings');
-  const first = page.locator('details.ev-guide summary').first();
-  if (!await first.count()) { fail('no detection report in settings'); return; }
-  await first.click();
-  await page.evaluate(() => window.dispatchEvent(new HashChangeEvent('hashchange')));
-  if (!await page.locator('details.ev-guide[open]').count()) fail('a redraw closed the detection report');
-  await page.locator('details.ev-guide[open] .evidence').first().scrollIntoViewIfNeeded();
-  await page.screenshot({ path: path.join(OUT, 'detection-report.png') });
-  await layoutChecks(page, 'detection report');
-}
-
 async function keepsPlace(page, base) {
   await open(page, base, '#/guide/mining/path');
   // not the last rows: a done row is lower, and at the very end the browser would have to move the list
@@ -294,44 +272,37 @@ async function keepsTyped(page, base) {
   await page.locator('[data-tax]').selectOption('1.25');
 }
 
-// The start state: no key, no sync, stats typed in by hand; they stay when the sync is switched on, and in a browser over a reload.
+// The start state: nothing measured. The base is typed in on the measure screen and stays over a reload.
 async function manual(browser, base) {
-  const start = async (native) => {
-    const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2 });
-    await stubs(context, true, { profile: null, native });
-    const page = await context.newPage();
-    page.on('pageerror', (e) => fail(`manual: ${e.message}`));
-    await open(page, base, '#/stats');
-    await page.locator('[data-stats-area="mining"] [data-stats-stat="MINING_FORTUNE"]').fill('1234');
-    await page.locator('[data-stats-area="mining"] [data-stats-save]').click();
-    await page.locator('[data-stats-area="mining"] [role="status"]').waitFor();
-    return { context, page };
-  };
-  const typed = (page) => page.locator('[data-stats-area="mining"] [data-stats-stat="MINING_FORTUNE"]').inputValue();
-  const { context, page } = await start(true);
-  await page.screenshot({ path: path.join(OUT, 'manual-stats.png') });
-  await layoutChecks(page, 'manual stats');
+  const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2 });
+  await stubs(context, true, { seed: false });
+  const page = await context.newPage();
+  page.on('pageerror', (e) => fail(`manual: ${e.message}`));
+  await open(page, base, '#/guide/mining/path');
+  if (!await page.getByText('Measure your base').count()) fail('no hint to measure the base');
+  await open(page, base, '#/stats/measure/mining');
+  await page.screenshot({ path: path.join(OUT, 'manual-measure.png') });
+  await layoutChecks(page, 'manual measure');
+  await page.locator('[data-stats-area="mining"] [data-stats-stat="MINING_FORTUNE"]').fill('1234');
+  await page.locator('[data-buff="godPotion"]').check();
+  await page.locator('[data-stats-area="mining"] [data-stats-save]').click();
+  await page.waitForFunction(() => location.hash === '#/stats/overview/mining');
+  await page.screenshot({ path: path.join(OUT, 'manual-overview.png') });
+  await layoutChecks(page, 'manual overview');
+  if (!await page.locator('.stat-row', { hasText: 'Mining Fortune' }).innerText().then((t) => t.includes('1,234'))) fail('the typed value is not in the overview');
   await open(page, base, '#/guide/mining/path');
   await page.screenshot({ path: path.join(OUT, 'manual-guide.png') });
   await layoutChecks(page, 'manual guide');
   if (await page.locator('.stat-value').first().innerText() !== '1,234') fail('the typed-in value is not in the grid');
   if (!await page.locator('#app > .screen .card .primary').count()) fail('no step to tick by hand');
   await open(page, base, '#/settings');
-  await page.screenshot({ path: path.join(OUT, 'manual-settings.png') });
   await layoutChecks(page, 'manual settings');
-  if (await page.locator('[data-set="key"]').count()) fail('the start state shows the key field');
-  await page.locator('[data-flag="personal"]').check();
-  await page.locator('[data-set="uuid"]').fill('0123456789abcdef0123456789abcdef');
-  await page.locator('[data-set="uuid"]').blur();
-  await page.getByText('Saved.').waitFor();
-  await open(page, base, '#/stats');
-  if (await typed(page) !== '1234') fail('saving a UUID threw away the typed-in stats');
+  if (await page.locator('[data-set="key"], [data-set="uuid"], [data-sync]').count()) fail('the settings still show a key or sync');
+  await page.reload();
+  await page.waitForLoadState('networkidle');
+  await open(page, base, '#/stats/overview/mining');
+  if (!await page.locator('.stat-row', { hasText: 'Mining Fortune' }).innerText().then((t) => t.includes('1,234'))) fail('a reload forgot the base');
   await context.close();
-  const web = await start(false);
-  await web.page.reload();
-  await web.page.waitForLoadState('networkidle');
-  if (await typed(web.page) !== '1234') fail('a browser forgot the typed-in stats');
-  await web.context.close();
 }
 
 // Real touches: the screen follows the finger, a short drag springs back, a long one or a flick lands, a scroll never swipes, reduced motion has no movement.
@@ -434,7 +405,6 @@ try {
   await opensOnCard(page, base);
   await folds(page, base);
   await infoSheet(page, base);
-  await evidenceSheet(page, base);
   await keepsPlace(page, base);
   await pathParts(page, base);
   await keepsTyped(page, base);
