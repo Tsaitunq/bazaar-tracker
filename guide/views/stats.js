@@ -7,7 +7,8 @@ import { HOME_TABS } from './home.js';
 import { hotmView } from './stats-hotm.js';
 import { attrsView } from './stats-attrs.js';
 import { powerView } from './stats-power.js';
-import { petLabel } from './stats-pet.js';
+import { petLabel, petKey } from './stats-pet.js';
+import { pic } from './editors.js';
 
 const TAB_NAME = { overview: 'Overview', hotm: 'HOTM', attributes: 'Attributes', power: 'Power' };
 const AREAS = Object.keys(AREA_NAME);
@@ -35,7 +36,11 @@ function overview(world, r) {
   const stone = world.gamedata?.power.powerStones.find((s) => s.id === world.build.power?.stone);
   const pet = m.pet.step ?? (m.pet.chosen ? petLabel(m.pet.chosen) : null);
   const tag = (label, value, goto = '') => `<a class="tag" href="#/stats/power/${esc(r.area)}"${goto}>${label}: <b>${esc(value ?? 'none')}</b></a>`;
-  const figure = `<div class="panel figure-panel"><canvas data-figure class="figure" role="img" aria-label="Your player"></canvas><div class="tags">${tag('Pet', pet, ' data-goto-pet')}${tag('Power', stone?.power)}</div></div>`;
+  // the pet next to the figure: the one a ticked step sets wins, like in the total; no pet, no float
+  const [stepType, stepTier] = (m.pet.step ?? '').split(' ');
+  const shown = (m.pet.step && world.gamedata?.pets?.pets.find((p) => p.id === stepType && p.rarity === stepTier)) || m.pet.chosen;
+  const float = shown ? `<a class="pet-float" href="#/stats/power/${esc(r.area)}" data-goto-pet="${esc(petKey(shown))}" aria-label="${esc(petLabel(shown))}, open the pet picker">${pic(`img/hypixel/pets/${shown.id}_${shown.rarity}.png`, 'pet-pic', shown.name[0])}</a>` : '';
+  const figure = `<div class="panel figure-panel"><canvas data-figure class="figure" role="img" aria-label="Your player"></canvas>${float}<div class="tags">${tag('Pet', pet, ' data-goto-pet=""')}${tag('Power', stone?.power)}</div></div>`;
   const drafts = ['hotm', 'attrs', 'power'].filter((p) => world.draft?.[p]).map((p) => ({ hotm: ['hotm', 'HOTM'], attrs: ['attributes', 'Attributes'], power: ['power', 'Power'] })[p]);
   const draftNote = drafts.map(([tab, name]) => `<a class="note draft-note" href="#/stats/${tab}/${esc(r.area)}">${name} draft not saved</a>`).join('');
   const note = m.missing === 'data' ? '<p class="note">Loading game data…</p>' : m.missing === 'items' ? '<p class="note">Loading item data… gear shows when it is there.</p>' : '';

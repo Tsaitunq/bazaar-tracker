@@ -63,3 +63,9 @@ test('sizes of the mockups are in the rules', () => {
   assert.match(css, /\.stats-3 \.stat-value \{ font-size: 15px; \}/);
   assert.match(css, /\.step-dot \{ flex: none; width: 22px; height: 22px;/);
 });
+
+test('the floating pet bobs, and stands still for reduced motion', () => {
+  const css = readFileSync(new URL('../guide/guide.css', import.meta.url), 'utf8');
+  assert.match(css, /\.pet-float \{[^}]*animation: pet-bob/);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{ \.pet-float \{ animation: none; \} \}/);
+});

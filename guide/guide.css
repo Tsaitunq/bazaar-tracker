@@ -309,9 +309,13 @@ a { color: var(--area); }
 .attr-lv { flex: none; color: var(--muted); }
 .chip-btn { min-height: 44px; padding: 0 14px; border-radius: 22px; background: var(--deep); border: 1px solid var(--line); color: var(--soft); font-size: 13px; }
 .draft-note { display: block; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--area); color: var(--text); text-decoration: none; }
-.figure-panel { display: flex; align-items: center; gap: 16px; }
+.figure-panel { display: flex; align-items: center; gap: 12px; }
+.pet-float { flex: none; width: 48px; height: 48px; display: grid; place-items: center; align-self: flex-start; margin-top: 40px; animation: pet-bob 2.4s ease-in-out infinite; }
+.pet-float .pic { width: 40px; height: 40px; }
+@keyframes pet-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@media (prefers-reduced-motion: reduce) { .pet-float { animation: none; } }
 .figure { width: 96px; height: 192px; image-rendering: pixelated; color: var(--line); flex: none; }
-.tags { display: flex; flex-direction: column; gap: 8px; }
+.tags { display: flex; flex-direction: column; gap: 8px; min-width: 0; flex: 1 1 0; }
 .tag { display: block; padding: 10px 14px; border-radius: 18px; background: var(--deep); border: 1px solid var(--line); color: var(--soft); font-size: 13px; text-decoration: none; }
 .tag b { color: var(--text); }
 .pet-panel small { display: block; margin-top: 6px; }

@@ -314,7 +314,7 @@ test('pet picker: every pet shows head, stats and perks without a tap, condition
 
 test('the Pet tag on the overview leads to the pet picker', () => {
   const html = statsView(world(), { page: 'stats', tab: 'overview', area: 'mining' });
-  assert.match(html, /<a class="tag" href="#\/stats\/power\/mining" data-goto-pet>Pet:/);
+  assert.match(html, /<a class="tag" href="#\/stats\/power\/mining" data-goto-pet="">Pet:/);
   assert.match(editor('power', { base: {} }), /class="panel pet-panel"/);
 });
 
@@ -340,4 +340,12 @@ test('a disabled perk keeps its icon, greyed with AUS, and its sheet has the swi
   assert.match(html, /class="perk perk-max[^"]*perk-off[^"]*"[^>]*>.*?diamond\.png.*?<i class="perk-aus">AUS<\/i>/);
   assert.match(html, /data-perk-enabled aria-pressed="false">Disabled</);
   assert.match(editor('hotm', { build: { ...b, hotm: { ...b.hotm, levels: { pickobulus: 1 } } }, ui: { perk: 'pickobulus' } }), /data-ability-pick aria-pressed="false">Select</);
+});
+
+test('a floating pet stands beside the figure and opens the picker on its card; no pet, no float', () => {
+  const ov = (build) => statsView(world({ build }), { page: 'stats', tab: 'overview', area: 'mining' });
+  assert.doesNotMatch(ov(emptyBuild()), /pet-float/);
+  const html = ov({ ...emptyBuild(), pet: { id: 'GLACITE_GOLEM', rarity: 'LEGENDARY', level: 100 } });
+  assert.match(html, /<a class="pet-float" href="#\/stats\/power\/mining" data-goto-pet="GLACITE_GOLEM:LEGENDARY"[^>]*><span class="pic pet-pic"[^>]*><img src="img\/hypixel\/pets\/GLACITE_GOLEM_LEGENDARY\.png"/);
+  assert.match(editor('power', { base: {} }), /data-pet-card="GLACITE_GOLEM:LEGENDARY"/);
 });

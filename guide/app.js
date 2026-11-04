@@ -45,7 +45,7 @@ const settings = load('pg.settings', {});
 let base = load('pg.base', {}); // the measured stats per area
 let build = { ...emptyBuild(), ...load('pg.build', {}) }; // HOTM, shards, power and buffs now
 let draft = load('pg.draft', {}); // a part the measurement did not know, typed but not saved yet
-let wantPet = false; // the Pet tag was tapped: the power tab opens on the pet picker
+let wantPet = false; // the Pet tag or the floating pet was tapped: the power tab opens on the pet picker (true) or on that pet's card (its key)
 let ui = {}; // the perk, attribute and search that are open; not saved
 let gamedata = null;
 const bins = load('pg.bins', {});
@@ -152,7 +152,7 @@ function draw() {
   shownRoute = shown;
   if (wantPet) {
     const panel = route().tab === 'power' && root.querySelector('.pet-panel');
-    if (panel) panel.scrollIntoView({ block: 'start' });
+    if (panel) (root.querySelector(`[data-pet-card="${wantPet}"]`) ?? panel).scrollIntoView({ block: 'start' });
     if (panel || route().tab !== 'power') wantPet = false;
   }
   root.firstElementChild?.classList.toggle('head-min', folded);
@@ -386,7 +386,8 @@ root.addEventListener('click', (e) => {
   }
   if (el('[data-perk-enabled]') && perkOpen()) { edit('hotm', perkEnabled(perkOpen(), (partNow('hotm').disabled ?? []).includes(perkOpen().id))); return; }
   if (el('[data-ability-pick]') && perkOpen()) { edit('hotm', abilityPick(perkOpen())); return; }
-  if (el('[data-goto-pet]')) { wantPet = true; return; } // the link itself opens the power tab
+  const goPet = el('[data-goto-pet]');
+  if (goPet) { wantPet = goPet.dataset.gotoPet || true; return; } // the link itself opens the power tab
   if (el('[data-perk-max]')) { setLevel('perk', perkOpen()?.maxLevel ?? 0); return; }
   if (el('[data-attr-max]')) { setLevel('attr', attrOpen()?.maxLevel ?? 0); return; }
   const pet = el('[data-pet]');
