@@ -5,7 +5,7 @@ import { isItemStep, idsToOwn, idsOfStep, ownedAuto, mergeAuto, migrateOwned, im
 import { virtualProfile, virtualLoadout, applyStep, baseStats, doneSince } from '../virtual.js';
 import { daggersOf, DAGGERS } from '../blaze.js';
 import { stepDelta, blazeDelta, PRESETS } from '../optimizer.js';
-import { miningScore, statsEntry, statsView } from '../stats.js';
+import { miningScore } from '../stats.js';
 import { stepKey, doneSet, openStep, exportData, importData } from '../progress.js';
 import { guideModel, stampAll, tickStep, autoOf, applyImport } from '../guide/model.js';
 import { settingsView } from '../guide/views/settings.js';
@@ -267,23 +267,6 @@ test('in a fixed guide its own numbers beat the calculation and keep every stat'
 
 test('cold resistance adds nothing to the score', () => {
   assert.equal(miningScore({ MINING_SPEED: 100 }, { COLD_RESISTANCE: 50 }), 0);
-});
-
-test('the typed-in blaze form asks for magical power, the mining form does not', () => {
-  const state = { statsInput: { blaze: { values: {}, mp: 950, at: 1 } } };
-  const html = statsView(state, null, String);
-  assert.equal(html.split('data-stats-area="blaze"')[1].includes('data-stats-mp'), true);
-  assert.equal(html.split('data-stats-area="blaze"')[0].includes('data-stats-mp'), false);
-  assert.match(html, /data-stats-mp value="950"/);
-});
-
-test('magical power is stored as a number, a bad value keeps the old one', () => {
-  const form = (mp) => ({ values: {}, mp });
-  assert.equal(statsEntry('blaze', form('900'), 1).mp, 900);
-  assert.equal(statsEntry('blaze', form(''), 1).mp, undefined);
-  assert.equal(statsEntry('blaze', form('-3'), 1, undefined, { mp: 800 }).mp, 800);
-  assert.equal(statsEntry('blaze', form(undefined), 1, undefined, { mp: 800 }).mp, 800);
-  assert.equal(statsEntry('blaze', form(''), 1, undefined, { mp: 800 }).mp, undefined);
 });
 
 test('the app hands the form value on and blaze deltas run on a virtual profile', () => {

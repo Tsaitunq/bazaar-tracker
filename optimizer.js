@@ -1,5 +1,5 @@
 // Which open guide step brings the most per coin (spec 4 and 5). Pure functions over the guide, the prices and the synced profile.
-import { AREA_STATS, computeStats, offsetStale, maxPetStats, petStats, MIN_TRUE_DEFENSE, MIN_MP, TARGET_MP } from './stats.js';
+import { AREA_STATS, computeStats, maxPetStats, petStats, MIN_TRUE_DEFENSE, MIN_MP, TARGET_MP } from './stats.js';
 import { DAGGERS, OFA, ADDITIVE_ENCHANTS, blazeOutput, blazeState, daggersOf, additiveOf } from './blaze.js';
 import { stepCost, openStep, bookOf } from './progress.js';
 import { checkStep } from './requires.js';
@@ -452,20 +452,6 @@ export function blazeRules(state, loadout, ctx, settings, guide) {
 }
 
 const share = (v) => { const p = v * 100; return Math.abs(p) >= 0.1 ? p.toFixed(1) : p.toPrecision(1); };
-const NOTES = {
-  boost: 'Your /stats do not match the God Potion / Booster Cookie settings, so they are left out.',
-  noitems: 'Save your /stats again: item data was missing, so they are left out.',
-  setup: 'Measure /stats again: the slot or pet changed, so they are left out.',
-};
-
-export const offsetNotes = (entry, state, loadout) => [
-  ...(entry?.offset && NOTES[entry.offsetNote] ? [NOTES[entry.offsetNote]] : []),
-  ...(!entry?.offset ? ['Save your /stats in Settings to include what the app cannot read.'] : []),
-  ...(offsetStale(entry, entry?.choice) ? ['Measure /stats again: the slot or pet changed.'] : []),
-  ...(entry?.at && entry.at < state.syncedAt ? ['Your /stats values are older than the last sync.'] : []),
-  ...loadout.gaps,
-];
-
 export const LEFT_OUT = 'Estimate: compares upgrades, says nothing about real kill time. Not modelled: Thunderlord, Fire Aspect, Crimson swipe, Burning Vengeance, Venomous, demon phases, pillars.';
 
 // Spec 4.3 as data.

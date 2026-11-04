@@ -31,12 +31,13 @@ Erzeugt und nicht in git, `npm run clean` löscht sie: `www/`, `www-guide/`, `an
 - `data.js` – Laden der Daten aus dem Branch `data` und lokalen Kopien.
 - `names.js`, `prices.js`, `format.js` – Item-Namen, Preis-Helfer, Text-Helfer (beide Apps).
 - `native.js` – Brücke zu den Android-Plugins (beide Apps).
-- `sync.js`, `profile.js`, `nbt.js` – Profil-Sync per eigenem Key, Profil zusammenfassen, NBT lesen.
 - `progress.js` – Guides laden und prüfen, Schrittkosten, Import/Export.
 - `owned.js` – geteilter Besitz über alle Guides.
-- `detect.js`, `requires.js` – was der Sync als erledigt erkennt, ob Anforderungen erfüllt sind.
+- `detect.js`, `requires.js` – wann ein Schritt durch besessene Teile erfüllt ist, Anforderungen von Items.
 - `optimizer.js`, `optimizer-data.js`, `path.js` – Wert je Schritt, Wiki-Werte, Reihenfolge des Pfads.
-- `stats.js`, `virtual.js`, `blaze.js` – Werte im gewählten Setup, Profil aus Häkchen, Blaze-Schadensmodell.
+- `stats.js`, `virtual.js`, `blaze.js` – Item-, Pet- und Power-Werte, Profil aus Häkchen, Blaze-Schadensmodell.
+- `gamedata/` – Stats, HOTM, Attribute und Power als JSON, geladen und geprüft von `guide/gamedata.js`.
+- `guide/totals.js`, `guide/build.js`, `guide/gear.js`, `guide/migrate.js`, `guide/stats-model.js` – Summe je Stat (Basis + Änderungen + Gear), Build und Messungen, Gear aus Häkchen, Umstieg von der API, Daten der Stats-Seiten.
 - `capacitor.config.json` – Capacitor-Konfiguration der Bazaar-App.
 - `timing-backfill.json` – nachgetragene Event-Läufe für `timing.js`.
 - `package.json` – npm-Skripte: `test`, `android:*`, `guide:*`, `clean`.
@@ -50,5 +51,5 @@ Erzeugt und nicht in git, `npm run clean` löscht sie: `www/`, `www-guide/`, `an
 - `clean.mjs` – löscht die erzeugten Ordner.
 - `snapshot.mjs`, `items.mjs`, `recipes.mjs`, `auctions.mjs`, `election.mjs` – Datenabzug für `data/`.
 - `timing-backfill.mjs`, `backfill-lib.mjs`, `timing-backup.mjs`, `timing-remove-backfill.mjs`, `mayors-history.json` – Event-Timing nachtragen, sichern, entfernen.
-- `detect-report.mjs`, `stats-report.mjs` – lokale Abgleiche gegen `personal/`, ohne private Werte auszugeben.
+- `gamedata-build.mjs` – baut `gamedata/*.json` (Wiki zuerst, NEU als Zweitquelle).
 - `icons.mjs`, `serve.mjs` – App-Symbol zeichnen, lokaler Server.
