@@ -101,23 +101,89 @@ test('hotm: max levels match the in-game check', () => {
   for (const [id, max] of Object.entries(MAX)) assert.equal(perk(id).maxLevel, max, id);
 });
 
-test('hotm: per-level values and conditions', () => {
-  const at = (id, stat, level) => { const e = perk(id).effects.find((x) => x.stat === stat); return e.a + e.b * level; };
-  const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, `${a} vs ${b}`);
-  near(at('mining_speed', 'MINING_SPEED', 3), 60);
-  near(at('professional', 'MINING_SPEED', 1), 55);
-  near(at('gem_lover', 'GEMSTONE_FORTUNE', 1), 24);
-  near(at('seasoned_mineman', 'MINING_WISDOM', 1), 5.1);
-  near(at('subterranean_fisher', 'FISHING_SPEED', 1), 5.5);
-  near(at('subterranean_fisher', 'SEA_CREATURE_CHANCE', 1), 1.1);
-  near(at('mole', 'MINING_SPREAD', 10), 20);
-  const ox = perk('titanium_insanium').otherEffects[0];
-  near(ox.a + ox.b * 27, 4.7);
-  const q = perk('quick_forge').otherEffects[0];
-  near(q.a + q.b * 1, 10.5);
-  assert.ok(perk('lonesome_miner').effects.every((e) => e.kind === 'percent_multiplier' && e.b === 0.6 && e.cond === 'on_mining_islands'));
+// Wiki table "Bereich": [level 1, max level, max level + omelette], read from the first effect that holds the value.
+const RANGE = {
+  mining_speed: [20, 1000, 1020], mining_fortune: [2, 100, 102], titanium_insanium: [2.1, 7, 7.1], luck_of_the_cave: [6, 50, 51], efficient_miner: [3, 300, 303],
+  quick_forge: [10.5, 30, 30], old_school: [5, 100, 105], professional: [55, 750, 755], mole: [50, 400, 401.76], gem_lover: [24, 100, 104],
+  seasoned_mineman: [5.1, 15, 15.1], blockhead: [5, 100, 105], keep_it_cool: [0.4, 20, 20.4], lonesome_miner: [5, 27, 27.5], great_explorer: [20, 96, 100],
+  speedy_mineman: [40, 2000, 2040], powder_buff: [1, 50, 51], fortunate_mineman: [3, 150, 153], no_stone_unturned: [0.5, 25, 25.5], strong_arm: [5, 500, 505],
+  steady_hand: [0.1, 10, 10.1], warm_heart: [0.4, 20, 20.4], surveyor: [0.75, 15, 15.75], metal_head: [5, 100, 105], rags_to_riches: [4, 200, 204],
+  eager_adventurer: [4, 400, 404], crystalline: [0.5, 25, 25.5], gifts_from_the_departed: [0.2, 20, 20.2], mining_master: [0.1, 1, 1.1],
+  dead_mans_chest: [0.5, 25, 25.5], vanguard_seeker: [1, 50, 51],
+};
+const valueOf = (e, level) => {
+  let v = e.a + e.b * level + (e.stepEvery ? Math.floor(level / e.stepEvery) * e.stepAdd : 0);
+  if (e.floor) v = Math.floor(v);
+  return e.cap === undefined ? v : Math.min(e.cap, v);
+};
+const near = (a, b, w) => assert.ok(Math.abs(a - b) < 0.01, `${w}: ${a} vs ${b}`);
+
+test('hotm: formula value at level 1, max level and with the omelette matches the wiki range', () => {
+  for (const [id, [lv1, max, ome]] of Object.entries(RANGE)) {
+    const p = perk(id);
+    const e = p.effects[0] ?? p.otherEffects[0];
+    near(valueOf(e, 1), lv1, `${id} lv1`);
+    near(valueOf(e, p.maxLevel), max, `${id} max`);
+    near(valueOf(e, p.maxLevel + 1), ome, `${id} omelette`);
+    assert.equal(p.omeletteBonus, true, id);
+  }
+});
+
+test('hotm: the second values of multi-effect perks', () => {
+  const f = perk('subterranean_fisher').effects;
+  near(valueOf(f[0], 1), 5.5, 'fishing speed lv1'); near(valueOf(f[0], 40), 25, 'fishing speed max'); near(valueOf(f[0], 41), 25.5, 'fishing speed omelette');
+  near(valueOf(f[1], 1), 1.1, 'scc lv1'); near(valueOf(f[1], 40), 5, 'scc max'); near(valueOf(f[1], 41), 5.1, 'scc omelette');
+  const locks = perk('great_explorer').otherEffects[1];
+  assert.deepEqual([1, 20, 21].map((l) => valueOf(locks, l)), [1, 5, 5]);
+});
+
+test('hotm: Strong Arm has three effects, the hidden ones are capped', () => {
+  const [metals, ores, air] = perk('strong_arm').effects;
+  assert.deepEqual([metals.cond, metals.b, metals.cap], ['mining_dwarven_metals', 5, undefined]);
+  assert.deepEqual([ores.cond, ores.b, ores.cap, ores.hidden], ['mining_pure_ores', 5, 500, true]);
+  assert.deepEqual([air.cond, air.b, air.cap, air.hidden], ['mining_hard_stone_off_ground', 25, 2500, true]);
+  assert.equal(valueOf(ores, 101), 500); assert.equal(valueOf(air, 100), 2500);
+});
+
+test('hotm: conditions and Lonesome Miner multiplier', () => {
+  assert.ok(perk('lonesome_miner').effects.every((e) => e.kind === 'percent_multiplier' && e.cond === 'on_mining_islands'));
+  assert.deepEqual(perk('lonesome_miner').effects.map((e) => e.stat).sort(), ['CRITICAL_CHANCE', 'CRITICAL_DAMAGE', 'DEFENSE', 'HEALTH', 'STRENGTH']);
   assert.deepEqual(perk('miners_blessing').effects[0], { stat: 'MAGIC_FIND', a: 30, b: 0, cond: 'on_mining_islands' });
-  for (const [id, cond] of [['professional', 'mining_gemstones'], ['mole', 'mining_hard_stone'], ['strong_arm', 'mining_dwarven_metals'], ['steady_hand', 'in_mineshaft'], ['rags_to_riches', 'in_mineshaft'], ['eager_adventurer', 'in_mineshaft']]) {
+  for (const [id, cond] of [['professional', 'mining_gemstones'], ['mole', 'mining_hard_stone'], ['steady_hand', 'in_mineshaft'], ['rags_to_riches', 'in_mineshaft'], ['eager_adventurer', 'in_mineshaft'], ['subterranean_fisher', 'on_mining_islands']]) {
     assert.ok(perk(id).effects.every((e) => e.cond === cond), id);
   }
+});
+
+const levelCost = (c, n) => Math.floor((n + c.offset) ** c.exp);
+const total = (id, from, to) => { const c = perk(id).cost; let s = 0; for (let n = from; n <= to; n++) s += levelCost(c, n); return s; };
+
+test('hotm: cost samples', () => {
+  assert.equal(total('mole', 2, 10), 727);
+  assert.equal(perk('mole').cost.powder, 'gemstone');
+  assert.equal(levelCost(perk('mining_master').cost, 2), 59049);
+  assert.equal(perk('mining_master').cost.powder, 'glacite');
+  assert.equal(total('speedy_mineman', 2, 10), 6745);
+  assert.equal(perk('mining_speed').cost, null);
+  assert.equal(perk('mining_speed').unknown, true);
+});
+
+test('hotm: omelette is a global flag and no perk of its own', () => {
+  const h = read('hotm');
+  assert.equal(h.omelette.maxLevelBonus, 1);
+  assert.ok(!h.perks.some((p) => /omelette/i.test(p.id)));
+  assert.ok(h.perks.filter((p) => p.omeletteBonus).every((p) => p.maxLevel > 1 && p.type === 'perk'));
+  assert.ok(h.perks.filter((p) => p.maxLevel === 1 && p.type === 'perk').every((p) => !p.omeletteBonus));
+});
+
+test('hotm: Core of the Mountain table', () => {
+  const core = perk('core_of_the_mountain');
+  assert.equal(core.levels.length, 10);
+  assert.deepEqual(core.levels.map((l) => l.cost?.amount ?? 0), [0, 50000, 100000, 200000, 300000, 400000, 500000, 750000, 1000000, 1250000]);
+  assert.deepEqual(core.levels.map((l) => l.cost?.powder ?? null), [null, 'mithril', 'mithril', 'gemstone', 'gemstone', 'gemstone', 'gemstone', 'glacite', 'glacite', 'glacite']);
+  assert.deepEqual(core.levels.map((l) => l.sbXp), [25, 35, 50, 65, 75, 100, 125, 150, 175, 200]);
+  assert.deepEqual(core.levels[9].reward, { tokens: 2 });
+});
+
+test('hotm: no wikiAlt and no top-level powder are left', () => {
+  assert.ok(read('hotm').perks.every((p) => p.wikiAlt === undefined && p.powder === undefined));
 });

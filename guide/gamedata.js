@@ -2,7 +2,7 @@
 export const FILES = ['stats', 'hotm', 'attributes', 'power'];
 const AREAS = new Set(['mining', 'combat', 'farming', 'general']);
 const RARITIES = ['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGENDARY'];
-const POWDERS = new Set(['MITHRIL', 'GEMSTONE', 'GLACITE']);
+const POWDERS = new Set(['mithril', 'gemstone', 'glacite']);
 const TYPES = new Set(['perk', 'ability', 'core']);
 const HEX = /^#[0-9A-Fa-f]{6}$/;
 
@@ -28,10 +28,24 @@ const checkEffect = (w, e, stats) => {
   if (!stats.has(e.stat)) fail(w, `unknown stat ${e.stat}`);
 };
 
+const checkCost = (w, p) => {
+  const c = p.cost;
+  if (c === undefined || (c === null && !p.unknown)) fail(w, 'cost missing (null needs unknown:true)');
+  if (c === null) return;
+  if (c.kind === 'none') return;
+  if (c.kind === 'table') {
+    if (p.type !== 'core' || p.levels?.length !== p.maxLevel) fail(w, 'table cost needs a levels entry per level');
+    for (const l of p.levels) if (l.cost && (!POWDERS.has(l.cost.powder) || !(l.cost.amount > 0))) fail(w, `bad core cost at level ${l.level}`);
+    return;
+  }
+  if (!POWDERS.has(c.powder) || !(c.exp > 0) || !(c.offset > 0)) fail(w, 'cost needs powder, exp and offset');
+};
+
 export function checkHotm(d, stats) {
   need('hotm', d, ['tiers', 'perks']);
   unique('hotm', d.perks.map((p) => p.id));
   if (d.tiers.length !== 10) fail('hotm', 'need 10 tiers');
+  if (d.omelette?.maxLevelBonus !== 1) fail('hotm', 'omelette.maxLevelBonus must be 1');
   const byId = new Map(d.perks.map((p) => [p.id, p]));
   const cell = new Set();
   for (const p of d.perks) {
@@ -43,9 +57,11 @@ export function checkHotm(d, stats) {
     const key = `${p.col},${p.row}`;
     if (cell.has(key)) fail(w, `grid cell ${key} used twice`);
     cell.add(key);
-    if (p.type !== 'core' && !POWDERS.has(p.powder)) fail(w, `bad powder ${p.powder}`);
-    if (p.cost === undefined || (p.cost === null && !p.unknown)) fail(w, 'cost missing (null needs unknown:true)');
+    if (p.wikiAlt !== undefined || p.powder !== undefined) fail(w, 'wikiAlt/powder are gone: the wiki is the source, powder lives in cost');
+    checkCost(w, p);
     for (const e of [...p.effects, ...(p.activeEffects ?? [])]) checkEffect(w, e, stats);
+    for (const o of p.otherEffects ?? []) need(w, o, ['key', 'unit', 'a', 'b', 'cond']);
+    if (p.omeletteBonus && p.maxLevel < 2) fail(w, 'omeletteBonus on a one-level perk');
     for (const r of p.requires ?? []) if (!p.neighbors.includes(r)) fail(w, `requires ${r}, which is not a direct neighbour`);
     for (const n of p.neighbors) {
       const o = byId.get(n);
