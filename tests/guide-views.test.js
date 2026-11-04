@@ -163,6 +163,24 @@ test('power editor: Magical Power, stone chips, tuning rows and both buffs', () 
   assert.match(html, /data-buff="boosterCookie"/);
 });
 
+test('pet picker: one chip per pet, stats of the choice, conditional perks marked, none selected by default', () => {
+  const none = editor('power', { build: emptyBuild(), base: {} });
+  assert.equal((none.match(/data-pet="[A-Z_]+:[A-Z]+"/g) ?? []).length, 8);
+  assert.match(none, /data-pet="" aria-pressed="true"/);
+  assert.doesNotMatch(none, /data-pet="CROW/);
+  const html = editor('power', { build: { ...emptyBuild(), pet: { id: 'GLACITE_GOLEM', rarity: 'LEGENDARY', level: 100 } }, base: {} });
+  assert.match(html, /data-pet="GLACITE_GOLEM:LEGENDARY"[^>]*aria-pressed="true"/);
+  assert.match(html, /Mining Speed [+]125/);
+  assert.ok(html.includes('only: Glacite Mineshafts</span> <b>Iceborn'));
+  assert.doesNotMatch(html, /ticked step already sets the pet/);
+});
+
+test('pet picker: a ticked pet step wins and the picker says so', () => {
+  const g = { ...mining, sections: [{ name: 'Main', steps: [{ text: 'Bal', items: [], detect: { kind: 'pet', types: ['BAL'], tier: 'LEGENDARY' } }] }] };
+  const html = editor('power', { guides: [g], checks: { mine: ['Main|Bal'] }, build: { ...emptyBuild(), pet: { id: 'SNAIL', rarity: 'LEGENDARY', level: 100 } }, base: {} });
+  assert.ok(html.includes('A ticked step already sets the pet (BAL LEGENDARY)'));
+});
+
 test('settings holds weights, presets, keep gear, import, export, reset and no key', () => {
   const html = settingsView(world());
   assert.doesNotMatch(html, /data-set="key"|data-set="uuid"|data-sync|data-act="remove"|data-flag="personal"|API key/);

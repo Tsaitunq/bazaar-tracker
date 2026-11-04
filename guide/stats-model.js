@@ -2,7 +2,7 @@
 import { doneSet, stepKey } from '../progress.js';
 import { miningSettings } from '../optimizer.js';
 import { number } from '../format.js';
-import { gearOf } from './gear.js';
+import { gearOf, buildPet } from './gear.js';
 import { totalFor, statsFor, DATA_AREA } from './totals.js';
 import { autoOf } from './model.js';
 
@@ -55,6 +55,7 @@ export function statsModel(world, area) {
     measured: entry ? { at: entry.at, buffs: entry.snapshot?.buffs ?? {} } : null,
     fields: ids.map(label), rows, listed: t.listed,
     gearLine: Object.entries(worn.gear).filter(([id, v]) => v && ids.includes(id)).slice(0, 3).map(([id, v]) => ({ ...label(id), text: signed(v) })),
+    pet: { chosen: buildPet(world.build, data.pets?.pets), step: worn.stepPet ? `${worn.stepPet.type} ${worn.stepPet.tier}` : null },
     guides, steps: guides.reduce((n, g) => n + g.n, 0), buffs: world.build?.buffs ?? {},
   };
 }

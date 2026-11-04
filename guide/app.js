@@ -6,7 +6,7 @@ import { migrateOwned, resetOwned } from '../owned.js';
 import { fallbackName, loadItems } from '../names.js';
 import { PRESETS, miningSettings } from '../optimizer.js';
 import { loadGameData } from './gamedata.js';
-import { emptyBuild, measure, editPart, commitDraft, discardDraft, EMPTY_PART, perkLevel, hotmTier, omelette, attrLevel, powerStone, powerMp, tuningPoints } from './build.js';
+import { emptyBuild, measure, editPart, commitDraft, discardDraft, EMPTY_PART, perkLevel, hotmTier, omelette, attrLevel, powerStone, powerMp, tuningPoints, setPet } from './build.js';
 import { runMigration } from './migrate.js';
 import { STATS_TABS, parseRoute, applyImport, stampAll, formEdited, typedFields, restoreTyped, settled, autoOf, tickStep, swipeTarget, swipeAxis, swipeLands, familyOf } from './model.js';
 import { homeView } from './views/home.js';
@@ -332,6 +332,13 @@ function setLevel(kind, level) {
   if (kind === 'attr' && attrOpen()) edit('attrs', attrLevel(attrOpen(), level));
 }
 
+// The pet picker: "ID:RARITY" or empty for none. The pet is gear, so it is saved without a draft.
+function setPetChoice(key) {
+  const [id, rarity] = key.split(':');
+  build = setPet(build, key ? { id, rarity } : null);
+  saveBuild();
+}
+
 function saveBuild() {
   save('pg.build', build);
   pathEpoch++;
@@ -370,6 +377,8 @@ root.addEventListener('click', (e) => {
   }
   if (el('[data-perk-max]')) { setLevel('perk', perkOpen()?.maxLevel ?? 0); return; }
   if (el('[data-attr-max]')) { setLevel('attr', attrOpen()?.maxLevel ?? 0); return; }
+  const pet = el('[data-pet]');
+  if (pet) { setPetChoice(pet.dataset.pet); return; }
   const stone = el('[data-power-stone]');
   if (stone) { edit('power', powerStone(stone.dataset.powerStone)); return; }
   const tune = el('[data-tune]');
