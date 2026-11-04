@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Attribute menu</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#B794FF}a:hover{color:#D6C2FF}
+button{font:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #0B0A10; color: #F2F0F7; font-family: 'Space Grotesk', system-ui, sans-serif; display: flex; flex-direction: column; gap: 12px; padding: 18px 16px 16px;">
+  <div style="display: flex; justify-content: space-between; align-items: center;">
+    <a href="App-Home.dc.html" style="height: 36px; display: flex; align-items: center; gap: 4px; font-size: 13px; color: #A39DB5; text-decoration: none;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Home</a>
+    <h1 style="margin: 0; font-size: 20px; font-weight: 700;">Attributes</h1>
+    <span style="font-size: 12px; color: #A39DB5;">18 / 42</span>
+  </div>
+  <div style="position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 3px; border-radius: 18px; background: #15131C; border: 1px solid #2A2636;">
+    <span style="position: absolute; left: calc(50% + 1px); top: 3px; width: calc(25% - 1.5px); height: 32px; border-radius: 15px; background: #221E2E;"></span>
+    <a href="SP-1.dc.html" style="position: relative; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #A39DB5; text-decoration: none;">Overview</a>
+    <a href="SP-2.dc.html" style="position: relative; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #A39DB5; text-decoration: none;">HOTM</a>
+    <a href="SP-3.dc.html" style="position: relative; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #F2F0F7; text-decoration: none;">Attributes</a>
+    <a href="SP-4.dc.html" style="position: relative; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #A39DB5; text-decoration: none;">Power</a>
+  </div>
+  <div style="display: flex; gap: 6px;">
+    <span style="padding: 6px 12px; border-radius: 14px; background: #221E2E; color: #F2F0F7; font-size: 12px;">All 187</span>
+    <span style="padding: 6px 12px; border-radius: 14px; border: 1px solid #5CC8FF; color: #5CC8FF; font-size: 12px;">Mining</span>
+    <span style="padding: 6px 12px; border-radius: 14px; border: 1px solid #FF8A3D; color: #FF8A3D; font-size: 12px;">Blaze</span>
+    <span style="padding: 6px 12px; border-radius: 14px; border: 1px solid #2A2636; color: #A39DB5; font-size: 12px;">Farming</span>
+    <span style="margin-left: auto; padding: 6px 12px; border-radius: 14px; background: #15131C; color: #A39DB5; font-size: 12px;">Search</span>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px;">
+    <sc-for list="{{shards}}" as="s" hint-placeholder-count="16">
+      <button aria-label="{{s.attr}} level {{s.lv}}" style="height: 108px; padding: 6px 4px; border-radius: 14px; background: {{s.bg}}; border: 2px solid {{s.border}}; color: #F2F0F7; display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-align: center;">
+        <span aria-hidden="true" style="width: 28px; height: 28px; display: grid; grid-template-columns: repeat(4, 7px); grid-auto-rows: 7px; opacity: {{s.iconOp}}; image-rendering: pixelated;">
+          <sc-for list="{{s.px}}" as="p" hint-placeholder-count="16"><span style="background: {{p.c}};"></span></sc-for>
+        </span>
+        <span style="font-size: 9px; color: {{s.rcolor}}; font-weight: 700;">{{s.shard}}</span>
+        <span style="font-size: 11px; line-height: 1.15; color: {{s.text}};">{{s.attr}}</span>
+        <span style="width: 100%; display: flex; flex-direction: column; gap: 3px; align-items: center;">
+          <span style="font-size: 11px; font-weight: 700; color: {{s.lvcolor}};">{{s.lv}}</span>
+          <span style="width: 80%; height: 4px; border-radius: 2px; background: #221E2E;"><span style="display: block; width: {{s.w}}; height: 100%; border-radius: 2px; background: {{s.rcolor}};"></span></span>
+        </span>
+      </button>
+    </sc-for>
+  </div>
+  <div style="margin-top: auto; padding: 14px 16px; border-radius: 22px; background: #15131C; border: 1px solid #C355E0; display: flex; flex-direction: column; gap: 10px;">
+    <div style="display: flex; justify-content: space-between; align-items: baseline;">
+      <div style="display: flex; flex-direction: column;"><span style="font-size: 16px; font-weight: 700;">Subterranean Fortune</span><span style="font-size: 12px; color: #A39DB5;">Chuckwalla shard · Rare · in Mining guides</span></div>
+      <span style="font-size: 13px; color: #A39DB5;">Lv 6 / 10</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <button aria-label="Level down" style="width: 44px; height: 44px; border-radius: 22px; background: #221E2E; border: none; color: #F2F0F7; font-size: 20px;">−</button>
+      <div style="flex-grow: 1; display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 3px;">
+        <sc-for list="{{pips}}" as="p" hint-placeholder-count="10"><span style="height: 10px; border-radius: 3px; background: {{p.c}};"></span></sc-for>
+      </div>
+      <button aria-label="Level up" style="width: 44px; height: 44px; border-radius: 22px; background: #9B6BFF; border: none; color: #0B0A10; font-size: 20px; font-weight: 700;">+</button>
+    </div>
+    <div style="display: flex; justify-content: space-between; font-size: 13px;"><span style="color: #FFAA00; font-weight: 700;">+15 ☘ Mining Fortune <span style="color: #A39DB5; font-weight: 400;">on ores</span></span><span style="color: #A39DB5;">next: 4 shards</span></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const R = { C: '#FFFFFF', U: '#55FF55', R: '#6F7BFF', E: '#C355E0', L: '#FFAA00' };
+    const list = [
+      ['Chuckwalla', 'Subterranean Fortune', 'R', 6], ['Miner Zombie', 'Rotten Pickaxe', 'C', 10], ['Hideonleaf', 'Mossy Box', 'U', 10], ['Bal', 'Deep Technique', 'E', 0],
+      ['Littlefoot', 'Freezing Spread', 'R', 3], ['Galaxy Fish', 'Ultimate DNA', 'L', 0], ['Bezal', 'Blazing Resistance', 'C', 10], ['Flare', 'Infernal Ruler', 'E', 10],
+      ['Barbarian Duke X', 'Warrior', 'E', 10], ['Shellwise', 'Shell', 'E', 10], ['Ghost', 'Veil', 'E', 10], ['Power Dragon', 'Elite', 'L', 10],
+      ['Matcho', 'Ignition', 'R', 0], ['Thorn', 'Dominance', 'E', 0], ['Inferno Demonlord', 'Attack Speed', 'E', 2], ['Chill', 'Skeletal Ruler', 'U', 7]
+    ];
+    const shade = (hex, f) => '#' + [1, 3, 5].map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * f).toString(16).padStart(2, '0')).join('');
+    const pixels = (seed, base) => Array.from({ length: 16 }, (_, i) => {
+      const v = (seed * 31 + i * 17 + (i >> 2) * 7) % 5;
+      return { c: v === 0 ? '#00000000' : shade(base, [0, 0.35, 0.55, 0.8, 1][v]) };
+    });
+    const shards = list.map(([shard, attr, r, lv], i) => ({
+      px: pixels(shard.length + i * 3, R[r]), iconOp: lv ? '1' : '0.4',
+      shard, attr, lv: lv === 10 ? 'MAX' : lv + ' / 10', w: lv * 10 + '%',
+      rcolor: R[r], bg: lv ? '#15131C' : '#100E15', border: i === 0 ? '#C355E0' : lv ? '#2A2636' : '#1A1724',
+      text: lv ? '#F2F0F7' : '#8E889E', lvcolor: lv === 10 ? '#55FF55' : lv ? '#F2F0F7' : '#6F6884'
+    }));
+    const pips = Array.from({ length: 10 }, (_, i) => ({ c: i < 6 ? '#6F7BFF' : '#221E2E' }));
+    return { shards, pips };
+  }
+}
+</script>
+</body>
+</html>

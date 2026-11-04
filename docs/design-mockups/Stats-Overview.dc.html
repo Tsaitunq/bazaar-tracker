@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Stats overview – baseline plus gear</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#B794FF}a:hover{color:#D6C2FF}
+button{font:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #0B0A10; color: #F2F0F7; font-family: 'Space Grotesk', system-ui, sans-serif; display: flex; flex-direction: column; gap: 10px; padding: 16px 16px 14px;">
+  <div style="display: flex; justify-content: space-between; align-items: center;">
+    <a href="App-Home.dc.html" style="height: 36px; display: flex; align-items: center; gap: 4px; font-size: 13px; color: #A39DB5; text-decoration: none;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Home</a>
+    <h1 style="margin: 0; font-size: 20px; font-weight: 700;">Your stats</h1>
+    <span style="width: 60px;"></span>
+  </div>
+  <div style="position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 3px; border-radius: 18px; background: #15131C; border: 1px solid #2A2636;">
+    <span style="position: absolute; left: 3px; top: 3px; width: calc(25% - 1.5px); height: 32px; border-radius: 15px; background: #221E2E;"></span>
+    <a href="SP-1.dc.html" style="position: relative; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #F2F0F7; text-decoration: none;">Overview</a>
+    <a href="SP-2.dc.html" style="position: relative; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #A39DB5; text-decoration: none;">HOTM</a>
+    <a href="SP-3.dc.html" style="position: relative; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #A39DB5; text-decoration: none;">Attributes</a>
+    <a href="SP-4.dc.html" style="position: relative; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #A39DB5; text-decoration: none;">Power</a>
+  </div>
+  <div style="display: flex; gap: 4px; padding: 4px; border-radius: 20px; background: #111821; border: 1px solid #1E2A36;">
+    <button style="flex-grow: 1; height: 34px; border-radius: 16px; background: #15202C; border: 1px solid #5CC8FF; color: #F2F0F7; font-size: 13px; font-weight: 700;">Mining</button>
+    <button style="flex-grow: 1; height: 34px; border-radius: 16px; background: none; border: none; color: #A39DB5; font-size: 13px;">Blaze</button>
+    <button style="flex-grow: 1; height: 34px; border-radius: 16px; background: none; border: none; color: #A39DB5; font-size: 13px;">Farming</button>
+  </div>
+  <div style="display: flex; gap: 12px; align-items: center;">
+    <div style="padding: 8px 8px 2px; border-radius: 18px; background: #111821; border: 1px solid #1E2A36;">
+      <dc-import name="Skin" helmet-color="#5CC8FF" chest-color="#5CC8FF" legs-color="#3A9BD6" boots-color="#5CC8FF" scale="{{k}}" hint-size="62px,123px"></dc-import>
+    </div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #A39DB5;">
+      <span>Base measured <b style="color: #F2F0F7;">2 days ago</b>, no gear, God Potion + Cookie on.</span>
+      <span>Gear: <b style="color: #55FF55;">38 steps</b> ticked in Gear progression + Shafting.</span>
+      <a href="SP-5.dc.html" style="align-self: flex-start; padding: 8px 14px; border-radius: 16px; background: #221E2E; color: #F2F0F7; font-size: 12px; text-decoration: none;">Measure base again</a>
+    </div>
+  </div>
+  <div style="padding: 10px 12px; border-radius: 18px; background: #15131C; border: 1px solid #2A2636; display: flex; flex-direction: column; gap: 3px;">
+    <div style="display: grid; grid-template-columns: 1.9fr 0.9fr 0.9fr 0.9fr; font-size: 10px; color: #8E889E; padding-bottom: 2px;"><span>All mining stats</span><span style="text-align: right;">Base</span><span style="text-align: right;">Gear</span><span style="text-align: right;">Total</span></div>
+    <sc-for list="{{rows}}" as="r" hint-placeholder-count="12">
+      <div style="display: grid; grid-template-columns: 1.9fr 0.9fr 0.9fr 0.9fr; font-size: 12px; align-items: baseline; min-height: 19px;">
+        <span style="color: {{r.color}};">{{r.icon}} {{r.label}}</span>
+        <span style="text-align: right; color: #C9C4D6;">{{r.base}}</span>
+        <span style="text-align: right; color: #55FF55;">{{r.gear}}</span>
+        <b style="text-align: right; color: {{r.color}};">{{r.total}}</b>
+      </div>
+    </sc-for>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+    <sc-for list="{{tiles}}" as="t" hint-placeholder-count="3">
+      <a href="{{t.href}}" style="padding: 10px 12px; border-radius: 16px; background: #15131C; border: 1px solid #2A2636; color: #F2F0F7; text-decoration: none; display: flex; flex-direction: column; gap: 2px;">
+        <span style="font-size: 10px; color: {{t.color}}; font-weight: 700; letter-spacing: 1px;">{{t.kicker}}</span>
+        <span style="font-size: 14px; font-weight: 700;">{{t.title}}</span>
+        <span style="font-size: 11px; color: #A39DB5;">{{t.sub}}</span>
+      </a>
+    </sc-for>
+  </div>
+  <div style="margin-top: auto; text-align: center; font-size: 11px; color: #6F6884;">Swipe ← → between Overview · HOTM · Attributes · Power</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const G = '#FFAA00';
+    const r = (icon, label, base, gear, total, color) => ({ icon, label, base, gear, total, color });
+    return {
+      k: 0.55,
+      rows: [
+        r('☘', 'Mining Fortune', '412', '+234.5', '646.5', G),
+        r('⸕', 'Mining Speed', '1,640', '+1,819', '3,459', G),
+        r('▚', 'Mining Spread', '40', '+20', '60', G),
+        r('▚', 'Gemstone Spread', '0', '+2.5', '2.5', G),
+        r('✧', 'Pristine', '0.4', '+4', '4.4', '#D255D2'),
+        r('☘', 'Gemstone Fortune', '44', '+10', '54', G),
+        r('☘', 'Ore Fortune', '35', '–', '35', G),
+        r('☘', 'Block Fortune', '20', '–', '20', G),
+        r('☘', 'Dwarven Metal Fortune', '15', '–', '15', G),
+        r('Ⓟ', 'Breaking Power', '–', '9', '9', '#3FCF6A'),
+        r('❄', 'Cold Resistance', '10', '+25', '35', '#55FFFF'),
+        r('☯', 'Mining Wisdom', '12', '–', '12', '#55FFFF')
+      ],
+      tiles: [
+        { href: 'SP-2.dc.html', kicker: 'HOTM', title: 'Tier 9', sub: '31 perks', color: '#5CC8FF' },
+        { href: 'SP-3.dc.html', kicker: 'ATTRIBUTES', title: '18 / 42', sub: 'from guides', color: '#C355E0' },
+        { href: 'SP-4.dc.html', kicker: 'POWER', title: 'Scorching', sub: '1,003 MP', color: '#55FFFF' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

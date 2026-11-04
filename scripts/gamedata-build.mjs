@@ -3,10 +3,12 @@
 //
 // Sources (hypixelskyblock.minecraft.wiki unless noted; wiki values were checked on 2026-11-04):
 //   stats.json      Wiki "Stats" (names, areas). Icons and colours: guide/model.js, docs/design-guide-app.md. No icon = unknown.
-//   hotm.json       NEU constants/hotmlayout.json (grid x/y, max level, powder, cost, stat formulas), checked against
-//                   Wiki "Heart of the Mountain" (cost table, ability table, tier XP, 0.20.6 rework notes).
-//                   Neighbours are derived from the grid, not checked against the in-game picture.
-//   attributes.json NEU constants/attribute_shards.json (shard, rarity, level table); effects: Wiki "Attribute Shards" list.
+//   hotm.json       Wiki "Heart of the Mountain" perk table (stat formulas, cost exponents, powder, Core of the Mountain table; read from
+//                   wiki screenshots 2026-11-04), ability table, tier XP. NEU constants/hotmlayout.json only for grid x/y and max level.
+//                   Positions, max levels and per-level values checked against the in-game HOTM menu (2026-11-04). Neighbours are derived
+//                   from the grid (orthogonal, occupied fields only).
+//   attributes.json NEU constants/attribute_shards.json (shard, rarity, level table); effects: Wiki "Attribute Shards" list;
+//                   Rotten Pickaxe, Freezing Spread, Pickaxe Cooldown checked on the in-game tooltip (2026-11-04).
 //   power.json      Wiki "Power Stones"/"Powers" (stats at 250 AP, unique bonus), "Accessory Power" (multiplier, AP per rarity),
 //                   "Maxwell" (tuning points, templates), "Booster Cookie", "God Potion".
 // Anything the sources do not settle carries unknown:true; never fill it with a guess.
@@ -82,80 +84,89 @@ const STAT = new Set(stats.map((s) => s.id));
 
 // ---------- hotm ----------
 const L = read('hotmlayout.json').hotm;
-// stat effect = a + b * level. cond = where it applies.
-const E = (stat, a, b, cond = 'always') => ({ stat, a, b, cond });
-const moleB = 350 / 199;
-const FX = {
-  mining_speed: [E('MINING_SPEED', 0, 20)],
-  mining_fortune: [E('MINING_FORTUNE', 0, 2)],
-  efficient_miner: [E('MINING_SPREAD', 0, 3)],
-  professional: [E('MINING_SPEED', 50, 5, 'mining_gemstones')],
-  mole: [E('MINING_SPREAD', 50 - moleB, moleB, 'mining_hard_stone')],
-  gem_lover: [E('GEMSTONE_FORTUNE', 20, 4)],
-  old_school: [E('ORE_FORTUNE', 0, 5)],
-  seasoned_mineman: [E('MINING_WISDOM', 5, 0.1)],
-  blockhead: [E('BLOCK_FORTUNE', 0, 5)],
-  subterranean_fisher: [E('FISHING_SPEED', 5, 0.5, 'on_mining_islands'), E('SEA_CREATURE_CHANCE', 1, 0.1, 'on_mining_islands')],
-  keep_it_cool: [E('HEAT_RESISTANCE', 0, 0.4)],
-  lonesome_miner: ['STRENGTH', 'CRITICAL_CHANCE', 'CRITICAL_DAMAGE', 'DEFENSE', 'HEALTH'].map((s) => E(s, 4.5, 0.5, 'on_mining_islands')),
-  speedy_mineman: [E('MINING_SPEED', 0, 40)],
-  fortunate_mineman: [E('MINING_FORTUNE', 0, 3)],
-  warm_heart: [E('COLD_RESISTANCE', 0, 0.4)],
-  strong_arm: [E('MINING_SPEED', 0, 5, 'mining_dwarven_metals')],
-  steady_hand: [E('GEMSTONE_SPREAD', 0, 0.1, 'in_mineshaft')],
-  metal_head: [E('DWARVEN_METAL_FORTUNE', 0, 5)],
-  rags_to_riches: [E('MINING_FORTUNE', 0, 4, 'in_mineshaft')],
-  eager_adventurer: [E('MINING_SPEED', 0, 4, 'in_mineshaft')],
-  mining_master: [E('PRISTINE', 0, 0.1)],
+// Effect value at level L = a + b * L (+ floor(L / stepEvery) * stepAdd if set; floor if floor:true; then capped at cap). cond = where it applies.
+// Formulas and costs: wiki Heart of the Mountain perk table (screenshots, 2026-11-04); positions and max levels: NEU, checked in game.
+const E = (stat, a, b, cond = 'always', extra = {}) => ({ stat, a, b, cond, ...extra });
+const X = (key, unit, a, b, cond = 'always', extra = {}) => ({ key, unit, a, b, cond, ...extra }); // effect that is not a stat
+const MULT = ['STRENGTH', 'CRITICAL_CHANCE', 'CRITICAL_DAMAGE', 'DEFENSE', 'HEALTH'];
+// id: [powder, exponent, effects, otherEffects, extra]. Cost to reach level N = floor((N + offset) ^ exp), offset 1 unless given.
+const PERKS = {
+  mining_speed: [null, null, [E('MINING_SPEED', 0, 20)], [], { note: 'cost exponent not read yet' }],
+  mining_fortune: ['mithril', 3.05, [E('MINING_FORTUNE', 0, 2)]],
+  titanium_insanium: ['mithril', 3.1, [], [X('titanium_replace_chance', '%', 2, 0.1, 'always', { note: 'Mithril to Titanium' })]],
+  luck_of_the_cave: ['mithril', 3.07, [], [X('rare_spawn_chance', '%', 5, 1, 'dwarven_mines', { formula: 'final = base * (1 + TunnelVisionLevel / 100 + x / 100)', note: 'Golden Goblin only when also in Glacite Tunnels; not affected by Tracking' })]],
+  efficient_miner: ['mithril', 2.6, [E('MINING_SPREAD', 0, 3)]],
+  quick_forge: ['mithril', 3.2, [], [X('forge_time_reduction', '%', 10, 0.5, 'always', { cap: 30, stepEvery: 20, stepAdd: 10, formula: 'min(30, 10 + 0.5 L + floor(0.05 L) * 10)', note: 'value = a + b L + floor(L / stepEvery) * stepAdd, then capped' })]],
+  old_school: ['gemstone', 4, [E('ORE_FORTUNE', 0, 5)]],
+  professional: ['gemstone', 2.3, [E('MINING_SPEED', 50, 5, 'mining_gemstones')]],
+  mole: ['gemstone', 2.17883, [E('MINING_SPREAD', 50 - 350 / 199, 350 / 199, 'mining_hard_stone', { formula: '50 + (L - 1) * 350 / 199' })]],
+  gem_lover: ['gemstone', 4, [E('GEMSTONE_FORTUNE', 20, 4)]],
+  seasoned_mineman: ['gemstone', 2.3, [E('MINING_WISDOM', 5, 0.1)]],
+  blockhead: ['gemstone', 4, [E('BLOCK_FORTUNE', 0, 5)]],
+  subterranean_fisher: ['gemstone', 3.07, [E('FISHING_SPEED', 5, 0.5, 'on_mining_islands'), E('SEA_CREATURE_CHANCE', 1, 0.1, 'on_mining_islands')]],
+  keep_it_cool: ['gemstone', 3.07, [E('HEAT_RESISTANCE', 0, 0.4)]],
+  lonesome_miner: ['gemstone', 3.07, MULT.map((s) => E(s, 4.5, 0.5, 'on_mining_islands', { kind: 'percent_multiplier', formula: '5 + (L - 1) * 0.5' }))],
+  great_explorer: ['gemstone', 4, [], [X('crystal_hollows_chest_chance', '%', 16, 4, 'crystal_hollows', { formula: '20 + 4 * (L - 1)', note: 'effective chance is 5 * x' }), X('crystal_hollows_locks_removed', 'count', 1, 0.2, 'crystal_hollows', { floor: true, formula: 'floor(1 + L / 5)' })]],
+  speedy_mineman: ['gemstone', 3.2, [E('MINING_SPEED', 0, 40)]],
+  powder_buff: ['gemstone', 3.2, [], [X('powder_gain', '%', 0, 1)]],
+  fortunate_mineman: ['gemstone', 3.2, [E('MINING_FORTUNE', 0, 3)]],
+  no_stone_unturned: ['glacite', 3.05, [], [X('suspicious_scrap_chance', '%', 0, 0.5, 'in_mineshaft')]],
+  strong_arm: ['glacite', 2.3, [E('MINING_SPEED', 0, 5, 'mining_dwarven_metals'), E('MINING_SPEED', 0, 5, 'mining_pure_ores', { cap: 500, hidden: true }), E('MINING_SPEED', 0, 25, 'mining_hard_stone_off_ground', { cap: 2500, hidden: true })]],
+  steady_hand: ['glacite', 2.6, [E('GEMSTONE_SPREAD', 0, 0.1, 'in_mineshaft')]],
+  warm_heart: ['glacite', 3.1, [E('COLD_RESISTANCE', 0, 0.4)]],
+  surveyor: ['glacite', 4, [], [X('mineshaft_chance', '%', 0, 0.75, 'in_glacite_tunnels')]],
+  metal_head: ['glacite', 4, [E('DWARVEN_METAL_FORTUNE', 0, 5)]],
+  rags_to_riches: ['glacite', 3.05, [E('MINING_FORTUNE', 0, 4, 'in_mineshaft')]],
+  eager_adventurer: ['glacite', 2.3, [E('MINING_SPEED', 0, 4, 'in_mineshaft')]],
+  crystalline: ['glacite', 3.3, [], [X('mineshaft_with_crystal_chance', '%', 0, 0.5)]],
+  gifts_from_the_departed: ['glacite', 2.45, [], [X('frozen_corpse_extra_item_chance', '%', 0, 0.2)]],
+  mining_master: ['glacite', 5, [E('PRISTINE', 0, 0.1)], [], { offset: 7 }],
+  dead_mans_chest: ['glacite', 3.2, [], [X('extra_frozen_corpse_chance', '%', 0, 0.5, 'in_mineshaft')]],
+  vanguard_seeker: ['glacite', 3.1, [], [X('vanguard_corpse_mineshaft_chance', '%', 0, 1)]],
+  // no powder level, value from the in-game tooltip
+  miners_blessing: [null, null, [E('MAGIC_FIND', 30, 0, 'on_mining_islands')]],
 };
-// Non-stat effects, from the wiki perk table. text only, not a stat.
-const NOTE = {
-  titanium_insanium: 'Titanium replace chance 2 + 0.1 x level %',
-  luck_of_the_cave: 'Dwarven Mines luck 5 + level %',
-  quick_forge: 'Forge time reduction min(30, 10 + 0.5 x level + floor(0.05 x level) x 10) %',
-  great_explorer: 'Crystal Hollows treasure chance 20 + 4 x (level - 1) %, locks -floor(1 + level / 5)',
-  powder_buff: 'Powder gain + level %',
-  no_stone_unturned: 'Suspicious Scrap chance in Mineshafts 0.5 x level %',
-  surveyor: 'Mineshaft chance from Glacite Tunnels 0.75 x level %',
-  crystalline: 'Crystal chance in Mineshafts 0.5 x level %',
-  gifts_from_the_departed: 'Frozen Corpse extra loot 0.2 x level %',
-  dead_mans_chest: 'Extra Frozen Corpse spawn 0.5 x level %',
-  vanguard_seeker: 'Vanguard Corpse chance level %',
-};
-const TYPE = { mining_speed_boost: 'ability', pickobulus: 'ability', anomalous_desire: 'ability', maniac_miner: 'ability', gemstone_infusion: 'ability', sheer_force: 'ability', core_of_the_mountain: 'core' };
-// Cost conflicts between NEU and wiki that cannot be settled from either source: cost stays null.
-const COST_CONFLICT = { quick_forge: 'NEU (level+2)^4, wiki table (N+1)^3.2; the wiki row mapping is ambiguous', subterranean_fisher: 'NEU (level+2)^3.7, wiki (N+1)^3.07' };
-const MOLE_EXP = 2.17883; // wiki; NEU rounds to 2.2
+const RENAME = { anomalous_desire: { id: 'tunnel_vision', name: 'Tunnel Vision' } }; // in-game name; NEU calls it Anomalous Desire
+const REQUIRES = { front_loaded: ['seasoned_mineman'] }; // in-game: needs a direct neighbour to be unlocked
+const TYPE = { mining_speed_boost: 'ability', pickobulus: 'ability', tunnel_vision: 'ability', maniac_miner: 'ability', gemstone_infusion: 'ability', sheer_force: 'ability', core_of_the_mountain: 'core' };
+// Core of the Mountain: fixed cost and reward per level (wiki). cost null = free.
+const CORE = [
+  [1, null, { tokens: 1 }, 25], [2, ['mithril', 50000], { abilityLevel: 1 }, 35], [3, ['mithril', 100000], { commissionSlots: 1 }, 50],
+  [4, ['gemstone', 200000], { basePowder: { mithril: 1 } }, 65], [5, ['gemstone', 300000], { tokens: 1 }, 75], [6, ['gemstone', 400000], { basePowder: { gemstone: 2 } }, 100],
+  [7, ['gemstone', 500000], { tokens: 1 }, 125], [8, ['glacite', 750000], { basePowder: { glacite: 3 } }, 150], [9, ['glacite', 1000000], { mineshaftSpawnPercent: 10 }, 175], [10, ['glacite', 1250000], { tokens: 2 }, 200],
+].map(([level, c, reward, sbXp]) => ({ level, cost: c && { powder: c[0], amount: c[1] }, reward, sbXp }));
 
-const perks = Object.entries(L.perks).map(([id, p]) => {
+const perks = Object.entries(L.perks).map(([neuId, p]) => {
+  const id = RENAME[neuId]?.id ?? neuId;
   const type = TYPE[id] ?? 'perk';
   const tier = 10 - p.y;
-  const e = { id, name: p.name, tier, col: p.x, row: p.y, type, maxLevel: p.maxLevel, powder: id === 'core_of_the_mountain' ? null : p.powder, requiresTier: tier, src: 'neu+wiki' };
-  const m = /^\(pow \(\+ level (\d+)\) ([\d.]+)\)$/.exec(p.cost);
-  if (id === 'core_of_the_mountain') {
-    e.cost = { kind: 'table', values: [50000, 100000, 200000, 300000, 400000, 600000, 750000, 1000000, 1250000], from: 2, note: 'cost to reach level 2..10' };
-    e.powderByLevel = { '2-4': 'MITHRIL', '5-8': 'GEMSTONE', '9-10': 'GLACITE', src: 'not confirmed' };
-    e.effects = []; e.unknown = true; e.note = 'Core of the Mountain per-level rewards not read from the wiki';
-  } else if (COST_CONFLICT[id]) {
-    e.cost = null; e.unknown = true; e.costConflict = COST_CONFLICT[id];
-  } else if (m) {
-    e.cost = { kind: 'pow', offset: Number(m[1]) - 1, exp: id === 'mole' ? MOLE_EXP : Number(m[2]), note: 'coins-free powder cost to reach level N = floor((N + offset) ^ exp)' };
-    if (id === 'mole') e.costNote = 'NEU has 2.2, wiki 2.17883; wiki used';
+  const e = { id, name: RENAME[neuId]?.name ?? p.name, tier, col: p.x, row: p.y, type, maxLevel: type === 'ability' ? 1 : p.maxLevel, requiresTier: tier, src: 'wiki+neu' };
+  if (REQUIRES[id]) e.requires = REQUIRES[id];
+  const spec = PERKS[id];
+  if (type === 'core') {
+    e.cost = { kind: 'table' };
+    e.levels = CORE;
+    e.effects = [];
+  } else if (spec) {
+    const [powder, exp, effects, other = [], extra = {}] = spec;
+    e.effects = effects;
+    if (other.length) e.otherEffects = other;
+    if (powder) e.cost = { powder, exp, offset: extra.offset ?? 1 };
+    else if (id === 'mining_speed') { e.cost = null; e.unknown = true; }
+    else e.cost = { kind: 'none' };
+    if (extra.note) e.note = extra.note;
+    if (p.maxLevel > 1) e.omeletteBonus = true; // Blue Cheese Goblin Omelette: max level + 1
   } else {
-    e.cost = { kind: 'free' };
+    e.effects = []; e.cost = { kind: 'none' }; e.note = type === 'ability' ? 'ability, no permanent stat' : 'one-level utility perk, no stat';
   }
-  if (type === 'ability') {
-    e.effects = []; e.maxLevel = 1;
-  } else if (FX[id]) e.effects = FX[id];
-  else if (id !== 'core_of_the_mountain') { e.effects = []; if (NOTE[id]) e.note = NOTE[id]; else e.note = 'no stat effect'; }
-  if (p.maxLevel === 1 && type === 'perk' && !NOTE[id] && !FX[id]) e.note = 'one-level utility perk, no stat';
   return e;
 });
+
 // Abilities: level comes from Core of the Mountain, wiki ability table.
 const AB = {
   mining_speed_boost: { effects: [{ stat: 'MINING_SPEED', kind: 'percent', values: [200, 250, 300], cond: 'ability_active' }], duration: [10, 15, 20], cooldown: [120, 120, 120] },
   pickobulus: { effects: [], note: '3-block radius explosion', cooldown: [60, 50, 40] },
-  anomalous_desire: { effects: [], note: 'Tunnel Vision: rare event chance +30/40/50 %', duration: [30, 30, 30], cooldown: [120, 110, 110] },
+  tunnel_vision: { effects: [], note: 'Tunnel Vision: rare event chance +30/40/50 %', duration: [30, 30, 30], cooldown: [120, 110, 110] },
   maniac_miner: { effects: [{ stat: 'BREAKING_POWER', kind: 'flat', values: [1, 1, 1], cond: 'ability_active' }, { stat: 'MINING_FORTUNE', kind: 'per_block', values: [5, 10, 15], cap: 500, cond: 'ability_active' }], duration: [25, 30, 35], cooldown: [120, 120, 120] },
   gemstone_infusion: { effects: [], note: '+100 % gemstone effectiveness', duration: [20, 25, 30], cooldown: [120, 120, 120] },
   sheer_force: { effects: [{ stat: 'MINING_SPREAD', kind: 'flat', values: [200, 200, 200], cond: 'ability_active' }], duration: [20, 25, 30], cooldown: [120, 120, 120] },
@@ -163,7 +174,8 @@ const AB = {
 for (const p of perks) {
   const a = AB[p.id];
   if (!a) continue;
-  Object.assign(p, { abilityLevels: 3, coreLevelNeeded: [1, 2, null], ...a });
+  const { effects, ...rest } = a;
+  Object.assign(p, { abilityLevels: 3, coreLevelNeeded: [1, 2, null], effects: [], activeEffects: effects, ...rest });
   p.unknown = true; // core level for ability level 3 is not on the wiki page read (NEU only knows level 1 and 2)
 }
 // neighbours: same-row/column grid neighbours that are perks
@@ -172,7 +184,7 @@ for (const p of perks) {
   p.neighbors = [[0, -1], [0, 1], [-1, 0], [1, 0]].map(([dx, dy]) => at.get(`${p.col + dx},${p.row + dy}`)).filter(Boolean).sort();
 }
 const hotmXp = [0, 3000, 12000, 37000, 97000, 197000, 347000, 557000, 847000, 1247000];
-write('hotm.json', { tiers: hotmXp.map((xp, i) => ({ tier: i + 1, cumulativeXp: xp })), grid: { cols: 7, rows: 10, tierOfRow: 'tier = 10 - row' }, neighborNote: 'neighbors = orthogonal grid neighbours that exist; derived from NEU x/y, not checked against the in-game picture', perks });
+write('hotm.json', { omelette: { name: 'Blue Cheese Goblin Omelette', maxLevelBonus: 1, appliesTo: 'perks with omeletteBonus: true', note: 'global switch, not a perk' }, costNote: 'cost to reach level N = floor((N + offset) ^ exp) of cost.powder; Core of the Mountain has a fixed table in levels', tiers: hotmXp.map((xp, i) => ({ tier: i + 1, cumulativeXp: xp })), grid: { cols: 7, rows: 10, tierOfRow: 'tier = 10 - row' }, neighborNote: 'neighbors = orthogonal grid neighbours that exist; derived from the grid; positions checked against the in-game grid 2026-11-04', perks });
 
 // ---------- attributes ----------
 const A = read('attribute_shards.json');
@@ -188,6 +200,8 @@ add('L41', eff('MINING_FORTUNE', 1), eff('FARMING_FORTUNE', 1), eff('FORAGING_FO
 add('C49', eff('SPEED', 3, 'on_foraging_islands')); add('R4', eff('FORAGING_FORTUNE', 10));
 add('C10', eff('BLOCK_FORTUNE', 5)); add('C36', eff('MINING_SPEED', 3)); add('C37', eff('MINING_FORTUNE', 2.5)); add('C43', eff('ORE_FORTUNE', 5));
 add('U73', eff('GEMSTONE_FORTUNE', 5, 'mining_fiesta_active')); add('R66', eff('MINING_SPREAD', 1)); add('E36', eff('MINING_WISDOM', 0.5)); add('E45', eff('GEMSTONE_SPREAD', 0.25));
+// Freezing Spread: tooltip at level 10: +0.5 Gemstone Spread per 20 Cold Resistance in Glacite Mineshafts. Wiki range 29-20 for level 1-10; levels 2-9 not read.
+SE.E66 = [{ stat: 'GEMSTONE_SPREAD', kind: 'per_stat', value: 0.5, per: { stat: 'COLD_RESISTANCE', every: { level1: 29, level10: 20 }, everyBetween: 'unknown' }, cond: 'in_mineshaft' }];
 add('E63', eff('MINING_SPEED', 5, 'in_mines_of_divan'), eff('ORE_FORTUNE', 2.5, 'in_mines_of_divan'));
 add('C29', eff('STRENGTH', 5, 'on_foraging_islands')); add('E33', eff('TRUE_DEFENSE', 1)); add('E48', eff('ATTACK_SPEED', 1)); add('L23', eff('HEALTH_REGEN', 1.25)); add('L33', eff('COMBAT_WISDOM', 1)); add('L12', eff('ENCHANTING_WISDOM', 0.5));
 for (const id of ['C6', 'C8', 'C15', 'C18', 'C21', 'C30', 'C31', 'C39', 'C42', 'C44', 'C47', 'C58', 'C46']) add(id, eff('DEFENSE', 4, 'vs_mob_family'));
@@ -202,6 +216,12 @@ const OTHER = new Set(('C16 C22 C27 C48 C61 U61 U64 U85 U97 U106 R6 R11 R13 R22 
   'U17 C9 R15 C25 C28 U44 U52 U63 U67 U70 U88 U91 U100 U103 R10 R43 R84 L13 L52 L57 U6 U7 U26 U78 R21 R29 R31 R51 R52 R72 R81 E8 E15 E60 E66 R77 ' +
   'U4 U5 U8 U9 U11 U16 U20 U21 U23 U25 U28 U31 U32 U34 U39 U41 U43 U45 U47 U49 U50 U53 U56 U57 U59 U62 U65 U68 U69 U72 U76 U82 R5 R7 R8 R9 R19 R32 R37 R40 R45 R47 R53 R54 R58 R61 R65').split(' '));
 const MINING_IDS = new Set(['C10', 'C36', 'C37', 'C43', 'U6', 'U7', 'U26', 'U73', 'U78', 'R21', 'R29', 'R31', 'R33', 'R51', 'R52', 'R66', 'R72', 'R81', 'E8', 'E15', 'E36', 'E45', 'E60', 'E63', 'E66']);
+// Checked on the in-game tooltip. Pickaxe Cooldown: level 10 = -10 % ability cooldown (wiki range 1-10 %, level 2-9 not read).
+const INGAME = {
+  C36: {},
+  E66: { note: 'Gemstone Spread only in Glacite Mineshafts, scales with Cold Resistance; every-N for level 2-9 unknown' },
+  E8: { effectKind: 'other', note: 'Pickaxe ability cooldown -10 % at level 10' },
+};
 const attributes = A.attributes.map((a) => {
   const e = { id: a.internalName.replace(/;\d+$/, ''), key: a.abilityName.toLowerCase().replace(/[^a-z0-9]+/g, '_'), shardId: a.shardId, shard: a.displayName, name: a.abilityName, rarity: a.rarity, maxLevel: 10, icon: a.bazaarName, src: 'neu' };
   if (A.unconsumable_attributes.includes(a.bazaarName)) e.unconsumable = true;
@@ -210,13 +230,14 @@ const attributes = A.attributes.map((a) => {
   else if (FIXED[a.shardId]) { e.effects = [{ stat: FIXED[a.shardId].stat, fixed: FIXED[a.shardId].value, cond: FIXED[a.shardId].cond }]; e.src = 'neu+wiki'; }
   else if (OTHER.has(a.shardId)) { e.effects = []; e.effectKind = 'other'; e.src = 'neu+wiki'; }
   else { e.effects = []; e.unknown = true; }
+  if (INGAME[a.shardId]) { e.src = 'ingame tooltip 2026-11-04'; Object.assign(e, INGAME[a.shardId]); }
   const areas = new Set();
   for (const f of e.effects) for (const ar of stats.find((s) => s.id === f.stat).areas) if (ar !== 'general') areas.add(ar);
   if (MINING_IDS.has(a.shardId)) areas.add('mining');
   e.areas = [...areas].sort();
   return e;
 });
-write('attributes.json', { shardsPerLevel: A.attribute_levelling, shardsPerLevelNote: 'index 0 = shards for level 1; same table on the wiki Attribute Shards page', effectNote: 'effect = perLevel x level (linear, level 1..10); fixed = no scaling', attributes });
+write('attributes.json', { shardsPerLevel: A.attribute_levelling, shardsPerLevelNote: 'index 0 = shards for level 1; same table on the wiki Attribute Shards page', effectNote: 'effect = perLevel x level (linear, level 1..10); fixed = no scaling; per_stat = value per `every` points of another stat', attributes });
 
 // ---------- power ----------
 const P = [

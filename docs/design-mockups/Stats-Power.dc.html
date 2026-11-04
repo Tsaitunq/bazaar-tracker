@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Power, tuning and buffs</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#B794FF}a:hover{color:#D6C2FF}
+button{font:inherit}
+input{font:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #0B0A10; color: #F2F0F7; font-family: 'Space Grotesk', system-ui, sans-serif; display: flex; flex-direction: column; gap: 10px; padding: 16px 16px 14px;">
+  <div style="display: flex; justify-content: space-between; align-items: center;">
+    <a href="App-Home.dc.html" style="height: 36px; display: flex; align-items: center; gap: 4px; font-size: 13px; color: #A39DB5; text-decoration: none;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Home</a>
+    <h1 style="margin: 0; font-size: 20px; font-weight: 700;">Power &amp; Tuning</h1>
+    <span style="width: 50px;"></span>
+  </div>
+  <div style="position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 3px; border-radius: 18px; background: #15131C; border: 1px solid #2A2636;">
+    <span style="position: absolute; left: calc(75% + 0.5px); top: 3px; width: calc(25% - 1.5px); height: 32px; border-radius: 15px; background: #221E2E;"></span>
+    <a href="SP-1.dc.html" style="position: relative; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #A39DB5; text-decoration: none;">Overview</a>
+    <a href="SP-2.dc.html" style="position: relative; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #A39DB5; text-decoration: none;">HOTM</a>
+    <a href="SP-3.dc.html" style="position: relative; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #A39DB5; text-decoration: none;">Attributes</a>
+    <a href="SP-4.dc.html" style="position: relative; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #F2F0F7; text-decoration: none;">Power</a>
+  </div>
+  <div style="padding: 14px 16px; border-radius: 20px; background: #15131C; border: 1px solid #2A2636; display: flex; align-items: center; gap: 12px;">
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px;">
+      <label for="mp" style="font-size: 12px; color: #A39DB5;">✦ Magical Power <span style="color: #8E889E;">(Accessory Bag)</span></label>
+      <input id="mp" value="1003" style="width: 110px; height: 40px; padding: 0 12px; border-radius: 12px; background: #0F0D16; border: 1px solid #2A2636; color: #55FFFF; font-size: 20px; font-weight: 700;">
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
+      <span style="font-size: 12px; color: #A39DB5;">Tuning points</span>
+      <span style="font-size: 20px; font-weight: 700;">100</span>
+    </div>
+  </div>
+  <div style="font-size: 12px; color: #A39DB5; letter-spacing: 1px;">POWER STONE</div>
+  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+    <sc-for list="{{powers}}" as="p" hint-placeholder-count="5">
+      <button style="height: 40px; padding: 0 14px; border-radius: 20px; background: {{p.bg}}; border: 1px solid {{p.border}}; color: {{p.text}}; font-size: 13px; font-weight: {{p.w}};">{{p.name}}</button>
+    </sc-for>
+  </div>
+  <div style="padding: 10px 14px; border-radius: 14px; background: #120F19; font-size: 13px; display: flex; gap: 14px; flex-wrap: wrap;">
+    <span style="color: #8E889E;">Scorching gives</span><span style="color: #FF5555;">❁ +37</span><span style="color: #8C96FF;">☠ +105</span><span style="color: #FFFF55;">⚔ +8</span>
+  </div>
+  <div style="display: flex; justify-content: space-between; align-items: baseline;">
+    <div style="font-size: 12px; color: #A39DB5; letter-spacing: 1px;">TUNING</div>
+    <div style="display: flex; gap: 4px;"><span style="padding: 4px 10px; border-radius: 10px; background: #221E2E; font-size: 12px;">Slot 1</span><span style="padding: 4px 10px; border-radius: 10px; color: #A39DB5; font-size: 12px;">Slot 2</span></div>
+  </div>
+  <div style="padding: 6px 14px; border-radius: 20px; background: #15131C; border: 1px solid #2A2636; display: flex; flex-direction: column;">
+    <sc-for list="{{tuning}}" as="t" hint-placeholder-count="7">
+      <div style="display: flex; align-items: center; gap: 10px; height: 46px;">
+        <span style="flex-grow: 1; font-size: 14px; color: {{t.color}};">{{t.icon}} {{t.name}}</span>
+        <span style="font-size: 12px; color: #8E889E; width: 70px; text-align: right;">{{t.val}}</span>
+        <button aria-label="Less {{t.name}}" style="width: 36px; height: 36px; border-radius: 18px; background: #221E2E; border: none; color: #F2F0F7; font-size: 16px;">−</button>
+        <span style="width: 28px; text-align: center; font-size: 15px; font-weight: 700;">{{t.pts}}</span>
+        <button aria-label="More {{t.name}}" style="width: 36px; height: 36px; border-radius: 18px; background: #221E2E; border: none; color: #F2F0F7; font-size: 16px;">+</button>
+      </div>
+    </sc-for>
+  </div>
+  <div style="font-size: 12px; color: #A39DB5; letter-spacing: 1px;">BUFFS · counted as always on</div>
+  <div style="display: flex; gap: 8px;">
+    <sc-for list="{{buffs}}" as="b" hint-placeholder-count="2">
+      <button role="switch" aria-checked="{{b.on}}" style="flex-grow: 1; height: 48px; padding: 0 14px; border-radius: 16px; background: #15131C; border: 1px solid {{b.border}}; color: #F2F0F7; display: flex; align-items: center; justify-content: space-between; font-size: 13px;">
+        <span>{{b.name}}</span>
+        <span style="width: 40px; height: 22px; border-radius: 11px; background: {{b.track}}; display: flex; justify-content: {{b.side}}; padding: 2px; box-sizing: border-box;"><span style="width: 18px; height: 18px; border-radius: 9px; background: #F2F0F7;"></span></span>
+      </button>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const powers = ['Scorching', 'Hurtful', 'Strong', 'Shaded', 'Silky'].map((name, i) => ({
+      name, bg: i === 0 ? '#1A1626' : '#15131C', border: i === 0 ? '#9B6BFF' : '#2A2636', text: i === 0 ? '#F2F0F7' : '#A39DB5', w: i === 0 ? '700' : '400'
+    }));
+    const tuning = [
+      ['❤', 'Health', '#FF5555', '+5 / pt', 0], ['❈', 'Defense', '#55FF55', '+1 / pt', 0],
+      ['❁', 'Strength', '#FF5555', '+1 / pt', 0], ['☣', 'Crit Chance', '#8C96FF', '+0.2 / pt', 0],
+      ['☠', 'Crit Damage', '#8C96FF', '+1 / pt', 100], ['⚔', 'Attack Speed', '#FFFF55', '+0.3 / pt', 0]
+    ].map(([icon, name, color, val, pts]) => ({ icon, name, color, val, pts }));
+    const buffs = [['God Potion', true], ['Booster Cookie', true]].map(([name, on]) => ({ name, on: String(on), border: on ? '#9B6BFF' : '#2A2636', track: on ? '#9B6BFF' : '#2A2636', side: on ? 'flex-end' : 'flex-start' }));
+    return { powers, tuning, buffs };
+  }
+}
+</script>
+</body>
+</html>
