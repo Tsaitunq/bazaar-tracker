@@ -41,10 +41,10 @@ function attrStats(attrs, data, out) {
 function powerStats(power, data, out) {
   const d = data.power;
   const stone = d.powerStones.find((p) => p.id === power.stone);
-  const ap = power.accessoryPower;
-  if (stone && ap !== null && ap >= 0) {
+  const mp = power.mp;
+  if (stone && mp !== null && mp >= 0) {
     const m = d.multiplier;
-    const scale = m.a * Math.log(m.b * ap + 1) ** m.exp;
+    const scale = m.a * Math.log(m.b * mp + 1) ** m.exp;
     for (const [stat, v] of Object.entries(stone.base)) addTo(out.add, stat, v * scale);
     for (const [stat, v] of Object.entries(stone.uniqueBonus)) addTo(out.add, stat, v);
   }
