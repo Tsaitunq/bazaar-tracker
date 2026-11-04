@@ -201,6 +201,22 @@ async function phones(browser, base) {
   }
 }
 
+// Mark done: a redraw that comes while the line runs (prices, a reorder) waits, so the closing card stays until the next one opens.
+async function marksWithoutRedraw(page, base) {
+  await open(page, base, '#/guide/mining/path');
+  const got = await page.evaluate(() => new Promise((done) => {
+    const card = document.querySelector('#app > .screen .card');
+    card.querySelector('.primary').click();
+    setTimeout(() => window.dispatchEvent(new HashChangeEvent('hashchange')), 50);
+    setTimeout(() => {
+      const kept = document.contains(card) && !!card.closest('.marking');
+      setTimeout(() => done({ kept, opened: !!document.querySelector('#app > .screen .card-open') }), 300);
+    }, 200);
+  }));
+  if (!got.kept) fail('mark done: a redraw during the animation threw the closing card away');
+  if (!got.opened) fail('mark done: the next card did not open after the animation');
+}
+
 // The app's own scroll to the card keeps the head open, a scroll by hand folds it, a tap on its line opens it.
 async function folds(page, base) {
   await open(page, base, '#/guide/mining/path');
@@ -423,6 +439,7 @@ try {
   await pathParts(page, base);
   await keepsTyped(page, base);
   await measureTable(page, base);
+  await marksWithoutRedraw(page, base);
   await context.close();
   await phones(browser, base);
   await swipes(browser, base);

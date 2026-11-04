@@ -144,7 +144,7 @@ test('removing the profile saves the typed stats before the key goes, and surviv
 
 test('mark done closes the card first, then scrolls the next card into sight unless a hand moves the list', () => {
   assert.match(app, /step\.closest\('\.card'\)\) markCard\(/);
-  assert.match(app, /setTimeout\(\(\) => \{ marking = false; toggle\(key, true\); \}, MARK_MS\)/);
+  assert.match(app, /marking = false;\s+redrawDue = false;\s+toggle\(key, true\);/);
   assert.match(app, /if \(stillMotion\(\)\) \{ toggle\(key, true\); return; \}/);
   assert.match(app, /if \(fromCard\) revealCard\(\)/);
   assert.match(app, /performance\.now\(\) - handAt < HAND_QUIET_MS\) return/);
@@ -152,4 +152,15 @@ test('mark done closes the card first, then scrolls the next card into sight unl
   const css = readFileSync(new URL('../guide/guide.css', import.meta.url), 'utf8');
   assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{ \.card-open/);
   assert.match(css, /\.marking \.rail-bottom::after/);
+});
+
+test('no redraw while mark done runs: the path is drawn again and scrolled to the card only after it', () => {
+  const draw = app.slice(app.indexOf('function draw()'), app.indexOf('const scroller', app.indexOf('function draw()')));
+  assert.match(draw, /if \(settling \|\| touch\?\.axis === 'x' \|\| marking\) \{ redrawDue = true; return; \}/);
+  // no neighbour screens built, no swipe and no switch tap until the line has run
+  assert.match(app, /if \(!touch && !settling && !marking\) targets/);
+  assert.match(app, /if \(!link \|\| settling \|\| marking \|\|/);
+  assert.match(app, /const free = e\.touches\.length === 1 && !settling && !marking &&/);
+  // a redraw held back is not lost when the tick itself draws nothing
+  assert.match(app, /toggle\(key, true\);\s+\/\/ [^\n]*\s+if \(root\.querySelector\('\.marking'\)\) draw\(\);/);
 });

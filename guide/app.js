@@ -125,7 +125,8 @@ function showCard(box) {
 // A redraw keeps the scroll position of the list and the keyboard on the same step.
 function draw() {
   // a redraw would pull the screen from under the finger; it follows when the swipe is over
-  if (settling || touch?.axis === 'x') { redrawDue = true; return; }
+  // nor during Mark done: a new screen would drop the running line, dot and card; the tick draws once it is over
+  if (settling || touch?.axis === 'x' || marking) { redrawDue = true; return; }
   const scroller = root.querySelector('.path, .scroll');
   const top = scroller?.scrollTop ?? 0;
   const list = scroller?.className;
@@ -247,7 +248,13 @@ function markCard(step, key) {
   if (stillMotion()) { toggle(key, true); return; }
   marking = true;
   step.closest('.step')?.classList.add('marking');
-  setTimeout(() => { marking = false; toggle(key, true); }, MARK_MS);
+  setTimeout(() => {
+    marking = false;
+    redrawDue = false;
+    toggle(key, true);
+    // the tick found no guide (the route moved on meanwhile): the held redraw still follows
+    if (root.querySelector('.marking')) draw();
+  }, MARK_MS);
 }
 
 function toggle(key, fromCard = false) {
@@ -517,7 +524,7 @@ function preparePeek() {
   if (!targets.length || stillMotion()) return;
   peekJob = idle(() => {
     peekJob = 0;
-    if (!touch && !settling) targets.filter((to) => !peekOf(to)).forEach(buildPeek);
+    if (!touch && !settling && !marking) targets.filter((to) => !peekOf(to)).forEach(buildPeek);
   });
 }
 
@@ -618,7 +625,7 @@ root.addEventListener('keydown', handScroll);
 // A tap on the switch slides to the neighbour like a swipe does, so the mark glides over in the same 200 ms.
 root.addEventListener('click', (e) => {
   const link = e.target.closest('.switch a:not([aria-current])');
-  if (!link || settling || touch?.axis === 'x' || stillMotion()) return;
+  if (!link || settling || marking || touch?.axis === 'x' || stillMotion()) return;
   const to = [targetOf(-1), targetOf(1)].find((t) => t?.hash === link.getAttribute('href'));
   if (!to) return;
   e.preventDefault();
@@ -632,7 +639,7 @@ root.addEventListener('touchstart', (e) => {
   handScroll();
   if (touch?.axis === 'x') { settle(null); return; } // a second finger ends the swipe
   const [first] = e.touches;
-  const free = e.touches.length === 1 && !settling && route().page === 'guide' && !scrollsSideways(e.target);
+  const free = e.touches.length === 1 && !settling && !marking && route().page === 'guide' && !scrollsSideways(e.target);
   touch = free ? { x: first.clientX, y: first.clientY, lastX: first.clientX, at: e.timeStamp, speed: 0, axis: null, dx: 0, to: null } : null;
 }, { passive: true });
 
