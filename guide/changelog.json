@@ -1,6 +1,15 @@
 {
   "versions": [
     {
+      "version": "0.7.0",
+      "date": "2026-11-04",
+      "entries": [
+        { "title": "No API key needed", "text": "The guide app no longer asks for a Hypixel key or a profile; steps you ticked or that were recognised before stay ticked." },
+        { "title": "Measure your base", "text": "Type in your /stats once per area without armor, equipment, tool and pet, and the app adds the gear of your ticked steps." },
+        { "title": "Stats overview", "text": "A new purple Stats page shows base, gear and total per stat, and lists the effects that only count under a condition." }
+      ]
+    },
+    {
       "version": "0.6.2",
       "date": "2026-11-03",
       "entries": [
