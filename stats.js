@@ -281,6 +281,12 @@ export function maxPetStats(type, tier) {
   return known?.tiers.includes(tier) ? known.stats(known.top ?? 100) : null;
 }
 
+// A pet of the table at a given level, null without a table.
+export function petStatsAt(type, tier, level) {
+  const known = PETS[type];
+  return known?.tiers.includes(tier) ? known.stats(level) : null;
+}
+
 export function petStats(pet, gaps = []) {
   if (!pet) return {};
   gaps.push('Pet abilities are not counted.');
@@ -295,7 +301,7 @@ export function petStats(pet, gaps = []) {
 
 // wiki Potions, God Potion, Jerry Candy: Strength VIII 75 + candy 20, Critical IV 25 and 40, Spirit IV 40, Resistance VIII 60,
 // True Resistance IV 20, Haste IV 200, Spelunker V 25, candy +100 Health. Booster Cookie gives Magic Find and Wisdom, none of our stats.
-const GOD_POTION = { STRENGTH: 95, CRITICAL_CHANCE: 25, CRITICAL_DAMAGE: 80, DEFENSE: 60, TRUE_DEFENSE: 20, HEALTH: 100, MINING_SPEED: 200, MINING_FORTUNE: 25 };
+export const GOD_POTION = { STRENGTH: 95, CRITICAL_CHANCE: 25, CRITICAL_DAMAGE: 80, DEFENSE: 60, TRUE_DEFENSE: 20, HEALTH: 100, MINING_SPEED: 200, MINING_FORTUNE: 25 };
 
 export function computeStats(profile, items, loadout, area, boosts = {}) {
   const gaps = [...loadout.gaps];
