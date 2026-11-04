@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>HOTM tree editor</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#B794FF}a:hover{color:#D6C2FF}
+button{font:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #0B0A10; color: #F2F0F7; font-family: 'Space Grotesk', system-ui, sans-serif; display: flex; flex-direction: column; gap: 10px; padding: 16px 16px 0; position: relative; overflow: hidden;">
+  <div style="display: flex; justify-content: space-between; align-items: center;">
+    <a href="App-Home.dc.html" style="height: 36px; display: flex; align-items: center; gap: 4px; font-size: 13px; color: #A39DB5; text-decoration: none;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Home</a>
+    <h1 style="margin: 0; font-size: 20px; font-weight: 700;">Heart of the Mountain</h1>
+    <span style="width: 50px;"></span>
+  </div>
+  <div style="position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 3px; border-radius: 18px; background: #15131C; border: 1px solid #2A2636;">
+    <span style="position: absolute; left: calc(25% + 1px); top: 3px; width: calc(25% - 1.5px); height: 32px; border-radius: 15px; background: #221E2E;"></span>
+    <a href="SP-1.dc.html" style="position: relative; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #A39DB5; text-decoration: none;">Overview</a>
+    <a href="SP-2.dc.html" style="position: relative; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #F2F0F7; text-decoration: none;">HOTM</a>
+    <a href="SP-3.dc.html" style="position: relative; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #A39DB5; text-decoration: none;">Attributes</a>
+    <a href="SP-4.dc.html" style="position: relative; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #A39DB5; text-decoration: none;">Power</a>
+  </div>
+  <div style="display: flex; gap: 6px; font-size: 11px;">
+    <span style="padding: 5px 9px; border-radius: 12px; background: #15131C; border: 1px solid #2A2636;">Tier <b>9</b>/10</span>
+    <span style="padding: 5px 9px; border-radius: 12px; background: #15131C; border: 1px solid #2A2636; color: #55FF55;">Mithril 12.4M</span>
+    <span style="padding: 5px 9px; border-radius: 12px; background: #15131C; border: 1px solid #2A2636; color: #FF55FF;">Gem 8.1M</span>
+    <span style="padding: 5px 9px; border-radius: 12px; background: #15131C; border: 1px solid #2A2636; color: #55FFFF;">Glacite 2.3M</span>
+  </div>
+  <div style="position: relative; width: 340px; height: 420px; align-self: center;">
+    <sc-for list="{{lines}}" as="l" hint-placeholder-count="20">
+      <div style="position: absolute; left: {{l.x}}; top: {{l.y}}; width: {{l.w}}; height: {{l.h}}; background: {{l.c}}; border-radius: 2px;"></div>
+    </sc-for>
+    <sc-for list="{{nodes}}" as="c" hint-placeholder-count="40">
+      <button aria-label="{{c.label}}" style="position: absolute; left: {{c.x}}; top: {{c.y}}; width: 32px; height: 32px; padding: 0; border-radius: {{c.radius}}; background: {{c.bg}}; border: 2px {{c.style}} {{c.border}}; color: {{c.text}}; font-size: 10px; font-weight: 700; opacity: {{c.op}}; transform: {{c.rot}}; box-shadow: {{c.glow}};"><span style="display: inline-block; transform: {{c.unrot}};">{{c.mark}}</span></button>
+    </sc-for>
+  </div>
+  <div style="display: flex; gap: 12px; font-size: 11px; color: #A39DB5; flex-wrap: wrap; justify-content: center;">
+    <span><span style="display: inline-block; width: 10px; height: 10px; border-radius: 3px; background: #9B6BFF;"></span> maxed</span>
+    <span><span style="display: inline-block; width: 10px; height: 10px; border-radius: 3px; border: 2px solid #9B6BFF;"></span> levelled</span>
+    <span><span style="display: inline-block; width: 10px; height: 10px; border-radius: 3px; border: 2px dashed #FFAA00;"></span> conditional</span>
+    <span><span style="display: inline-block; width: 9px; height: 9px; transform: rotate(45deg); background: #C355E0;"></span> ability</span>
+    <span>— path</span>
+  </div>
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 18px 20px; border-radius: 26px 26px 0 0; background: #15131C; border-top: 1px solid #9B6BFF; display: flex; flex-direction: column; gap: 10px;">
+    <div style="width: 40px; height: 4px; border-radius: 2px; background: #3D3750; align-self: center;"></div>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div style="display: flex; flex-direction: column;"><span style="font-size: 17px; font-weight: 700;">Professional</span><span style="font-size: 12px; color: #A39DB5;">Tier 7 · Glacite powder</span></div>
+      <span style="padding: 5px 10px; border-radius: 10px; border: 1px dashed #FFAA00; color: #FFAA00; font-size: 11px; font-weight: 700;">in Glacite Tunnels</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <button aria-label="Level down" style="width: 44px; height: 44px; border-radius: 22px; background: #221E2E; border: 1px solid #2A2636; color: #F2F0F7; font-size: 20px;">−</button>
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 6px;">
+        <div style="display: flex; justify-content: space-between; font-size: 13px;"><span>Level <b>92</b> / 140</span><span style="color: #55FF55;">+290 ⸕ Mining Speed</span></div>
+        <div style="height: 8px; border-radius: 4px; background: #221E2E;"><div style="width: 66%; height: 100%; border-radius: 4px; background: #9B6BFF;"></div></div>
+      </div>
+      <button aria-label="Level up" style="width: 44px; height: 44px; border-radius: 22px; background: #9B6BFF; border: none; color: #0B0A10; font-size: 20px; font-weight: 700;">+</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const A = '#9B6BFF';
+    // top row = tier 10. '.' empty, M maxed, P levelled, C conditional, L locked, A ability, S selected
+    const rows = ['LLLLLLL', 'P.C.A.M', 'MMMMMMM', 'C.S.P.A', 'MMPMMMM', 'M.A.M.C', 'MMMMMMM', 'M.C.A.M', '.MMMMM.', '...M...'];
+    const CW = 48, RH = 42, N = 32, off = (CW - N) / 2;
+    const at = (r, c) => (rows[r] || '')[c] && rows[r][c] !== '.' ? rows[r][c] : null;
+    const lv = { M: 'MAX', P: '34', C: '20', S: '92', A: '', L: '' };
+    const nodes = [], lines = [];
+    rows.forEach((row, r) => row.split('').forEach((ch, c) => {
+      if (ch === '.') return;
+      const ab = ch === 'A';
+      nodes.push({
+        label: ab ? 'Ability, tier ' + (10 - r) : 'Perk, tier ' + (10 - r),
+        x: c * CW + off + 'px', y: r * RH + 'px', mark: lv[ch],
+        bg: ch === 'M' ? A : ab ? '#3A2350' : '#0F0D16',
+        border: ch === 'M' ? A : ch === 'L' ? '#2A2636' : ch === 'C' ? '#FFAA00' : ab ? '#C355E0' : A,
+        style: ch === 'C' ? 'dashed' : 'solid',
+        text: ch === 'M' ? '#0B0A10' : '#F2F0F7', op: ch === 'L' ? '0.45' : '1',
+        radius: ab ? '6px' : '10px', rot: ab ? 'scale(0.8) rotate(45deg)' : 'none', unrot: ab ? 'rotate(-45deg)' : 'none',
+        glow: ch === 'S' ? '0 0 14px ' + A : 'none'
+      });
+      const on = (x) => x && x !== 'L';
+      const right = at(r, c + 1), down = at(r + 1, c);
+      if (right) lines.push({ x: (c * CW + off + N) + 'px', y: (r * RH + N / 2 - 2) + 'px', w: (CW - N) + 'px', h: '4px', c: on(ch) && on(right) ? '#5B3F99' : '#221E2E' });
+      if (down) lines.push({ x: (c * CW + off + N / 2 - 2) + 'px', y: (r * RH + N) + 'px', w: '4px', h: (RH - N) + 'px', c: on(ch) && on(down) ? '#5B3F99' : '#221E2E' });
+    }));
+    return { nodes, lines };
+  }
+}
+</script>
+</body>
+</html>

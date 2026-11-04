@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Measure baseline</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#8FD9FF}a:hover{color:#C4ECFF}
+button{font:inherit}
+input{font:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #090B0E; color: #EEF3F7; font-family: 'Space Grotesk', system-ui, sans-serif; display: flex; flex-direction: column; gap: 12px; padding: 18px 16px 16px;">
+  <div style="display: flex; justify-content: space-between; align-items: center;">
+    <a href="SP-1.dc.html" style="height: 36px; display: flex; align-items: center; gap: 4px; font-size: 13px; color: #9AAAB8; text-decoration: none;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Stats</a>
+    <h1 style="margin: 0; font-size: 20px; font-weight: 700;">Measure Mining base</h1>
+    <span style="width: 50px;"></span>
+  </div>
+  <div style="display: flex; gap: 14px; align-items: center;">
+    <div style="padding: 10px 10px 4px; border-radius: 20px; background: #111821; border: 1px solid #1E2A36; display: flex; flex-direction: column; align-items: center;">
+      <dc-import name="Skin" helmet-color="#C79B78" chest-color="#4A4458" legs-color="#3A3546" boots-color="#2B2833" scale="{{k}}" hint-size="78px,157px"></dc-import>
+      <span style="font-size: 10px; color: #9AAAB8; padding: 6px 0 2px;">no gear</span>
+    </div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 8px;">
+      <sc-for list="{{steps}}" as="s" hint-placeholder-count="5">
+        <button role="checkbox" aria-checked="{{s.on}}" style="min-height: 34px; padding: 0; background: none; border: none; color: #EEF3F7; display: flex; align-items: center; gap: 10px; text-align: left; font-size: 13px;">
+          <span style="width: 22px; height: 22px; border-radius: 7px; background: {{s.bg}}; border: 2px solid {{s.border}}; color: #090B0E; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">{{s.mark}}</span>
+          <span style="color: {{s.text}};">{{s.label}}</span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+  <div style="padding: 10px 14px; border-radius: 14px; background: #0C1218; font-size: 12px; color: #9AAAB8; line-height: 1.45;">
+    Stay in a normal area (Dwarven Mines, not a Mineshaft) so conditional bonuses are not inside your base. Accessories, HOTM, attributes, power and buffs stay on – they belong to the base.
+  </div>
+  <div style="font-size: 12px; color: #9AAAB8; letter-spacing: 1px;">NOW OPEN /stats AND TYPE</div>
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
+    <sc-for list="{{fields}}" as="f" hint-placeholder-count="4">
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <label for="{{f.id}}" style="font-size: 12px; color: {{f.color}};">{{f.icon}} {{f.label}}</label>
+        <input id="{{f.id}}" value="{{f.value}}" inputmode="decimal" style="height: 46px; padding: 0 12px; border-radius: 14px; background: #111821; border: 1px solid #1E2A36; color: {{f.color}}; font-size: 18px; font-weight: 700;">
+      </div>
+    </sc-for>
+  </div>
+  <div style="padding: 12px 14px; border-radius: 16px; background: #111821; border: 1px solid #1E2A36; display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+    <span style="color: #9AAAB8;">Gear from your guides adds</span>
+    <span><span style="color: #FFAA00;">☘ +234.5</span> · <span style="color: #FFAA00;">⸕ +1,819</span> · <span style="color: #D255D2;">✧ +4</span></span>
+  </div>
+  <button style="margin-top: auto; height: 50px; border-radius: 25px; background: #5CC8FF; border: none; color: #090B0E; font-size: 15px; font-weight: 700;">Save as Mining base</button>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const steps = [
+      ['Armor off (4 pieces)', true], ['Equipment off (4 slots)', true], ['Empty hand – no drill', true],
+      ['Pet despawned', false], ['God Potion + Cookie active', true]
+    ].map(([label, on]) => ({ label, on: String(on), mark: on ? '✓' : '', bg: on ? '#5CC8FF' : 'transparent', border: on ? '#5CC8FF' : '#2A3A48', text: on ? '#EEF3F7' : '#C4D2DD' }));
+    const fields = [
+      ['mf', '☘', 'Mining Fortune', '412', '#FFAA00'], ['ms', '⸕', 'Mining Speed', '1640', '#FFAA00'],
+      ['pr', '✧', 'Pristine', '0.4', '#D255D2'], ['gf', '☘', 'Gemstone Fortune', '44', '#FFAA00']
+    ].map(([id, icon, label, value, color]) => ({ id, icon, label, value, color }));
+    return { k: 0.7, steps, fields };
+  }
+}
+</script>
+</body>
+</html>
