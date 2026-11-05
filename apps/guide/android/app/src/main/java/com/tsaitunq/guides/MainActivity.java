@@ -10,7 +10,6 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        registerPlugin(GuidePlugin.class);
         super.onCreate(savedInstanceState);
 
         // Without this the system back key closes the app even inside a guide.

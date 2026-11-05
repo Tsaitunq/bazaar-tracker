@@ -1,7 +1,7 @@
 // The guide app: state, routes, prices and events. What it shows is worked out in model.js and views/.
 import { loadItemData, loadForge, loadAh, loadElection, freshBins, fetchBins } from '../../shared/data.js';
 import { loadBundled, mergeGuides, exportData, importData, doneSet } from './progress.js';
-import { plugin, readLegacyProfile, clearProfileData } from '../../shared/native.js';
+import { isNative } from '../../shared/native.js';
 import { migrateOwned, resetOwned } from './owned.js';
 import { fallbackName, loadItems } from '../../shared/names.js';
 import { PRESETS, miningSettings } from './optimizer.js';
@@ -381,7 +381,7 @@ async function runExport() {
   let copied = false;
   try { await navigator.clipboard.writeText(dataText); copied = true; } catch { /* the text field holds it */ }
   // the Android WebView has no downloads, so there the text and the clipboard are the export
-  if (!plugin()) {
+  if (!isNative()) {
     const link = document.createElement('a');
     link.href = URL.createObjectURL(new Blob([dataText], { type: 'application/json' }));
     link.download = 'progress-guides.json';
@@ -765,7 +765,7 @@ window.addEventListener('hashchange', () => {
   reorderLater();
 });
 
-if ('serviceWorker' in navigator && !plugin()) navigator.serviceWorker.register('sw.js').catch(() => {});
+if ('serviceWorker' in navigator && !isNative()) navigator.serviceWorker.register('sw.js').catch(() => {});
 
 draw();
 await Promise.all([
@@ -776,7 +776,7 @@ loading = false;
 pathEpoch++;
 // once: recognised ticks become manual ticks, key and profile go. Without a guide loaded there is nothing to move yet.
 const drop = (key) => { try { localStorage.removeItem(key); } catch { /* blocked: the next start tries again */ } };
-if (await runMigration({ read: load, write: save, drop, readLegacy: readLegacyProfile, clearLegacy: async () => !plugin() || clearProfileData() }, guides())) {
+if (await runMigration({ read: load, write: save, drop }, guides())) {
   checks = load('pg.checks', {});
   owned = load('pg.owned', []);
 }

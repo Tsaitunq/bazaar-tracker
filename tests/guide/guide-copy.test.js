@@ -80,18 +80,14 @@ test('the bazaar copy holds nothing of guide/', () => {
   }
 });
 
-test('the android project keeps to its own id, shares the store and has no alert rights', () => {
+test('the android project keeps to its own id, has no alert rights and no native plugin', () => {
   const manifest = fs.readFileSync('apps/guide/android/app/src/main/AndroidManifest.xml', 'utf8');
   assert.doesNotMatch(manifest, /POST_NOTIFICATIONS|BoughtReceiver/);
   const gradle = fs.readFileSync('apps/guide/android/app/build.gradle', 'utf8');
   assert.match(gradle, /applicationId "com\.tsaitunq\.guides"/);
-  assert.match(gradle, /ProfileStore\.java/);
   assert.match(gradle, /\.\.\/\.\.\/changelog\.json/);
-  assert.doesNotMatch(gradle, /androidx\.work/);
-  const plugin = fs.readFileSync('apps/guide/android/app/src/main/java/com/tsaitunq/guides/GuidePlugin.java', 'utf8');
-  assert.match(plugin, /name = "BazaarAlerts"/);
-  const methods = [...plugin.matchAll(/public void (\w+)\(PluginCall/g)].map((m) => m[1]).sort();
-  assert.deepEqual(methods, ['clearApiKey', 'clearProfile', 'loadProfile']); // only to read and delete the old store once
+  assert.doesNotMatch(gradle, /androidx\.work|ProfileStore|shared-java/);
+  assert.equal(fs.existsSync('apps/guide/android/app/src/main/java/com/tsaitunq/guides/GuidePlugin.java'), false);
 });
 
 test('the build carries no private sources', () => {

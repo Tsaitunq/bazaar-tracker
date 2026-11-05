@@ -14,16 +14,13 @@ const guide = {
 };
 const summary = { items: [{ id: 'DRILL_1', where: 'inventory' }] };
 
-function io({ store = {}, legacy = null, readFails = false, clearOk = true } = {}) {
+function io({ store = {} } = {}) {
   const data = new Map(Object.entries(store));
-  const calls = { cleared: 0 };
   return {
-    data, calls,
+    data,
     read: (k, d) => (data.has(k) ? structuredClone(data.get(k)) : d),
     write: (k, v) => { data.set(k, structuredClone(v)); return true; },
     drop: (k) => data.delete(k),
-    readLegacy: async () => { if (readFails) throw new Error('locked'); return legacy; },
-    clearLegacy: async () => { calls.cleared++; return clearOk; },
   };
 }
 
@@ -39,41 +36,26 @@ test('a step the player unticked by hand stays open', () => {
   assert.deepEqual(owned, []);
 });
 
-test('migration: ticks stored, profile and flags deleted, native store cleared, flag set last', async () => {
-  const o = io({ store: { 'pg.profile': { uuid: 'x', summary }, 'pg.ownedV1': true, 'pg.settings': { personal: true, tax: 1 } }, legacy: { summary } });
-  assert.equal(await runMigration(o, [guide]), true);
+test('migration: ticks stored, profile and flags deleted, flag set last', async () => {
+  const o = io({ store: { 'pg.profile': { uuid: 'x', summary }, 'pg.ownedV1': true, 'pg.settings': { personal: true, tax: 1 } } });
+  assert.equal(runMigration(o, [guide]), true);
   assert.deepEqual(o.data.get('pg.owned'), ['DRILL_1']);
   assert.equal(o.data.has('pg.profile'), false);
   assert.equal(o.data.has('pg.ownedV1'), false);
   assert.deepEqual(o.data.get('pg.settings'), { tax: 1 });
   assert.equal(o.data.get('pg.schema'), 2);
-  assert.equal(o.calls.cleared, 1);
 });
 
 test('second run changes nothing', async () => {
-  const o = io({ legacy: { summary } });
-  await runMigration(o, [guide]);
+  const o = io({ store: { 'pg.profile': { summary } } });
+  runMigration(o, [guide]);
   const before = JSON.stringify([...o.data]);
-  assert.equal(await runMigration(o, [guide]), false);
+  assert.equal(runMigration(o, [guide]), false);
   assert.equal(JSON.stringify([...o.data]), before);
 });
 
-test('a store that cannot be read: nothing is deleted, no flag', async () => {
-  const o = io({ store: { 'pg.profile': { summary } }, readFails: true });
-  assert.equal(await runMigration(o, [guide]), false);
-  assert.equal(o.data.has('pg.profile'), true);
-  assert.equal(o.data.has('pg.schema'), false);
-  assert.equal(o.calls.cleared, 0);
-});
-
-test('a failed clear leaves the flag unset so the next start tries again', async () => {
-  const o = io({ legacy: { summary }, clearOk: false });
-  assert.equal(await runMigration(o, [guide]), false);
-  assert.equal(o.data.has('pg.schema'), false);
-});
-
 test('no guides loaded yet: waits', async () => {
-  const o = io({ legacy: { summary } });
-  assert.equal(await runMigration(o, []), false);
-  assert.equal(o.data.size, 0);
+  const o = io({ store: { 'pg.profile': { summary } } });
+  assert.equal(runMigration(o, []), false);
+  assert.equal(o.data.size, 1);
 });

@@ -1,4 +1,4 @@
-// The update to the guide app without the API: what the last sync recognised becomes manual ticks, then key and profile are deleted.
+// The update to the guide app without the API: what the last sync recognised becomes manual ticks, then the old profile is deleted.
 import { detectGuide } from './detect.js';
 import { stepKey } from './progress.js';
 import { isItemStep, idsToOwn, migrateOwned } from './owned.js';
@@ -29,17 +29,12 @@ export function migrateTicks({ guides, checks, owned = [], summary }) {
   return { owned: [...have], checks: next };
 }
 
-// io: { read(key, fallback), write(key, value) -> bool, drop(key), readLegacy() -> profile | null (throws when the store cannot be read), clearLegacy() -> bool }.
+// io: { read(key, fallback), write(key, value) -> bool, drop(key) }.
 // Gives true when it ran. Nothing is deleted before the new ticks are stored, and the flag is set last, so a failed run starts again next time.
-export async function runMigration(io, guides) {
+export function runMigration(io, guides) {
   if (io.read('pg.schema', 0) >= SCHEMA) return false;
   if (!guides.length) return false;
-  let stand;
-  try {
-    stand = (await io.readLegacy()) ?? io.read('pg.profile', null);
-  } catch {
-    return false;
-  }
+  const stand = io.read('pg.profile', null);
   let checks = io.read('pg.checks', {});
   let owned = io.read('pg.owned', []);
   if (!io.read('pg.ownedV1', false)) ({ owned, checks } = migrateOwned(guides, checks, owned));
@@ -49,6 +44,5 @@ export async function runMigration(io, guides) {
   io.write('pg.settings', settings);
   io.drop('pg.profile');
   io.drop('pg.ownedV1');
-  if (!(await io.clearLegacy())) return false;
   return io.write('pg.schema', SCHEMA);
 }

@@ -55,7 +55,7 @@ test('done steps get dates: 0 at the first run, then the time they were first se
 });
 
 test('the worker registers only outside the native app', () => {
-  assert.match(app, /'serviceWorker' in navigator && !plugin\(\)/);
+  assert.match(app, /'serviceWorker' in navigator && !isNative\(\)/);
 });
 
 test('no guide file gives an empty home without an error', () => {

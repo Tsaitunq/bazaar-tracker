@@ -24,12 +24,6 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
-    // The key and profile store is the one of the Bazaar app, none of its alert code comes along.
-    sourceSets {
-        main {
-            java.srcDir layout.buildDirectory.dir('shared-java')
-        }
-    }
     buildTypes {
         release {
             minifyEnabled false
@@ -37,13 +31,6 @@ android {
         }
     }
 }
-
-tasks.register('copySharedJava', Copy) {
-    from '../../../bazaar/android/app/src/main/java'
-    include 'com/tsaitunq/bazaarflip/ProfileStore.java'
-    into layout.buildDirectory.dir('shared-java')
-}
-preBuild.dependsOn 'copySharedJava'
 
 repositories {
     flatDir{
