@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { homeView } from '../../guide/views/home.js';
-import { guideView } from '../../guide/views/guide.js';
-import { statsView } from '../../guide/views/stats.js';
+import { homeView } from '../../apps/guide/views/home.js';
+import { guideView } from '../../apps/guide/views/guide.js';
+import { statsView } from '../../apps/guide/views/stats.js';
 import { gamedata, baseOf, emptyBuild } from '../fixtures/guide-world.js';
-import { settingsView } from '../../guide/views/settings.js';
-import { nextPerGuide, guideModel, worldFor } from '../../guide/model.js';
-import { miningSettings } from '../../optimizer.js';
+import { settingsView } from '../../apps/guide/views/settings.js';
+import { nextPerGuide, guideModel, worldFor } from '../../apps/guide/model.js';
+import { miningSettings } from '../../apps/guide/optimizer.js';
 
 const sold = (price) => ({ buy_summary: [{ pricePerUnit: price, amount: 100 }] });
 const DRILL = 'TITANIUM_DRILL_4';

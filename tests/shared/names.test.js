@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { fallbackName, nameMap, npcMap, tierMap } from '../../names.js';
+import { fallbackName, nameMap, npcMap, tierMap } from '../../shared/names.js';
 
 test('fallbackName derives a readable name from the id', () => {
   assert.equal(fallbackName('ENCHANTMENT_ULTIMATE_WISE_5'), 'Ultimate Wise 5');

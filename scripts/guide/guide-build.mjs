@@ -13,14 +13,14 @@ if (!process.env.JAVA_HOME) {
 }
 
 // The SDK path is per machine and not in git; this machine already has it for the Bazaar app.
-if (!fs.existsSync('android-guide/local.properties') && fs.existsSync('android/local.properties')) fs.copyFileSync('android/local.properties', 'android-guide/local.properties');
+if (!fs.existsSync('apps/guide/android/local.properties') && fs.existsSync('apps/bazaar/android/local.properties')) fs.copyFileSync('apps/bazaar/android/local.properties', 'apps/guide/android/local.properties');
 
 const run = (cmd, cwd = '.') => execSync(cmd, { cwd, stdio: 'inherit' });
-console.log(`copied ${copyGuide('.', 'www-guide')} web files`);
+console.log(`copied ${copyGuide('.', 'apps/guide/www-guide')} web files`);
 
-run('npx cap sync android', 'guide');
-fs.writeFileSync('android-guide/app/src/main/assets/capacitor.config.json', capConfig('.'));
+run('npx cap sync android', 'apps/guide');
+fs.writeFileSync('apps/guide/android/app/src/main/assets/capacitor.config.json', capConfig('.'));
 if (!process.argv.includes('--sync')) {
-  run(process.platform === 'win32' ? '.\\gradlew.bat assembleDebug' : './gradlew assembleDebug', 'android-guide');
-  console.log('APK: android-guide/app/build/outputs/apk/debug/app-debug.apk');
+  run(process.platform === 'win32' ? '.\\gradlew.bat assembleDebug' : './gradlew assembleDebug', 'apps/guide/android');
+  console.log('APK: apps/guide/android/app/build/outputs/apk/debug/app-debug.apk');
 }

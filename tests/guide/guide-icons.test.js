@@ -67,24 +67,24 @@ test('a head that cannot be fetched is reported missing, not thrown; the jobs li
 });
 
 test('the committed Minecraft textures are there and the service worker lists them', () => {
-  const sw = fs.readFileSync('guide/sw.js', 'utf8');
+  const sw = fs.readFileSync('apps/guide/sw.js', 'utf8');
   for (const name of Object.keys(MC_TEXTURES)) {
-    assert.ok(fs.existsSync(`guide/img/mc/${name}.png`), name);
+    assert.ok(fs.existsSync(`apps/guide/img/mc/${name}.png`), name);
     assert.ok(sw.includes(`'img/mc/${name}.png'`), name);
   }
-  assert.match(fs.readFileSync('.gitignore', 'utf8'), /^guide\/img\/hypixel\/$/m);
+  assert.match(fs.readFileSync('.gitignore', 'utf8'), /^apps\/guide\/img\/hypixel\/$/m);
 });
 
 test('the seven block and skull shards use a Vanilla picture that is committed and cached', () => {
   const attrs = JSON.parse(fs.readFileSync('gamedata/attributes.json', 'utf8')).attributes.filter((a) => a.mcIcon);
   assert.deepEqual(attrs.map((a) => a.icon).sort(), ['SHARD_FLORA', 'SHARD_GLACITE_WALKER', 'SHARD_LAPIS_ZOMBIE', 'SHARD_MINER_ZOMBIE', 'SHARD_OBSIDIAN_DEFENDER', 'SHARD_WITHER', 'SHARD_ZOMBIE_SOLDIER']);
-  const sw = fs.readFileSync('guide/sw.js', 'utf8');
+  const sw = fs.readFileSync('apps/guide/sw.js', 'utf8');
   for (const a of attrs) {
-    assert.ok(fs.existsSync(`guide/img/mc/${a.mcIcon}.png`), a.mcIcon);
+    assert.ok(fs.existsSync(`apps/guide/img/mc/${a.mcIcon}.png`), a.mcIcon);
     assert.ok(sw.includes(`'img/mc/${a.mcIcon}.png'`), a.mcIcon);
     assert.ok(a.mcIcon in MC_TEXTURES || a.mcIcon in MC_FACES, a.mcIcon);
   }
-  assert.match(fs.readFileSync('guide/views/stats-attrs.js', 'utf8'), /a\.mcIcon \? `img\/mc/);
+  assert.match(fs.readFileSync('apps/guide/views/stats-attrs.js', 'utf8'), /a\.mcIcon \? `img\/mc/);
 });
 
 test('a mob face is the 8 x 8 square at (8, 8) without the hat layer; an animated texture gives its first frame', () => {

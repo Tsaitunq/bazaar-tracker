@@ -1,0 +1,13 @@
+{
+  "appId": "com.tsaitunq.guides",
+  "appName": "__APP_NAME__",
+  "webDir": "www-guide",
+  "backgroundColor": "#0B0A10",
+  "loggingBehavior": "none",
+  "android": { "path": "android" },
+  "plugins": {
+    "SystemBars": {
+      "style": "DARK"
+    }
+  }
+}

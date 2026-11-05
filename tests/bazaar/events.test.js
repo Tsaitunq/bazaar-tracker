@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { skyDate, skyTime, upcoming, activePerks, electionWindow, eventItems, flipWarnings, flipRisks, planElection, termStart, LEAVING_MS, PERK_EXPECT, EVENTS, PERK_ITEMS, DAY_MS, YEAR_DAYS, SOON_MS, MONTHS } from '../../events.js';
+import { skyDate, skyTime, upcoming, activePerks, electionWindow, eventItems, flipWarnings, flipRisks, planElection, termStart, LEAVING_MS, PERK_EXPECT, EVENTS, PERK_ITEMS, DAY_MS, YEAR_DAYS, SOON_MS, MONTHS } from '../../apps/bazaar/events.js';
 import { compactElection } from '../../scripts/election.mjs';
 
 const raw = JSON.parse(fs.readFileSync(new URL('../fixtures/election.json', import.meta.url), 'utf8'));
@@ -184,7 +184,7 @@ test('calendar anchor: the game said Late Summer 11, year 519 on the morning of 
 });
 
 test('taxAdvice: Derpy quadruples the Bazaar tax, and a left-over quadrupled setting is pointed out', async () => {
-  const { taxAdvice, DERPY_TAX } = await import('../../events.js');
+  const { taxAdvice, DERPY_TAX } = await import('../../apps/bazaar/events.js');
   assert.deepEqual(DERPY_TAX, { 1.25: 5, 1.125: 4.5, 1: 4 });
   assert.deepEqual(taxAdvice(true, 1.25), { want: 5, text: 'Derpy is mayor – Bazaar tax is 5%. Your setting: 1.25%.' });
   assert.equal(taxAdvice(true, 1).want, 4);

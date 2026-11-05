@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { loadGameData, checkStats, checkHotm, checkAttributes, checkPets } from '../../guide/gamedata.js';
+import { loadGameData, checkStats, checkHotm, checkAttributes, checkPets } from '../../apps/guide/gamedata.js';
 
 const read = (f) => JSON.parse(fs.readFileSync(new URL(`../../gamedata/${f}.json`, import.meta.url), 'utf8'));
 const copy = (o) => structuredClone(o);

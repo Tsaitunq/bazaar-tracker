@@ -9,8 +9,8 @@ import { restoreTiming, backupTiming } from '../../scripts/timing-backup.mjs';
 import { itemIds, lowestBins, fetchLowestBins } from '../../scripts/auctions.mjs';
 import { compactElection } from '../../scripts/election.mjs';
 import { compactItems } from '../../scripts/items.mjs';
-import { shardOf, dayKey } from '../../history.js';
-import { skyTime } from '../../events.js';
+import { shardOf, dayKey } from '../../shared/history.js';
+import { skyTime } from '../../apps/bazaar/events.js';
 
 const prod = () => ({ sell_summary: [{ pricePerUnit: 100 }], buy_summary: [{ pricePerUnit: 200 }] });
 const T0 = Date.UTC(2026, 9, 9, 12);

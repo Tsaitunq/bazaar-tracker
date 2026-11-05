@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { milestonesOf } from '../../guide/model.js';
-import { validGuide, stepKey } from '../../progress.js';
-import { ring, nextMilestone } from '../../guide/views/parts.js';
+import { milestonesOf } from '../../apps/guide/model.js';
+import { validGuide, stepKey } from '../../apps/guide/progress.js';
+import { ring, nextMilestone } from '../../apps/guide/views/parts.js';
 
 const section = { name: 'Path', steps: ['a', 'b', 'c', 'd', 'e'].map((text) => ({ text, items: [{ id: text.toUpperCase(), qty: 1 }] })) };
 const order = section.steps.map((step) => ({ section, step, key: stepKey(section, step) }));

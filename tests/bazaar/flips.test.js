@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { searchFlip, outsideOpportunities, flipIssues, oppIssues, portfolio, MAX_SLOTS, PLAN_MIN_HOUR_SALES, opportunities, computeFlip, buildFlips, bookPrices, statOf, MEDIAN_SPIKE, PROVISIONAL_HOURS, STABLE } from '../../flips.js';
+import { searchFlip, outsideOpportunities, flipIssues, oppIssues, portfolio, MAX_SLOTS, PLAN_MIN_HOUR_SALES, opportunities, computeFlip, buildFlips, bookPrices, statOf, MEDIAN_SPIKE, PROVISIONAL_HOURS, STABLE } from '../../apps/bazaar/flips.js';
 
 const product = (buy, sell, qs = {}) => ({
   sell_summary: buy == null ? [] : [{ pricePerUnit: buy }],
@@ -327,7 +327,7 @@ test('search keeps every item and says why it is not a flip', () => {
 
 // The same cases as planWarningsFollowTheRulesOfTheWebApp in AlertLogicTest.java.
 test('planWarnings: a price drop, a lost margin and a suspicious flip, each against the stored plan', async () => {
-  const { planWarnings, PLAN_MIN_MARGIN } = await import('../../flips.js');
+  const { planWarnings, PLAN_MIN_MARGIN } = await import('../../apps/bazaar/flips.js');
   assert.equal(PLAN_MIN_MARGIN, 0.01);
   const plan = ['HELD', 'FELL', 'THIN', 'ODD', 'BOTH', 'GONE', 'SPIKE'].map((id) => ({ id, buy: 100 }));
   const market = {
@@ -352,7 +352,7 @@ test('planWarnings: a price drop, a lost margin and a suspicious flip, each agai
 });
 
 test('trackPlan: the stored plan follows the current one, keeps first prices and freezes while a warning is active', async () => {
-  const { trackPlan } = await import('../../flips.js');
+  const { trackPlan } = await import('../../apps/bazaar/flips.js');
   const flips = [{ id: 'A', buy: 110, stake: 1 }, { id: 'C', buy: 50 }];
   assert.deepEqual(trackPlan(null, flips, false), [{ id: 'A', buy: 110 }, { id: 'C', buy: 50 }]);
   const stored = [{ id: 'A', buy: 100 }, { id: 'B', buy: 7 }];

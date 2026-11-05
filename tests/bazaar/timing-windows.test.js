@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { skyTime, termStart, DAY_MS, YEAR_DAYS } from '../../events.js';
+import { skyTime, termStart, DAY_MS, YEAR_DAYS } from '../../apps/bazaar/events.js';
 import { compactElection } from '../../scripts/election.mjs';
 import { runSnapshot } from '../../scripts/snapshot.mjs';
-import { timingWindows, avoidPattern, tradeWindow, windowTax, phaseSpans, TERM_PHASES, EVENT_PHASES, BACKFILL, AVOID_LEAD_MS } from '../../timing.js';
+import { timingWindows, avoidPattern, tradeWindow, windowTax, phaseSpans, TERM_PHASES, EVENT_PHASES, BACKFILL, AVOID_LEAD_MS } from '../../apps/bazaar/timing.js';
 
 const H = 3600000;
 const TAX = 0.0125;

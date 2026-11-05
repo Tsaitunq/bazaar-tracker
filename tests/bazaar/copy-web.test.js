@@ -25,9 +25,10 @@ test('copyPersonal takes private guides along with an index and needs none; copy
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'bt-root-'));
   const out = path.join(root, 'www');
   try {
-    fs.writeFileSync(path.join(root, 'sw.js'), "const SHELL = ['a.html'];");
-    fs.writeFileSync(path.join(root, 'a.html'), '');
-    fs.mkdirSync(path.join(root, 'icons'));
+    const app = path.join(root, 'apps', 'bazaar');
+    fs.mkdirSync(path.join(app, 'icons'), { recursive: true });
+    fs.writeFileSync(path.join(app, 'sw.js'), "const SHELL = ['a.html'];");
+    fs.writeFileSync(path.join(app, 'a.html'), '');
     copyWeb(root, out);
     assert.ok(!fs.existsSync(path.join(out, 'personal')));
     fs.mkdirSync(path.join(root, 'personal', 'guides'), { recursive: true });

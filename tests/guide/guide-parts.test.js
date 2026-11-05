@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ring, legend, statGrid, pathRow, stepCard, chips, bottomBar, backLink, icon } from '../../guide/views/parts.js';
+import { ring, legend, statGrid, pathRow, stepCard, chips, bottomBar, backLink, icon } from '../../apps/guide/views/parts.js';
 
 const chapters = [{ name: 'A', share: 1, current: false }, { name: 'B', share: 0.5, current: true }, { name: 'C', share: 0, current: false }];
 const circles = (svg) => [...svg.matchAll(/<circle [^>]*>/g)].map((m) => m[0]);

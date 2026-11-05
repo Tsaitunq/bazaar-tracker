@@ -1,8 +1,8 @@
 // The same cases as the windows tests in AlertLogicTest.java (the views only here).
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readWindowAlerts, windowAlerts, windowText } from '../../timing.js';
-import { windowBanners, detailView, todayView, windowsView } from '../../render.js';
+import { readWindowAlerts, windowAlerts, windowText } from '../../apps/bazaar/timing.js';
+import { windowBanners, detailView, todayView, windowsView } from '../../apps/bazaar/render.js';
 
 const FILE = { t: 1, tax: 0.0125,
   w: [

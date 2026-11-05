@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const css = readFileSync('guide/guide.css', 'utf8');
+const css = readFileSync('apps/guide/guide.css', 'utf8');
 // the table of docs/design-guide-app.md
 const DOC = {
   home: { area: '#9B6BFF', bg: '#0B0A10', surface: '#15131C', raised: '#1A1626', deep: '#0F0D16', line: '#2A2636', track: '#221E2E', muted: '#A39DB5', soft: '#C9C4D6', text: '#F2F0F7', dim: '#3D3750' },
@@ -65,7 +65,7 @@ test('sizes of the mockups are in the rules', () => {
 });
 
 test('the floating pet bobs, and stands still for reduced motion', () => {
-  const css = readFileSync(new URL('../../guide/guide.css', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../../apps/guide/guide.css', import.meta.url), 'utf8');
   assert.match(css, /\.pet-float \{[^}]*animation: pet-bob/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{ \.pet-float \{ animation: none; \} \}/);
 });

@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
-import { blazeOutput, blazeState, OFA } from '../../blaze.js';
-import { SCORES, blazeDelta, applyBlaze, accessoryPower, stepDelta, PRESETS, miningSettings, netCost } from '../../optimizer.js';
-import { pathOf } from '../../path.js';
+import { blazeOutput, blazeState, OFA } from '../../apps/guide/blaze.js';
+import { SCORES, blazeDelta, applyBlaze, accessoryPower, stepDelta, PRESETS, miningSettings, netCost } from '../../apps/guide/optimizer.js';
+import { pathOf } from '../../apps/guide/path.js';
 import { gamedata, baseOf, emptyBuild } from '../fixtures/guide-world.js';
-import { GEMSTONE, miningScore, loadoutOf } from '../../stats.js';
-import { guideStats, validGuide, exportData } from '../../progress.js';
-import { guideView } from '../../guide/views/guide.js';
+import { GEMSTONE, miningScore, loadoutOf } from '../../apps/guide/stats.js';
+import { guideStats, validGuide, exportData } from '../../apps/guide/progress.js';
+import { guideView } from '../../apps/guide/views/guide.js';
 
 const piece = (id, extra = {}) => ({ id, where: 'armor', gems: [], enchants: {}, parts: {}, reforge: null, recomb: false, polarvoid: 0, coating: false, lore: {}, ...extra });
 const DRILL = 'TITANIUM_DRILL_4';

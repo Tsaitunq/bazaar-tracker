@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { MINIONS, FUELS, UPGRADES, MAX_TIER, ACTIONS_PER_HARVEST, minionYield, minionRows } from '../../minions.js';
+import { MINIONS, FUELS, UPGRADES, MAX_TIER, ACTIONS_PER_HARVEST, minionYield, minionRows } from '../../apps/bazaar/minions.js';
 
 const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-6 * Math.max(1, Math.abs(b)), `${a} != ${b}`);
 const minion = (key) => MINIONS.find((m) => m.key === key);
@@ -169,8 +169,8 @@ test('Slayer requirements: Tarantula and Revenant lock below V, tier XII below I
 });
 
 // ---- 0.7.4: cost to craft, payback ----
-import { COSTS, costUpTo } from '../../minioncosts.js';
-import { priceItems, minionRow, minionDetail } from '../../minions.js';
+import { COSTS, costUpTo } from '../../apps/bazaar/minioncosts.js';
+import { priceItems, minionRow, minionDetail } from '../../apps/bazaar/minions.js';
 
 test('every minion has one recipe step per tier, and the sums match the wiki cumulative cost', () => {
   for (const m of MINIONS) assert.equal(COSTS[m.key]?.length, m.delays.length, m.key);
@@ -232,7 +232,7 @@ test('sorting by payback puts the shortest first and the ones that never pay bac
 });
 
 // ---- 0.7.4: Inferno Minion ----
-import { INFERNO_FUELS, INFERNO_SPECIALTIES, INFERNO_RARE, minionLocked, gabagoolPrice } from '../../minions.js';
+import { INFERNO_FUELS, INFERNO_SPECIALTIES, INFERNO_RARE, minionLocked, gabagoolPrice } from '../../apps/bazaar/minions.js';
 
 test('Inferno Minion: the wiki check, tier I makes 42.65 Crude Gabagool a day', () => {
   const m = minion('inferno');

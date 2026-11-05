@@ -3,7 +3,7 @@ import zlib from 'node:zlib';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const RES = 'android/app/src/main/res';
+const RES = 'apps/bazaar/android/app/src/main/res';
 const DENSITIES = { mdpi: 1, hdpi: 1.5, xhdpi: 2, xxhdpi: 3, xxxhdpi: 4 };
 const BLACK = [17, 12, 9, 255]; // the app background, a warm black
 const ORANGE = [255, 138, 0, 255];
@@ -73,7 +73,7 @@ function png(size, pixel) {
 }
 
 // PWA icons are also used as maskable, so the symbol stays inside the inner 80 %
-for (const size of [192, 512]) fs.writeFileSync(path.join('icons', `icon-${size}.png`), png(size, solid(0.8)));
+for (const size of [192, 512]) fs.writeFileSync(path.join('apps/bazaar/icons', `icon-${size}.png`), png(size, solid(0.8)));
 for (const [density, scale] of Object.entries(DENSITIES)) {
   for (const [name, { size, pixel }] of Object.entries(KINDS)) {
     fs.writeFileSync(path.join(RES, `mipmap-${density}`, name), png(Math.round(size * scale), pixel));

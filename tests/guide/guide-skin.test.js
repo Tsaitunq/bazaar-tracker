@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { figureRects, isSlim, FIGURE } from '../../guide/skin.js';
+import { figureRects, isSlim, FIGURE } from '../../apps/guide/skin.js';
 
 test('figure: 12 rects, base layer then clothing, all inside the 16x32 figure and the 64x64 skin', () => {
   for (const slim of [false, true]) {

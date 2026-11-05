@@ -5,9 +5,9 @@ import { recipesStale, refreshRecipes } from './recipes.mjs';
 import { compactItems } from './items.mjs';
 import { fetchLowestBins } from './auctions.mjs';
 import { compactElection } from './election.mjs';
-import { trendSlope } from '../trends.js';
-import { updateTiming, mergeBackfill, timingWindows, windowTax } from '../timing.js';
-import { SHARDS, KEEP_DAYS, shardOf, dayKey, dayKeys, compactPrices, appendSnapshot, seriesFor, itemStats } from '../history.js';
+import { trendSlope } from '../apps/bazaar/trends.js';
+import { updateTiming, mergeBackfill, timingWindows, windowTax } from '../apps/bazaar/timing.js';
+import { SHARDS, KEEP_DAYS, shardOf, dayKey, dayKeys, compactPrices, appendSnapshot, seriesFor, itemStats } from '../shared/history.js';
 
 const readChunk = (file) => (fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : null);
 
@@ -126,7 +126,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     const json = await getJson(`${API}skyblock/bazaar`);
     const dataDir = process.argv[2] ?? 'data';
     const now = Date.now();
-    const backfillFile = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'timing-backfill.json');
+    const backfillFile = path.join(path.dirname(fileURLToPath(import.meta.url)), 'timing-backfill.json');
     const { day, count } = runSnapshot(dataDir, json.products, now, { backfillFile });
     console.log(`snapshot ${day}: ${count} products`);
     // forge.json came later than recipes.json: fetch both as soon as it is missing

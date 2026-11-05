@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { bookPrices } from '../../flips.js';
+import { bookPrices } from '../../apps/bazaar/flips.js';
 import {
   shardOf, dayKey, dayKeys, compactPrices, appendSnapshot, seriesFor, marginSeries, stabilityScore,
-} from '../../history.js';
+} from '../../shared/history.js';
 
 test('shardOf sums char codes modulo 16', () => {
   assert.equal(shardOf('A'), 1);
@@ -60,14 +60,14 @@ test('stabilityScore', () => {
 });
 
 test('median', async () => {
-  const { median } = await import('../../history.js');
+  const { median } = await import('../../shared/history.js');
   assert.equal(median([3, 1, 2]), 2);
   assert.equal(median([1, 2, 3, 4]), 2.5);
   assert.equal(median([]), null);
 });
 
 test('itemStats gives score, median sell price and hours of history', async () => {
-  const { itemStats } = await import('../../history.js');
+  const { itemStats } = await import('../../shared/history.js');
   // 13 points, 20 minutes apart: 4 hours
   const points = Array.from({ length: 13 }, (_, i) => [1000 + i * 20, 100, i === 12 ? 500 : 200]);
   const [score, med, hours] = itemStats(points);

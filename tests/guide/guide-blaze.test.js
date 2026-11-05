@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { REFORGES, REFORGE_TARGETS, RARITIES, CATACOMBS_REFORGE, HPB, CRIMSON_STAR, DOMINUS, ENCHANT_EFFECTS, enchantLine } from '../../optimizer-data.js';
+import { REFORGES, REFORGE_TARGETS, RARITIES, CATACOMBS_REFORGE, HPB, CRIMSON_STAR, DOMINUS, ENCHANT_EFFECTS, enchantLine } from '../../apps/guide/optimizer-data.js';
 
 const neu = JSON.parse(fs.readFileSync(new URL('../fixtures/reforges-neu.json', import.meta.url), 'utf8'));
 const STAT = { crit_damage: 'CRITICAL_DAMAGE', crit_chance: 'CRITICAL_CHANCE' };
@@ -49,10 +49,10 @@ test('enchants: the 46 open ones are described, conditional ones read as a line'
 });
 
 // ---- pieces: stars, potato books, Bling Armor
-import { gearOf } from '../../guide/gear.js';
-import { rulesOf, pieceExtra, pieceTotal, dressDaggers } from '../../pieces.js';
-import { setPet, setGear, setPetItem, emptyBuild } from '../../guide/build.js';
-import { miningSettings } from '../../optimizer.js';
+import { gearOf } from '../../apps/guide/gear.js';
+import { rulesOf, pieceExtra, pieceTotal, dressDaggers } from '../../apps/guide/pieces.js';
+import { setPet, setGear, setPetItem, emptyBuild } from '../../apps/guide/build.js';
+import { miningSettings } from '../../apps/guide/optimizer.js';
 
 const petData = JSON.parse(fs.readFileSync(new URL('../../gamedata/pets.json', import.meta.url), 'utf8'));
 const blazePet = petData.pets.find((p) => p.id === 'BLAZE');
@@ -116,7 +116,7 @@ test('gear: worn Blaze armor takes stars, books and the pet doubling, the Plushi
 });
 
 // ---- set bonus
-import { setBonusOf, dominusOf } from '../../blaze.js';
+import { setBonusOf, dominusOf } from '../../apps/guide/blaze.js';
 
 test('set bonus: Dominus needs two pieces of one tier, mixed sets take the tier with most pieces, a tie the higher one', () => {
   const inf = (...p) => p.map((x) => `INFERNAL_CRIMSON_${x}`);
@@ -144,8 +144,8 @@ test('gear: two Infernal pieces give Ferocity 20 and Swing Range 1 as gear', () 
 });
 
 // ---- reforges with the Catacombs level and their targets
-import { blazeDelta } from '../../optimizer.js';
-import { blazeState } from '../../blaze.js';
+import { blazeDelta } from '../../apps/guide/optimizer.js';
+import { blazeState } from '../../apps/guide/blaze.js';
 
 const piece = (id, extra = {}) => ({ id, where: 'inventory', gems: [], enchants: {}, parts: {}, reforge: null, recomb: false, polarvoid: 0, coating: false, scrolls: [], lore: {}, ...extra });
 const REF_ITEMS = {
@@ -209,7 +209,7 @@ test('gear: ticked conditional enchants are listed with their level and never ad
 });
 
 // ---- accessories: in the base, a change only when ticked after the measurement
-import { accessoryGain } from '../../guide/gear.js';
+import { accessoryGain } from '../../apps/guide/gear.js';
 
 const ACC = {
   TALI: { category: 'ACCESSORY', family: 'TOOTH', tier: 'COMMON', stats: { STRENGTH: 5 } },
@@ -255,8 +255,8 @@ test('gear: the accessory gain is in the gear of the area, the hint tells to adj
 });
 
 // ---- totals: Nether Embodiment, attribute families
-import { loadGameData } from '../../guide/gamedata.js';
-import { totalFor, statsOf, statsFor } from '../../guide/totals.js';
+import { loadGameData } from '../../apps/guide/gamedata.js';
+import { totalFor, statsOf, statsFor } from '../../apps/guide/totals.js';
 
 const DATA = await loadGameData((f) => JSON.parse(fs.readFileSync(new URL(`../../gamedata/${f}.json`, import.meta.url), 'utf8')));
 const blazeBuild = (extra = {}) => ({ ...emptyBuild(), pet: { id: 'BLAZE', rarity: 'LEGENDARY', level: 100 }, ...extra });
@@ -298,7 +298,7 @@ test('attributes: against Infernal counts for Blaze, other families are listed; 
 });
 
 // ---- Ferocity in the damage formula
-import { blazeOutput } from '../../blaze.js';
+import { blazeOutput } from '../../apps/guide/blaze.js';
 
 test('ranking: expected damage × (1 + Ferocity / 100)', () => {
   const dagger = { id: 'FIREDUST_DAGGER', lore: { DAMAGE: 100 }, enchants: {} };

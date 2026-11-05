@@ -1,8 +1,8 @@
 // Timing backfill: what to ask SkyCofl for and how its rows become runs of timing.json.
 // Pure functions, no network: scripts/timing-backfill.mjs does the asking. The windows and the three medians are
 // those of timing.js (runMedians), so a backfilled run is read exactly like one the snapshot run recorded.
-import { skyTime, DAY_MS, YEAR_DAYS, EVENTS, PERK_EXPECT } from '../events.js';
-import { runMedians, curveMedians, BACKFILL, MIN_DURING_MS } from '../timing.js';
+import { skyTime, DAY_MS, YEAR_DAYS, EVENTS, PERK_EXPECT } from '../apps/bazaar/events.js';
+import { runMedians, curveMedians, BACKFILL, MIN_DURING_MS } from '../apps/bazaar/timing.js';
 
 const HOUR = 3600000;
 const YEAR_MS = YEAR_DAYS * DAY_MS;

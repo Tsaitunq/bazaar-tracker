@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { npcFlips } from '../../npc.js';
+import { npcFlips } from '../../apps/bazaar/npc.js';
 
 const product = (buy, sell, qs = {}) => ({
   sell_summary: [{ pricePerUnit: buy }], buy_summary: [{ pricePerUnit: sell }],
@@ -32,7 +32,7 @@ test('filters', () => {
 
 // Craft steps before the NPC. buy_summary = sell offers (cheapest first): what an instant buyer pays.
 test('npc craft step: 160 of the item into the higher step pays more per sale than the single items', async () => {
-  const { npcFlips: flips, npcStep, NPC_DAY_LIMIT } = await import('../../npc.js');
+  const { npcFlips: flips, npcStep, NPC_DAY_LIMIT } = await import('../../apps/bazaar/npc.js');
   const liquid = { sellMovingWeek: 168000000, buyMovingWeek: 168000000 };
   const products = {
     RAW: { sell_summary: [{ amount: 9e6, pricePerUnit: 3, orders: 1 }], buy_summary: [{ amount: 100000, pricePerUnit: 4, orders: 1 }, { amount: 9e6, pricePerUnit: 6, orders: 1 }], quick_status: liquid },

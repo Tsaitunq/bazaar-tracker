@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
-import { validGuide } from '../../progress.js';
+import { validGuide } from '../../apps/guide/progress.js';
 
 const FILE = 'personal/guides/shafting.json';
 const present = existsSync(FILE);

@@ -5,11 +5,11 @@ import { dirname, join, normalize, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
-const guideDir = join(root, 'guide');
+const guideDir = join(root, 'apps', 'guide');
 const src = readFileSync(join(guideDir, 'sw.js'), 'utf8');
 const shell = [...src.match(/const SHELL = \[([^\]]*)\]/)[1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
 
-// Everything guide/app.js pulls in, as paths relative to guide/.
+// Everything apps/guide/app.js pulls in, as paths relative to apps/guide/.
 function closure(file, seen = new Set()) {
   if (seen.has(file)) return seen;
   seen.add(file);
@@ -21,9 +21,9 @@ test('the worker shell lists only existing files', () => {
   for (const f of shell) assert.ok(f === './' || existsSync(join(guideDir, f)), f);
 });
 
-test('the worker shell covers the import closure of guide/app.js', () => {
+test('the worker shell covers the import closure of apps/guide/app.js', () => {
   const files = [...closure(join(guideDir, 'app.js'))].map((f) => relative(guideDir, f).replaceAll('\\', '/'));
-  assert.ok(files.includes('../optimizer-data.js'));
+  assert.ok(files.includes('optimizer-data.js'));
   for (const f of files) assert.ok(shell.includes(f), f);
 });
 
@@ -32,10 +32,10 @@ test('the worker shell holds the page, its style and fonts', () => {
 });
 
 test('the worker shell holds every game data file', () => {
-  for (const f of ['stats', 'hotm', 'attributes', 'power', 'pets']) assert.ok(shell.includes(`../gamedata/${f}.json`), f);
+  for (const f of ['stats', 'hotm', 'attributes', 'power', 'pets']) assert.ok(shell.includes(`../../gamedata/${f}.json`), f);
 });
 
 test('the app pulls no market view', () => {
   const files = [...closure(join(guideDir, 'app.js'))].map((f) => relative(root, f).replaceAll('\\', '/'));
-  for (const f of ['flips.js', 'render.js', 'app.js', 'minions.js', 'tour.js']) assert.ok(!files.includes(f), f);
+  for (const f of files) assert.ok(!f.startsWith('apps/bazaar/'), f);
 });

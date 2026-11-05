@@ -6,8 +6,8 @@ import path from 'node:path';
 import { chromium } from 'playwright';
 import { copyGuide } from './guide-copy.mjs';
 
-const OUT = 'guide-shots';
-const WEB = 'www-guide';
+const OUT = 'apps/guide/shots';
+const WEB = 'apps/guide/www-guide';
 const VIEWPORT = { width: 390, height: 844 };
 // the phones of the device test: every screen is shot on both, and a guide opens with its whole card in sight
 const PHONES = [VIEWPORT, { width: 412, height: 915 }];

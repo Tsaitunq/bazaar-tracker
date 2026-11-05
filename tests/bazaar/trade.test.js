@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { skyTime, DAY_MS, YEAR_DAYS } from '../../events.js';
+import { skyTime, DAY_MS, YEAR_DAYS } from '../../apps/bazaar/events.js';
 import { compactElection } from '../../scripts/election.mjs';
 import {
   phaseSpans, curveMedians, tradeWindow, tradeText, phaseLabel, itemWindows, allWindows, buyNow, updateTiming, BACKFILL,
   TERM_PHASES, EVENT_PHASES,
-} from '../../timing.js';
-import { windowsView, todayView, detailView } from '../../render.js';
+} from '../../apps/bazaar/timing.js';
+import { windowsView, todayView, detailView } from '../../apps/bazaar/render.js';
 
 const H = 60; // minutes
 const TAX = 0.0125;
@@ -166,9 +166,9 @@ test('views: the radar lists the windows, the item page and Today carry them', (
 });
 
 // ---- drivers, roles, volume ----
-import { itemRole, driverTitle, isLowVolume, LOW_WEEK_VOLUME } from '../../timing.js';
-import { expectedRole, DRIVERS, activePerks, upcoming } from '../../events.js';
-import { effectsView, volumeNote, roleBadge, keyTitle } from '../../render.js';
+import { itemRole, driverTitle, isLowVolume, LOW_WEEK_VOLUME } from '../../apps/bazaar/timing.js';
+import { expectedRole, DRIVERS, activePerks, upcoming } from '../../apps/bazaar/events.js';
+import { effectsView, volumeNote, roleBadge, keyTitle } from '../../apps/bazaar/render.js';
 
 const pRun = (s, vs, c) => ({ s, e: s + 100, b: s - 10, a: s + 120, p: { X: vs }, ...(c && { c: { X: c } }) });
 

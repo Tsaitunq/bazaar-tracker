@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { lineChart, nearestIndex, chartHit } from '../../chart.js';
+import { lineChart, nearestIndex, chartHit } from '../../apps/bazaar/chart.js';
 
 const pts = (vs) => vs.map((v, i) => [29000000 + i * 20, v]);
 

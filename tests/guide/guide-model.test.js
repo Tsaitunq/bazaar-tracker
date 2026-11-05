@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { chaptersOf, totalShare, stampDone, unlockedThisWeek, guideModel, stepStatus, statDelta } from '../../guide/model.js';
+import { chaptersOf, totalShare, stampDone, unlockedThisWeek, guideModel, stepStatus, statDelta } from '../../apps/guide/model.js';
 import { gamedata, baseOf, emptyBuild } from '../fixtures/guide-world.js';
-import { pathRow, stepCard } from '../../guide/views/parts.js';
-import { number } from '../../format.js';
-import { miningSettings, SCORES } from '../../optimizer.js';
+import { pathRow, stepCard } from '../../apps/guide/views/parts.js';
+import { number } from '../../shared/format.js';
+import { miningSettings, SCORES } from '../../apps/guide/optimizer.js';
 
 const steps = (n, prefix) => Array.from({ length: n }, (_, i) => ({ text: `${prefix}${i}` }));
 const guide = (sizes, extra = {}) => ({ sections: sizes.map((n, i) => ({ name: `S${i}`, steps: steps(n, `s${i}-`) })), ...extra });

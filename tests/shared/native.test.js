@@ -1,6 +1,6 @@
 import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { alertConfig, plugin, syncAlerts, syncNames, onRoute, requestAlertPermission, readLegacyProfile, clearProfileData } from '../../native.js';
+import { alertConfig, plugin, syncAlerts, syncNames, onRoute, requestAlertPermission, readLegacyProfile, clearProfileData } from '../../shared/native.js';
 
 afterEach(() => { delete globalThis.Capacitor; });
 

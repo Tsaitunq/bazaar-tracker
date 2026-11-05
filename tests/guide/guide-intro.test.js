@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { decide, finishTour, newsBetween, compareVersions, STEPS, tourHtml, newsHtml, SEEN_KEY, TOUR_KEY } from '../../guide/intro.js';
-import { settingsView } from '../../guide/views/settings.js';
+import { decide, finishTour, newsBetween, compareVersions, STEPS, tourHtml, newsHtml, SEEN_KEY, TOUR_KEY } from '../../apps/guide/intro.js';
+import { settingsView } from '../../apps/guide/views/settings.js';
 
 const log = { versions: [
   { version: '0.10.0', date: '2026-11-05', entries: [{ title: 'Tour', text: 'a' }] },
@@ -87,8 +87,8 @@ test('settings can restart the tour and open the full list', () => {
 });
 
 test('the spotlight targets exist in the views, and the sheet respects reduced motion', () => {
-  const views = ['home', 'guide', 'stats', 'settings', 'parts'].map((f) => readFileSync(`guide/views/${f}.js`, 'utf8')).join('');
+  const views = ['home', 'guide', 'stats', 'settings', 'parts'].map((f) => readFileSync(`apps/guide/views/${f}.js`, 'utf8')).join('');
   for (const cls of ['bests', 'card', 'data-stats-area', 'switch', 'stat-table', 'data-act="tour"']) assert.ok(views.includes(cls), cls);
-  const css = readFileSync('guide/guide.css', 'utf8');
+  const css = readFileSync('apps/guide/guide.css', 'utf8');
   assert.match(css, /prefers-reduced-motion: reduce\) \{ \.tour-hole \{ transition: none/);
 });

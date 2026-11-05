@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { esc, coins, percent, iconUrl, itemHref, icon, scoreBadge, flipCard, searchCard, npcCard, craftCard, forgeCard, forgeFilter, duration, trendBadge, detailView, radarView, parseRoute } from '../../render.js';
+import { esc, coins, percent, iconUrl, itemHref, icon, scoreBadge, flipCard, searchCard, npcCard, craftCard, forgeCard, forgeFilter, duration, trendBadge, detailView, radarView, parseRoute } from '../../apps/bazaar/render.js';
 
 const flip = { id: 'A', name: 'Name', buy: 10, sell: 20, profit: 5, margin: 0.1, weekVol: 1000, hourVol: 10, profitHour: 50, score: 80 };
 
@@ -58,7 +58,7 @@ test('parseRoute', () => {
 });
 
 test('detailView shows history states, charts, escaping and range', async () => {
-  const { detailView } = await import('../../render.js');
+  const { detailView } = await import('../../apps/bazaar/render.js');
   const base = { id: 'A', name: 'Name', flip: null, score: 80, isFav: false, range: '24h', tax: 0.0125 };
   const points = [[29000000, 10, 20], [29000020, 11, 22], [29000040, 12, 21]];
   assert.ok(detailView({ ...base, points: [] }).includes('No history yet'));
@@ -70,7 +70,7 @@ test('detailView shows history states, charts, escaping and range', async () => 
 });
 
 test('detailView back link follows the origin tab', async () => {
-  const { detailView } = await import('../../render.js');
+  const { detailView } = await import('../../apps/bazaar/render.js');
   const base = { id: 'A', name: 'Name', flip: null, score: 80, isFav: false, range: '24h', tax: 0.0125, points: [] };
   assert.ok(detailView({ ...base, back: 'npc' }).includes('href="#/npc"'));
   assert.ok(detailView(base).includes('href="#/flips"'));
@@ -105,7 +105,7 @@ test('provisional replaces the stability badge', () => {
 });
 
 test('cards and detail page show the median as "normal"', async () => {
-  const { detailView } = await import('../../render.js');
+  const { detailView } = await import('../../apps/bazaar/render.js');
   assert.ok(flipCard({ ...flip, median: 12345 }, false).includes('normal: 12.3k'));
   assert.ok(!flipCard({ ...flip, median: null }, false).includes('normal:'));
   const detail = detailView({ id: 'A', name: 'Name', flip, score: 80, median: 12345, provisional: false, isFav: false, range: '24h', tax: 0.0125, points: [] });
@@ -121,7 +121,7 @@ test('profit per hour and margin are the big numbers on a card', () => {
 });
 
 test('cards carry a known rarity and the picture sits on a tile', async () => {
-  const { rarity, detailView } = await import('../../render.js');
+  const { rarity, detailView } = await import('../../apps/bazaar/render.js');
   assert.equal(rarity('epic'), 'epic');
   assert.equal(rarity(undefined), 'common');
   assert.equal(rarity('"><script>'), 'common');
@@ -132,7 +132,7 @@ test('cards carry a known rarity and the picture sits on a tile', async () => {
 });
 
 test('swipeTab: left opens the next tab, right the previous one, no wrap around', async () => {
-  const { swipeTab, TABS } = await import('../../render.js');
+  const { swipeTab, TABS } = await import('../../apps/bazaar/render.js');
   assert.deepEqual(TABS, ['flips', 'opps', 'npc', 'craft', 'forge']);
   assert.equal(swipeTab('flips', -80, 5), 'opps');
   assert.equal(swipeTab('opps', 80, -5), 'flips');
@@ -148,7 +148,7 @@ test('swipeTab: left opens the next tab, right the previous one, no wrap around'
 });
 
 test('portfolioView shows the total, the picks and the market share assumption', async () => {
-  const { portfolioView } = await import('../../render.js');
+  const { portfolioView } = await import('../../apps/bazaar/render.js');
   const plan = {
     profitHour: 31000000, used: 42000000,
     flips: [{ id: 'A', name: '<b>Worm</b>', stake: 4900000, profitHour: 3900000 }, { id: 'INK_SACK:4', name: 'Lapis', stake: 5000000, profitHour: 3600000 }],
@@ -180,14 +180,14 @@ test('portfolioView shows the total, the picks and the market share assumption',
 });
 
 test('portfolioView explains an empty plan', async () => {
-  const { portfolioView } = await import('../../render.js');
+  const { portfolioView } = await import('../../apps/bazaar/render.js');
   const empty = { flips: [], limit: null, profitHour: 0, used: 0 };
   assert.ok(portfolioView(empty, { capital: 50000000, slots: 10, sharePercent: 5 }).includes('No flip qualifies'));
   assert.ok(portfolioView(empty, { capital: 0, slots: 10, sharePercent: 5 }).includes('Set a total capital'));
 });
 
 test('dragOffset follows the finger, with resistance where there is no tab', async () => {
-  const { dragOffset } = await import('../../render.js');
+  const { dragOffset } = await import('../../apps/bazaar/render.js');
   assert.equal(dragOffset('flips', -100), -100);
   assert.equal(dragOffset('opps', 100), 100);
   assert.equal(dragOffset('flips', 100), 25);
@@ -348,7 +348,7 @@ test('Simple mode: what it leaves out is marked .pro, the rest is not', () => {
 });
 
 test('Simple mode has two tabs, and a swipe never leaves them', async () => {
-  const { tabsFor, swipeTab, dragOffset, TABS } = await import('../../render.js');
+  const { tabsFor, swipeTab, dragOffset, TABS } = await import('../../apps/bazaar/render.js');
   assert.deepEqual(tabsFor('simple'), ['flips', 'opps']);
   assert.deepEqual(tabsFor('pro'), TABS);
   assert.deepEqual(tabsFor(undefined), TABS);
@@ -361,7 +361,7 @@ test('Simple mode has two tabs, and a swipe never leaves them', async () => {
 });
 
 test('a filter is active once it differs from its default, per tab', async () => {
-  const { FILTERS, activeFilters, filterChips, TABS } = await import('../../render.js');
+  const { FILTERS, activeFilters, filterChips, TABS } = await import('../../apps/bazaar/render.js');
   const defaults = { minVolume: 100000, maxCapital: 5000000, marketMargin: 10, marketMinVolume: 100000, marketMinProfit: 100000, hotm: 10 };
   assert.deepEqual(Object.keys(FILTERS), TABS);
   for (const tab of TABS) assert.deepEqual(activeFilters(tab, defaults, defaults), [], tab);
@@ -381,7 +381,7 @@ test('a filter is active once it differs from its default, per tab', async () =>
 });
 
 test('areas: three pages next to Trade, Simple mode has only Today', async () => {
-  const { areaOf, viewsFor, AREAS, TABS } = await import('../../render.js');
+  const { areaOf, viewsFor, AREAS, TABS } = await import('../../apps/bazaar/render.js');
   assert.deepEqual(AREAS, ['today', 'minions', 'market']);
   for (const v of [...TABS, 'item']) assert.equal(areaOf(v), 'trade', v);
   for (const v of AREAS) assert.equal(areaOf(v), v);
@@ -393,7 +393,7 @@ test('areas: three pages next to Trade, Simple mode has only Today', async () =>
 });
 
 test('trendsView lists the strongest risers and fallers and leaves flat items out', async () => {
-  const { trendsView } = await import('../../render.js');
+  const { trendsView } = await import('../../apps/bazaar/render.js');
   const html = trendsView([
     { id: 'A', name: 'Alpha', trend: 0.2 }, { id: 'B', name: 'Beta', trend: 0.5 }, { id: 'C', name: 'Gamma', trend: -0.08 },
     { id: 'D', name: 'Delta', trend: 0.01 }, { id: 'E', name: '<Epsilon>', trend: null },
@@ -405,7 +405,7 @@ test('trendsView lists the strongest risers and fallers and leaves flat items ou
 });
 
 test('portfolio: a craft hint is a line on the row, with a note that the recipe must be unlocked', async () => {
-  const { portfolioView } = await import('../../render.js');
+  const { portfolioView } = await import('../../apps/bazaar/render.js');
   const flip = { id: 'A', name: 'Alpha', stake: 1000, profitHour: 50 };
   const plan = (flips) => ({ flips, limit: null, more: null, profitHour: 50, used: 1000 });
   const opts = { capital: 1000, slots: 21, sharePercent: 5 };
@@ -417,7 +417,7 @@ test('portfolio: a craft hint is a line on the row, with a note that the recipe 
 });
 
 test('warningsView: one line per warning in plain words, "Got it" only for what the market did', async () => {
-  const { warningsView, warningText } = await import('../../render.js');
+  const { warningsView, warningText } = await import('../../apps/bazaar/render.js');
   assert.equal(warningsView([]), '');
   assert.equal(warningText({ kind: 'price', fall: 0.072 }), 'Buy order 7.2% below your plan price');
   assert.equal(warningText({ kind: 'price', margin: 0.004 }), 'Margin down to 0.4%');
@@ -432,7 +432,7 @@ test('warningsView: one line per warning in plain words, "Got it" only for what 
 });
 
 test('todayView: portfolio in short, warnings, what comes next and what is new, each with its link', async () => {
-  const { todayView } = await import('../../render.js');
+  const { todayView } = await import('../../apps/bazaar/render.js');
   const base = {
     plan: { flips: [{ id: 'A' }, { id: 'B' }], profitHour: 1500000, used: 9000000 }, capital: 50000000, slots: 21,
     events: [
@@ -467,7 +467,7 @@ test('todayView: portfolio in short, warnings, what comes next and what is new, 
 });
 
 test('minionCard: coins per day, where to sell, and a mark on numbers that are not confirmed', async () => {
-  const { minionCard } = await import('../../render.js');
+  const { minionCard } = await import('../../apps/bazaar/render.js');
   const row = { key: 'snow', name: 'Snow Minion', id: 'SNOW_BALL', tier: 11, maxTier: 12, bazaar: 52000, npcCoins: 26000, fuelCost: 400, best: 'bazaar', net: 51600, itemsDay: 26584.6, fillHours: 0.87, unsure: [], cost: { total: 3.4e6, missing: [] }, payback: 65.9 };
   const html = minionCard(row);
   assert.ok(html.includes('Snow Minion') && html.includes('Tier XI<') && html.includes('51.6k') && html.includes('Coins/day'));
@@ -484,8 +484,8 @@ test('minionCard: coins per day, where to sell, and a mark on numbers that are n
 });
 
 test('the minion sheet lists every tier and leads to the item', async () => {
-  const { minionDetail } = await import('../../minions.js');
-  const { minionSheet } = await import('../../render.js');
+  const { minionDetail } = await import('../../apps/bazaar/minions.js');
+  const { minionSheet } = await import('../../apps/bazaar/render.js');
   const product = (buy, sell) => ({ sell_summary: [{ pricePerUnit: buy }], buy_summary: [{ pricePerUnit: sell }] });
   const detail = minionDetail('diamond', { DIAMOND: product(8, 9) }, {}, { tier: 5, count: 2, fuel: 'none', upgrades: ['none', 'none'] }, { tax: 0.0125 });
   const html = minionSheet(detail, { name: (id) => id, count: 2 });
@@ -497,8 +497,8 @@ test('the minion sheet lists every tier and leads to the item', async () => {
 });
 
 test('Mayor & event effects: running and active first, searchable, years without a date', async () => {
-  const { effectsView } = await import('../../render.js');
-  const { upcoming, activePerks, skyTime } = await import('../../events.js');
+  const { effectsView } = await import('../../apps/bazaar/render.js');
+  const { upcoming, activePerks, skyTime } = await import('../../apps/bazaar/events.js');
   const election = { mayor: { name: 'Finnegan', perks: [{ name: 'Grand Feast', text: '' }], minister: null } };
   const now = skyTime(519, 7, 5);
   const args = { perks: activePerks(election), events: upcoming(now, election), now, name: (id) => id };
@@ -516,8 +516,8 @@ test('Mayor & event effects: running and active first, searchable, years without
 });
 
 test('the minion card is one button for the sheet: no item link, the minion head, permanent fuel named', async () => {
-  const { minionCard, minionSheet } = await import('../../render.js');
-  const { minionDetail, minionRow, MINIONS } = await import('../../minions.js');
+  const { minionCard, minionSheet } = await import('../../apps/bazaar/render.js');
+  const { minionDetail, minionRow, MINIONS } = await import('../../apps/bazaar/minions.js');
   const product = (buy, sell) => ({ sell_summary: [{ pricePerUnit: buy }], buy_summary: [{ pricePerUnit: sell }] });
   const products = { ENCHANTED_STRING: product(600, 700), ENCHANTED_SPIDER_EYE: product(790, 900), ENCHANTED_IRON: product(500, 600) };
   const setup = { tier: 11, count: 1, fuel: 'lava', upgrades: ['compactor', 'none'] };

@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { parseRoute, applyImport, stampAll, swipeTarget, swipeAxis, swipeLands } from '../../guide/model.js';
-import { exportData, importData, stepKey } from '../../progress.js';
-import { homeView } from '../../guide/views/home.js';
+import { parseRoute, applyImport, stampAll, swipeTarget, swipeAxis, swipeLands } from '../../apps/guide/model.js';
+import { exportData, importData, stepKey } from '../../apps/guide/progress.js';
+import { homeView } from '../../apps/guide/views/home.js';
 
 const guide = { id: 'mine', title: 'Mining', area: 'mining', sections: [{ name: 'Main', steps: [{ text: 'Jade' }, { text: 'Topaz' }] }] };
-const app = readFileSync(new URL('../../guide/app.js', import.meta.url), 'utf8');
+const app = readFileSync(new URL('../../apps/guide/app.js', import.meta.url), 'utf8');
 
 test('parseRoute reads each route, an unknown guide goes home', () => {
   const guides = [guide];
@@ -115,7 +115,7 @@ test('mark done closes the card first, then scrolls the next card into sight unl
   assert.match(app, /if \(fromCard\) revealCard\(\)/);
   assert.match(app, /performance\.now\(\) - handAt < HAND_QUIET_MS\) return/);
   assert.match(app, /behavior: stillMotion\(\) \? 'auto' : 'smooth'/);
-  const css = readFileSync(new URL('../../guide/guide.css', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../../apps/guide/guide.css', import.meta.url), 'utf8');
   assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{ \.card-open/);
   assert.match(css, /\.marking \.rail-bottom::after/);
 });
@@ -141,7 +141,7 @@ test('a sideways drag on a stats tab leads to the next tab and stops at the ends
 });
 
 test('a stats list never scrolls sideways, so the HOTM tree cannot swallow the swipe on a narrow phone', () => {
-  const css = readFileSync(new URL('../../guide/guide.css', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../../apps/guide/guide.css', import.meta.url), 'utf8');
   assert.match(css, /\.scroll \{[^}]*overflow-x: hidden/);
   assert.match(app, /function fitTrees/);
   assert.match(app, /paintFigures\(root\);\s+fitTrees\(root\);/);

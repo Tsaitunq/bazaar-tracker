@@ -1,10 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { loadGameData } from '../../guide/gamedata.js';
-import { statsOf, totalFor } from '../../guide/totals.js';
-import { emptyBuild, measure, editPart, commitDraft, needsDraft, EMPTY_PART, perkEnabled, abilityPick, perkLevel, hotmTier, attrLevel, powerStone, powerMp, tuningPoints } from '../../guide/build.js';
-import { lockOf, costOf, costBetween, effectsAt, spent } from '../../guide/hotm-model.js';
+import { loadGameData } from '../../apps/guide/gamedata.js';
+import { statsOf, totalFor } from '../../apps/guide/totals.js';
+import { emptyBuild, measure, editPart, commitDraft, needsDraft, EMPTY_PART, perkEnabled, abilityPick, perkLevel, hotmTier, attrLevel, powerStone, powerMp, tuningPoints } from '../../apps/guide/build.js';
+import { lockOf, costOf, costBetween, effectsAt, spent } from '../../apps/guide/hotm-model.js';
 
 const read = (f) => JSON.parse(fs.readFileSync(new URL(`../../gamedata/${f}.json`, import.meta.url), 'utf8'));
 const data = await loadGameData(read);
@@ -129,7 +129,7 @@ test('perkEnabled and abilityPick: off list without doubles, one ability at a ti
 });
 
 test('gear options: defaults for an old build, whole numbers within the limits, unknown Catacombs level', async () => {
-  const { setGear, gearOptions, setPet, setPetItem, emptyBuild } = await import('../../guide/build.js');
+  const { setGear, gearOptions, setPet, setPetItem, emptyBuild } = await import('../../apps/guide/build.js');
   assert.deepEqual(gearOptions({ hotm: null }), { catacombs: null, stars: 0, hpb: true, fuming: 0 });
   const b = setGear(emptyBuild(), { catacombs: '47', stars: 99, hpb: false, fuming: -3 });
   assert.deepEqual(b.gear, { catacombs: 47, stars: 10, hpb: false, fuming: 0 });
@@ -139,7 +139,7 @@ test('gear options: defaults for an old build, whole numbers within the limits, 
 });
 
 test('pet item: kept when the pet is picked again, gone with the pet, none without a pet', async () => {
-  const { setPet, setPetItem, emptyBuild } = await import('../../guide/build.js');
+  const { setPet, setPetItem, emptyBuild } = await import('../../apps/guide/build.js');
   assert.equal(setPetItem(emptyBuild(), 'CROCHET_TIGER_PLUSHIE').pet, null);
   let b = setPet(emptyBuild(), { id: 'BLAZE', rarity: 'LEGENDARY' });
   assert.deepEqual(b.pet, { id: 'BLAZE', rarity: 'LEGENDARY', level: 100 });

@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { swipeCloses, outside, openSheet, bindSheet } from '../../sheet.js';
-import { FILTERS } from '../../render.js';
+import { swipeCloses, outside, openSheet, bindSheet } from '../../apps/bazaar/sheet.js';
+import { FILTERS } from '../../apps/bazaar/render.js';
 
 // just enough of a <dialog> and of the browser's history to open and close a sheet
 class Dialog extends EventTarget {
@@ -93,7 +93,7 @@ test('a tap on the dimmed page closes the sheet, a press that began inside it do
 });
 
 test('the page: settings live in the panel, with Apply and Reset, and every filter has a field', () => {
-  const page = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  const page = fs.readFileSync(new URL('../../apps/bazaar/index.html', import.meta.url), 'utf8');
   const panel = page.slice(page.indexOf('<dialog id="panel"'), page.indexOf('</dialog>'));
   for (const part of ['<form id="settings" class="sheet-body" novalidate>', 'data-act="close"', 'data-act="reset"', '<button type="submit" form="settings" class="primary">Apply</button>']) {
     assert.ok(panel.includes(part), part);
@@ -104,13 +104,13 @@ test('the page: settings live in the panel, with Apply and Reset, and every filt
 
 test('a sheet scrolls on its own, holds the page still and clears the gesture bar', async () => {
   const fs = await import('node:fs');
-  const css = fs.readFileSync(new URL('../../style.css', import.meta.url), 'utf8');
+  const css = fs.readFileSync(new URL('../../apps/bazaar/style.css', import.meta.url), 'utf8');
   const rule = css.match(/\.panel \.sheet-body \{[^}]*\}/)[0];
   assert.match(rule, /overflow-y: auto/);
   assert.match(rule, /overscroll-behavior: contain/);
   assert.match(rule, /env\(safe-area-inset-bottom/);
   assert.match(css, /html\.sheet-open[^{]*\{[^}]*overflow: hidden/);
-  const js = fs.readFileSync(new URL('../../sheet.js', import.meta.url), 'utf8');
+  const js = fs.readFileSync(new URL('../../apps/bazaar/sheet.js', import.meta.url), 'utf8');
   assert.match(js, /classList\.add\('sheet-open'\)/);
   assert.match(js, /scrollTo\?\.\(0, pageY\)/);
 });

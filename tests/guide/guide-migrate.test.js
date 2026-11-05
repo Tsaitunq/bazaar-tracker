@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { runMigration, migrateTicks } from '../../guide/migrate.js';
-import { doneSet, stepKey } from '../../progress.js';
-import { ownedAuto } from '../../owned.js';
+import { runMigration, migrateTicks } from '../../apps/guide/migrate.js';
+import { doneSet, stepKey } from '../../apps/guide/progress.js';
+import { ownedAuto } from '../../apps/guide/owned.js';
 
 const guide = {
   id: 'g', title: 'G', area: 'mining',

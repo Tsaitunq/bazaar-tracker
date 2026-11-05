@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { detectStep, detectGuide, validDetect } from '../../detect.js';
-import { stepKey } from '../../progress.js';
+import { detectStep, detectGuide, validDetect } from '../../apps/guide/detect.js';
+import { stepKey } from '../../apps/guide/progress.js';
 
 const item = (id, extra = {}) => ({ id, enchants: {}, gems: [], parts: {}, ...extra });
 const profile = (items, extra = {}) => ({ items, pets: [], ...extra });

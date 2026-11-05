@@ -2,13 +2,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { formEdited, guideModel, typedFields, restoreTyped, settled } from '../../guide/model.js';
-import { stepCard } from '../../guide/views/parts.js';
-import { guideView } from '../../guide/views/guide.js';
-import { settingsView } from '../../guide/views/settings.js';
+import { formEdited, guideModel, typedFields, restoreTyped, settled } from '../../apps/guide/model.js';
+import { stepCard } from '../../apps/guide/views/parts.js';
+import { guideView } from '../../apps/guide/views/guide.js';
+import { settingsView } from '../../apps/guide/views/settings.js';
 import { gamedata, baseOf, emptyBuild } from '../fixtures/guide-world.js';
-import { miningSettings } from '../../optimizer.js';
-import { coins } from '../../format.js';
+import { miningSettings } from '../../apps/guide/optimizer.js';
+import { coins } from '../../shared/format.js';
 
 const sold = (price) => ({ buy_summary: [{ pricePerUnit: price, amount: 100 }] });
 const DRILL = 'TITANIUM_DRILL_4';
@@ -37,7 +37,7 @@ test('import from a file and from the text field are two buttons', () => {
   const html = settingsView({ guides: [], settings: miningSettings(null), now: 1 });
   assert.match(html, /data-act="import-file"/);
   assert.match(html, /data-act="import"/);
-  const app = readFileSync(new URL('../../guide/app.js', import.meta.url), 'utf8');
+  const app = readFileSync(new URL('../../apps/guide/app.js', import.meta.url), 'utf8');
   assert.match(app, /act === 'import-file'/);
 });
 
@@ -76,13 +76,13 @@ test('the bazaar tax can be set', () => {
 });
 
 test('the screen keeps clear of the system bars', () => {
-  const css = readFileSync(new URL('../../guide/guide.css', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../../apps/guide/guide.css', import.meta.url), 'utf8');
   assert.match(css, /\.screen \{[^}]*safe-area-inset-top[^}]*safe-area-inset-bottom/);
   assert.match(css, /\.screen-home \{[^}]*safe-area-inset-top[^}]*safe-area-inset-bottom/);
 });
 
 test('the font licence comes along', () => {
-  assert.match(readFileSync(new URL('../../guide/sw.js', import.meta.url), 'utf8'), /'fonts\/LICENSE'/);
+  assert.match(readFileSync(new URL('../../apps/guide/sw.js', import.meta.url), 'utf8'), /'fonts\/LICENSE'/);
 });
 
 test('the card shows the net cost beside the net rate', () => {

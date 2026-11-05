@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { validGuide, loadBundled, mergeGuides, exportData, importData, stepKey, stepCost, priceItem, guideStats, doneSet, setMark } from '../../progress.js';
-import { guideModel } from '../../guide/model.js';
+import { validGuide, loadBundled, mergeGuides, exportData, importData, stepKey, stepCost, priceItem, guideStats, doneSet, setMark } from '../../apps/guide/progress.js';
+import { guideModel } from '../../apps/guide/model.js';
 
 const guide = { title: 'Test guide', source: 'https://example.com/x', sections: [
   { name: 'First', goal: 'Goal', steps: [
@@ -335,9 +335,9 @@ test('validGuide keeps area and numeric gain and drops anything else', () => {
 });
 
 test('progress.js does not pull the market views', () => {
-  const src = readFileSync('progress.js', 'utf8');
+  const src = readFileSync('apps/guide/progress.js', 'utf8');
   assert.doesNotMatch(src, /from '\.\/render\.js'/);
-  assert.match(src, /from '\.\/format\.js'/);
+  assert.match(src, /from '\.\.\/\.\.\/shared\/format\.js'/);
 });
 
 test('validGuide keeps area farming and valid chapters, drops broken ones', () => {

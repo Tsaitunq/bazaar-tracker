@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { forgeFlips, forgeFlip, ahNet, ahListFee } from '../../forge.js';
+import { forgeFlips, forgeFlip, ahNet, ahListFee } from '../../apps/bazaar/forge.js';
 
 const p = (buy, sell, buyMovingWeek = 168_000_000) => ({
   sell_summary: buy == null ? [] : [{ pricePerUnit: buy }],

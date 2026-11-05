@@ -15,7 +15,7 @@ const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) =
 const own = walk(out).filter((f) => !f.includes(path.join(out, 'personal')));
 const scripts = own.filter((f) => f.endsWith('.js'));
 const importsOf = (file) => [...fs.readFileSync(file, 'utf8').matchAll(/^(?:import|export)\s[^;]*?from\s+'([^']+)'/gm)].map((m) => m[1]);
-const brand = JSON.parse(fs.readFileSync('guide/brand.json', 'utf8')).name;
+const brand = JSON.parse(fs.readFileSync('apps/guide/brand.json', 'utf8')).name;
 
 test('the build rewrites ../ imports to ./ and leaves nothing outside the folder', () => {
   assert.ok(fs.existsSync(path.join(out, 'app.js')));
@@ -81,14 +81,14 @@ test('the bazaar copy holds nothing of guide/', () => {
 });
 
 test('the android project keeps to its own id, shares the store and has no alert rights', () => {
-  const manifest = fs.readFileSync('android-guide/app/src/main/AndroidManifest.xml', 'utf8');
+  const manifest = fs.readFileSync('apps/guide/android/app/src/main/AndroidManifest.xml', 'utf8');
   assert.doesNotMatch(manifest, /POST_NOTIFICATIONS|BoughtReceiver/);
-  const gradle = fs.readFileSync('android-guide/app/build.gradle', 'utf8');
+  const gradle = fs.readFileSync('apps/guide/android/app/build.gradle', 'utf8');
   assert.match(gradle, /applicationId "com\.tsaitunq\.guides"/);
   assert.match(gradle, /ProfileStore\.java/);
-  assert.match(gradle, /guide\/changelog\.json/);
+  assert.match(gradle, /\.\.\/\.\.\/changelog\.json/);
   assert.doesNotMatch(gradle, /androidx\.work/);
-  const plugin = fs.readFileSync('android-guide/app/src/main/java/com/tsaitunq/guides/GuidePlugin.java', 'utf8');
+  const plugin = fs.readFileSync('apps/guide/android/app/src/main/java/com/tsaitunq/guides/GuidePlugin.java', 'utf8');
   assert.match(plugin, /name = "BazaarAlerts"/);
   const methods = [...plugin.matchAll(/public void (\w+)\(PluginCall/g)].map((m) => m[1]).sort();
   assert.deepEqual(methods, ['clearApiKey', 'clearProfile', 'loadProfile']); // only to read and delete the old store once

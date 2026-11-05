@@ -1,6 +1,6 @@
 import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { dataUrl, aliasItems, loadStats, loadRecipes, loadHistory, freshBins, fetchBins } from '../../data.js';
+import { dataUrl, aliasItems, loadStats, loadRecipes, loadHistory, freshBins, fetchBins } from '../../shared/data.js';
 
 const realFetch = globalThis.fetch;
 afterEach(() => { globalThis.fetch = realFetch; });

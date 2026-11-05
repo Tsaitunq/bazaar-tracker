@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { skyTime, termStart, PERK_EXPECT, DAY_MS, YEAR_DAYS } from '../../events.js';
-import { started, updateTiming, pattern, itemPattern, patternText, LEAD_MS } from '../../timing.js';
+import { skyTime, termStart, PERK_EXPECT, DAY_MS, YEAR_DAYS } from '../../apps/bazaar/events.js';
+import { started, updateTiming, pattern, itemPattern, patternText, LEAD_MS } from '../../apps/bazaar/timing.js';
 import { compactElection } from '../../scripts/election.mjs';
 
 const raw = JSON.parse(fs.readFileSync(new URL('../fixtures/election.json', import.meta.url), 'utf8'));

@@ -1,6 +1,6 @@
 // Fetches the icons of the guide app: node scripts/guide/fetch-icons.mjs  (also: npm run guide:icons)
-//  - guide/img/mc/: Minecraft default textures from the local client JAR. Committed.
-//  - guide/img/hypixel/pets/: the head front of each pet in gamedata/pets.json. NOT in git (see .gitignore); built into the APK only.
+//  - apps/guide/img/mc/: Minecraft default textures from the local client JAR. Committed.
+//  - apps/guide/img/hypixel/pets/: the head front of each pet in gamedata/pets.json. NOT in git (see .gitignore); built into the APK only.
 // A missing file makes the app show its placeholder.
 import fs from 'node:fs';
 import os from 'node:os';
@@ -210,10 +210,10 @@ const report = (label, r) => console.log(`${label}: found ${r.found.length}; mis
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const jar = findClientJar();
   if (jar) {
-    const r = copyMinecraft(jar, 'guide/img/mc');
+    const r = copyMinecraft(jar, 'apps/guide/img/mc');
     console.log(`Minecraft (${path.basename(jar)}): found ${r.found.join(', ') || 'none'}; missing ${r.missing.join(', ') || 'none'}`);
   } else console.log('Minecraft: no client JAR found in the versions folder of .minecraft or in .lunarclient');
   const read = (f) => JSON.parse(fs.readFileSync(`gamedata/${f}.json`, 'utf8'));
-  report('Pet heads', await fetchHeads(petJobs(read('pets').pets), 'guide/img/hypixel/pets'));
-  report('Shard heads', await fetchHeads(shardJobs(read('attributes').attributes), 'guide/img/hypixel/shards'));
+  report('Pet heads', await fetchHeads(petJobs(read('pets').pets), 'apps/guide/img/hypixel/pets'));
+  report('Shard heads', await fetchHeads(shardJobs(read('attributes').attributes), 'apps/guide/img/hypixel/shards'));
 }

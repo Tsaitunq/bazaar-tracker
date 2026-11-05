@@ -8,12 +8,7 @@ on:
       - 'apps/bazaar/**'
       - 'shared/**'
       - 'scripts/bazaar/**'
-      - '*.js'
-      - 'index.html'
-      - 'style.css'
-      - 'manifest.webmanifest'
-      - 'changelog.json'
-      - 'icons/**'
+      - 'scripts/lib/**'
   workflow_dispatch:
 
 permissions:
@@ -39,10 +34,7 @@ jobs:
           node-version: 22
       # Only the Bazaar app shell and icons (the SHELL list of sw.js); no guide files, nothing from personal/.
       - name: Build _site
-        run: |
-          node scripts/bazaar/copy-web.mjs _site
-          # the service worker is not in its own SHELL list, but the live site serves it from the root
-          cp sw.js _site/sw.js
+        run: node scripts/bazaar/copy-web.mjs _site --worker
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { gearOf } from '../../guide/gear.js';
-import { setPet } from '../../guide/build.js';
-import { miningSettings } from '../../optimizer.js';
+import { gearOf } from '../../apps/guide/gear.js';
+import { setPet } from '../../apps/guide/build.js';
+import { miningSettings } from '../../apps/guide/optimizer.js';
 
 const items = {
   DRILL_1: { category: 'DRILL', stats: { MINING_SPEED: 100, MINING_FORTUNE: 10 } },

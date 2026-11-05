@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const css = fs.readFileSync('style.css', 'utf8');
+const css = fs.readFileSync('apps/bazaar/style.css', 'utf8');
 const tokens = Object.fromEntries([...css.matchAll(/--([a-z-]+):\s*(#[0-9a-fA-F]{6})\b/g)].map((m) => [m[1], m[2]]));
 
 // WCAG 2 relative luminance and contrast ratio

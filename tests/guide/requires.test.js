@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { checkStep, levelOf, HOTM_XP } from '../../requires.js';
+import { checkStep, levelOf, HOTM_XP } from '../../apps/guide/requires.js';
 
 const step = (...ids) => ({ text: 's', items: ids.map((id) => ({ id, qty: 1 })) });
 const item = (...requirements) => ({ X: { requirements } });

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { craftFlips, craftHints } from '../../craft.js';
+import { craftFlips, craftHints } from '../../apps/bazaar/craft.js';
 
 const p = (buy, sell, qs) => ({
   sell_summary: buy == null ? [] : [{ pricePerUnit: buy }],
@@ -83,7 +83,7 @@ test('craftHints: a result with suspicious prices gives no hint, and the best cr
 });
 
 test('an opportunity card carries the same hint and opens the end product in the Craft tab', async () => {
-  const { flipCard } = await import('../../render.js');
+  const { flipCard } = await import('../../apps/bazaar/render.js');
   // an opportunity as the list holds it: stake = units × buy
   const opp = { id: 'ING', profitHour: 185, units: 3200, buy: 10 };
   const crafts = craftHints([{ id: opp.id, profitHour: opp.profitHour, stake: opp.units * opp.buy }], market, { OUT: { n: 1, i: { ING: 160 } } }, { tax: 0.0125, share: 1 });

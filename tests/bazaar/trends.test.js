@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { trendSlope, direction, level, TREND_FLAT, LEVEL_BAND, TREND_WINDOW_MIN, TREND_MIN_POINTS } from '../../trends.js';
+import { trendSlope, direction, level, TREND_FLAT, LEVEL_BAND, TREND_WINDOW_MIN, TREND_MIN_POINTS } from '../../apps/bazaar/trends.js';
 
 // one point every 20 minutes; sell(i) gives the sell price of point i
 const series = (n, sell, start = 0) => Array.from({ length: n }, (_, i) => [start + i * 20, 1, sell(i)]);

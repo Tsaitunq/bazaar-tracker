@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { pathOf } from '../../path.js';
-import { miningSettings } from '../../optimizer.js';
-import { virtualProfile, virtualLoadout } from '../../virtual.js';
-import { blazeState, daggersOf } from '../../blaze.js';
-import { applyStep } from '../../virtual.js';
-import { ENCHANTS } from '../../optimizer-data.js';
+import { pathOf } from '../../apps/guide/path.js';
+import { miningSettings } from '../../apps/guide/optimizer.js';
+import { virtualProfile, virtualLoadout } from '../../apps/guide/virtual.js';
+import { blazeState, daggersOf } from '../../apps/guide/blaze.js';
+import { applyStep } from '../../apps/guide/virtual.js';
+import { ENCHANTS } from '../../apps/guide/optimizer-data.js';
 
 const sold = (price) => ({ buy_summary: [{ pricePerUnit: price, amount: 100 }] });
 const step = (text, id, fortune, extra = {}) => ({ text, gain: { MINING_FORTUNE: fortune }, items: [{ id, qty: 1 }], ...extra });

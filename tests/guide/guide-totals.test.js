@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { loadGameData, valueAt } from '../../guide/gamedata.js';
-import { statsOf, totalFor } from '../../guide/totals.js';
-import { emptyBuild, measure, setPart } from '../../guide/build.js';
+import { loadGameData, valueAt } from '../../apps/guide/gamedata.js';
+import { statsOf, totalFor } from '../../apps/guide/totals.js';
+import { emptyBuild, measure, setPart } from '../../apps/guide/build.js';
 
 const read = (f) => JSON.parse(fs.readFileSync(new URL(`../../gamedata/${f}.json`, import.meta.url), 'utf8'));
 const data = await loadGameData(read);

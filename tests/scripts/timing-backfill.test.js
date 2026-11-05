@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { skyTime, DAY_MS, YEAR_DAYS, PERK_EXPECT, EVENTS } from '../../events.js';
-import { pattern, itemPattern, patternText, removeBackfill, mergeBackfill, BACKFILL, CONFIRM } from '../../timing.js';
+import { skyTime, DAY_MS, YEAR_DAYS, PERK_EXPECT, EVENTS } from '../../apps/bazaar/events.js';
+import { pattern, itemPattern, patternText, removeBackfill, mergeBackfill, BACKFILL, CONFIRM } from '../../apps/bazaar/timing.js';
 import { plan, termOf, windows, chunks, rowsToPoints, buildRun, itemsOf, MIN_DURING_MS } from '../../scripts/backfill-lib.mjs';
 import { fetchHistory } from '../../scripts/timing-backfill.mjs';
 

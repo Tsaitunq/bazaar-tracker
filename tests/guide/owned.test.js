@@ -1,15 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { isItemStep, idsToOwn, idsOfStep, ownedAuto, mergeAuto, migrateOwned, impliedDone, resetOwned } from '../../owned.js';
-import { virtualProfile, virtualLoadout, applyStep, baseStats, doneSince } from '../../virtual.js';
-import { daggersOf, DAGGERS } from '../../blaze.js';
-import { stepDelta, blazeDelta, PRESETS } from '../../optimizer.js';
-import { miningScore } from '../../stats.js';
-import { stepKey, doneSet, openStep, exportData, importData } from '../../progress.js';
-import { guideModel, stampAll, tickStep, autoOf, applyImport } from '../../guide/model.js';
-import { settingsView } from '../../guide/views/settings.js';
-import { miningSettings } from '../../optimizer.js';
+import { isItemStep, idsToOwn, idsOfStep, ownedAuto, mergeAuto, migrateOwned, impliedDone, resetOwned } from '../../apps/guide/owned.js';
+import { virtualProfile, virtualLoadout, applyStep, baseStats, doneSince } from '../../apps/guide/virtual.js';
+import { daggersOf, DAGGERS } from '../../apps/guide/blaze.js';
+import { stepDelta, blazeDelta, PRESETS } from '../../apps/guide/optimizer.js';
+import { miningScore } from '../../apps/guide/stats.js';
+import { stepKey, doneSet, openStep, exportData, importData } from '../../apps/guide/progress.js';
+import { guideModel, stampAll, tickStep, autoOf, applyImport } from '../../apps/guide/model.js';
+import { settingsView } from '../../apps/guide/views/settings.js';
+import { miningSettings } from '../../apps/guide/optimizer.js';
 
 const owned1 = (text, on, extra = {}) => ({ text, detect: { kind: 'owned', on, ...extra } });
 const guideOf = (id, steps, extra = {}) => ({ id, title: id, area: 'mining', sections: [{ name: 'S', steps }], ...extra });
@@ -153,7 +153,7 @@ test('export and import carry what is owned', () => {
 });
 
 test('the app ships the new file', () => {
-  assert.match(readFileSync(new URL('../../guide/sw.js', import.meta.url), 'utf8'), /'\.\.\/owned\.js'/);
+  assert.match(readFileSync(new URL('../../apps/guide/sw.js', import.meta.url), 'utf8'), /'owned\.js'/);
 });
 
 const stats = {
@@ -270,7 +270,7 @@ test('cold resistance adds nothing to the score', () => {
 });
 
 test('the app hands the form value on and blaze deltas run on a virtual profile', () => {
-  assert.match(readFileSync(new URL('../../guide/app.js', import.meta.url), 'utf8'), /data-stats-mp/);
+  assert.match(readFileSync(new URL('../../apps/guide/app.js', import.meta.url), 'utf8'), /data-stats-mp/);
   const p = virtualProfile(guideOf('v', []), new Set(), [], stats);
   const load = virtualLoadout(p, stats, 'blaze');
   const state = { common: {}, daggers: load.daggers, armorIds: [], path: 'guide' };

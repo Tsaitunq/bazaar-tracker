@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DAGGERS, OFA, hitOf, hitsPerSecond, additiveOf, activePath, daggersOf, dominusOf, blazeOutput, blazeState } from '../../blaze.js';
+import { DAGGERS, OFA, hitOf, hitsPerSecond, additiveOf, activePath, daggersOf, dominusOf, blazeOutput, blazeState } from '../../apps/guide/blaze.js';
 
 const near = (a, b, eps = 1e-9) => assert.ok(Math.abs(a - b) < eps, `${a} is not ${b}`);
 const stats = { DAMAGE: 95, STRENGTH: 100, CRITICAL_CHANCE: 50, CRITICAL_DAMAGE: 100 };

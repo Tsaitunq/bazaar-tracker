@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import {
   compareVersions, currentVersion, newsSince, startupAction, migrateState, SCHEME, setupResult, tourSteps, advancedSteps,
   welcomeHtml, newsHtml, helpHtml, advancedOfferHtml, setupOfferHtml, setupFormHtml, setupSummaryHtml, bubbleHtml, CAPITALS,
-  HINTS, HINT_IDS, PRO_OFFER, initialHints, pickHint, hintHtml, visibleNews } from '../../onboarding.js';
+  HINTS, HINT_IDS, PRO_OFFER, initialHints, pickHint, hintHtml, visibleNews } from '../../apps/bazaar/onboarding.js';
 
 // a small changelog instead of the real file, so the tests do not change with every release
 const entry = (title, target) => ({ title, text: `${title} text`, ...(target && { target }) });
@@ -33,7 +33,7 @@ test('the newest entry of the changelog is the app version', () => {
 });
 
 test('a version stored in the old numbering becomes its 0.x name', () => {
-  const real = JSON.parse(fs.readFileSync('changelog.json', 'utf8'));
+  const real = JSON.parse(fs.readFileSync('apps/bazaar/changelog.json', 'utf8'));
   const stored = (version) => migrateState({ done: true, version });
   assert.deepEqual(stored('6.7.0'), { done: true, version: '0.6.7', scheme: SCHEME });
   assert.equal(stored('6.5.1').version, '0.6.5.1');
@@ -220,7 +220,7 @@ test('summary lists every setting with its reason', () => {
 });
 
 test('changelog.json is well formed', () => {
-  const real = JSON.parse(fs.readFileSync('changelog.json', 'utf8'));
+  const real = JSON.parse(fs.readFileSync('apps/bazaar/changelog.json', 'utf8'));
   assert.ok(real.versions.length >= 1);
   real.versions.forEach((v, i) => {
     assert.match(v.version, /^\d+(\.\d+){2,3}$/); // four parts only for the old 5.0.1 and 6.5.1
@@ -277,7 +277,7 @@ test('setup asks for the HotM tier and the auction house', () => {
 });
 
 test('the help buttons live behind the ? in the header, not in the settings', () => {
-  const page = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  const page = fs.readFileSync(new URL('../../apps/bazaar/index.html', import.meta.url), 'utf8');
   assert.ok(page.includes('id="open-help"'));
   for (const id of ['restart-tour', 'restart-setup', 'show-news']) assert.ok(!page.includes(id), id);
 });
@@ -337,7 +337,7 @@ test('setup in Simple mode leaves the forge questions and settings alone', () =>
 });
 
 test('the page marks what Simple mode leaves out and has the mode switch', () => {
-  const page = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  const page = fs.readFileSync(new URL('../../apps/bazaar/index.html', import.meta.url), 'utf8');
   assert.ok(page.includes('data-set-mode="simple"') && page.includes('data-set-mode="pro"'));
   for (const tab of ['npc', 'craft', 'forge']) assert.ok(page.includes(`<a href="#/${tab}" class="pro">`), tab);
   assert.ok(page.includes('<a href="#/flips">') && page.includes('<a href="#/opps">'));
@@ -348,18 +348,18 @@ test('the page marks what Simple mode leaves out and has the mode switch', () =>
   // every setting has its own name
   const labels = [...page.matchAll(/<label[^>]*>([^<\r\n]+)/g)].map((m) => m[1].trim()).filter(Boolean);
   assert.equal(new Set(labels).size, labels.length, labels.join(' | '));
-  const css = fs.readFileSync(new URL('../../style.css', import.meta.url), 'utf8');
+  const css = fs.readFileSync(new URL('../../apps/bazaar/style.css', import.meta.url), 'utf8');
   assert.ok(css.includes('[data-mode="simple"] .pro { display: none !important; }'));
 });
 
 test('"Show me" follows the radar to the Market area and keeps every other route', async () => {
-  const { newsRoute } = await import('../../onboarding.js');
+  const { newsRoute } = await import('../../apps/bazaar/onboarding.js');
   assert.equal(newsRoute({ target: '#radar', route: '#/opps' }), '#/market');
   assert.equal(newsRoute({ target: '#radar .radar' }), '#/market');
   assert.equal(newsRoute({ target: '#portfolio .portfolio', route: '#/opps' }), '#/opps');
   assert.equal(newsRoute({ target: '#sort' }), '#/flips');
   // every target of the real changelog still has a page to be shown on
-  const real = JSON.parse(fs.readFileSync(new URL('../../changelog.json', import.meta.url), 'utf8'));
+  const real = JSON.parse(fs.readFileSync(new URL('../../apps/bazaar/changelog.json', import.meta.url), 'utf8'));
   const pages = ['#/today', '#/flips', '#/opps', '#/npc', '#/craft', '#/forge', '#/minions', '#/market'];
   for (const e of real.versions.flatMap((v) => v.entries)) if (e.target) assert.ok(pages.includes(newsRoute(e)), e.title);
 });
@@ -375,13 +375,13 @@ test('old entries about the guides stay hidden, an emptied version too', () => {
 });
 
 test('retired keys are dropped and no file still reads or writes one; the old checkmarks stay', async () => {
-  const { RETIRED_KEYS, dropRetired } = await import('../../onboarding.js');
+  const { RETIRED_KEYS, dropRetired } = await import('../../apps/bazaar/onboarding.js');
   const { readFileSync, readdirSync } = await import('node:fs');
   const store = new Map([['bt.guide', '1'], ['bt.radar', '1'], ['bt.guideChecks', '{}'], ['bt.guides', '[]'], ['bt.settings', '{}']]);
   dropRetired({ removeItem: (k) => store.delete(k) });
   assert.deepEqual([...store.keys()], ['bt.guideChecks', 'bt.guides', 'bt.settings']);
   dropRetired({ removeItem: () => { throw new Error('blocked'); } });
-  const sources = [...readdirSync('.').filter((f) => f.endsWith('.js')), ...readdirSync('guide').filter((f) => f.endsWith('.js')).map((f) => `guide/${f}`)];
+  const sources = ['apps/bazaar', 'apps/guide', 'shared'].flatMap((d) => readdirSync(d).filter((f) => f.endsWith('.js')).map((f) => `${d}/${f}`));
   for (const file of sources) {
     const text = readFileSync(file, 'utf8');
     for (const key of RETIRED_KEYS) for (const call of ['load', 'save', 'getItem', 'setItem']) assert.ok(!text.includes(`${call}('${key}'`), `${file} uses ${key}`);
