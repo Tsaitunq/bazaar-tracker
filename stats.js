@@ -6,6 +6,9 @@ export const AREA_STATS = {
   mining: ['MINING_FORTUNE', 'GEMSTONE_FORTUNE', 'ORE_FORTUNE', 'BLOCK_FORTUNE', 'MINING_SPEED', 'PRISTINE'],
   blaze: ['STRENGTH', 'CRITICAL_DAMAGE', 'CRITICAL_CHANCE', 'ATTACK_SPEED', 'HEALTH', 'DEFENSE', 'TRUE_DEFENSE'],
 };
+// What a Blaze gear change counts: the stats above plus the rest of the Combat menu (no Health Regen, no Vitality) and the Misc stats gear gives.
+// AREA_STATS stays the short list that decides which piece is the stronger one.
+export const GEAR_STATS = { mining: AREA_STATS.mining, blaze: [...AREA_STATS.blaze, 'FEROCITY', 'SWING_RANGE', 'INTELLIGENCE', 'ABILITY_DAMAGE', 'MENDING', 'SPEED', 'MAGIC_FIND'] };
 export const GEMSTONE = { wF: 1, wS: 1, wP: 1, blockStrength: 3000 };
 const TOOLS = new Set(['DRILL', 'PICKAXE', 'GAUNTLET']);
 const WEAPONS = new Set(['SWORD', 'LONGSWORD']);

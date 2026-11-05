@@ -1,6 +1,6 @@
 // Which open guide step brings the most per coin (spec 4 and 5). Pure functions over the guide, the prices and the synced profile.
-import { AREA_STATS, computeStats, maxPetStats, petStats, MIN_TRUE_DEFENSE, MIN_MP, TARGET_MP } from './stats.js';
-import { DAGGERS, OFA, ADDITIVE_ENCHANTS, blazeOutput, blazeState, daggersOf, additiveOf } from './blaze.js';
+import { AREA_STATS, GEAR_STATS, computeStats, maxPetStats, petStats, MIN_TRUE_DEFENSE, MIN_MP, TARGET_MP } from './stats.js';
+import { DAGGERS, OFA, ADDITIVE_ENCHANTS, blazeOutput, blazeState, daggersOf, additiveOf, setBonusOf } from './blaze.js';
 import { stepCost, openStep, bookOf } from './progress.js';
 import { checkStep } from './requires.js';
 import { walkBook, ahNet } from './prices.js';
@@ -35,6 +35,7 @@ function plus(sum, stats, times = 1) {
   return sum;
 }
 const onlyOf = (stats, area) => Object.fromEntries(Object.entries(stats).filter(([k]) => AREA_STATS[area].includes(k)));
+const gearOnly = (stats, area) => Object.fromEntries(Object.entries(stats).filter(([k]) => GEAR_STATS[area].includes(k)));
 const difference = (next, old) => plus(plus({}, next), old, -1);
 const total = (list) => list.reduce((sum, stats) => plus(sum, stats), {});
 const worn = (loadout) => [...loadout.armor, ...loadout.equipment, ...Object.values(loadout.daggers ?? {}).filter(Boolean), ...(loadout.held ? [loadout.held] : [])];
@@ -179,7 +180,7 @@ function recombDelta(d, guide, loadout, profile, items) {
 function recomputed(change, profile, items, loadout, area = 'mining') {
   const before = computeStats(profile, items, loadout, area).total;
   const after = computeStats({ ...profile, ...change }, items, loadout, area).total;
-  const delta = Object.fromEntries(Object.entries(onlyOf(difference(after, before), area)).filter(([, v]) => v));
+  const delta = Object.fromEntries(Object.entries(gearOnly(difference(after, before), area)).filter(([, v]) => v));
   return Object.keys(delta).length ? delta : null;
 }
 
@@ -319,7 +320,13 @@ export function blazeDelta(step, state, loadout, profile, items, settings, guide
     if (d.kind === 'pet') change.notes.push('At max level. Abilities are not counted.');
   }
   if (change.mp && profile.mp !== null && profile.mp !== undefined) plus(change.common, recomputed({ mp: profile.mp + change.mp }, profile, items, loadout, 'blaze'));
-  change.common = onlyOf(change.common, 'blaze');
+  // the set bonus of the pieces that come and go (ten stacks of Dominus)
+  if (change.armor.length) {
+    const left = state.armorIds.filter((id) => !change.armor.some((piece) => piece.out === id));
+    const after = setBonusOf([...left, ...change.armor.map((piece) => piece.in)]).add;
+    plus(change.common, difference(after, setBonusOf(state.armorIds).add));
+  }
+  change.common = gearOnly(change.common, 'blaze');
   const crimson = change.armor.some((piece) => piece.in.includes('_CRIMSON_')) && new Set([...state.armorIds.filter((id) => !change.armor.some((piece) => piece.out === id)), ...change.armor.map((piece) => piece.in)].filter((id) => id.includes('_CRIMSON_'))).size === 4;
   if (crimson) change.notes.push('Set bonus not fully rated.');
   const nothing = !Object.values(change.common).some(Boolean) && !change.ofa && !change.mp && !Object.keys(change.swaps).length && !change.armor.length

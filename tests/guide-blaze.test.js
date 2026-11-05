@@ -114,3 +114,31 @@ test('gear: worn Blaze armor takes stars, books and the pet doubling, the Plushi
   assert.equal(g.INTELLIGENCE, 100);
   assert.ok(Math.abs(g.DEFENSE - ((105 + 40) * 1.4 + 101 * 1.2 + 40 + 30)) < 1e-9); // boots: 20 books ×2 = 40 on top of the stars
 });
+
+// ---- set bonus
+import { setBonusOf, dominusOf } from '../blaze.js';
+
+test('set bonus: Dominus needs two pieces of one tier, mixed sets take the tier with most pieces, a tie the higher one', () => {
+  const inf = (...p) => p.map((x) => `INFERNAL_CRIMSON_${x}`);
+  assert.equal(setBonusOf(inf('HELMET')).tier, null);
+  assert.deepEqual(setBonusOf(inf('HELMET', 'BOOTS')).add, { SWING_RANGE: 1, FEROCITY: 20 });
+  assert.equal(setBonusOf(inf('HELMET', 'BOOTS')).additive, 100);
+  const mixed = [...inf('HELMET'), 'FIERY_CRIMSON_CHESTPLATE', 'FIERY_CRIMSON_LEGGINGS', 'FIERY_CRIMSON_BOOTS'];
+  assert.equal(setBonusOf(mixed).tier, 'FIERY_CRIMSON');
+  assert.equal(dominusOf(mixed), 0);
+  const tie = [...inf('HELMET', 'BOOTS'), 'FIERY_CRIMSON_CHESTPLATE', 'FIERY_CRIMSON_LEGGINGS'];
+  assert.equal(setBonusOf(tie).tier, 'INFERNAL_CRIMSON');
+  assert.deepEqual(setBonusOf(['BURNING_CRIMSON_HELMET', 'BURNING_CRIMSON_BOOTS']).add, { SWING_RANGE: 1, FEROCITY: 10 });
+  assert.deepEqual(setBonusOf(['CRIMSON_HELMET', 'CRIMSON_BOOTS']).add, { SWING_RANGE: 0.5 });
+  assert.deepEqual(setBonusOf(['HOT_CRIMSON_HELMET', 'HOT_CRIMSON_BOOTS']).add, { SWING_RANGE: 1 });
+  assert.deepEqual(setBonusOf(['HOT_CRIMSON_HELMET', 'CRIMSON_BOOTS']).add, {}); // one piece of each tier
+});
+
+test('gear: two Infernal pieces give Ferocity 20 and Swing Range 1 as gear', () => {
+  const guide = { id: 'z', area: 'blaze', sections: [] };
+  const g = gearOf({ guides: [guide], checks: {}, owned: ['INFERNAL_CRIMSON_HELMET', 'INFERNAL_CRIMSON_BOOTS'], items: ITEMS, area: 'blaze', build: setGear(emptyBuild(), { hpb: false }), settings: miningSettings(), pets: petData.pets }).gear;
+  assert.equal(g.FEROCITY, 20);
+  assert.equal(g.SWING_RANGE, 1);
+  const one = gearOf({ guides: [guide], checks: {}, owned: ['INFERNAL_CRIMSON_HELMET'], items: ITEMS, area: 'blaze', build: setGear(emptyBuild(), { hpb: false }), settings: miningSettings(), pets: petData.pets }).gear;
+  assert.equal(one.FEROCITY, undefined);
+});

@@ -5,6 +5,7 @@ import { virtualProfile, virtualLoadout, applyStep, baseStats } from '../virtual
 import { stepDelta, blazeDelta } from '../optimizer.js';
 import { blazeState } from '../blaze.js';
 import { gearStats, petStats, petStatsAt } from '../stats.js';
+import { setBonusOf } from '../blaze.js';
 import { rulesOf, pieceExtra, dressDaggers } from '../pieces.js';
 
 // Steps about the build or the pet are not gear: HOTM, shards and power are in the base, the pet is counted once at the end.
@@ -64,6 +65,7 @@ export function gearOf({ guides, checks, owned, items, area, build, settings, va
   const pet = activePet(loadout, build, pets);
   const rules = area === 'blaze' ? rulesOf(build, pet) : null;
   for (const piece of loadout.armor) sum(gear, pieceExtra(piece.id, items, rules));
+  if (area === 'blaze') sum(gear, setBonusOf(loadout.armor.map((i) => i.id)).add);
   if (rules) loadout.daggers = dressDaggers(loadout.daggers, items, rules);
   return { gear, profile, loadout, stepPet: loadout.pet ?? null, pet, rules };
 }
