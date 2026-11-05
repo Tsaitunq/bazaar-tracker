@@ -2,7 +2,7 @@
 import { stepKey, doneSet, setMark, guideStats, openStep, stepCost, mergeGuides, priceItem } from './progress.js';
 import { isItemStep, idsOfStep, idsToOwn, ownedAuto, impliedDone } from './owned.js';
 import { SCORES, miningSettings, pathsOf, LEFT_OUT } from './optimizer.js';
-import { pathOf, entryPrice } from './path.js';
+import { pathOf, entryPrice, unitPrices } from './path.js';
 import { blazeState } from './blaze.js';
 import { checkStep, lockProfile } from './requires.js';
 import { gearOf } from './gear.js';
@@ -162,6 +162,15 @@ function subOf(status, rank, reasons, lines, skipped) {
   return { sub: lines.map((l) => l.text).join(' · '), subColor: lines[0]?.color ?? '' };
 }
 
+// A group card is named by its first step and what comes with it: "DR-X355 + 5 Enchants" when the others are "DR-X355: <enchant>" lines.
+export function groupName(steps) {
+  const [first, ...rest] = steps;
+  const prefix = rest[0]?.text.split(': ')[0];
+  const shared = rest.length && rest.every((s) => s.text.startsWith(`${prefix}: `)) && first.text.endsWith(prefix);
+  if (!shared) return `${first.text} + ${rest.length} more`;
+  return `${prefix} + ${rest.length} ${rest.every((s) => s.key?.startsWith('enchant:')) ? 'Enchants' : 'more'}`;
+}
+
 // What the ticked items make of the steps of one guide: an item step is met once its pieces are owned.
 export const autoOf = (guide, owned) => ownedAuto(guide, new Set(owned ?? []), stepKey);
 
@@ -266,6 +275,11 @@ export function guideModel(guide, world) {
   const inPlace = plan.path ? [...ranked.filter((e) => checked.has(e.key)), ...plan.path.order.filter((e) => !checked.has(e.key))] : ranked;
   const shownSteps = [...inPlace, ...all.filter((e) => e.section.extra)];
 
+  // a group's head carries the part deltas: each member row shows its own
+  const order = plan.path?.order ?? [];
+  const own = new Map();
+  order.forEach((e, i) => e.parts?.forEach((d, j) => order[i + j] && own.set(order[i + j].step, d)));
+
   let card = null;
   const rows = shownSteps.map(({ section, step, key }) => {
     const done = checked.has(key);
@@ -276,13 +290,14 @@ export function guideModel(guide, world) {
     const entry = done ? null : entries.get(step);
     const rank = entry ? rankOf(entry, guide, ctx, world, plan.other) : null;
     const lines = statLines(rank?.delta ?? null);
+    const ownLines = own.has(step) ? statLines(own.get(step)) : lines;
     const found = auto.get(key);
     const met = !!found && found.have >= found.need;
     // done without the player having the piece itself: something better replaced it
     const skipped = done && !world.marks.has(key) && (implied.has(key) || (met && isItemStep(step) && !idsOfStep(step, guide).some((id) => held.has(id))));
     const row = {
       key, name: step.text, status, tier: rank?.tier ?? null,
-      ...subOf(status, rank, reasons, lines, skipped),
+      ...subOf(status, rank, reasons, ownLines, skipped),
       side: status === 'done' || status === 'locked' ? status : openSide(step, rank, score, ctx),
       progress: found?.have && !met ? `${number(found.have)} / ${number(found.need)}` : '',
       group: entry?.group?.head && entry.group.left > 0 ? withNext(entry.group.left) : '',
@@ -291,13 +306,17 @@ export function guideModel(guide, world) {
     if (status === 'current') {
       const open = openStep(section, step, ctx);
       const price = rank?.units ? rank : stepCost(open, ctx);
+      const at = order.indexOf(entry);
+      const parts = entry?.parts ? entry.parts.map((delta, j) => ({ step: order[at + j].step, delta })) : null;
+      const prices = parts ? unitPrices(entry, { guide, ctx, other: plan.other, keepOldGear: world.keepOldGear }) : [];
       row.card = card = {
-        key, name: step.text, where: section.name, left: leftText(costs.sections[guide.sections.indexOf(section)], world.products), stats: lines, hint: step.hint ?? '', items: itemLines(open, ctx, world.name ?? String),
+        key, name: parts ? groupName(parts.map((p) => p.step)) : step.text, where: section.name, left: leftText(costs.sections[guide.sections.indexOf(section)], world.products), stats: lines, hint: step.hint ?? '', items: itemLines(open, ctx, world.name ?? String),
         gain: !rank?.gain ? '' : score.gainText(rank.gain),
         cost: costText(open, price, ctx),
         rate: rank?.perMillion === undefined ? '' : score.rateLong(rank.perMillion),
         badge: !!leader && leader.step === step && ['value', 'free'].includes(rank?.group),
         delta: rank?.delta ?? null,
+        parts: parts?.map((p, j) => ({ name: p.step.text, stats: statLines(p.delta), cost: costText(p.step, prices[j], ctx) })) ?? null,
         group: row.group,
         notes: [...new Set(rank?.notes ?? []), ...(rank?.resale > 0 ? [`Net ${coins(rank.net)} (buy ${coins(rank.coins)} − resale ${coins(rank.resale)})`] : []), ...(rank?.ahead ? [`Counted up to: ${rank.ahead.text}`] : []), ],
       };
@@ -326,9 +345,9 @@ export function guideModel(guide, world) {
 }
 
 const GUIDE_TABS = ['path'];
-export const STATS_TABS = ['overview', 'hotm', 'attributes', 'power'];
+export const STATS_TABS = ['overview', 'hotm', 'attributes', 'power', 'essence'];
 export const STATS_AREAS = ['mining', 'blaze', 'farming'];
-// #/stats, #/stats/<overview|hotm|attributes|power>, #/stats/overview/<area> and #/stats/measure/<area>
+// #/stats, #/stats/<overview|hotm|attributes|power|essence>, #/stats/overview/<area> and #/stats/measure/<area>
 export function parseRoute(hash, guides) {
   const [, page, id, tab] = String(hash).split('/');
   if (page === 'settings') return { page };
@@ -345,7 +364,7 @@ export function parseRoute(hash, guides) {
 export function swipeTarget(r, dx, family) {
   if (!dx) return null;
   if (r.page === 'stats' && STATS_TABS.includes(r.tab)) {
-    // Overview, HOTM, Attributes, Power in a row; the ends do not lead anywhere
+    // Overview, HOTM, Attributes, Power, Essence in a row; the ends do not lead anywhere
     const to = STATS_TABS[STATS_TABS.indexOf(r.tab) + (dx > 0 ? -1 : 1)];
     return to ? { hash: `#/stats/${to}/${r.area}`, back: dx > 0 } : null;
   }

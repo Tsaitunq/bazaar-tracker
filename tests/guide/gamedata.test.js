@@ -6,7 +6,7 @@ import { loadGameData, checkStats, checkHotm, checkAttributes, checkPets } from 
 const read = (f) => JSON.parse(fs.readFileSync(new URL(`../../gamedata/${f}.json`, import.meta.url), 'utf8'));
 const copy = (o) => structuredClone(o);
 
-test('all five files load and validate', async () => {
+test('all six files load and validate', async () => {
   const d = await loadGameData(read);
   assert.equal(d.hotm.perks.length, 46);
   assert.equal(d.pets.pets.length, 9);
@@ -34,12 +34,18 @@ test('hotm: an effect on an unknown stat is rejected', () => {
   assert.throws(() => checkHotm(h, stats), /unknown stat NOPE/);
 });
 
-test('attributes: an attribute without effect needs unknown or other', () => {
+test('attributes: every attribute has an effect kind and something to show', () => {
   const stats = checkStats(read('stats'));
+  const all = read('attributes').attributes;
+  assert.ok(all.every((a) => ['flat', 'per_stat', 'conditional', 'chance', 'other'].includes(a.effectKind)));
+  assert.ok(all.every((a) => a.effects.length || a.desc || a.note));
   const a = copy(read('attributes'));
-  const x = a.attributes.find((e) => e.unknown);
-  delete x.unknown;
-  assert.throws(() => checkAttributes(a, stats), /not marked unknown/);
+  delete a.attributes[0].effectKind;
+  assert.throws(() => checkAttributes(a, stats), /effectKind/);
+  const b = copy(read('attributes'));
+  const x = b.attributes.find((e) => e.desc);
+  delete x.desc;
+  assert.throws(() => checkAttributes(b, stats), /no desc|no effect/);
 });
 
 test('shards per level match the wiki table totals', () => {

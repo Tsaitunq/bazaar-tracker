@@ -22,14 +22,46 @@ export function findAttrs(list, query) {
 // Shards the next level needs, null at the top.
 export const nextShards = (data, attr, level) => (level >= attr.maxLevel ? null : data.attributes.shardsPerLevel[attr.rarity][level]);
 
-// The effects at a level as plain text per stat. per_stat ones depend on another stat and are only described.
-export function effectLines(data, attr, level) {
+const round = (v) => Math.round(v * 100) / 100;
+
+// A per_stat effect at a level. "value" is what the top level gives per "every" points of the other stat; the levels below
+// scale the value linearly and the points linearly between the two known ones, so those are only approximate.
+export function perStatAt(e, level, maxLevel, have) {
+  const value = (e.value * level) / maxLevel;
+  const every = e.per.every;
+  const [lo, hi] = typeof every === 'number' ? [every, every] : [every.level1, every['level' + maxLevel]];
+  const at = round(lo + ((hi - lo) * (level - 1)) / Math.max(maxLevel - 1, 1));
+  const exact = typeof every === 'number' || level === 1 || level === maxLevel;
+  return { value, every: at, approx: !exact, now: typeof have === 'number' ? round((value * have) / at) : null };
+}
+
+// What an attribute says in words where it has no stat to add (desc: perLevel and a text with {v}, or the text of level I only).
+function descLine(attr, level) {
+  const d = attr.desc;
+  if (d?.text) return level > 1 ? d.text.replace('{v}', round(d.perLevel * level)) + ' (ca.)' : d.text.replace('{v}', d.perLevel);
+  if (d?.level1) return level > 1 ? `Level I: ${d.level1}` : d.level1;
+  const n = attr.note;
+  if (n && typeof n === 'object') return `+${round(n.perLevel * level)}${n.text}`;
+  return typeof n === 'string' ? n : null;
+}
+
+// The effects at a level as lines. summed: counts in the totals. Only flat effects that always hold do; per_stat gets "now"
+// from have (stat id -> current value), the rest is described. stats: gamedata.stats.
+export function effectLines(data, attr, level, have = {}) {
   const name = (id) => data.stats.stats.find((s) => s.id === id)?.name ?? id;
-  return attr.effects.map((e) => {
-    if (e.kind === 'per_stat') return { stat: e.stat, cond: e.cond, text: `${name(e.stat)}: ${e.value} per ${e.every ?? 1} ${name(e.per.stat)}` };
+  const lines = attr.effects.map((e) => {
+    if (e.kind === 'per_stat') {
+      const p = perStatAt(e, level, attr.maxLevel, have[e.per.stat]);
+      const text = `+${round(p.value)} ${name(e.stat)} per ${p.every} ${name(e.per.stat)}${p.approx ? ' (ca.)' : ''}`;
+      return { stat: e.stat, cond: e.cond, text, summed: false, now: p.now === null ? null : `now: +${p.now} ${name(e.stat)}` };
+    }
     const v = e.fixed !== undefined ? e.fixed : (e.perLevel ?? 0) * level;
-    return { stat: e.stat, cond: e.cond, text: `${v >= 0 ? '+' : ''}${Math.round(v * 100) / 100} ${name(e.stat)}` };
+    const sign = e.kind === 'percent_multiplier' ? '%' : '';
+    return { stat: e.stat, cond: e.cond, text: `${v >= 0 ? '+' : ''}${round(v)}${sign} ${name(e.stat)}`, summed: e.cond === 'always' && !e.kind, now: null };
   });
+  const text = descLine(attr, level);
+  if (text) lines.push({ stat: null, cond: attr.effectKind, text, summed: false, now: null });
+  return lines;
 }
 
 // Shards from the current level up to the maximum (0 at the top).

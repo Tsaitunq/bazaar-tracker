@@ -1,6 +1,41 @@
 {
   "versions": [
     {
+      "version": "0.11.3",
+      "date": "2026-11-05",
+      "entries": [
+        { "title": "Groups show every part", "text": "A group card is named after its first step (\"DR-X355 + 5 Enchants\"), lists each part with its own stats and cost, then the total." },
+        { "title": "Enchants up to the maximum", "text": "Every enchant on your drill now has a step for each higher level, such as Efficiency VI to X, Fortune IV and Lapidary V, ranked by coins per 1 %." },
+        { "title": "Essence tab", "text": "The essence shop moved from the guide to Stats: set each perk level, see the essence and coins to the next level and to max, and what the next level costs per 1 %." },
+        { "title": "Your ticked essence levels", "text": "Essence levels you had ticked became your essence levels and count as part of your base, so nothing is counted twice." }
+      ]
+    },
+    {
+      "version": "0.11.2",
+      "date": "2026-11-05",
+      "entries": [
+        { "title": "Clean gear steps", "text": "Divan armor steps are the plain piece again; every gemstone is its own step, so a Topaz is never counted twice. Ticks you made on the old steps carry over." },
+        { "title": "Tour on the phone", "text": "The tour spotlight now sits on the right button and list, also on phones with a status bar and a scrolled page." }
+      ]
+    },
+    {
+      "version": "0.11.1",
+      "date": "2026-11-05",
+      "entries": [
+        { "title": "Essence shop in your base", "text": "Essence shop levels you ticked before your last measurement are already in your stats; only levels ticked after it show up as a change." }
+      ]
+    },
+    {
+      "version": "0.11.0",
+      "date": "2026-11-05",
+      "entries": [
+        { "title": "One tick for every guide", "text": "A gem, reforge, enchant or essence perk you tick once now counts in every guide that holds the same step." },
+        { "title": "Shafting is the mining guide", "text": "It replaces the old mining guide, splits every gemstone into Flawless first and then one Flawless to Perfect step per stone and place, and adds a Recombobulator step per piece." },
+        { "title": "Essence shop and attributes", "text": "Every level of the essence shop perks is its own step with its cost, and every attribute now shows what it does, including Freezing Spread with its current value." },
+        { "title": "Icons", "text": "Every pet and attribute shard has its picture, and the build loads the ones that are missing." }
+      ]
+    },
+    {
       "version": "0.10.0",
       "date": "2026-11-05",
       "entries": [

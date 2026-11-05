@@ -12,9 +12,9 @@ const icon = (a) => pic(a.mcIcon ? `img/mc/${a.mcIcon}.png` : `img/hypixel/shard
 const row = (data, a, level, need) => `<button type="button" class="attr${level === 0 ? ' attr-zero' : ''}${level >= a.maxLevel ? ' attr-max' : ''}" data-attr="${esc(a.key)}" aria-label="${esc(a.name)}, level ${level} of ${a.maxLevel}">${icon(a)}<span class="attr-text"><span class="attr-name">${esc(a.name)}</span><small class="attr-fx">${esc(effectShort(data, a, level))}</small></span><span class="attr-lv">${level}/${a.maxLevel}${need ? ` <em>needs ${need}</em>` : ''}</span></button>`;
 
 // A bottom sheet over the list: everything of one attribute without a scroll.
-function sheet(data, a, level) {
-  const text = (l) => `${esc(l.text)}${l.cond === 'always' ? '' : ` <em>(${esc(l.cond)})</em>`}`;
-  const lines = (at) => effectLines(data, a, at).map(text).join(', ') || 'no stat effect known';
+function sheet(data, a, level, have) {
+  const text = (l) => `${esc(l.text)}${l.stat === null || l.cond === 'always' ? '' : ` <em>(${esc(l.cond)})</em>`}${l.now ? ` <b>${esc(l.now)}</b>` : ''}`;
+  const lines = (at) => effectLines(data, a, at, have).map(text).join(', ') || 'effect not confirmed';
   const next = nextShards(data, a, level);
   const upcoming = next === null ? '<small>Maxed.</small>' : `<small>Level ${level + 1}: ${lines(level + 1)}</small>`;
   const shards = next === null ? '' : `<small>Shards: <b>${next}</b> to level ${level + 1}, <b>${shardsToMax(data, a, level)}</b> to max</small>`;
@@ -23,6 +23,9 @@ function sheet(data, a, level) {
     <div class="bs-head">${icon(a)}<div class="bs-title"><h2>${esc(a.name)}</h2><small>${esc(a.shard)} shard · ${RARITY[a.rarity]} · ${esc(a.areas.join(', '))}</small></div><button type="button" class="bs-close" data-attr-close aria-label="Close">✕</button></div>
     ${stepper('attr', level, a.maxLevel)}<small>Level ${level}: ${lines(level)}</small>${upcoming}${shards}</section>`;
 }
+
+// The measured value of each stat, for effects that scale with another stat (Freezing Spread: per Cold Resistance).
+const statsNow = (world) => Object.assign({}, ...Object.values(world.base ?? {}).map((e) => e.values ?? {}));
 
 export function attrsView(world, r, head) {
   const data = world.gamedata;
@@ -42,5 +45,5 @@ export function attrsView(world, r, head) {
   return `<div class="scroll">${head}${draftBar(world, 'attrs', 'attributes')}
     <div class="panel"><h2>In your guides <span class="count">${set} set</span></h2><div class="attr-list">${list(inGuides) || '<small>No guide asks for an attribute.</small>'}</div>${unknown.length ? `<small>Not in the data: ${esc(unknown.join(', '))}</small>` : ''}</div>
     <p class="note">Tap an attribute to set its level.</p>
-    ${allBox}${open ? sheet(data, open, levels[open.key] ?? 0) : ''}</div>`;
+    ${allBox}${open ? sheet(data, open, levels[open.key] ?? 0, statsNow(world)) : ''}</div>`;
 }

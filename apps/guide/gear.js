@@ -11,7 +11,8 @@ import { enchantLine } from './optimizer-data.js';
 import { GEAR_STATS } from './stats.js';
 
 // Steps about the build or the pet are not gear: HOTM, shards and power are in the base, the pet is counted once at the end.
-const BUILD_KINDS = new Set(['perk', 'attr', 'power', 'essence', 'pet', 'petItem', 'held', 'coll', 'skill']);
+const BUILD_KINDS = new Set(['perk', 'attr', 'power', 'pet', 'petItem', 'held', 'coll', 'skill']);
+const isEssenceStep = (step) => { const parts = [step.detect ?? []].flat(); return parts.length === 1 && parts[0].kind === 'essence'; };
 const isBuildStep = (step) => { const parts = [step.detect ?? []].flat(); return parts.length > 0 && parts.every((d) => BUILD_KINDS.has(d.kind)); };
 
 const sum = (into, from) => { for (const [k, v] of Object.entries(from ?? {})) into[k] = (into[k] ?? 0) + v; return into; };
@@ -85,7 +86,7 @@ export function gearOf({ guides, checks, owned, items, area, build, settings, va
     for (const section of guide.sections) {
       for (const step of section.steps) {
         // an item step is in the owned store already
-        if (!marks.has(stepKey(section, step)) || isItemStep(step)) continue;
+        if (!marks.has(stepKey(section, step)) || isItemStep(step) || isEssenceStep(step)) continue;
         loadout = virtualLoadout(profile, items, area);
         for (const d of [step.detect ?? []].flat()) {
           if (d.kind === 'enchant') enchants[d.enchant] = Math.max(enchants[d.enchant] ?? 0, d.level);

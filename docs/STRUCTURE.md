@@ -7,7 +7,7 @@ Ein Repo, zwei Apps: die Bazaar-App (PWA und Android) und die Guide-App (Android
 - `apps/bazaar/` – Bazaar-App. Seite (`index.html`, `style.css`, `manifest.webmanifest`, `sw.js`), Module (siehe unten), `icons/`, `changelog.json` (Version und "What's new", auch `versionName`/`versionCode` des APK), `capacitor.config.json`, `package.json` (nur für `cap sync`), `android/` (Capacitor-Projekt mit den Hintergrund-Alarmen in Java).
 - `apps/guide/` – Guide-App. Oberfläche (`app.js`, `model.js`, `views/`, `guide.css`, `sw.js`, `changelog.json`, `brand.json`), die Rechenlogik nur dieser App (siehe unten), `img/`, `fonts/`, `capacitor.config.json`, `package.json`, `android/` (Capacitor-Projekt, nur Hülle, kein eigener Java-Code außer `MainActivity`).
 - `shared/` – Module, die beide Apps laden: `data.js` (Daten aus dem Branch `data`), `format.js`, `history.js`, `names.js`, `prices.js`, `native.js` (`isNative`, `plugin`).
-- `gamedata/` – Stats, HOTM, Attribute, Power und Pets als JSON, geladen und geprüft von `apps/guide/gamedata.js`, gebaut von `scripts/gamedata-build.mjs`.
+- `gamedata/` – Stats, HOTM, Attribute (mit `effectKind`), Power, Pets und Essence-Shop-Perks als JSON, geladen und geprüft von `apps/guide/gamedata.js`, gebaut von `scripts/gamedata-build.mjs`.
 - `scripts/` – Daten- und CI-Skripte direkt in `scripts/`, Build-Skripte je App in `scripts/bazaar/` und `scripts/guide/`, gemeinsame Bausteine in `scripts/lib/`.
 - `tests/` – `node --test`, nur mit Fixtures. Je App ein Ordner: `tests/bazaar/`, `tests/guide/`, `tests/shared/`, `tests/scripts/`. Fixtures in `tests/fixtures/`.
 - `docs/` – aktuelle Doku oben: `STRUCTURE.md`, `design-guide-app.md`, `DECISIONS.md`, `SUMMARY.md`, `design-mockups/`, Quellenblätter (`*-sources.md`, `image-sources.md`), `blaze-data.md`, `timing-backfill.md`, `guide-design-check.md` (von `guide:shots` erzeugt). Alte Pläne, Specs, Zusammenfassungen und Fortschrittsnotizen in `docs/archive/`.
@@ -27,7 +27,7 @@ Erzeugt und nicht in git (`npm run clean` löscht sie): `apps/bazaar/www/`, `app
 ## Guide-Module (`apps/guide/`)
 
 - `app.js` (Zustand, Routen, Gesten), `model.js` (was die Screens zeigen), `views/` (Markup), `intro.js` (Tour und Neuigkeiten), `migrate.js` (einmaliger Umstieg von der API-Version).
-- `progress.js` – Guides laden, prüfen, Schrittkosten, Import/Export. `owned.js` – geteilter Besitz. `detect.js`, `requires.js` – wann ein Schritt erfüllt ist, HOTM-Sperren.
+- `progress.js` – Guides laden, prüfen, Schrittkosten, Import/Export. `owned.js` – geteilter Besitz. `keys.js` – gemeinsame Schritt-Schlüssel (`step.key`): Haken solcher Schritte liegen in `pg.keys` und gelten in allen Guides mit demselben Schlüssel, `guide.legacy` führt alte Haken (Abschnitt|Text) bei der Migration auf Schema 3 darauf zurück. `detect.js`, `requires.js` – wann ein Schritt erfüllt ist, HOTM-Sperren.
 - `optimizer.js`, `optimizer-data.js`, `path.js`, `pieces.js` – Wert je Schritt, Wiki-Werte, Reihenfolge, Gear-Teile.
 - `stats.js`, `virtual.js`, `blaze.js` – Item-, Pet- und Power-Werte, Profil aus Häkchen, Blaze-Schadensmodell.
 - `totals.js`, `build.js`, `gear.js`, `stats-model.js`, `hotm-model.js`, `attrs-model.js`, `skin.js`, `gamedata.js` – Summe je Stat, Build und Messungen, Gear aus Häkchen, Daten der Stats-Seiten, Spielerfigur, Prüfung von `gamedata/`.
@@ -60,7 +60,7 @@ APK-Pfade: `apps/bazaar/android/app/build/outputs/apk/debug/app-debug.apk` und `
 - `scripts/gamedata-build.mjs`, `gamedata-categories.mjs` – bauen `gamedata/*.json` (Wiki zuerst, NEU als Zweitquelle).
 - `scripts/icons.mjs` – App-Symbol zeichnen (`apps/bazaar/icons/`, Android-Ressourcen). `scripts/serve.mjs [port] [dir]` – lokaler Server. `scripts/clean.mjs` – Aufräumen.
 - `scripts/bazaar/copy-web.mjs`, `android-build.mjs` – Web-Dateien der Bazaar-App flach legen (`--worker` schreibt auch `sw.js`), APK bauen.
-- `scripts/guide/guide-copy.mjs`, `guide-build.mjs`, `guide-shots.mjs`, `fetch-icons.mjs` – dasselbe für die Guide-App, Screenshots, Icons.
+- `scripts/guide/guide-copy.mjs`, `guide-build.mjs`, `guide-shots.mjs`, `fetch-icons.mjs` – dasselbe für die Guide-App, Screenshots, Icons (`guide:build` lädt fehlende Hypixel-Icons nach, offline nur eine Warnung). `mining-steps.mjs` – Schlüssel, Essence-Schritte und Hinweise für die privaten Mining-Build-Skripte (`personal/build-shafting.mjs`, dann `personal/finish-mining.mjs`).
 - `scripts/lib/flat.mjs` – Pfad-Abbildung und Import-Umschreibung des flachen Builds.
 
 ## Was wohin gehört

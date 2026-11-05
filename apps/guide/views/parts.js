@@ -60,13 +60,16 @@ export function stepCard(card) {
   const box = card.stats.length || card.gain
     ? `<div class="card-box">${card.stats.map((s) => `<span class="card-stat c-${s.color}">${esc(s.text)}</span>`).join('')}${shown('card-gain', card.gain)}</div>`
     : '';
+  const parts = card.parts?.length
+    ? `<div class="card-parts">${card.parts.map((x) => `<div class="card-part"><span class="card-part-name">${esc(x.name)}</span>${x.stats.map((t) => `<span class="card-stat c-${t.color}">${esc(t.text)}</span>`).join('')}<span class="card-part-cost">${esc(x.cost)}</span></div>`).join('')}<span class="card-part-total">Total</span></div>`
+    : '';
   const more = [...(card.items ?? []).map((i) => shown('card-item', i.text)), shown('card-where', card.group), ...(card.notes ?? []).map((n) => shown('card-where', n)), shown('card-where', card.hint), card.left ? `<span class="card-where">${esc(card.left)} to section end</span>` : ''].filter(Boolean);
   const cost = `<span class="card-cost">${esc(card.cost)}</span>${shown('card-rate', card.rate)}`;
   // one line takes less room than the 44 px of a fold, so it stays open
   const foot = more.length > 1
     ? `<details class="card-more" data-keep-open="${esc(card.key)}"><summary class="card-foot">${cost}<span class="card-fold" aria-hidden="true">▾</span></summary>${more.join('')}</details>`
     : `<div class="card-foot">${cost}</div>${more.join('')}`;
-  return `<div class="step">${rail('current', card.railTop, card.railBottom)}<div class="card"><div class="card-head"><span class="card-name">${esc(card.name)}</span>${card.badge ? '<span class="card-badge">★ BEST VALUE</span>' : ''}${shown('card-where', card.where && shortSection(card.where))}</div>${box}${foot}<button type="button" class="primary" data-step="${esc(card.key)}">Mark done</button></div></div>`;
+  return `<div class="step">${rail('current', card.railTop, card.railBottom)}<div class="card"><div class="card-head"><span class="card-name">${esc(card.name)}</span>${card.badge ? '<span class="card-badge">★ BEST VALUE</span>' : ''}${shown('card-where', card.where && shortSection(card.where))}</div>${parts}${box}${foot}<button type="button" class="primary" data-step="${esc(card.key)}">Mark done</button></div></div>`;
 }
 
 const limitValue = (v) => (v === null ? 'unknown' : number(v));

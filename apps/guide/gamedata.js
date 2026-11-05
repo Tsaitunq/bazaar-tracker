@@ -1,9 +1,10 @@
 // Loads and checks the game data in gamedata/*.json (stats, HOTM, attributes, power, pets). A broken file throws with a path to the fault.
-export const FILES = ['stats', 'hotm', 'attributes', 'power', 'pets'];
+export const FILES = ['stats', 'hotm', 'attributes', 'power', 'pets', 'essence-perks'];
 const AREAS = new Set(['mining', 'combat', 'farming', 'general']);
 // the /stats menu category of a stat (scripts/gamedata-categories.mjs); Nether Embodiment multiplies combat and misc
 const CATEGORIES = new Set(['combat', 'misc', 'wisdom', 'mining', 'farming', 'foraging', 'fishing', 'hunting']);
 const RARITIES = ['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGENDARY'];
+export const EFFECT_KINDS = ['flat', 'per_stat', 'conditional', 'chance', 'other'];
 const POWDERS = new Set(['mithril', 'gemstone', 'glacite']);
 const TYPES = new Set(['perk', 'ability', 'core']);
 const HEX = /^#[0-9A-Fa-f]{6}$/;
@@ -83,7 +84,10 @@ export function checkAttributes(d, stats) {
     const w = `attributes.${a.id}`;
     need(w, a, ['id', 'shard', 'name', 'rarity', 'maxLevel', 'effects', 'areas', 'icon']);
     if (!RARITIES.includes(a.rarity)) fail(w, `bad rarity ${a.rarity}`);
-    if (!a.effects.length && !a.unknown && a.effectKind !== 'other') fail(w, 'no effect and not marked unknown/other');
+    if (!EFFECT_KINDS.includes(a.effectKind)) fail(w, `effectKind must be one of ${EFFECT_KINDS.join(', ')}`);
+    if (!a.effects.length && !a.desc && !a.note && !a.unknown) fail(w, 'no effect, no desc and not marked unknown');
+    if (['flat', 'per_stat'].includes(a.effectKind) && !a.effects.length) fail(w, `${a.effectKind} needs effects`);
+    if (a.desc && !(a.desc.text?.includes('{v}') && a.desc.perLevel > 0) && typeof a.desc.level1 !== 'string') fail(w, 'desc needs perLevel and a text with {v}, or level1');
     if (a.mcIcon !== undefined && !/^[a-z_]+$/.test(a.mcIcon)) fail(w, 'bad mcIcon');
     for (const e of a.effects) {
       checkEffect(w, e, stats);
@@ -130,6 +134,23 @@ export function checkPets(d, stats) {
   }
 }
 
+// The essence shop: every perk has a cost per level; an effect adds a stat, a conditional is only described.
+export function checkEssence(d, stats) {
+  need('essence', d, ['perks']);
+  unique('essence', d.perks.map((p) => p.id));
+  for (const p of d.perks) {
+    const w = `essence.${p.id}`;
+    need(w, p, ['id', 'name', 'essence', 'bazaar', 'max', 'costs']);
+    if (p.bazaar !== `ESSENCE_${p.essence}`) fail(w, 'bazaar id must be ESSENCE_<essence>');
+    if (p.costs.length !== p.max || !p.costs.every((c) => c > 0)) fail(w, 'needs one positive cost per level');
+    if ((p.effect === undefined) === (p.conditional === undefined)) fail(w, 'needs exactly one of effect/conditional');
+    const stat = (p.effect ?? p.conditional).stat;
+    if (!stats.has(stat)) fail(w, `unknown stat ${stat}`);
+    if (p.effect && !(p.effect.perLevel > 0)) fail(w, 'effect needs perLevel');
+    if (p.conditional && !p.conditional.text) fail(w, 'conditional needs text');
+  }
+}
+
 // An effect the stats model computes (not a stat that is simply added). percent is the value at Level 100.
 const PERK_EFFECTS = {
   category_multiplier: (w, e) => { if (!Array.isArray(e.categories) || !e.categories.length || !(e.percent > 0)) fail(w, 'category_multiplier needs categories and percent'); },
@@ -152,11 +173,12 @@ export function valueAt(e, level) {
 
 // read: (name) -> parsed JSON (or a promise of it).
 export async function loadGameData(read) {
-  const [stats, hotm, attributes, power, pets] = await Promise.all(FILES.map((f) => read(f)));
+  const [stats, hotm, attributes, power, pets, essence] = await Promise.all(FILES.map((f) => read(f)));
   const ids = checkStats(stats);
   checkHotm(hotm, ids);
   checkAttributes(attributes, ids);
   checkPower(power, ids);
   checkPets(pets, ids);
-  return { stats, hotm, attributes, power, pets };
+  checkEssence(essence, ids);
+  return { stats, hotm, attributes, power, pets, essence };
 }

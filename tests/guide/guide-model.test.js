@@ -239,6 +239,20 @@ test('a head reads with the next N steps, one member reads with the next step', 
   assert.equal(guideModel(two, typed()).rows[0].group, 'with the next step');
 });
 
+test('a group card lists each part with its own values, then the total', () => {
+  const g = mining([coinsOf('Drill X', 'A', 25, { group: 'G', key: 'item:A' }), coinsOf('X: Fortune III', 'A', 30, { group: 'G', key: 'enchant:drill:fortune:3' }), coinsOf('X: Fortune IV', 'A', 5, { group: 'G', key: 'enchant:drill:fortune:4' })]);
+  const m = guideModel(g, typed());
+  const card = m.rows[0].card;
+  assert.equal(card.name, 'X + 2 Enchants');
+  assert.deepEqual(card.parts.map((x) => x.name), ['Drill X', 'X: Fortune III', 'X: Fortune IV']);
+  assert.deepEqual(card.parts.map((x) => x.stats[0].text), ['+25 ☘ Mining Fortune', '+30 ☘ Mining Fortune', '+5 ☘ Mining Fortune']);
+  assert.equal(card.stats[0].text, '+60 ☘ Mining Fortune');
+  assert.match(m.rows[1].sub, /30 /); // a member row shows its own value
+  assert.match(stepCard(card), /card-part-total/);
+  const single = guideModel(mining([coinsOf('a', 'A', 10)]), typed()).rows[0].card;
+  assert.equal(single.parts, null);
+});
+
 test('without a sync the rows have a rate from typed stats and ticks', () => {
   const m = guideModel(mining([coinsOf('a', 'A', 10), coinsOf('b', 'A', 5)]), typed());
   assert.match(m.rows[1].side, /per 1 %$/);

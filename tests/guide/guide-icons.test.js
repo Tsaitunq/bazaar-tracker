@@ -99,3 +99,29 @@ test('a mob face is the 8 x 8 square at (8, 8) without the hat layer; an animate
   assert.equal(firstFrame(strip).height, 2);
   assert.equal(firstFrame({ width: 2, height: 2, rgba: Buffer.alloc(16) }).height, 2);
 });
+
+test('the icon jobs cover every pet of pets.json and every shard of attributes.json that has no Minecraft picture', async () => {
+  const { missingJobs } = await import('../../scripts/guide/fetch-icons.mjs');
+  const pets = JSON.parse(fs.readFileSync('gamedata/pets.json', 'utf8')).pets;
+  const attrs = JSON.parse(fs.readFileSync('gamedata/attributes.json', 'utf8')).attributes;
+  const empty = fs.mkdtempSync(path.join(os.tmpdir(), 'icons-'));
+  const todo = missingJobs(pets, attrs, empty);
+  assert.equal(todo.pets.length, pets.length);
+  assert.ok(todo.pets.some((j) => j.key === 'BLAZE_LEGENDARY' && j.ids[0] === 'BLAZE;4'));
+  assert.equal(todo.shards.length, attrs.filter((a) => !a.mcIcon).length);
+  assert.ok(todo.shards.every((j) => !attrs.find((a) => (a.icon ?? a.key) === j.key)?.mcIcon));
+});
+
+test('the build loads only missing icons, lists what stays missing, and survives being offline', async () => {
+  const { ensureIcons } = await import('../../scripts/guide/fetch-icons.mjs');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'icons-'));
+  fs.mkdirSync(path.join(root, 'gamedata'));
+  fs.writeFileSync(path.join(root, 'gamedata/pets.json'), JSON.stringify({ pets: [{ id: 'A', rarity: 'EPIC' }, { id: 'B', rarity: 'RARE' }] }));
+  fs.writeFileSync(path.join(root, 'gamedata/attributes.json'), JSON.stringify({ attributes: [{ id: 'X', key: 'x', icon: 'SHARD_X' }, { id: 'Y', key: 'y', mcIcon: 'coal' }] }));
+  fs.mkdirSync(path.join(root, 'apps/guide/img/hypixel/pets'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'apps/guide/img/hypixel/pets/A_EPIC.png'), 'x'); // already there: not asked for again
+  const asked = [];
+  const offline = async (url) => { asked.push(url); throw new Error('offline'); };
+  assert.deepEqual(await ensureIcons(root, offline), ['pets/B_RARE', 'shards/SHARD_X']);
+  assert.ok(asked.length > 0 && asked.every((u) => !u.includes('A%3BEPIC') && !u.includes('A;2')));
+});

@@ -6,8 +6,9 @@ import { migrateOwned, resetOwned } from './owned.js';
 import { fallbackName, loadItems } from '../../shared/names.js';
 import { PRESETS, miningSettings } from './optimizer.js';
 import { loadGameData } from './gamedata.js';
-import { emptyBuild, measure, editPart, commitDraft, discardDraft, EMPTY_PART, perkLevel, perkEnabled, abilityPick, hotmTier, omelette, attrLevel, powerStone, powerMp, tuningPoints, setPet, setPetItem, setGear } from './build.js';
+import { emptyBuild, measure, editPart, commitDraft, discardDraft, EMPTY_PART, perkLevel, essenceLevel, withEssence, perkEnabled, abilityPick, hotmTier, omelette, attrLevel, powerStone, powerMp, tuningPoints, setPet, setPetItem, setGear } from './build.js';
 import { runMigration } from './migrate.js';
+import { expandChecks, collapseChecks, commitGuide, resetKeys } from './keys.js';
 import { STATS_TABS, parseRoute, applyImport, stampAll, formEdited, typedFields, restoreTyped, settled, autoOf, tickStep, swipeTarget, swipeAxis, swipeLands, familyOf } from './model.js';
 import { homeView } from './views/home.js';
 import { guideView } from './views/guide.js';
@@ -40,11 +41,13 @@ const save = (key, value) => {
 const root = document.getElementById('app');
 let bundled = [];
 let imported = load('pg.guides', []);
-let checks = load('pg.checks', {});
+let checks = load('pg.checks', {}); // the marks of steps without a shared key, per guide
+let keys = load('pg.keys', []); // ticks of steps with a shared key, for all guides
+const live = () => expandChecks(guides(), checks, keys);
 let dates = load('pg.dates', {});
 let owned = load('pg.owned', []);
 const settings = load('pg.settings', {});
-let base = load('pg.base', {}); // the measured stats per area
+let base = withEssence(load('pg.base', {})); // the measured stats per area
 let build = { ...emptyBuild(), ...load('pg.build', {}) }; // HOTM, shards, power and buffs now
 let draft = load('pg.draft', {}); // a part the measurement did not know, typed but not saved yet
 let wantPet = false; // the Pet tag or the floating pet was tapped: the power tab opens on the pet picker (true) or on that pet's card (its key)
@@ -98,7 +101,7 @@ const targetOf = (dx) => {
 const world = () => {
   pending = new Set();
   return {
-    guides: guides(), checks, owned, dates, base, build, draft, ui, gamedata, products, now: Date.now(),
+    guides: guides(), checks: live(), owned, dates, base, build, draft, ui, gamedata, products, now: Date.now(),
     prices: { forge, ah, cofl: freshBins(bins), wants: pending, items, tax: (settings.tax ?? DEFAULT_TAX) / 100, derpy: election?.mayor?.name === 'Derpy' },
     settings: miningSettings(settings.mining), keepOldGear: settings.keepOldGear === true, brake: settings.brake > 0 ? settings.brake : 5, pathEpoch, opened, items,
     name: (id) => names[id] ?? fallbackName(id), tax: settings.tax ?? DEFAULT_TAX, importedIds: imported.map((g) => g.id),
@@ -200,19 +203,49 @@ function tourSync() {
     tourShown = tour.i;
     tourBox.querySelector('[data-tour="next"]').focus();
   }
-  const el = root.querySelector(STEPS[tour.i].target);
+  if (fresh) tourScrollTo();
+  tourPlace();
+  // the screen may still be settling (scroll, layout, the keyboard or the status bar of the phone): measure again when it is
+  requestAnimationFrame(() => requestAnimationFrame(tourPlace));
+}
+
+// The box around everything the step points at, in screen coordinates; null when nothing is there.
+function tourRect() {
+  const rects = [...root.querySelectorAll(STEPS[tour.i].target)].map((el) => el.getBoundingClientRect()).filter((r) => r.width || r.height);
+  if (!rects.length) return null;
+  return { left: Math.min(...rects.map((r) => r.left)), top: Math.min(...rects.map((r) => r.top)), right: Math.max(...rects.map((r) => r.right)), bottom: Math.max(...rects.map((r) => r.bottom)) };
+}
+
+// Brings the target into the middle of the screen; a target taller than the screen starts at the top.
+function tourScrollTo() {
+  const first = root.querySelector(STEPS[tour.i].target);
+  const r = tourRect();
+  if (first && r) first.scrollIntoView({ block: r.bottom - r.top > innerHeight * 0.6 ? 'start' : 'center', behavior: 'instant' });
+}
+
+function tourPlace() {
+  if (!tour) return;
   const hole = tourBox.querySelector('.tour-hole');
-  tourBox.classList.toggle('tour-nohole', !el); // a missing element: the step shows without a spotlight
-  hole.hidden = !el;
-  if (!el) return;
-  if (fresh) el.scrollIntoView({ block: 'center', behavior: 'instant' });
-  const r = el.getBoundingClientRect();
+  const found = hole && tourRect();
+  const r = found && found.bottom > 0 && found.top < innerHeight ? found : null; // scrolled out of sight: no spotlight
+  tourBox.classList.toggle('tour-nohole', !r); // a missing element: the step shows without a spotlight
+  if (!hole) return;
+  hole.hidden = !r;
+  if (!r) return;
   // a panel taller than the screen is lit as far as it shows
   const top = Math.max(r.top - SPOT_PAD, 0);
   const bottom = Math.min(r.bottom + SPOT_PAD, innerHeight);
-  Object.assign(hole.style, { left: `${r.left - SPOT_PAD}px`, top: `${top}px`, width: `${r.width + 2 * SPOT_PAD}px`, height: `${bottom - top}px` });
+  Object.assign(hole.style, { left: `${r.left - SPOT_PAD}px`, top: `${top}px`, width: `${r.right - r.left + 2 * SPOT_PAD}px`, height: `${bottom - top}px` });
   tourBox.dataset.card = (top + bottom) / 2 > innerHeight / 2 ? 'top' : 'bottom';
 }
+
+// Measure again whenever the page scrolls (also an inner list), is resized or has finished scrolling.
+let tourFrame = 0;
+const tourLater = () => { cancelAnimationFrame(tourFrame); tourFrame = requestAnimationFrame(tourPlace); };
+addEventListener('scroll', tourLater, true);
+addEventListener('scrollend', tourLater, true);
+addEventListener('resize', tourLater);
+visualViewport?.addEventListener('resize', tourLater);
 
 function tourGo(i) {
   tour = { ...tour, i };
@@ -282,7 +315,7 @@ async function askBins(wants) {
 }
 
 function stamp() {
-  dates = stampAll(guides(), checks, dates, Date.now(), owned);
+  dates = stampAll(guides(), live(), dates, Date.now(), owned);
   save('pg.dates', dates);
 }
 
@@ -334,11 +367,12 @@ function toggle(key, fromCard = false) {
   const r = route();
   const guide = guides().find((g) => g.id === r.id);
   if (!guide) return;
-  const marks = new Set(checks[guide.id] ?? []);
+  const marks = new Set(live()[guide.id] ?? []);
   const on = !doneSet(guide, marks, autoOf(guide, owned)).has(key);
   owned = [...tickStep({ guide, key, on, marks, owned })];
-  checks = { ...checks, [guide.id]: [...marks] };
+  ({ checks, keys } = commitGuide(guides(), guide, marks, checks, keys));
   save('pg.checks', checks);
+  save('pg.keys', keys);
   save('pg.owned', owned);
   dataText = ''; // an export from before this tick must not come back by accident
   follow = false; // the list stays under the finger that ticked
@@ -362,9 +396,11 @@ function runImport(raw) {
     const data = importData(raw);
     ({ imported, checks, owned } = applyImport({ imported, checks, bundled, owned }, data));
     ({ owned, checks } = migrateOwned(guides(), checks, owned));
+    ({ checks, keys } = collapseChecks(guides(), checks, keys));
     pathEpoch++;
     save('pg.guides', imported);
     save('pg.checks', checks);
+    save('pg.keys', keys);
     save('pg.owned', owned);
     stamp();
     dataText = '';
@@ -377,7 +413,7 @@ function runImport(raw) {
 }
 
 async function runExport() {
-  dataText = exportData(guides(), checks, owned);
+  dataText = exportData(guides(), live(), owned);
   let copied = false;
   try { await navigator.clipboard.writeText(dataText); copied = true; } catch { /* the text field holds it */ }
   // the Android WebView has no downloads, so there the text and the clipboard are the export
@@ -421,6 +457,7 @@ function draftDone(part, keep) {
 
 const partNow = (part) => draft[part] ?? build[part] ?? EMPTY_PART[part]();
 const perkOpen = () => gamedata?.hotm.perks.find((p) => p.id === ui.perk);
+const essenceOf = (el) => gamedata?.essence?.perks.find((p) => p.id === el.closest('[data-essence-perk]')?.dataset.essencePerk);
 const attrOpen = () => gamedata?.attributes.attributes.find((a) => a.key === ui.attr);
 
 // The level buttons and the number field of the open perk or attribute.
@@ -466,6 +503,13 @@ root.addEventListener('click', (e) => {
   if (attr) { ui = { ...ui, attr: attr.dataset.attr }; draw(); return; }
   if (el('[data-attr-close]')) { ui = { ...ui, attr: undefined }; draw(); return; }
   if (el('[data-attr-all]')) { ui = { ...ui, attrAll: !ui.attrAll }; draw(); return; }
+  const essStep = el('[data-essence-step], [data-essence-max]');
+  if (essStep && essenceOf(essStep)) {
+    const perk = essenceOf(essStep);
+    const now = partNow('essence')[perk.id] ?? 0;
+    edit('essence', essenceLevel(perk, essStep.hasAttribute('data-essence-max') ? perk.max : now + Number(essStep.dataset.essenceStep)));
+    return;
+  }
   const stepBy = el('[data-perk-step], [data-attr-step]');
   if (stepBy) {
     const kind = stepBy.hasAttribute('data-perk-step') ? 'perk' : 'attr';
@@ -493,8 +537,11 @@ root.addEventListener('click', (e) => {
   const yes = el('[data-reset-yes]');
   if (yes) {
     armed = null;
+    const gone = guides().find((g) => g.id === yes.dataset.resetYes);
     checks = { ...checks, [yes.dataset.resetYes]: [] };
-    owned = [...resetOwned(guides().find((g) => g.id === yes.dataset.resetYes), owned)];
+    owned = [...resetOwned(gone, owned)];
+    keys = resetKeys(gone, keys);
+    save('pg.keys', keys);
     pathEpoch++;
     save('pg.checks', checks);
     save('pg.owned', owned);
@@ -528,6 +575,7 @@ root.addEventListener('change', async (e) => {
   if (e.target.matches('[data-hotm-tier]')) { settled(e.target); return edit('hotm', hotmTier(e.target.value === '' ? null : Number(e.target.value))); }
   if (e.target.matches('[data-hotm-omelette]')) { settled(e.target); return edit('hotm', omelette(e.target.checked)); }
   if (e.target.matches('[data-perk-level]')) { settled(e.target); return setLevel('perk', e.target.value); }
+  if (e.target.matches('[data-essence-level]') && essenceOf(e.target)) { settled(e.target); return edit('essence', essenceLevel(essenceOf(e.target), e.target.value)); }
   if (e.target.matches('[data-attr-level]')) { settled(e.target); return setLevel('attr', e.target.value); }
   if (e.target.matches('[data-power-mp]')) { settled(e.target); return edit('power', powerMp(e.target.value)); }
   if (dataset.gear) { settled(e.target); build = setGear(build, { [dataset.gear]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }); return saveBuild(); }
@@ -778,6 +826,7 @@ pathEpoch++;
 const drop = (key) => { try { localStorage.removeItem(key); } catch { /* blocked: the next start tries again */ } };
 if (await runMigration({ read: load, write: save, drop }, guides())) {
   checks = load('pg.checks', {});
+  keys = load('pg.keys', []);
   owned = load('pg.owned', []);
 }
 stamp();

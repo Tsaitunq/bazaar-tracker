@@ -1,0 +1,11 @@
+{
+  "src": "hypixelskyblock.minecraft.wiki Enchantments and Silex, read 2026-11-05. Bazaar ids checked against the live product list. gain = Mining stats per level (the step adds the difference to the level below).",
+  "enchants": {
+    "ultimate_flowstate": { "name": "Flowstate", "max": 3, "perLevel": { "MINING_SPEED": 200 }, "source": "book", "combine": 3, "fullStacks": true, "note": "At full stacks: +1/+2/+3 Mining Speed per block in a row, capped at 200 blocks (200/400/600). Less while the streak is short." },
+    "efficiency": { "name": "Efficiency", "max": 10, "table": { "MINING_SPEED": [30, 50, 70, 90, 110, 130, 150, 170, 190, 210] }, "source": "silex", "silex": "SIL_EX", "fromLevel": 6, "note": "Levels VI to X come from one Silex each on a tool that has Efficiency V; there are no books for them." },
+    "fortune": { "name": "Fortune", "max": 4, "table": { "MINING_FORTUNE": [10, 20, 30, 45] }, "source": "book", "combine": 4 },
+    "lapidary": { "name": "Lapidary", "max": 5, "perLevel": { "GEMSTONE_FORTUNE": 10, "MINING_SPEED": 20 }, "source": "book", "combine": 5, "note": "While mining gemstones." },
+    "pristine": { "name": "Prismatic", "max": 5, "perLevel": { "PRISTINE": 0.5 }, "source": "book", "combine": 5 },
+    "ice_cold": { "name": "Ice Cold", "max": 5, "perLevel": { "COLD_RESISTANCE": 1 }, "source": "book", "combine": 5 }
+  }
+}

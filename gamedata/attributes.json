@@ -62,7 +62,7 @@
   ]
  },
  "shardsPerLevelNote": "index 0 = shards for level 1; same table on the wiki Attribute Shards page",
- "effectNote": "effect = perLevel x level (linear, level 1..10); fixed = no scaling; per_stat = value per `every` points of another stat",
+ "effectNote": "effectKind: flat = fixed stat per level (summed); per_stat = value per `every` points of another stat (shown with the current value, never summed); conditional = stat under a condition (shown, never summed); chance and other = text (note) with the value per level. effect = perLevel x level (linear, level 1..10); fixed = no scaling.",
  "attributes": [
   {
    "id": "ATTRIBUTE_SHARD_NATURE_ELEMENTAL",
@@ -81,6 +81,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "combat"
    ]
@@ -102,6 +103,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "combat"
    ]
@@ -123,6 +125,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "combat"
    ]
@@ -136,9 +139,13 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_PHANPYRE",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "conditional",
+   "desc": {
+    "perLevel": 1,
+    "text": "Grants +{v}  Sweep during the night."
+   },
    "areas": []
   },
   {
@@ -150,9 +157,13 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_COD",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Gain +{v}% more Coins from fishing treasures."
+   },
    "areas": []
   },
   {
@@ -173,6 +184,7 @@
      "family": "animal"
     }
    ],
+   "effectKind": "conditional",
    "areas": [
     "combat"
    ]
@@ -186,9 +198,12 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_PHANFLARE",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "level1": "Grants +10  Fig Fortune and +10  Mangrove Fortune."
+   },
    "areas": []
   },
   {
@@ -209,6 +224,7 @@
      "family": "aquatic"
     }
    ],
+   "effectKind": "conditional",
    "areas": [
     "combat"
    ]
@@ -222,9 +238,13 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_LAPIS_ZOMBIE",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 10,
+    "text": "Grants +{v}% more experience orbs from killing mobs."
+   },
    "areas": [],
    "mcIcon": "sea_lantern"
   },
@@ -245,6 +265,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "mining"
    ]
@@ -258,9 +279,13 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_VERDANT",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "conditional",
+   "desc": {
+    "perLevel": 3,
+    "text": "Grants +{v}  Fishing Speed while on Foraging Islands."
+   },
    "areas": []
   },
   {
@@ -298,6 +323,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "farming"
    ]
@@ -311,9 +337,13 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_SEA_ARCHER",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 0.5,
+    "text": "Grants +{v}  Sea Creature Chance."
+   },
    "areas": []
   },
   {
@@ -334,6 +364,7 @@
      "family": "arthropod"
     }
    ],
+   "effectKind": "conditional",
    "areas": [
     "combat"
    ]
@@ -347,9 +378,13 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_HIDEONGIFT",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 2,
+    "text": "Grants a +{v}% chance to obtain an extra Winter Gift when finding one."
+   },
    "areas": []
   },
   {
@@ -361,9 +396,13 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_BIRRIES",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 10,
+    "text": "Grants a +{v}% chance to drop double Berries and Sea Lumies."
+   },
    "areas": []
   },
   {
@@ -384,6 +423,7 @@
      "family": "undead"
     }
    ],
+   "effectKind": "conditional",
    "areas": [
     "combat"
    ]
@@ -397,9 +437,13 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_CROW",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 5,
+    "text": "Grants +{v}  Sweep towards Fig Trees."
+   },
    "areas": []
   },
   {
@@ -411,9 +455,13 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_TADGANG",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 0.02,
+    "text": "Grants +{v}  Sweep for each unique Common Attribute you own."
+   },
    "areas": []
   },
   {
@@ -434,6 +482,7 @@
      "family": "ender"
     }
    ],
+   "effectKind": "conditional",
    "areas": [
     "combat"
    ]
@@ -447,9 +496,13 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_RABBIT_MAFIOSO",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 2.5,
+    "text": "The cooldown of the Rabbit Hitman is reduced by +{v}%."
+   },
    "areas": []
   },
   {
@@ -461,9 +514,13 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_CORALOT",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 5,
+    "text": "You have a +{v}% chance to gain extra Chums."
+   },
    "areas": []
   },
   {
@@ -475,9 +532,13 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_HARPY",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 5,
+    "text": "Increases the odds of finding monsters from Tree Gifts by +{v}%."
+   },
    "areas": []
   },
   {
@@ -489,9 +550,13 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_MUDWORM",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Garden Visitors arrive +{v}% faster."
+   },
    "areas": []
   },
   {
@@ -503,9 +568,13 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_LOTUS_FISH",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 1,
+    "text": "Grants +{v}  Trophy Chance while in the Lotus Atoll."
+   },
    "areas": []
   },
   {
@@ -517,9 +586,13 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_GOLDEN_GHOUL",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Grants +{v} Coin per kill."
+   },
    "areas": []
   },
   {
@@ -531,9 +604,13 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_LOCUST",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "conditional",
+   "desc": {
+    "perLevel": 1,
+    "text": "Grants +{v} Crop Growth while in The Garden."
+   },
    "areas": []
   },
   {
@@ -553,6 +630,7 @@
      "cond": "on_foraging_islands"
     }
    ],
+   "effectKind": "conditional",
    "areas": [
     "combat"
    ]
@@ -575,6 +653,7 @@
      "family": "infernal"
     }
    ],
+   "effectKind": "conditional",
    "areas": [
     "combat"
    ]
@@ -597,6 +676,7 @@
      "family": "woodland"
     }
    ],
+   "effectKind": "conditional",
    "areas": [
     "combat"
    ]
@@ -610,9 +690,13 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_NIGHT_SQUID",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 1,
+    "text": "Has a +{v}% chance not to consume any bait."
+   },
    "areas": []
   },
   {
@@ -632,6 +716,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "mining"
    ]
@@ -645,9 +730,13 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_BOREAL_OWL",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 2,
+    "text": "Your pets gain +{v}% more Pet EXP from Fann."
+   },
    "areas": []
   },
   {
@@ -659,9 +748,13 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_NEWT",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 2,
+    "text": "Grants +{v}  Hunting Fortune towards COMMON Attributes."
+   },
    "areas": []
   },
   {
@@ -681,6 +774,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "mining"
    ],
@@ -703,6 +797,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "mining"
    ]
@@ -716,9 +811,13 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_TEPID",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "conditional",
+   "desc": {
+    "perLevel": 3,
+    "text": "Grants +{v}  Fishing Speed while on Fishing Islands."
+   },
    "areas": []
   },
   {
@@ -739,6 +838,7 @@
      "family": "mythological"
     }
    ],
+   "effectKind": "conditional",
    "areas": [
     "combat"
    ]
@@ -752,9 +852,13 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_ANT",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 0.5,
+    "text": "Grants +{v}  Tracking towards Queen Ants."
+   },
    "areas": []
   },
   {
@@ -766,9 +870,13 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_CAVERNFISH",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "conditional",
+   "desc": {
+    "perLevel": 3,
+    "text": "Grants +{v}  Fishing Speed while on Mining Islands."
+   },
    "areas": []
   },
   {
@@ -789,6 +897,7 @@
      "family": "frozen"
     }
    ],
+   "effectKind": "conditional",
    "areas": [
     "combat"
    ]
@@ -810,6 +919,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "mining"
    ]
@@ -832,6 +942,7 @@
      "family": "skeletal"
     }
    ],
+   "effectKind": "conditional",
    "areas": [
     "combat"
    ]
@@ -845,9 +956,13 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_HONEYHOG",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Trees lathered with Honeycomb attract mobs +{v}% faster."
+   },
    "areas": []
   },
   {
@@ -868,6 +983,7 @@
      "family": "subterranean"
     }
    ],
+   "effectKind": "conditional",
    "areas": [
     "combat"
    ]
@@ -890,6 +1006,7 @@
      "family": "arcane"
     }
    ],
+   "effectKind": "conditional",
    "areas": [
     "combat"
    ]
@@ -903,9 +1020,13 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_CHOCOBUN",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Rabbit Bro, Cousin, and Sis can have +{v} extra levels."
+   },
    "areas": []
   },
   {
@@ -925,6 +1046,7 @@
      "cond": "on_foraging_islands"
     }
    ],
+   "effectKind": "conditional",
    "areas": []
   },
   {
@@ -936,9 +1058,13 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_FIREFOX",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 10,
+    "text": "Grants +{v}  Helix Fortune."
+   },
    "areas": []
   },
   {
@@ -950,9 +1076,13 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_GROUNDHOG",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "conditional",
+   "desc": {
+    "perLevel": 1,
+    "text": "Grants +{v}  Sweep during the day."
+   },
    "areas": []
   },
   {
@@ -964,9 +1094,13 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_TIMIL",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "conditional",
+   "desc": {
+    "perLevel": 0.5,
+    "text": "Grants +{v}  Pressure Resistance while on Torrhus Canyon."
+   },
    "areas": []
   },
   {
@@ -987,6 +1121,7 @@
      "family": "airborne"
     }
    ],
+   "effectKind": "conditional",
    "areas": [
     "combat"
    ]
@@ -1000,9 +1135,13 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_BUNBUN",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 0.25,
+    "text": "Increases your Chocolate Factory speed by +{v}%."
+   },
    "areas": []
   },
   {
@@ -1014,9 +1153,13 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_HONEYBUZZ",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 2.5,
+    "text": "Honeyhives have a +{v}% chance to contain double the Honeycomb."
+   },
    "areas": []
   },
   {
@@ -1028,9 +1171,13 @@
    "rarity": "COMMON",
    "maxLevel": 10,
    "icon": "SHARD_POLLENDART",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 5,
+    "text": "Trees lathered with Honeycomb have a +{v}% chance to attract a second mob."
+   },
    "areas": []
   },
   {
@@ -1050,6 +1197,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "combat"
    ]
@@ -1071,6 +1219,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "combat"
    ]
@@ -1092,6 +1241,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "combat"
    ]
@@ -1105,9 +1255,13 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_PANDARAI",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 0.5,
+    "text": "Grants +{v} ☯ Foraging Wisdom."
+   },
    "areas": []
   },
   {
@@ -1119,9 +1273,13 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_LEVIATHAN",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Grants +{v}  Hunting Fortune towards EPIC Attributes."
+   },
    "areas": []
   },
   {
@@ -1133,9 +1291,13 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_ALLIGATOR",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 2,
+    "text": "Your Resistance Attributes are +{v}% stronger."
+   },
    "areas": []
   },
   {
@@ -1147,9 +1309,13 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_FENLORD",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Your Salts last +{v}% longer."
+   },
    "areas": []
   },
   {
@@ -1178,9 +1344,13 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_BASILISK",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 2,
+    "text": "Lassos deplete Stamina +{v}% faster."
+   },
    "areas": []
   },
   {
@@ -1192,9 +1362,13 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_IGUANA",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 2,
+    "text": "Your Atomized Attributes are +{v}% stronger."
+   },
    "areas": []
   },
   {
@@ -1206,9 +1380,13 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_MORAY_EEL",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Fish Treasure Shards are +{v}% easier to find."
+   },
    "areas": []
   },
   {
@@ -1220,9 +1398,13 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_SPECIAL_ZEALOT",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 0.5,
+    "text": "Summoning Eyes you drop have a +{v}% chance to be recombobulated. Placing recombobulated Summoning Eyes increases your chance of spawning a Superior Dragon."
+   },
    "areas": []
   },
   {
@@ -1242,6 +1424,7 @@
      "cond": "night"
     }
    ],
+   "effectKind": "conditional",
    "areas": [
     "farming"
    ]
@@ -1255,9 +1438,13 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_FIRE_EEL",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 2,
+    "text": "Grants +{v}  Trophy Chance."
+   },
    "areas": []
   },
   {
@@ -1269,9 +1456,12 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_BAL",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "level1": "Each block you mine has a +1% chance to grant 1 extra  Pristine for that block."
+   },
    "areas": [
     "mining"
    ]
@@ -1285,9 +1475,13 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_HIDEONSACK",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Your sacks can hold +{v}% more items."
+   },
    "areas": []
   },
   {
@@ -1299,9 +1493,13 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_WATER_HYDRA",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 3,
+    "text": "Grants +{v}  Fishing Speed."
+   },
    "areas": []
   },
   {
@@ -1331,9 +1529,13 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_MURDERWING",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 0.5,
+    "text": "Increases the distance you can fall before taking fall damage by +{v} blocks."
+   },
    "areas": []
   },
   {
@@ -1345,9 +1547,13 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_SEA_EMPEROR",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 0.5,
+    "text": "Grants +{v} ☯ Fishing Wisdom."
+   },
    "areas": []
   },
   {
@@ -1359,9 +1565,12 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_PRINCE",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "level1": "Killing a Prince has a +10% chance to add 1 Bonus Score to your Dungeon Run. Limit of +1 Score per run"
+   },
    "areas": []
   },
   {
@@ -1373,9 +1582,13 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_KOMODO_DRAGON",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 2,
+    "text": "Your Essence Attributes are +{v}% stronger."
+   },
    "areas": []
   },
   {
@@ -1387,9 +1600,13 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_BLUE_CRAB",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Treasure catches are +{v}% more likely to be OUTSTANDING."
+   },
    "areas": []
   },
   {
@@ -1401,9 +1618,13 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_MIMIC",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Dungeon Blessings are +{v}% stronger on you."
+   },
    "areas": []
   },
   {
@@ -1415,9 +1636,13 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_WOLVERINE",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Slayer Quests start +{v}% complete."
+   },
    "areas": []
   },
   {
@@ -1465,9 +1690,13 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_TOUCAN",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Your pet's EXP Share grants +{v}% more EXP."
+   },
    "areas": []
   },
   {
@@ -1479,9 +1708,13 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_CAIMAN",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 2,
+    "text": "Your Ruler Attributes are +{v}% stronger."
+   },
    "areas": []
   },
   {
@@ -1501,6 +1734,7 @@
      "cond": "day"
     }
    ],
+   "effectKind": "conditional",
    "areas": [
     "farming"
    ]
@@ -1514,9 +1748,13 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_SEA_SERPENT",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 2,
+    "text": "Your Hunter Attributes are +{v}% stronger."
+   },
    "areas": []
   },
   {
@@ -1536,6 +1774,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "combat"
    ]
@@ -1549,9 +1788,13 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_XYZ",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Increases your Mana regeneration by +{v}%."
+   },
    "areas": []
   },
   {
@@ -1563,9 +1806,13 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_LEATHERBACK",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 0.5,
+    "text": "Grants +{v} ☯ Hunting Wisdom."
+   },
    "areas": []
   },
   {
@@ -1585,6 +1832,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "mining"
    ]
@@ -1606,6 +1854,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "farming"
    ]
@@ -1627,6 +1876,7 @@
      "cond": "griffin_burrows"
     }
    ],
+   "effectKind": "conditional",
    "areas": []
   },
   {
@@ -1638,9 +1888,13 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_KING_MINOS",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 2.5,
+    "text": "Increases Coin gain from Griffin Burrows by +{v}%."
+   },
    "areas": []
   },
   {
@@ -1652,9 +1906,13 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_DIVE_GHAST",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Pacifies enemies for +{v}s after mining Opal Gemstones in the Smoldering Tomb. Does not work on Slayer Bosses, Slayer Minibosses. Attacking an enemy ends effect early."
+   },
    "areas": []
   },
   {
@@ -1674,6 +1932,7 @@
      "cond": "on_foraging_islands"
     }
    ],
+   "effectKind": "conditional",
    "areas": []
   },
   {
@@ -1693,6 +1952,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "mining"
    ]
@@ -1706,9 +1966,13 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_RABBIT_GODMOTHER",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 1,
+    "text": "Increases your chance of finding DIVINE Rabbits during Hoppity's Hunt by +{v}%."
+   },
    "areas": []
   },
   {
@@ -1720,9 +1984,13 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_GIANT_ISOPOD",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "conditional",
+   "desc": {
+    "perLevel": 0.5,
+    "text": "Grants +{v}  Magic Find while on Fishing Islands."
+   },
    "areas": []
   },
   {
@@ -1742,6 +2010,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "combat"
    ]
@@ -1755,9 +2024,13 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_QUEEN_BEE",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 0.5,
+    "text": "Honeyhives have a +{v}% chance to refill instantly."
+   },
    "areas": []
   },
   {
@@ -1769,9 +2042,13 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_BONZO",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Grants +{v}% more Catacombs XP."
+   },
    "areas": []
   },
   {
@@ -1783,9 +2060,13 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_BEEHEEMOTH",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 10,
+    "text": "Gain +{v}% more Honeycomb from hunting mobs spawned from Trees lathered with Honeycomb."
+   },
    "areas": []
   },
   {
@@ -1797,9 +2078,13 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_SCARF",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 2,
+    "text": "Gain +{v}% more Dungeons class experience."
+   },
    "areas": []
   },
   {
@@ -1837,6 +2122,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": []
   },
   {
@@ -1848,9 +2134,13 @@
    "rarity": "EPIC",
    "maxLevel": 10,
    "icon": "SHARD_SCATHA",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 1,
+    "text": "Increases your chance of finding Glossy Gemstones during Mining Fiestas by +{v}%. Effects are doubled if you have a Fiesta Flask active!"
+   },
    "areas": [
     "mining"
    ]
@@ -1877,6 +2167,7 @@
      "cond": "in_mines_of_divan"
     }
    ],
+   "effectKind": "conditional",
    "areas": [
     "mining"
    ]
@@ -1907,6 +2198,7 @@
      "cond": "in_mineshaft"
     }
    ],
+   "effectKind": "per_stat",
    "note": "Gemstone Spread only in Glacite Mineshafts, scales with Cold Resistance; every-N for level 2-9 unknown",
    "areas": [
     "mining"
@@ -1929,6 +2221,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "combat"
    ]
@@ -1950,6 +2243,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "combat"
    ]
@@ -1971,6 +2265,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "combat"
    ]
@@ -1984,10 +2279,14 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_CHAMELEON",
-   "src": "neu",
+   "src": "neu lore level I",
    "unconsumable": true,
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 3,
+    "text": "Fusing a Chameleon with a Shard grants the next {v} Shards from that Shard's ID line as a result."
+   },
    "areas": []
   },
   {
@@ -1999,9 +2298,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_NESSIE",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 0.5,
+    "text": "Grants +{v}  Double Hook Chance while on Foraging Islands."
+   },
    "areas": []
   },
   {
@@ -2013,9 +2316,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_TIAMAT",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 5,
+    "text": "Your \"Echo\" Attributes are +{v}% stronger."
+   },
    "areas": []
   },
   {
@@ -2027,9 +2334,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_WYVERN",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 2,
+    "text": "Your Wisdom Attributes are +{v}% stronger."
+   },
    "areas": []
   },
   {
@@ -2041,9 +2352,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_TORTOISE",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Your David's Cloak gains +{v}  True Defense."
+   },
    "areas": []
   },
   {
@@ -2076,9 +2391,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_RABBIT_GODFATHER",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "conditional",
+   "desc": {
+    "perLevel": 750,
+    "text": "Finds a Hitman Egg every {v}s during Hoppity's Hunt."
+   },
    "areas": []
   },
   {
@@ -2090,9 +2409,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_NAGA",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 0.05,
+    "text": "Grants +{v} ❣ Charm Chance."
+   },
    "areas": []
   },
   {
@@ -2112,6 +2435,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": []
   },
   {
@@ -2123,9 +2447,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_WARTYBUG",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 0.01,
+    "text": "Grants a +{v}% chance to obtain a Warty when breaking Nether Warts."
+   },
    "areas": []
   },
   {
@@ -2163,6 +2491,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "combat"
    ]
@@ -2176,9 +2505,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_TAURUS",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 0.1,
+    "text": "Your  Intelligence is increased by +{v}%."
+   },
    "areas": []
   },
   {
@@ -2190,9 +2523,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_DAEMON",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Your RNG Meter fills +{v}% faster."
+   },
    "areas": []
   },
   {
@@ -2204,9 +2541,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_MOLTENFISH",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 0.1,
+    "text": "Grants a +{v}% chance to fish a Shinyfish."
+   },
    "areas": []
   },
   {
@@ -2218,9 +2559,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_DOOMSPIRAL",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 2,
+    "text": "Your \"Tracker\" Attributes are +{v}% stronger."
+   },
    "areas": []
   },
   {
@@ -2232,9 +2577,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_MACAW",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 2.5,
+    "text": "Grants a +{v}% chance to get a bonus Rainbow Feather when hunting a SPARKLING  Critter in the Critter Safari."
+   },
    "areas": []
   },
   {
@@ -2254,6 +2603,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "combat"
    ]
@@ -2267,9 +2617,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_ANANKE",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 2,
+    "text": "Increases the odds of finding Ananke Feathers by +{v}%."
+   },
    "areas": []
   },
   {
@@ -2281,9 +2635,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_HIDEONBOX",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Grants +{v} Tuning Points."
+   },
    "areas": []
   },
   {
@@ -2295,9 +2653,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_LORD_JAWBUS",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 0.5,
+    "text": "Grants +{v}  Double Hook Chance while on Combat Islands."
+   },
    "areas": []
   },
   {
@@ -2309,9 +2671,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_HELLWISP",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 2,
+    "text": "Grants a +{v}% chance to get a second Heavy Pearl."
+   },
    "areas": []
   },
   {
@@ -2331,6 +2697,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": []
   },
   {
@@ -2342,9 +2709,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_MEGALITH",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Grants +{v}  Hunting Fortune."
+   },
    "areas": []
   },
   {
@@ -2374,9 +2745,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_CONDOR",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 0.5,
+    "text": "Grants +{v} ☯ Taming Wisdom."
+   },
    "areas": []
   },
   {
@@ -2388,9 +2763,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_SUN_FISH",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "The effect of Starborn Temples is +{v}% stronger on you."
+   },
    "areas": []
   },
   {
@@ -2410,6 +2789,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "combat"
    ]
@@ -2431,6 +2811,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": []
   },
   {
@@ -2442,9 +2823,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_QUEEN_SNAKE",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 5,
+    "text": "Your \"Visitor\" Attributes are +{v}% stronger."
+   },
    "areas": []
   },
   {
@@ -2456,9 +2841,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_JORMUNG",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 0.1,
+    "text": "Your  Strength is increased by +{v}%."
+   },
    "areas": []
   },
   {
@@ -2478,6 +2867,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": []
   },
   {
@@ -2489,9 +2879,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_ETHERDRAKE",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 0.1,
+    "text": "Your  Crit Damage is increased by +{v}%."
+   },
    "areas": []
   },
   {
@@ -2503,9 +2897,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_GRIZZLY_BEAR",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 0.1,
+    "text": "Whenever you cut a Tree with an Axe, reduce its Toughness by +{v}."
+   },
    "areas": []
   },
   {
@@ -2535,6 +2933,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "farming",
     "mining"
@@ -2549,9 +2948,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_MOLTHORN",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 5,
+    "text": "Your \"Unlimited\" Attributes are +{v}% stronger."
+   },
    "areas": []
   },
   {
@@ -2563,9 +2966,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_STARBORN",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 2,
+    "text": "Buffs all other shards in the Elemental Family by +{v}%."
+   },
    "areas": []
   },
   {
@@ -2577,9 +2984,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_PRIMORDIAL",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 0.5,
+    "text": "Increases the chance of The Primordial cocooning Slayer Bosses and Slayer Minibosses by +{v}%."
+   },
    "areas": []
   },
   {
@@ -2591,9 +3002,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_COCOALEECH",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 2.5,
+    "text": " Pests have a +{v}% chance to drop a second Vinyl."
+   },
    "areas": []
   },
   {
@@ -2605,9 +3020,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_TITANOBOA",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 0.5,
+    "text": "Grants +{v}  Double Hook Chance while on Fishing Islands."
+   },
    "areas": []
   },
   {
@@ -2619,9 +3038,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 0.1,
+    "text": "Increases your chance of finding Dyes by +{v}%."
+   },
    "areas": []
   },
   {
@@ -2633,9 +3056,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_FLORA",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Counts as +{v} towards the Unique Crop Bonus in your Greenhouse."
+   },
    "areas": [],
    "mcIcon": "sunflower"
   },
@@ -2648,9 +3075,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_PARAGON",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 0.5,
+    "text": "Grants a +{v}% discount on starting Slayer Quests."
+   },
    "areas": []
   },
   {
@@ -2662,9 +3093,13 @@
    "rarity": "LEGENDARY",
    "maxLevel": 10,
    "icon": "SHARD_TIMESTALK_CLONE",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 0.1,
+    "text": "Grants +{v}% Growth Speed in your Greenhouse."
+   },
    "areas": []
   },
   {
@@ -2684,6 +3119,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "mining"
    ]
@@ -2705,6 +3141,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "combat"
    ]
@@ -2726,6 +3163,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "combat"
    ]
@@ -2747,6 +3185,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "combat"
    ]
@@ -2768,6 +3207,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": []
   },
   {
@@ -2779,9 +3219,12 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_TOAD",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "level1": "Frogs have a +10% chance to jump 1 less time."
+   },
    "areas": []
   },
   {
@@ -2793,9 +3236,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_GLACITE_WALKER",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Gain +{v}% more Ice Essence."
+   },
    "areas": [],
    "mcIcon": "packed_ice"
   },
@@ -2808,9 +3255,12 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_BEACONMITE",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "level1": "The effects of Galatea's beacons are +10% stronger on you. Gain a +0.1% chance to find Signal Enhancers in Tree Gifts."
+   },
    "areas": []
   },
   {
@@ -2822,9 +3272,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_LIZARD_KING",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Grants +{v}  Hunting Fortune towards RARE Attributes."
+   },
    "areas": []
   },
   {
@@ -2836,9 +3290,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_PYTHON",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 5,
+    "text": "Your Black Holes capture creatures +{v}% faster."
+   },
    "areas": []
   },
   {
@@ -2850,9 +3308,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_INVISIBUG",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 1,
+    "text": "RARE and above Garden Visitors have a +{v}% higher chance to arrive."
+   },
    "areas": []
   },
   {
@@ -2864,9 +3326,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_PIRANHA",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 2,
+    "text": "Increases the odds of finding rare items in Tree Gifts at Moonglade Marsh by +{v}%."
+   },
    "areas": []
   },
   {
@@ -2878,9 +3344,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_HIDEONGEON",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Increases the quality of boss rewards in The Catacombs by +{v}."
+   },
    "areas": []
   },
   {
@@ -2892,9 +3362,12 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_LAPIS_SKELETON",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "level1": "Grants a +2% extra chance of finding Level 6+ books or higher in Superpairs."
+   },
    "areas": []
   },
   {
@@ -2914,6 +3387,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "farming"
    ]
@@ -2936,6 +3410,7 @@
      "family": "undead"
     }
    ],
+   "effectKind": "conditional",
    "areas": []
   },
   {
@@ -2947,9 +3422,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_VULTURE",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 15,
+    "text": "Grants +{v}  Sweep towards Helix Trees."
+   },
    "areas": []
   },
   {
@@ -2961,9 +3440,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_STAR_SENTRY",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Gain +{v}% extra Mithril Powder."
+   },
    "areas": [
     "mining"
    ]
@@ -2977,9 +3460,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_HIDEONDRA",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 5,
+    "text": "Gives +{v}% chance to have an extra Kuudra Teeth in the Paid Reward Chest."
+   },
    "areas": []
   },
   {
@@ -2991,9 +3478,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_ABYSSAL_LANTERN",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 10,
+    "text": "Increases the chance to find Golden and Diamond Goblins by +{v}%."
+   },
    "areas": []
   },
   {
@@ -3005,9 +3496,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_ARACHNE",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Gain +{v}% more Spider Essence."
+   },
    "areas": []
   },
   {
@@ -3019,9 +3514,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_BITBUG",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 5,
+    "text": "{v}% of your Booster Cookie Bits are gained up front."
+   },
    "areas": []
   },
   {
@@ -3033,9 +3532,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_LAVA_LEECH",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Gain +{v}% more Crimson Essence."
+   },
    "areas": []
   },
   {
@@ -3047,9 +3550,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_REVENANT",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Gain +{v}% more Undead Essence."
+   },
    "areas": []
   },
   {
@@ -3061,9 +3568,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_FOLF",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "conditional",
+   "desc": {
+    "perLevel": 5,
+    "text": "Increases your  Speed Cap by +{v} while in The Catacombs."
+   },
    "areas": []
   },
   {
@@ -3075,9 +3586,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_SILENTDEPTH",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 1,
+    "text": "Treasure Chests you find in the Crystal Hollows have a +{v}% chance to double their loot."
+   },
    "areas": [
     "mining"
    ]
@@ -3091,9 +3606,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_SKELETOR",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 2.5,
+    "text": "Increases damage from ranged weapons by +{v}%."
+   },
    "areas": []
   },
   {
@@ -3105,9 +3624,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_THYST",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Gain +{v}% extra Gemstone Powder."
+   },
    "areas": [
     "mining"
    ]
@@ -3121,9 +3644,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_SEA_SHINE",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 0.5,
+    "text": "Trophy Frogs are +{v}% more likely to be DIAMOND."
+   },
    "areas": []
   },
   {
@@ -3143,6 +3670,7 @@
      "cond": "weather_on_mining_islands"
     }
    ],
+   "effectKind": "conditional",
    "areas": [
     "mining"
    ]
@@ -3156,9 +3684,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_HIDEONRING",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Grants +{v} extra Accessory Bag slots."
+   },
    "areas": []
   },
   {
@@ -3170,9 +3702,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_SNOWFIN",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 2,
+    "text": "Increases the odds of finding rare items in Winter Gifts by +{v}%."
+   },
    "areas": []
   },
   {
@@ -3202,9 +3738,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_HUMMINGBIRD",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 10,
+    "text": "Grants a +{v}% chance to Chop an extra log, on top of the ones you swept."
+   },
    "areas": []
   },
   {
@@ -3216,9 +3756,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_CARROT_KING",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 5,
+    "text": "Your Chocolate Factory gains +{v} more Chocolate per second."
+   },
    "areas": []
   },
   {
@@ -3230,9 +3774,12 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_WITHER_SPECTER",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "conditional",
+   "desc": {
+    "level1": "When you haven't been damaged in the last 5s or more, your mana costs are decreased by +1%."
+   },
    "areas": []
   },
   {
@@ -3244,9 +3791,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_BADGER",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "conditional",
+   "desc": {
+    "perLevel": 0.5,
+    "text": "Grants +{v}  Tracking while on Combat Islands."
+   },
    "areas": []
   },
   {
@@ -3276,9 +3827,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_LADYBUG",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Gain +{v}% more Copper from Garden Visitors."
+   },
    "areas": []
   },
   {
@@ -3298,6 +3853,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": []
   },
   {
@@ -3309,9 +3865,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_CROCODILE",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 2,
+    "text": "Grants a +{v}% chance to double shards from a Reptile Fusion."
+   },
    "areas": []
   },
   {
@@ -3332,6 +3892,7 @@
      "family": "animal"
     }
    ],
+   "effectKind": "conditional",
    "areas": []
   },
   {
@@ -3343,9 +3904,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_BULLFROG",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 10,
+    "text": "Berries have a +{v}% chance to grant you double points in Starlyn Contests."
+   },
    "areas": []
   },
   {
@@ -3357,9 +3922,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_DREADWING",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Gain +{v}% more Forest Essence."
+   },
    "areas": []
   },
   {
@@ -3379,6 +3948,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": []
   },
   {
@@ -3390,9 +3960,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_STALAGMIGHT",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Gain +{v}% extra Glacite Powder."
+   },
    "areas": [
     "mining"
    ]
@@ -3406,9 +3980,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_FUNGLOOM",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 10,
+    "text": "Gain a +{v}% chance to gain an additional Chisel charge upon starting the Fossil Excavator."
+   },
    "areas": [
     "mining"
    ]
@@ -3422,9 +4000,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_EEL",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "conditional",
+   "desc": {
+    "perLevel": 1,
+    "text": "Increase Pull by +{v} when using your Fishing Nets."
+   },
    "areas": []
   },
   {
@@ -3436,9 +4018,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_KING_COBRA",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Your Black Holes gain +{v}%  Hunting Fortune."
+   },
    "areas": []
   },
   {
@@ -3459,6 +4045,7 @@
      "family": "critter"
     }
    ],
+   "effectKind": "conditional",
    "areas": []
   },
   {
@@ -3479,6 +4066,7 @@
      "family": "infernal"
     }
    ],
+   "effectKind": "conditional",
    "areas": []
   },
   {
@@ -3490,9 +4078,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_DRACONIC",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Gain +{v}% more Dragon Essence."
+   },
    "areas": []
   },
   {
@@ -3504,9 +4096,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_FALCON",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Pets gain +{v}% more EXP from Combat."
+   },
    "areas": []
   },
   {
@@ -3518,9 +4114,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_INFERNO_KOI",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 2,
+    "text": "Increase the odds of finding a Vanquisher by +{v}%."
+   },
    "areas": []
   },
   {
@@ -3532,9 +4132,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_WITHER",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Gain +{v}% more Wither Essence."
+   },
    "areas": [],
    "mcIcon": "wither_skeleton_head"
   },
@@ -3547,9 +4151,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_GECKO",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 2,
+    "text": "Your Sharpening Attributes are +{v}% stronger."
+   },
    "areas": []
   },
   {
@@ -3570,6 +4178,7 @@
      "family": "construct"
     }
    ],
+   "effectKind": "conditional",
    "areas": []
   },
   {
@@ -3590,6 +4199,7 @@
      "family": "mythological"
     }
    ],
+   "effectKind": "conditional",
    "areas": []
   },
   {
@@ -3610,6 +4220,7 @@
      "family": "cubic"
     }
    ],
+   "effectKind": "conditional",
    "areas": []
   },
   {
@@ -3621,9 +4232,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_MAGGOT",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Junk catches are +{v}% more likely to be OUTSTANDING."
+   },
    "areas": []
   },
   {
@@ -3643,6 +4258,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "mining"
    ]
@@ -3665,6 +4281,7 @@
      "family": "flying"
     }
    ],
+   "effectKind": "conditional",
    "areas": []
   },
   {
@@ -3676,9 +4293,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_THUNDER",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Your Thunder, Storm, and Hurricane Bottles fill +{v}% faster."
+   },
    "areas": []
   },
   {
@@ -3690,9 +4311,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_ROCKMITE",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "conditional",
+   "desc": {
+    "perLevel": 0.5,
+    "text": "Grants +{v}  Tracking while on Mining Islands."
+   },
    "areas": []
   },
   {
@@ -3704,9 +4329,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_ANTEATER",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 0.1,
+    "text": "Grants a +{v}% chance to gain double loot from Floor Drops."
+   },
    "areas": []
   },
   {
@@ -3718,9 +4347,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_SCRAPPY",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 1,
+    "text": "Increases your chance of finding a Suspicious Scrap while mining in the Glacite Mineshafts by +{v}%."
+   },
    "areas": [
     "mining"
    ]
@@ -3743,6 +4376,7 @@
      "family": "elusive"
     }
    ],
+   "effectKind": "conditional",
    "areas": []
   },
   {
@@ -3754,9 +4388,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_MANTIS_SHRIMP",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Treasure catches are +{v}% more likely to be GREAT."
+   },
    "areas": []
   },
   {
@@ -3777,6 +4415,7 @@
      "family": "subterranean"
     }
    ],
+   "effectKind": "conditional",
    "areas": []
   },
   {
@@ -3797,6 +4436,7 @@
      "family": "woodland"
     }
    ],
+   "effectKind": "conditional",
    "areas": []
   },
   {
@@ -3808,9 +4448,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_GIMMIEGOLD",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Your Goblin Pet gains +{v}  Ore Fortune."
+   },
    "areas": []
   },
   {
@@ -3831,6 +4475,7 @@
      "family": "frozen"
     }
    ],
+   "effectKind": "conditional",
    "areas": []
   },
   {
@@ -3851,6 +4496,7 @@
      "family": "arcane"
     }
    ],
+   "effectKind": "conditional",
    "areas": []
   },
   {
@@ -3862,9 +4508,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_NOZZLENOSE",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "conditional",
+   "desc": {
+    "perLevel": 0.5,
+    "text": "Grants +{v}  Tracking while on Fishing Islands."
+   },
    "areas": []
   },
   {
@@ -3876,9 +4526,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_STONEWORM",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 1,
+    "text": "Increases your chance of finding Refined Minerals during Mining Fiestas by +{v}%. Effects are doubled if you have a Fiesta Flask active!"
+   },
    "areas": [
     "mining"
    ]
@@ -3892,9 +4546,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_FLUFFLING",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "conditional",
+   "desc": {
+    "perLevel": 0.5,
+    "text": "Grants +{v}  Tracking while on Foraging Islands."
+   },
    "areas": []
   },
   {
@@ -3906,9 +4564,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_STINGRAY",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 2,
+    "text": "Increases the odds of finding rare items in Tree Gifts at Torrhus Canyon by +{v}%."
+   },
    "areas": []
   },
   {
@@ -3920,9 +4582,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_ZOMBUDDY",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 0.1,
+    "text": "Mutations have a +{v}% chance to instantly re-mutate at their first growth phase when harvested."
+   },
    "areas": []
   },
   {
@@ -3934,9 +4600,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_PUCK",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 0.1,
+    "text": "Grants a +{v}% chance for Tree Gifts to contain double loot."
+   },
    "areas": []
   },
   {
@@ -3948,9 +4618,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_TROODON",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Gain +{v}% more Fossil Essence."
+   },
    "areas": []
   },
   {
@@ -3971,6 +4645,7 @@
      "family": "arthropod"
     }
    ],
+   "effectKind": "conditional",
    "areas": []
   },
   {
@@ -3982,9 +4657,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_PANGOLIN",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Gain +{v}% extra Whispers."
+   },
    "areas": []
   },
   {
@@ -4005,6 +4684,7 @@
      "family": "aquatic"
     }
    ],
+   "effectKind": "conditional",
    "areas": []
   },
   {
@@ -4016,9 +4696,12 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_MURKBAT",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "level1": "Killing a Bat has a +10% chance to add 1 Bonus Score to your Dungeon Run. Limit of +1 Score per run"
+   },
    "areas": []
   },
   {
@@ -4030,9 +4713,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_GOLDOLOT",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 2,
+    "text": "Your \"Bucket\" Attributes are +{v}% stronger."
+   },
    "areas": []
   },
   {
@@ -4044,9 +4731,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_RABBIT_NEIGHBOR",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 1,
+    "text": "Increases your chance of finding MYTHIC Rabbits during Hoppity's Hunt by +{v}%."
+   },
    "areas": []
   },
   {
@@ -4058,9 +4749,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_TORRID",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Your first  Sweep on each Tree is +{v}% more effective."
+   },
    "areas": []
   },
   {
@@ -4072,9 +4767,13 @@
    "rarity": "RARE",
    "maxLevel": 10,
    "icon": "SHARD_DRYBARK",
-   "src": "neu",
+   "src": "neu lore level I",
    "effects": [],
-   "unknown": true,
+   "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Reduces the cooldown of throwing your Axe by +{v}%."
+   },
    "areas": []
   },
   {
@@ -4094,6 +4793,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "combat"
    ]
@@ -4107,9 +4807,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_MOTH",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 0.5,
+    "text": "Reduces the spawn cooldown of  Pests by {v}s."
+   },
    "areas": []
   },
   {
@@ -4121,9 +4825,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_MOSQUITO",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 0.001,
+    "text": "Grants a +{v}% chance to find an Enchanted Crop while Farming."
+   },
    "areas": []
   },
   {
@@ -4135,9 +4843,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_RABBIT_CAT",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 1,
+    "text": "Increases your chance of finding LEGENDARY Rabbits during Hoppity's Hunt by +{v}%."
+   },
    "areas": []
   },
   {
@@ -4157,6 +4869,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "combat"
    ]
@@ -4178,6 +4891,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "combat"
    ]
@@ -4191,9 +4905,12 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_SPARROW",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "level1": "Grants +1  Fig Fortune for every digit in your Fig Log collection. (Max 10M collection)"
+   },
    "areas": []
   },
   {
@@ -4205,9 +4922,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_GOLDFIN",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 30,
+    "text": "The cooldown of Golden Fish is reduced by +{v}s."
+   },
    "areas": []
   },
   {
@@ -4219,9 +4940,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_TROGLOBYTE",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Commissions grant +{v}% more HOTM Exp."
+   },
    "areas": [
     "mining"
    ]
@@ -4235,9 +4960,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_HIDEONCAVE",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 5,
+    "text": "Grants a +{v}% chance to find an extra item in Treasure Chests and the Crystal Nucleus."
+   },
    "areas": [
     "mining"
    ]
@@ -4251,9 +4980,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_SALAMANDER",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 2,
+    "text": "Grants +{v}  Hunting Fortune towards UNCOMMON Attributes."
+   },
    "areas": []
   },
   {
@@ -4265,9 +4998,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_CUBOA",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 2,
+    "text": "Your \"Box\" Attributes are +{v}% stronger."
+   },
    "areas": []
   },
   {
@@ -4287,6 +5024,7 @@
      "cond": "on_pest"
     }
    ],
+   "effectKind": "conditional",
    "areas": [
     "farming"
    ]
@@ -4300,9 +5038,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_MOSSYBIT",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Forest Shards get caught by Traps +{v}% faster."
+   },
    "areas": []
   },
   {
@@ -4350,9 +5092,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_SEER",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "conditional",
+   "desc": {
+    "perLevel": 2,
+    "text": "Your Dragon Shortbow gains +{v}% more  Damage while in The End."
+   },
    "areas": []
   },
   {
@@ -4364,9 +5110,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_HERON",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 10,
+    "text": "Grants +{v}  Sweep towards Mangrove Trees."
+   },
    "areas": []
   },
   {
@@ -4378,9 +5128,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_SEA_WITCH",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 1,
+    "text": "Increases your chance of dropping Ingredients during the Year of the Witch by +{v}%."
+   },
    "areas": []
   },
   {
@@ -4400,6 +5154,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [],
    "mcIcon": "obsidian"
   },
@@ -4420,6 +5175,7 @@
      "cond": "on_pest"
     }
    ],
+   "effectKind": "conditional",
    "areas": [
     "farming"
    ]
@@ -4433,9 +5189,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_SALMON",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 0.1,
+    "text": "Grants a +{v}% chance to find a Wet Book when fishing a Treasure."
+   },
    "areas": []
   },
   {
@@ -4447,9 +5207,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_VIPER",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Your Hunting Axes gain +{v}% more stats from the weapon they hold."
+   },
    "areas": []
   },
   {
@@ -4461,9 +5225,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_PRAYING_MANTIS",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "conditional",
+   "desc": {
+    "perLevel": 3,
+    "text": "Grants +{v}% more  Damage against  Pest mobs."
+   },
    "areas": []
   },
   {
@@ -4475,9 +5243,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_LOTUM",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Grants +{v}  Tracking on Exploding Lily Pads."
+   },
    "areas": []
   },
   {
@@ -4508,9 +5280,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_BAMBULEAF",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 3,
+    "text": "Your Axe gains +{v}  Sweep on throws."
+   },
    "areas": []
   },
   {
@@ -4522,9 +5298,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_TREASURE_HOARDER",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Gain +{v}% more Heart of the Mountain Exp."
+   },
    "areas": [
     "mining"
    ]
@@ -4538,9 +5318,12 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_SYCOPHANT",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "level1": "Heals for +0.1% of your max health each time you kill a mob. Cooldown: 0.5s"
+   },
    "areas": []
   },
   {
@@ -4552,9 +5335,12 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_SEAGULL",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "level1": "Grants +1  Mangrove Fortune for every digit in your Mangrove Log collection. (Max 10M collection)"
+   },
    "areas": []
   },
   {
@@ -4566,9 +5352,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_ENT",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "conditional",
+   "desc": {
+    "perLevel": 3,
+    "text": "Grants +{v}% more  Damage against  Woodland mobs."
+   },
    "areas": []
   },
   {
@@ -4598,9 +5388,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_MOCHIBEAR",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 3,
+    "text": "Your Axe gains +{v}  Sweep on melee."
+   },
    "areas": []
   },
   {
@@ -4612,9 +5406,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_MAGMA_SLUG",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 0.2,
+    "text": "Increases the chance of catching corrupted Sea Creatures by +{v}%."
+   },
    "areas": []
   },
   {
@@ -4626,9 +5424,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_FLAMING_SPIDER",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "conditional",
+   "desc": {
+    "perLevel": 3,
+    "text": "Grants +{v}% more  Damage against  Arthropod mobs."
+   },
    "areas": []
   },
   {
@@ -4640,9 +5442,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_KIWI",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Kat takes +{v}% less time to upgrade a Pet."
+   },
    "areas": []
   },
   {
@@ -4654,9 +5460,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_BRUISER",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "conditional",
+   "desc": {
+    "perLevel": 3,
+    "text": "Grants +{v}% more  Damage against  Ender mobs."
+   },
    "areas": []
   },
   {
@@ -4668,9 +5478,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_STRIDER_SURFER",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "conditional",
+   "desc": {
+    "perLevel": 3,
+    "text": "Grants +{v}% more  Damage against  Magmatic mobs."
+   },
    "areas": []
   },
   {
@@ -4682,9 +5496,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_RANA",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 3,
+    "text": "Your Frog Pet gains +{v}  Strength."
+   },
    "areas": []
   },
   {
@@ -4704,6 +5522,7 @@
      "cond": "pest_in_plot"
     }
    ],
+   "effectKind": "conditional",
    "areas": [
     "farming"
    ]
@@ -4717,9 +5536,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_FLIP_FLOPPER",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 0.5,
+    "text": "Trophy Frogs are +{v}% more likely to be GOLD."
+   },
    "areas": []
   },
   {
@@ -4731,9 +5554,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_POLARIS",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "conditional",
+   "desc": {
+    "perLevel": 3,
+    "text": "Grants +{v}% more  Damage against  Frozen mobs."
+   },
    "areas": []
   },
   {
@@ -4745,9 +5572,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_TREEFROG",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Your Frog Pet gains +{v}  Foraging Fortune."
+   },
    "areas": []
   },
   {
@@ -4759,9 +5590,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_BAYOU_SLUDGE",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Your Composter works +{v}% faster."
+   },
    "areas": []
   },
   {
@@ -4773,9 +5608,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_AREITA",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 2,
+    "text": "Your Spider Pet and Tarantula Pet gain +{v}  Crit Damage."
+   },
    "areas": []
   },
   {
@@ -4805,9 +5644,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_OSEDAX",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 2.5,
+    "text": "Increases your chance of catching Flexbones by +{v}% while in the Tomb Floodway."
+   },
    "areas": []
   },
   {
@@ -4819,9 +5662,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_DUPLICO",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "conditional",
+   "desc": {
+    "perLevel": 3,
+    "text": "Grants +{v}% more  Damage against  Arcane mobs."
+   },
    "areas": []
   },
   {
@@ -4833,9 +5680,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_LITTERBUG",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Junk catches are +{v}% more likely to be GREAT."
+   },
    "areas": []
   },
   {
@@ -4847,9 +5698,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_WATER_SNAKE",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 0.5,
+    "text": "Grants +{v}  Tracking towards Titanoboa."
+   },
    "areas": []
   },
   {
@@ -4869,6 +5724,7 @@
      "cond": "vs_special_zealots"
     }
    ],
+   "effectKind": "conditional",
    "areas": []
   },
   {
@@ -4880,9 +5736,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_HONEYBUG",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 0.25,
+    "text": "Garden Visitors have a +{v}% chance to bring Honey Jar."
+   },
    "areas": []
   },
   {
@@ -4894,9 +5754,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_SHUDDERSQUID",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 0.5,
+    "text": "Grants +{v}  Tracking towards Yeti."
+   },
    "areas": []
   },
   {
@@ -4908,9 +5772,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_SOLSNATCHER",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "conditional",
+   "desc": {
+    "perLevel": 1,
+    "text": "Mobs are +{v}% more likely to drop their soul when killed."
+   },
    "areas": []
   },
   {
@@ -4922,9 +5790,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_SEPIALOT",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "conditional",
+   "desc": {
+    "perLevel": 10,
+    "text": "Your Chums give +{v}% extra Coins when deposited into any bucket."
+   },
    "areas": []
   },
   {
@@ -4936,9 +5808,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_HONEY_BADGER",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 0.5,
+    "text": "Grants a +{v}% chance to instantly attract a mob when lathering a Tree with Honeycomb."
+   },
    "areas": []
   },
   {
@@ -4950,9 +5826,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_DRIFTLING",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "conditional",
+   "desc": {
+    "perLevel": 3,
+    "text": "Grants +{v}% more  Damage against  Subterranean mobs."
+   },
    "areas": []
   },
   {
@@ -4964,9 +5844,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_TEWTIL",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 5,
+    "text": "Punching Exploding Lily Pads applies +{v}% more force."
+   },
    "areas": []
   },
   {
@@ -4978,9 +5862,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_MINOS_HUNTER",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "conditional",
+   "desc": {
+    "perLevel": 3,
+    "text": "Grants +{v}% more  Damage against  Mythological mobs."
+   },
    "areas": []
   },
   {
@@ -4992,9 +5880,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_WOODCHUCKER",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Reduces the cost of items in the Builder's Shop by +{v}%."
+   },
    "areas": []
   },
   {
@@ -5006,9 +5898,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_SOLAR",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 0.5,
+    "text": "Gain +{v}% more points in Starlyn Contests."
+   },
    "areas": []
   },
   {
@@ -5020,9 +5916,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_PARCHED",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 0.25,
+    "text": "Garden Visitors have a +{v}% chance to bring Compost."
+   },
    "areas": []
   },
   {
@@ -5034,9 +5934,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_BLOODBAT",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Reduces the cost of items in the Bartender's Shop by +{v}%."
+   },
    "areas": []
   },
   {
@@ -5048,9 +5952,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_DUSTYBIT",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Combat Shards get caught by Traps +{v}% faster."
+   },
    "areas": []
   },
   {
@@ -5062,9 +5970,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_WOODLOUSE",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 0.25,
+    "text": "Garden Visitors have a +{v}% chance to bring Tasty Cheese."
+   },
    "areas": []
   },
   {
@@ -5076,9 +5988,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_EMBER",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Gain +{v}% more Heart of the Forest Exp."
+   },
    "areas": []
   },
   {
@@ -5090,9 +6006,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_CHEEKY_TIKI",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 0.1,
+    "text": "Grants +{v}  Treasure Chance while in the Backwater Bayou."
+   },
    "areas": []
   },
   {
@@ -5104,9 +6024,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_RED_PANDA",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 0.25,
+    "text": "Garden Visitors have a +{v}% chance to bring Plant Matter."
+   },
    "areas": []
   },
   {
@@ -5118,9 +6042,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_SPRAWL",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "conditional",
+   "desc": {
+    "perLevel": 3,
+    "text": "Grants +{v}% more  Damage against  Animal mobs."
+   },
    "areas": []
   },
   {
@@ -5132,9 +6060,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_SNEAKY_TIKI",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 0.5,
+    "text": "Grants +{v}  Tracking towards Wiki Tiki."
+   },
    "areas": []
   },
   {
@@ -5154,6 +6086,7 @@
      "cond": "mining_fiesta_active"
     }
    ],
+   "effectKind": "conditional",
    "areas": [
     "mining"
    ]
@@ -5167,9 +6100,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_SHRIEKY_TIKI",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "conditional",
+   "desc": {
+    "perLevel": 3,
+    "text": "Grants +{v}% more  Damage against  Construct mobs."
+   },
    "areas": []
   },
   {
@@ -5181,9 +6118,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_WOODPECKER",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 0.1,
+    "text": "Grants +{v}  Timber on Helix Trees."
+   },
    "areas": []
   },
   {
@@ -5195,9 +6136,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_HONEYMITE",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 2.5,
+    "text": "Grants a +{v}% chance to spawn an additional Nest Endermite when mining Ender Nodes."
+   },
    "areas": [
     "mining"
    ]
@@ -5211,9 +6156,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_QUEEN_ANT",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "conditional",
+   "desc": {
+    "perLevel": 3,
+    "text": "Grants +{v}% more  Damage against  Elusive mobs."
+   },
    "areas": []
   },
   {
@@ -5225,9 +6174,12 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_HAWK",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "level1": "Grants +1  Helix Fortune for every digit in your Helix Log collection. (Max 10M collection)"
+   },
    "areas": []
   },
   {
@@ -5239,9 +6191,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_JUNE_BUG",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 1,
+    "text": "Upgrading Safari Tickets at the Safari Manager costs +{v}% less Forest Essence."
+   },
    "areas": []
   },
   {
@@ -5253,9 +6209,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_DUNG_BEETLE",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 0.25,
+    "text": "Garden Visitors have a +{v}% chance to bring Dung."
+   },
    "areas": []
   },
   {
@@ -5267,9 +6227,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_RAT",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
-   "effectKind": "other",
+   "effectKind": "chance",
+   "desc": {
+    "perLevel": 1,
+    "text": "Grants a +{v}% chance for  Pests to drop an extra Sprayonator Material."
+   },
    "areas": []
   },
   {
@@ -5289,6 +6253,7 @@
      "cond": "always"
     }
    ],
+   "effectKind": "flat",
    "areas": [
     "farming"
    ]
@@ -5302,9 +6267,13 @@
    "rarity": "UNCOMMON",
    "maxLevel": 10,
    "icon": "SHARD_MITE",
-   "src": "neu+wiki",
+   "src": "neu+wiki lore level I",
    "effects": [],
    "effectKind": "other",
+   "desc": {
+    "perLevel": 2,
+    "text": "Increases the effects of your Atmospheric Filter by +{v}%."
+   },
    "areas": []
   }
  ]

@@ -1,6 +1,7 @@
 // Total per stat = base (typed in) + changes since the measurement + gear. Pure functions, no DOM.
 // The multipliers come last: the base was measured with the multipliers of its snapshot inside, so they are divided out first.
 import { valueAt } from './gamedata.js';
+import { perStatAt } from './attrs-model.js';
 import { GOD_POTION } from './stats.js';
 import { lockOf } from './hotm-model.js';
 import { buildPet } from './gear.js';
@@ -39,6 +40,11 @@ function attrStats(attrs, data, out, area) {
     const level = attrs[a.key] ?? 0;
     if (!(level > 0)) continue;
     for (const e of a.effects) {
+      if (e.kind === 'per_stat') { // depends on another stat: described, never added
+        const p = perStatAt(e, level, a.maxLevel);
+        out.listed.push({ stat: e.stat, value: p.value, cond: e.cond, text: `${a.name}: +${Math.round(p.value * 100) / 100} ${e.stat} per ${p.every} ${e.per.stat} (${e.cond})` });
+        continue;
+      }
       const v = e.fixed !== undefined ? e.fixed : (e.perLevel ?? 0) * level;
       const holds = e.cond === 'always' || (e.cond === 'vs_mob_family' && FAMILIES[area].has(e.family));
       if (holds && e.kind === 'percent_multiplier') out.mult[e.stat] = (out.mult[e.stat] ?? 1) * (1 + v / 100);
@@ -56,6 +62,16 @@ function petStats(pet, data, out, area) {
     const e = perk.effect;
     if (e?.kind !== 'category_multiplier' || !PLACES[area].has(e.where)) continue;
     for (const s of data.stats.stats) if (e.categories.includes(s.category)) out.mult[s.id] = (out.mult[s.id] ?? 1) * (1 + e.percent / 100);
+  }
+}
+
+// The essence shop: a perk with an effect adds its stat per level; a conditional one is only described.
+function essenceStats(essence, data, out) {
+  for (const perk of data.essence?.perks ?? []) {
+    const level = Math.min(essence[perk.id] ?? 0, perk.max);
+    if (!(level > 0)) continue;
+    if (perk.effect) addTo(out.add, perk.effect.stat, perk.effect.perLevel * level);
+    else if (perk.conditional) out.listed.push({ stat: perk.conditional.stat, value: null, cond: 'essence', text: `${perk.name} ${level}: ${perk.conditional.text} (${perk.conditional.where})` });
   }
 }
 
@@ -81,12 +97,13 @@ export function statsOf(build, data, area, pet = buildPet(build, data.pets?.pets
   if (build?.attrs) attrStats(build.attrs, data, out, area);
   petStats(pet, data, out, area);
   if (build?.power) powerStats(build.power, data, out);
+  if (build?.essence) essenceStats(build.essence, data, out);
   if (build?.buffs?.godPotion) for (const [stat, v] of Object.entries(GOD_POTION)) addTo(out.add, stat, v);
   if (build?.buffs?.boosterCookie) for (const e of data.power.boosterCookie.effects) addTo(out.add, e.stat, e.value);
   return out;
 }
 
-export const PART_NAME = { hotm: 'HOTM', attrs: 'Attributes', power: 'Power', buffs: 'Buffs' };
+export const PART_NAME = { hotm: 'HOTM', attrs: 'Attributes', power: 'Power', essence: 'Essence', buffs: 'Buffs' };
 
 // Per stat, what each editor moved since the measurement: the build as it is now against the same build with that one part as it was.
 // A part that was unknown at the measurement moved nothing. Flat stats only.

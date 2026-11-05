@@ -809,3 +809,25 @@ for (const [file, area, values] of [[GUIDE, 'mining', { MINING_SPEED: 1000, MINI
     assert.match(html, /class="path"/);
   });
 }
+
+test('a Flawless gem taken out for a Perfect one is sold: the net price is Perfect bought minus Flawless sold', () => {
+  const tool = piece(DRILL, { gems: [{ slot: 'AMBER_0', type: 'AMBER', quality: 'FLAWLESS' }] });
+  const step = { text: 's', detect: { kind: 'gem', on: 'drill', type: 'AMBER', quality: 'PERFECT', need: 1 }, items: [{ id: 'PERFECT_AMBER_GEM', qty: 1 }] };
+  const ctx = { products: { FLAWLESS_AMBER_GEM: { sell_summary: [{ pricePerUnit: 300000, amount: 10, orders: 1 }] } }, tax: 0, profile: profile([tool]), guide };
+  const out = netCost(step, 1_000_000, setup({ held: tool }), null, items, ctx, false);
+  assert.equal(out.resale, 300000);
+  assert.equal(out.net, 700000);
+  assert.deepEqual(out.soldIds, ['FLAWLESS_AMBER_GEM']);
+  assert.equal(netCost(step, 1_000_000, setup({ held: tool }), null, items, ctx, true).resale, 0);
+});
+
+test('a calc step in a fixed guide follows the rarity: after the Recombobulator the Perfect gem gives more', () => {
+  const fixed = { ...guide, order: 'fixed' };
+  const detect = { kind: 'gem', on: 'drill', type: 'AMBER', quality: 'PERFECT', need: 1 };
+  const flawless = piece(DRILL, { gems: [{ slot: 'AMBER_0', type: 'AMBER', quality: 'FLAWLESS' }] });
+  const calc = (tool) => stepDelta({ text: 's', calc: true, gain: { MINING_SPEED: 1 }, detect }, setup({ held: tool }), profile([tool]), items, GEMSTONE, fixed);
+  const before = calc(flawless).MINING_SPEED;
+  const after = calc({ ...flawless, recomb: true }).MINING_SPEED;
+  assert.ok(before > 1 && after > before);
+  assert.deepEqual(stepDelta({ text: 's', gain: { MINING_SPEED: 1 }, detect }, setup({ held: flawless }), profile([flawless]), items, GEMSTONE, fixed), { MINING_SPEED: 1 });
+});

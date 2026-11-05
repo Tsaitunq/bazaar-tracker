@@ -100,6 +100,7 @@ function moveOf(list, world, env) {
   let leftover = null;
   let shown = null;
   let valued = 0;
+  const parts = []; // a group member's own delta, in order
   const isGroup = list.length > 1 || !!list[0][0].step.group;
   for (const chain of list) {
     const rules = rulesOf(now, env);
@@ -110,7 +111,9 @@ function moveOf(list, world, env) {
     if (walked.group === 'locked') return { list, tier: 'locked', status: 'locked', reasons: walked.reasons, notes };
     if (walked.group) {
       leftover ??= walked.group;
-      shown = addChange(shown, rules.deltaOf(chain[0].step));
+      const own = rules.deltaOf(chain[0].step);
+      shown = addChange(shown, own);
+      parts.push(own);
       // a member with no value is still bought with the group, and what follows builds on it
       if (isGroup) {
         units.push({ steps: chain, target: chain[0], loadout: now.loadout, profile: now.profile });
@@ -119,6 +122,7 @@ function moveOf(list, world, env) {
       continue;
     }
     valued++;
+    parts.push(walked.delta);
     units.push({ steps: walked.steps, target: walked.target, loadout: now.loadout, profile: now.profile });
     walked.helps.forEach((h) => helps.add(h));
     progress = Math.min(progress + walked.progress, 1);
@@ -132,7 +136,7 @@ function moveOf(list, world, env) {
     : miningScore(start.base, delta, env.settings);
   const price = sumPrices(units.map((u) => unitPrice(u, env)));
   const ahead = !isGroup && units[0].target !== units[0].steps[0] ? units[0].target.step : null;
-  const move = { list, units, delta: addChange(delta, shown), gain, helps: [...helps], progress, status, reasons: [], notes, ahead, after: now, ...price };
+  const move = { list, units, parts, delta: addChange(delta, shown), gain, helps: [...helps], progress, status, reasons: [], notes, ahead, after: now, ...price };
   move.perMillion = move.net > 0 ? gain / (move.net / 1e6) : null;
   move.pace = !move.unpriced && (move.coins > 0 || tableStep(units)) ? (move.net > 0 ? progress / (move.net / 1e6) : Infinity) : -1;
   move.tier = tierOf(move);
@@ -211,6 +215,7 @@ function entriesOf(move, tier, rest = false) {
     coins: i === 0 ? move.coins ?? 0 : 0, net: i === 0 ? move.net ?? 0 : 0, resale: i === 0 ? move.resale ?? 0 : 0, unpriced: i === 0 ? move.unpriced ?? 0 : 0,
     tier, status: move.status, reasons: move.reasons, notes: i === 0 ? move.notes : [], ahead: i === 0 ? move.ahead ?? null : null,
     helps: i === 0 ? move.helps ?? [] : [], units: i === 0 ? move.units ?? null : null,
+    parts: i === 0 && list.length > 1 ? move.parts ?? null : null,
   }));
 }
 
@@ -233,6 +238,7 @@ function inGuideOrder(open, world, env) {
     now = move.after ?? (move.tier === 'locked' ? now : advance(now, entries, null, env));
     left = nextRound(left, entries);
   }
+  order.after = now;
   return order;
 }
 
@@ -275,14 +281,25 @@ export function pathOf({ guide, checked, ctx, profile, loadout, base, settings, 
     return checked.has(key) ? [] : [{ section, step, key, index }];
   })));
   const world = { profile, loadout, base, state };
-  const order = guide.order === 'fixed' || !ctx.products ? inGuideOrder(open, world, env) : byValue(open, world, env, spentSoFar(guide, checked, env));
+  // a fixed guide may hold sections that are ranked by value (coins per 1 %); they follow the fixed ones, in the state those leave
+  const ranked = guide.order === 'fixed' && ctx.products ? open.filter((e) => e.section.order === 'value') : [];
+  const fixed = ranked.length ? open.filter((e) => e.section.order !== 'value') : open;
+  const order = guide.order === 'fixed' || !ctx.products ? inGuideOrder(fixed, world, env) : byValue(open, world, env, spentSoFar(guide, checked, env));
+  if (ranked.length) order.push(...byValue(ranked, order.after, env, spentSoFar(guide, checked, env)));
   const notes = [...new Set(order.flatMap((e) => e.notes))];
   return { order, limits: state ? limitsOf(profile, state) : null, notes };
 }
 
 // The cost of a row right now: a later price changes this number, not the place in the plan.
+const unitEnv = (guide, ctx, other, keepOldGear) => ({ guide, ctx, other, keepOldGear, nt: new Set(guide.sections.flatMap((s) => s.steps.flatMap((step) => (step.items ?? []).filter((i) => i.nt && i.id).map((i) => i.id)))) });
 export function entryPrice(entry, { guide, ctx, other = null, keepOldGear = false }) {
   if (!entry.units) return { coins: 0, unpriced: 0, net: 0, resale: 0 };
-  const nt = new Set(guide.sections.flatMap((s) => s.steps.flatMap((step) => (step.items ?? []).filter((i) => i.nt && i.id).map((i) => i.id))));
-  return sumPrices(entry.units.map((u) => unitPrice(u, { guide, ctx, other, keepOldGear, nt })));
+  const env = unitEnv(guide, ctx, other, keepOldGear);
+  return sumPrices(entry.units.map((u) => unitPrice(u, env)));
+}
+
+// The price of each unit of a group, in order (a group has one unit per member).
+export function unitPrices(entry, { guide, ctx, other = null, keepOldGear = false }) {
+  const env = unitEnv(guide, ctx, other, keepOldGear);
+  return (entry.units ?? []).map((u) => unitPrice(u, env));
 }

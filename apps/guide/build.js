@@ -3,7 +3,10 @@ import { CRIMSON_STAR, HPB, DEFAULT_GEAR } from './optimizer-data.js';
 // The current build and the measured bases (pg.build, pg.base). Pure: every function gives the new state.
 // hotm, attrs and power are null = unknown. They must never be read as level 0.
 export { DEFAULT_GEAR };
-export const emptyBuild = () => ({ hotm: null, attrs: null, power: null, buffs: { godPotion: false, boosterCookie: false }, pet: null, gear: { ...DEFAULT_GEAR } });
+export const emptyBuild = () => ({ hotm: null, attrs: null, power: null, essence: null, buffs: { godPotion: false, boosterCookie: false }, pet: null, gear: { ...DEFAULT_GEAR } });
+
+// A measurement saved before the essence shop was a part has no essence in its snapshot: that reads as unknown (null), like a part never entered.
+export const withEssence = (base) => Object.fromEntries(Object.entries(base ?? {}).map(([area, e]) => [area, e.snapshot && e.snapshot.essence === undefined ? { ...e, snapshot: { ...e.snapshot, essence: null } } : e]));
 
 // One measurement per area: the typed values (an empty field is unknown), the date and a snapshot of the build.
 export function measure(base, area, { values, mp }, build, now) {
@@ -29,6 +32,7 @@ export const EMPTY_PART = {
   hotm: () => ({ tier: null, levels: {}, omelette: false, disabled: [], ability: null }),
   attrs: () => ({}),
   power: () => ({ stone: null, mp: null, tuning: {} }),
+  essence: () => ({}), // essence shop: { perkId: level }
 };
 
 export const needsDraft = (build, base, part) => build[part] === null && Object.values(base ?? {}).some((e) => e.snapshot?.[part] === null);
@@ -59,6 +63,7 @@ export const hotmTier = (tier) => (h) => ({ ...h, tier: Number.isInteger(tier) &
 export const perkEnabled = (perk, on) => (h) => ({ ...h, disabled: [...(h.disabled ?? []).filter((id) => id !== perk.id), ...(on ? [] : [perk.id])] });
 export const abilityPick = (perk) => (h) => ({ ...h, ability: h.ability === perk.id ? null : perk.id });
 export const omelette = (on) => (h) => ({ ...h, omelette: on === true });
+export const essenceLevel = (perk, level) => (e) => ({ ...e, [perk.id]: whole(level, perk.max) });
 export const attrLevel = (attr, level) => (a) => ({ ...a, [attr.key]: whole(level, attr.maxLevel) });
 export const powerStone = (id) => (p) => ({ ...p, stone: id || null });
 export const powerMp = (mp) => (p) => ({ ...p, mp: mp === '' || mp === null || !(Number(mp) >= 0) ? null : Number(mp) });
