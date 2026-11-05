@@ -1,0 +1,51 @@
+name: pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/pages.yml'
+      - 'apps/bazaar/**'
+      - 'shared/**'
+      - 'scripts/bazaar/**'
+      - '*.js'
+      - 'index.html'
+      - 'style.css'
+      - 'manifest.webmanifest'
+      - 'changelog.json'
+      - 'icons/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Only the Bazaar app shell and icons (the SHELL list of sw.js); no guide files, nothing from personal/.
+      - name: Build _site
+        run: |
+          node scripts/copy-web.mjs _site
+          # the service worker is not in its own SHELL list, but the live site serves it from the root
+          cp sw.js _site/sw.js
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
