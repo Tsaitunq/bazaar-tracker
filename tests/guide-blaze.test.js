@@ -207,3 +207,49 @@ test('gear: ticked conditional enchants are listed with their level and never ad
   assert.deepEqual(w.listed.map((l) => l.text), ['smite 6: 40 % damage against Skeletal, Wither and Undead mobs', 'Withered and Ancient: +1 per Catacombs level, set your level under Power → Gear']);
   assert.equal(w.gear.STRENGTH, 25); // the Ancient reforge, nothing from smite
 });
+
+// ---- accessories: in the base, a change only when ticked after the measurement
+import { accessoryGain } from '../guide/gear.js';
+
+const ACC = {
+  TALI: { category: 'ACCESSORY', family: 'TOOTH', tier: 'COMMON', stats: { STRENGTH: 5 } },
+  RING: { category: 'ACCESSORY', family: 'TOOTH', tier: 'UNCOMMON', stats: { STRENGTH: 10 } },
+  ART: { category: 'ACCESSORY', family: 'TOOTH', tier: 'RARE', stats: { STRENGTH: 18, CRITICAL_DAMAGE: 4 } },
+  SOLO: { category: 'ACCESSORY', tier: 'RARE', stats: { MAGIC_FIND: 3, HEALTH_REGEN: 9 } },
+};
+const accGuide = { id: 'g', area: 'blaze', sections: [{ name: 'S', steps: [
+  { text: 'a', detect: { kind: 'owned', on: [['TALI']] } },
+  { text: 'b', detect: { kind: 'owned', on: [['RING']] } },
+  { text: 'c', detect: { kind: 'owned', on: [['ART']] } },
+  { text: 'd', detect: { kind: 'owned', on: [['SOLO']] } },
+] }] };
+const gain = (dates, owned, measuredAt = 1000) => accessoryGain({ guides: [accGuide], area: 'blaze', dates: { g: dates }, measuredAt, owned, items: ACC });
+
+test('accessories: ticked before the measurement they are part of the base', () => {
+  assert.deepEqual(gain({ 'S|a': 500, 'S|d': 0 }, ['TALI', 'SOLO']), { gain: {}, after: 0 });
+});
+
+test('accessories: ticked after the measurement the item stats count, a ladder only by the step from the rung that was there', () => {
+  const r = gain({ 'S|a': 500, 'S|b': 2000, 'S|d': 3000 }, ['TALI', 'RING', 'SOLO']);
+  assert.deepEqual(r.gain, { STRENGTH: 5, MAGIC_FIND: 3 }); // Ring − Talisman; Health Regen is no Blaze stat
+  assert.equal(r.after, 2);
+  const two = gain({ 'S|a': 500, 'S|b': 1500, 'S|c': 2000 }, ['TALI', 'RING', 'ART']);
+  assert.deepEqual(two.gain, { STRENGTH: 13, CRITICAL_DAMAGE: 4 }); // Artifact − Talisman, the Ring is skipped over
+  assert.deepEqual(gain({ 'S|b': 2000 }, ['RING']).gain, { STRENGTH: 10 }); // no rung before: the full stats
+});
+
+test('accessories: a new measurement makes everything base again; no measurement, no change', () => {
+  const dates = { 'S|a': 500, 'S|b': 2000 };
+  assert.deepEqual(gain(dates, ['TALI', 'RING'], 5000).gain, {});
+  assert.deepEqual(gain(dates, ['TALI', 'RING'], null).gain, {});
+  assert.deepEqual(gain({}, ['SOLO']).gain, {}); // a tick without a date is older than the app
+});
+
+test('gear: the accessory gain is in the gear of the area, the hint tells to adjust Magical Power', () => {
+  const g = gearOf({ guides: [accGuide], checks: {}, owned: ['TALI', 'RING'], items: ACC, area: 'blaze', build: emptyBuild(), settings: miningSettings(), pets: petData.pets, dates: { g: { 'S|a': 500, 'S|b': 2000 } }, measuredAt: 1000 });
+  assert.equal(g.gear.STRENGTH, 5);
+  assert.deepEqual(g.hints, ['An accessory changes your Magical Power: adjust it under Power.']);
+  const before = gearOf({ guides: [accGuide], checks: {}, owned: ['TALI', 'RING'], items: ACC, area: 'blaze', build: emptyBuild(), settings: miningSettings(), pets: petData.pets, dates: { g: { 'S|a': 500, 'S|b': 800 } }, measuredAt: 1000 });
+  assert.equal(before.gear.STRENGTH, undefined);
+  assert.deepEqual(before.hints, []);
+});

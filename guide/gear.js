@@ -8,6 +8,7 @@ import { gearStats, petStats, petStatsAt } from '../stats.js';
 import { setBonusOf } from '../blaze.js';
 import { rulesOf, pieceExtra, dressDaggers } from '../pieces.js';
 import { enchantLine } from '../optimizer-data.js';
+import { GEAR_STATS } from '../stats.js';
 
 // Steps about the build or the pet are not gear: HOTM, shards and power are in the base, the pet is counted once at the end.
 const BUILD_KINDS = new Set(['perk', 'attr', 'power', 'essence', 'pet', 'petItem', 'held', 'coll', 'skill']);
@@ -33,10 +34,46 @@ function petGear(loadout, build, pets) {
 // The pet item of the build, from the table in the game data (a pet from a ticked step has none).
 const petItemStats = (loadout, build, data) => (loadout.pet ? {} : data?.find((i) => i.id === build?.pet?.item)?.stats ?? {});
 
+const statSum = (stats) => Object.entries(stats ?? {}).reduce((n, [k, v]) => n + (GEAR_STATS.blaze.includes(k) ? v : 0), 0);
+
+// Accessories sit in the base, because the base is measured with them. One ticked after the measurement counts as a change since then,
+// as far as it is better than the piece of its family that was there at the measurement (a Talisman ladder gives the step between two rungs).
+// dates: tick dates of the steps of one guide id each, measuredAt: the date of the base. A tick without a date is older than the app.
+export function accessoryGain({ guides, area, dates, measuredAt, owned, items }) {
+  if (!measuredAt || !items) return { gain: {}, after: 0 };
+  const have = new Set(owned);
+  const when = new Map();
+  for (const guide of guides.filter((g) => g.area === area)) {
+    for (const section of guide.sections) {
+      for (const step of section.steps) {
+        const at = dates?.[guide.id]?.[stepKey(section, step)] ?? 0;
+        for (const d of [step.detect ?? []].flat().filter((part) => part.kind === 'owned')) {
+          const slots = (typeof d.on === 'string' ? guide.groups?.[d.on] : d.on) ?? [];
+          for (const id of slots.flat()) if (have.has(id) && items[id]?.category === 'ACCESSORY') when.set(id, Math.min(when.get(id) ?? Infinity, at));
+        }
+      }
+    }
+  }
+  const families = new Map();
+  for (const id of when.keys()) families.set(items[id].family ?? id, [...(families.get(items[id].family ?? id) ?? []), id]);
+  const best = (ids) => ids.reduce((top, id) => (!top || statSum(items[id].stats) >= statSum(items[top].stats) ? id : top), null);
+  const gain = {};
+  let after = 0;
+  for (const ids of families.values()) {
+    const now = best(ids);
+    const then = best(ids.filter((id) => when.get(id) <= measuredAt));
+    if (now === then) continue;
+    after += ids.filter((id) => when.get(id) > measuredAt).length;
+    for (const [stat, v] of Object.entries(items[now].stats ?? {})) if (GEAR_STATS.blaze.includes(stat)) gain[stat] = (gain[stat] ?? 0) + v;
+    for (const [stat, v] of Object.entries(items[then]?.stats ?? {})) if (GEAR_STATS.blaze.includes(stat)) gain[stat] = (gain[stat] ?? 0) - v;
+  }
+  return { gain: Object.fromEntries(Object.entries(gain).filter(([, v]) => v)), after };
+}
+
 // Gear = item stats of the pieces owned + what each ticked step of the guides adds, in guide order.
 // values: the typed base, only as the state the Blaze maths of a step starts from.
 // Gives the flat gear stats, the profile and loadout the ranking works from.
-export function gearOf({ guides, checks, owned, items, area, build, settings, values = {}, mp = null, pets = null, petItems = null }) {
+export function gearOf({ guides, checks, owned, items, area, build, settings, values = {}, mp = null, pets = null, petItems = null, dates = {}, measuredAt = null }) {
   let profile = virtualProfile({ sections: [] }, new Set(), owned, items, mp);
   let loadout = virtualLoadout(profile, items, area);
   const gear = sum({}, gearStats([...loadout.armor, ...loadout.equipment, ...(loadout.held ? [loadout.held] : [])]));
@@ -61,7 +98,6 @@ export function gearOf({ guides, checks, owned, items, area, build, settings, va
         sum(gear, flat);
         state = baseStats(state, [flat]);
         profile = applyStep(profile, step, guide, items);
-        if (change?.mp && profile.mp !== null) profile.mp += change.mp;
       }
     }
   }
@@ -74,8 +110,11 @@ export function gearOf({ guides, checks, owned, items, area, build, settings, va
   for (const piece of loadout.armor) sum(gear, pieceExtra(piece.id, items, rules));
   if (area === 'blaze') sum(gear, setBonusOf(loadout.armor.map((i) => i.id)).add);
   if (rules) loadout.daggers = dressDaggers(loadout.daggers, items, rules);
+  // accessories ticked after the measurement
+  const accessories = area === 'blaze' ? accessoryGain({ guides, area, dates, measuredAt, owned, items }) : { gain: {}, after: 0 };
+  sum(gear, accessories.gain);
   // conditional effects of the ticked enchants: shown, never added
   const listed = Object.entries(enchants).map(([name, level]) => enchantLine(name, level)).filter(Boolean).map((text) => ({ text }));
   if (area === 'blaze' && catacombsNeeded && rules.gear.catacombs === null) listed.push({ text: 'Withered and Ancient: +1 per Catacombs level, set your level under Power → Gear' });
-  return { gear, profile, loadout, stepPet: loadout.pet ?? null, pet, rules, listed: area === 'blaze' ? listed : [] };
+  return { gear, profile, loadout, stepPet: loadout.pet ?? null, pet, rules, listed: area === 'blaze' ? listed : [], accessories: accessories.gain, hints: accessories.after ? ['An accessory changes your Magical Power: adjust it under Power.'] : [] };
 }
