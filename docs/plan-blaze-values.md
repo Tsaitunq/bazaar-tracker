@@ -90,4 +90,19 @@ Nach jedem Commit läuft `npm test` (nur Fixtures, keine Live-API). Commit-Autor
 3. Accessoire-Schritte ohne automatische MP-Erhöhung (Entscheidung 5) in Ordnung, auch wenn die Rangliste dadurch Accessoire-Schritte nicht mehr nach Magical Power bewertet?
 4. Ferocity im Ranking nur, wenn das Wiki die Formel eindeutig hergibt (Entscheidung 6)?
 
-Ich stoppe hier und warte auf dein OK.
+
+## 9. Antworten und Änderungen am Plan (OK zur Umsetzung)
+
+1. **Stat-Liste Blaze:** Combat ohne Health Regen/Vitality, dazu SPEED und MAGIC_FIND. Die Kategorien sind im Spiel bestätigt (/stats), der Vermerk "unbestätigt" entfällt:
+   - combat: HEALTH, DEFENSE, TRUE_DEFENSE, STRENGTH, CRITICAL_CHANCE, CRITICAL_DAMAGE, ATTACK_SPEED, FEROCITY, SWING_RANGE, INTELLIGENCE, ABILITY_DAMAGE, HEALTH_REGEN, VITALITY, MENDING
+   - misc: SPEED, MAGIC_FIND, PET_LUCK, HEAT_RESISTANCE, COLD_RESISTANCE, RESPIRATION, PRESSURE_RESISTANCE, FEAR
+   - nicht misc: TRACKING, TREASURE_CHANCE, FISHING_SPEED, SEA_CREATURE_CHANCE, BONUS_PEST_CHANCE
+   - Wisdoms = `wisdom` (kein +10 %).
+2. **Reihenfolge** `(Basis × Sterne + HPB) × Bling`, danach Reforge/Enchants: bleibt, als Annahme markiert.
+3. **Accessoires (ersetzt Entscheidung 5):** Sie stecken in der Basis (Messung mit Talismanen).
+   - Vor dem Messdatum abgehakt: keine Gear-Stats.
+   - Nach dem Messdatum abgehakt: ihre Item-Stats zählen als "Änderung seit Messung". Bei Talisman-Linien zählt nur der Unterschied zur Vorstufe, wenn diese schon vor der Messung da war. Das Tick-Datum kommt aus `pg.dates`.
+   - Das Ranking bewertet Accessoires weiter nach Magical Power (aus der Seltenheit, Start bei `build.power.mp`) plus ihren Stats. Nach dem Abhaken erscheint der Hinweis "Magical Power im Power-Tab anpassen".
+   - Eine neue Messung macht alles wieder zur Basis. Die Optimizer-Tests werden angepasst, die MP-Wertung bleibt.
+4. **Ferocity** zählt in Summe, Anzeige und Schadensformel: erwarteter Schaden × (1 + Ferocity/100), jede 100 Ferocity = ein garantierter Extra-Hit, der Rest als Chance.
+5. Dominus ab 2 Teilen derselben Stufe (gemischt = Stufe mit den meisten Teilen) und Combat Wisdom = wisdom: bestätigt.
