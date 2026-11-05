@@ -8,7 +8,7 @@ Grund, was es kostet, falls sie falsch ist.
 - **Arbeit auf Branch `v2`, kein Merge nach `main`, kein Push.** Grund: `main`
   ist die Live-Seite; so bleibt sie unberührt, bis du getestet hast. Kosten:
   ein `git merge` mehr.
-- **Spec in `docs/spec-v2.md`, Plan in `docs/plan-v2.md`.** Der Plan-Pfad war
+- **Spec in `docs/archive/spec-v2.md`, Plan in `docs/archive/plan-v2.md`.** Der Plan-Pfad war
   vorgegeben, die Spec liegt daneben.
 
 ## Verlaufsdaten
@@ -163,7 +163,7 @@ Selbstständig getroffen (Auftrag: ohne Rückfragen).
   gesetzt ist. Grund: Im PATH liegt weiter Java 8; eine globale Umstellung
   könnte andere Programme treffen.
 - **Die bisherige `SUMMARY.md` (Version 2) liegt jetzt unter
-  `docs/summary-v2.md`.**
+  `docs/archive/summary-v2.md`.**
 
 # Entscheidungen Umstellung auf Englisch
 
@@ -271,7 +271,7 @@ Selbstständig getroffen (Auftrag: ohne Rückfragen).
   Tabs als unterstrichene Beschriftung, orange Linie unter dem Kopf und
   zwischen den großen Zahlen und den Details. Zwischenzeitlich war D
   eingebaut; die Vergleichsbilder aller Varianten liegen in
-  `docs/design-varianten/`.
+  `docs/archive/design-varianten/`.
 - **Die breitere Desktop-Detailseite bleibt.** Sie war als Ergänzung zu D
   gewünscht, ist aber Layout und keine Farbfrage; mit C steht sie genauso.
 - **Seltenheit als Streifen links an der Karte plus Wort in der Ecke, Namen
@@ -324,7 +324,7 @@ Selbstständig getroffen (Auftrag: ohne Rückfragen).
   Ich habe die neuen Fenster und die Tour im bestehenden Stil gebaut und das
   Design der App nicht umgestellt. Kosten, falls du D wolltest: Die
   Umstellung ist eine reine CSS-Änderung an `style.css`; `variant-d.css`
-  liegt als Vorlage in `docs/design-varianten/`.
+  liegt als Vorlage in `docs/archive/design-varianten/`.
 - **Branch `v4` baut auf `slide` auf** (das fließende Wischen), das noch
   nicht in `main` ist. Grund: Beide ändern `app.js`; getrennt gäbe es
   Konflikte. Kosten: `v4` lässt sich nur zusammen mit dem Wischen mergen.
@@ -367,8 +367,8 @@ Grund, was es kostet, falls sie falsch ist.
 
 ## Vorgehen
 
-- **Branch `v5` ab `main`, kein Push.** Spec in `docs/spec-v5.md`, Plan in
-  `docs/plan-v5.md`.
+- **Branch `v5` ab `main`, kein Push.** Spec in `docs/archive/spec-v5.md`, Plan in
+  `docs/archive/plan-v5.md`.
 - **Je eine API-Antwort wurde einmal gespeichert** (Bazaar, erste
   Auktionsseite, Election), außerhalb des Repos. Daraus stammen die Formate
   und die Screenshot-Daten. Dazu kommt ein einziger Live-Lauf des
@@ -485,7 +485,7 @@ Grund, was es kostet, falls sie falsch ist.
 
 # Entscheidungen Version 6 (UX)
 
-Grundlage: `docs/ux-audit.md`, Plan: `docs/plan-v6.md`. Selbstständig
+Grundlage: `docs/archive/ux-audit.md`, Plan: `docs/archive/plan-v6.md`. Selbstständig
 getroffen, Arbeit auf Branch `v6`, kein Push.
 
 ## Einstellungen und Portfolio
@@ -587,7 +587,7 @@ getroffen, Arbeit auf Branch `v6`, kein Push.
 # Entscheidungen Version 0.7
 
 Selbstständig getroffen (Auftrag: unbeaufsichtigt, ohne Rückfragen). Spec:
-`docs/spec-v0.7.md`, Bericht: `docs/summary-v0.7.md`.
+`docs/archive/spec-v0.7.md`, Bericht: `docs/archive/summary-v0.7.md`.
 
 ## Teil 0: Navigation
 

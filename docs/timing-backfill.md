@@ -2,7 +2,7 @@
 
 Fills the runs of `timing.json` from SkyCofl's bazaar history, so that
 patterns of mayor perks and events can be confirmed at once instead of after
-three own runs. Check of the data source: `docs/timing-backfill-check.md`.
+three own runs. Check of the data source: `docs/archive/timing-backfill-check.md`.
 
 ## Data
 

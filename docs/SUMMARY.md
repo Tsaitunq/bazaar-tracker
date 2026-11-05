@@ -2,12 +2,12 @@
 
 Stand: 2026-10-10. Alles liegt auf dem lokalen Branch `v6` (ab `main`, Version
 5.1.0). Nichts ist gepusht; `main`, die Live-Seite und der Branch `data` sind
-unverändert. Frühere Zusammenfassungen: `docs/summary-v2.md`,
-`docs/summary-android.md`, `docs/summary-v3.md`, `docs/summary-v4.md`,
-`docs/summary-v5.md`.
+unverändert. Frühere Zusammenfassungen: `docs/archive/summary-v2.md`,
+`docs/archive/summary-android.md`, `docs/archive/summary-v3.md`, `docs/archive/summary-v4.md`,
+`docs/archive/summary-v5.md`.
 
-Grundlage ist `docs/ux-audit.md`, der Plan steht in `docs/plan-v6.md`, die
-Entscheidungen in `DECISIONS.md`, Abschnitt „Entscheidungen Version 6 (UX)“.
+Grundlage ist `docs/archive/ux-audit.md`, der Plan steht in `docs/archive/plan-v6.md`, die
+Entscheidungen in `docs/DECISIONS.md`, Abschnitt „Entscheidungen Version 6 (UX)“.
 
 ## Fertig
 
@@ -83,7 +83,7 @@ Die drei Durchläufe im Browser:
   ausgeblendet ist. Betrifft erst das nächste Update.
 - Die Simple-Einstellungen zeigen kurz zwei „Start setup“-Knöpfe: einen im
   Hinweis, einen im Abschnitt „Mode“. Der Hinweis verschwindet nach „Got it“.
-- `docs/ux-audit.md` beschreibt den Stand vor v6 und ist nicht nachgeführt.
+- `docs/archive/ux-audit.md` beschreibt den Stand vor v6 und ist nicht nachgeführt.
 
 ## Zum Testen
 
