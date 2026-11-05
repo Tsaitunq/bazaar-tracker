@@ -339,3 +339,22 @@ a { color: var(--area); }
 .tune small { color: var(--muted); }
 .tune b { text-align: center; }
 .tune button { min-height: 44px; border-radius: 22px; background: var(--raised); border: none; color: var(--text); font-size: 18px; }
+/* the first-start tour and What's new */
+.tour { position: fixed; inset: 0; z-index: 30; }
+.tour-nohole { background: color-mix(in srgb, var(--bg) 82%, transparent); }
+.tour-hole { position: fixed; border-radius: 16px; border: 2px solid var(--area); box-shadow: 0 0 0 100vmax color-mix(in srgb, var(--bg) 82%, transparent); transition: left 200ms, top 200ms, width 200ms, height 200ms; pointer-events: none; }
+.tour-card { position: fixed; z-index: 1; left: 0; right: 0; bottom: calc(16px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))); width: min(100% - 32px, 448px); margin: 0 auto; padding: 16px; border-radius: 20px; background: var(--surface); border: 1px solid var(--area); color: var(--text); display: flex; flex-direction: column; gap: 10px; }
+.tour[data-card="top"] .tour-card { bottom: auto; top: calc(16px + var(--safe-area-inset-top, env(safe-area-inset-top, 0px))); }
+.tour-card h2 { margin: 0; font-size: 17px; color: var(--area); }
+.tour-card p { margin: 0; font-size: 14px; color: var(--soft); }
+.tour-dots { display: flex; gap: 6px; }
+.tour-dots i { width: 8px; height: 8px; border-radius: 4px; background: var(--dim); }
+.tour-dots i.on { width: 22px; background: var(--area); }
+.tour-actions { display: flex; justify-content: space-between; gap: 8px; }
+.bsheet.news { z-index: 21; max-height: 75dvh; }
+.news-back { z-index: 20; }
+.news-list { overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+.news-list h3 { margin: 8px 0 0; font-size: 14px; color: var(--area); }
+.news-list p { margin: 0; font-size: 13px; color: var(--soft); }
+.news-list b { color: var(--text); }
+@media (prefers-reduced-motion: reduce) { .tour-hole { transition: none; } }
