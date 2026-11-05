@@ -3,6 +3,7 @@ import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { copyGuide, capConfig } from './guide-copy.mjs';
+import { ensureIcons } from './fetch-icons.mjs';
 
 // Gradle needs Java 21; the system default may be older, so fall back to the Temurin install.
 if (!process.env.JAVA_HOME) {
@@ -14,6 +15,10 @@ if (!process.env.JAVA_HOME) {
 
 // The SDK path is per machine and not in git; this machine already has it for the Bazaar app.
 if (!fs.existsSync('apps/guide/android/local.properties') && fs.existsSync('apps/bazaar/android/local.properties')) fs.copyFileSync('apps/bazaar/android/local.properties', 'apps/guide/android/local.properties');
+
+// Hypixel heads are not in git: load the ones missing. Offline only warns, the build goes on without them (placeholders).
+const missingIcons = await ensureIcons('.');
+console.log(missingIcons.length ? `WARNING: ${missingIcons.length} icons missing, placeholders used: ${missingIcons.join(', ')}` : 'icons: all present');
 
 const run = (cmd, cwd = '.') => execSync(cmd, { cwd, stdio: 'inherit' });
 console.log(`copied ${copyGuide('.', 'apps/guide/www-guide')} web files`);

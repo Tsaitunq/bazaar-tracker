@@ -203,7 +203,33 @@ export async function fetchHeads(jobs, outDir, get = (url) => fetch(url)) {
 
 export const petJobs = (pets) => pets.map((p) => ({ key: `${p.id}_${p.rarity}`, ids: [`${p.id};${RARITY_NO[p.rarity]}`] }));
 // An attribute shard item is stored under ID;rarity, and the digit is not the rarity of the attribute: try them all.
-export const shardJobs = (attrs) => attrs.map((a) => ({ key: a.icon ?? a.key, ids: [0, 1, 2, 3, 4].map((n) => `${a.id};${n}`) }));
+// A shard NEU stores as a block has a Minecraft picture in img/mc (mcIcon) and needs no head.
+export const shardJobs = (attrs) => attrs.filter((a) => !a.mcIcon).map((a) => ({ key: a.icon ?? a.key, ids: [0, 1, 2, 3, 4].map((n) => `${a.id};${n}`) }));
+
+const HEADS = { pets: 'apps/guide/img/hypixel/pets', shards: 'apps/guide/img/hypixel/shards' };
+
+// The jobs whose picture is not on disk yet: every pet of pets.json and every shard of attributes.json.
+export function missingJobs(pets, attrs, root = '.') {
+  const absent = (dir) => (job) => !fs.existsSync(path.join(root, dir, `${job.key}.png`));
+  return { pets: petJobs(pets).filter(absent(HEADS.pets)), shards: shardJobs(attrs).filter(absent(HEADS.shards)) };
+}
+
+// For the build: loads only what is missing, never fails. Gives the keys still missing afterwards (a warning line, the build goes on).
+export async function ensureIcons(root = '.', get) {
+  const read = (f) => JSON.parse(fs.readFileSync(path.join(root, 'gamedata', `${f}.json`), 'utf8'));
+  const todo = missingJobs(read('pets').pets, read('attributes').attributes, root);
+  const left = [];
+  for (const [kind, jobs] of Object.entries(todo)) {
+    if (!jobs.length) continue;
+    try {
+      const r = await fetchHeads(jobs, path.join(root, HEADS[kind]), get);
+      left.push(...r.missing.map((k) => `${kind}/${k}`));
+    } catch {
+      left.push(...jobs.map((j) => `${kind}/${j.key}`));
+    }
+  }
+  return left;
+}
 
 const report = (label, r) => console.log(`${label}: found ${r.found.length}; missing ${r.missing.length ? r.missing.join(', ') : 'none'}`);
 
