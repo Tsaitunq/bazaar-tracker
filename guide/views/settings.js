@@ -36,5 +36,6 @@ export function settingsView(world) {
     <small role="status">${esc(world.dataMessage ?? '')}</small>
     ${world.guides.map((g) => resetRow(g, world.armed, world.importedIds?.includes(g.id))).join('')}
   </section>`;
-  return `<div class="screen screen-home" data-theme="home" data-page="settings"><div class="home-title"><h1>Settings</h1></div><div class="scroll">${mining}${data}</div>${bottomBar(HOME_TABS, 'settings')}</div>`;
+  const help = '<section class="panel"><h2>Help</h2><div class="actions"><button type="button" class="ghost" data-act="tour">Restart tour</button><button type="button" class="ghost" data-act="news">What&#39;s new</button></div></section>';
+  return `<div class="screen screen-home" data-theme="home" data-page="settings"><div class="home-title"><h1>Settings</h1></div><div class="scroll">${help}${mining}${data}</div>${bottomBar(HOME_TABS, 'settings')}</div>`;
 }
