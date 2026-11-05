@@ -296,3 +296,15 @@ test('attributes: against Infernal counts for Blaze, other families are listed; 
   assert.ok(out.listed.some((l) => l.text === 'Infernal Ruler 5: +15% damage against Infernal mobs'));
   assert.equal(statsOf(build, DATA, 'mining').listed.some((l) => /Infernal Ruler/.test(l.text)), false);
 });
+
+// ---- Ferocity in the damage formula
+import { blazeOutput } from '../blaze.js';
+
+test('ranking: expected damage × (1 + Ferocity / 100)', () => {
+  const dagger = { id: 'FIREDUST_DAGGER', lore: { DAMAGE: 100 }, enchants: {} };
+  const state = (ferocity) => ({ common: { STRENGTH: 100, FEROCITY: ferocity }, daggers: { ashen: dagger, spirit: null }, armorIds: [], path: 'guide' });
+  const none = blazeOutput(state(0));
+  assert.ok(Math.abs(blazeOutput(state(100)) / none - 2) < 1e-9);
+  assert.ok(Math.abs(blazeOutput(state(20)) / none - 1.2) < 1e-9);
+  assert.ok(Math.abs(blazeOutput(state(250)) / none - 3.5) < 1e-9);
+});

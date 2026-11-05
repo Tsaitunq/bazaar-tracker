@@ -72,7 +72,8 @@ export function blazeOutput({ common, daggers, armorIds, path }, forced = null) 
   const lines = Object.values(daggers).filter(Boolean);
   const rate = (d) => {
     const stats = merged(common, d?.lore);
-    return hitOf(stats, additiveOf(d, armorIds, way), DAGGERS[d?.id]?.m ?? 1) * hitsPerSecond(stats.ATTACK_SPEED ?? 0);
+    // every 100 Ferocity is one guaranteed extra hit, the rest a chance: the expected number of hits is 1 + Ferocity / 100
+    return hitOf(stats, additiveOf(d, armorIds, way), DAGGERS[d?.id]?.m ?? 1) * hitsPerSecond(stats.ATTACK_SPEED ?? 0) * (1 + (stats.FEROCITY ?? 0) / 100);
   };
   return lines.length ? lines.reduce((sum, d) => sum + rate(d), 0) / lines.length : rate(null);
 }
