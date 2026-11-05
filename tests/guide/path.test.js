@@ -256,3 +256,15 @@ test('a profile worked out of the ticks locks nothing: it does not know the requ
   assert.equal(path.order[0].step.text, 'needs');
   assert.equal(path.order[0].tier, 'value');
 });
+
+test('a fixed guide: sections ranked by value follow the fixed ones, best coins per gain first', () => {
+  const g = {
+    id: 'g', title: 'G', area: 'mining', order: 'fixed',
+    sections: [
+      { name: 'Fixed', steps: [step('first', 'A', 1), step('second', 'B', 1)] },
+      { name: 'Ranked', order: 'value', steps: [step('dear', 'C', 1), step('cheap', 'D', 10)] },
+    ],
+  };
+  const path = run(g, { A: sold(1e6), B: sold(1e6), C: sold(1e6), D: sold(1e6) });
+  assert.deepEqual(texts(path), ['first', 'second', 'cheap', 'dear']);
+});

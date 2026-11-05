@@ -46,7 +46,7 @@ function validStep(s) {
   const detect = validDetect(s.detect);
   const gain = validGain(s.gain);
   const after = Array.isArray(s.after) ? s.after.filter(text) : [];
-  return { text: s.text, ...(s.key && { key: s.key }), ...(detect && { detect }), ...(gain && { gain }), ...(items.length && { items }), ...(text(s.hint) && { hint: s.hint }), ...(s.table === true && { table: true }), ...(text(s.line) && { line: s.line }), ...(Number.isInteger(s.priority) && s.priority > 0 && { priority: s.priority }), ...(text(s.group) && { group: s.group }), ...(after.length && { after }) };
+  return { text: s.text, ...(s.key && { key: s.key }), ...(detect && { detect }), ...(gain && { gain }), ...(items.length && { items }), ...(text(s.hint) && { hint: s.hint }), ...(s.table === true && { table: true }), ...(s.calc === true && { calc: true }), ...(text(s.line) && { line: s.line }), ...(Number.isInteger(s.priority) && s.priority > 0 && { priority: s.priority }), ...(text(s.group) && { group: s.group }), ...(after.length && { after }) };
 }
 
 // Sections grouped for the ring of the guide app. A name that is no section drops out, and a chapter left empty with it.
@@ -88,7 +88,7 @@ export function validGuide(g) {
     if (!text(s?.name) || !Array.isArray(s.steps)) return null;
     const steps = s.steps.map(validStep);
     if (steps.includes(null)) return null;
-    return { name: s.name, ...(text(s.goal) && { goal: s.goal }), ...(s.extra === true && { extra: true }), steps };
+    return { name: s.name, ...(text(s.goal) && { goal: s.goal }), ...(s.extra === true && { extra: true }), ...(s.order === 'value' && { order: 'value' }), steps };
   });
   if (sections.includes(null)) return null;
   const keys = sections.flatMap((s) => s.steps.map((st) => st.key).filter(Boolean));

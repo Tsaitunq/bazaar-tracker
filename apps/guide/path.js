@@ -233,6 +233,7 @@ function inGuideOrder(open, world, env) {
     now = move.after ?? (move.tier === 'locked' ? now : advance(now, entries, null, env));
     left = nextRound(left, entries);
   }
+  order.after = now;
   return order;
 }
 
@@ -275,7 +276,11 @@ export function pathOf({ guide, checked, ctx, profile, loadout, base, settings, 
     return checked.has(key) ? [] : [{ section, step, key, index }];
   })));
   const world = { profile, loadout, base, state };
-  const order = guide.order === 'fixed' || !ctx.products ? inGuideOrder(open, world, env) : byValue(open, world, env, spentSoFar(guide, checked, env));
+  // a fixed guide may hold sections that are ranked by value (coins per 1 %); they follow the fixed ones, in the state those leave
+  const ranked = guide.order === 'fixed' && ctx.products ? open.filter((e) => e.section.order === 'value') : [];
+  const fixed = ranked.length ? open.filter((e) => e.section.order !== 'value') : open;
+  const order = guide.order === 'fixed' || !ctx.products ? inGuideOrder(fixed, world, env) : byValue(open, world, env, spentSoFar(guide, checked, env));
+  if (ranked.length) order.push(...byValue(ranked, order.after, env, spentSoFar(guide, checked, env)));
   const notes = [...new Set(order.flatMap((e) => e.notes))];
   return { order, limits: state ? limitsOf(profile, state) : null, notes };
 }

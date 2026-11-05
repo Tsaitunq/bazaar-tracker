@@ -257,6 +257,11 @@ function partOf(d, guide, loadout, profile, items, settings, area = 'mining', ru
 // What a step adds to the stats of the loadout. null: nothing known about it. {}: known to add nothing of ours.
 export function stepDelta(step, loadout, profile, items, settings, guide) {
   // a fixed guide states what each step adds on top of the one before; every stat stays for the display
+  if (step.calc && guide?.order === 'fixed') { // numbers the data can work out follow the rarity and the gems of that moment
+    const parts = [step.detect ?? []].flat().map((d) => partOf(d, guide, loadout, profile, items, settings));
+    const known = parts.length && !parts.includes(null) ? onlyOf(total(parts), 'mining') : null;
+    if (known && Object.keys(known).length) return known;
+  }
   const shop = step.detect && [step.detect].flat().every((d) => d.kind === 'essence');
   // an essence perk has no table in the data, its own stats stand, Cold Resistance and Dwarven Metal Fortune included
   if ((guide?.order === 'fixed' || shop) && step.gain) return { ...step.gain };
@@ -420,7 +425,14 @@ function consumes(id, old, step, ctx) {
     || ctx.items?.[id]?.prestige?.item_id === old || Object.values(ctx.items?.[id]?.parent ?? {}).includes(old);
 }
 
-// Spec 5.7. Only an item swap sells something: reforges, gems and enchants carry over, so the base price is on the careful side.
+// A better gem in a slot takes the old one out: it is sold like a replaced piece. Gives the coins and the ids.
+function gemResale(d, loadout, ctx) {
+  const targets = targetsOf(d, ctx.guide, loadout, ctx.profile) ?? [];
+  const sold = targets.flatMap((t) => (t.gems ?? []).filter((g) => g.type === d.type && QUALITY.indexOf(g.quality) >= 0 && QUALITY.indexOf(g.quality) < QUALITY.indexOf(d.quality)).map((g) => `${g.quality}_${g.type}_GEM`)).slice(0, d.need ?? targets.length);
+  return sold.map((id) => ({ id, price: resaleOf(id, ctx) })).filter((s) => s.price > 0);
+}
+
+// Spec 5.7. A swapped item and a gem that is replaced by a better one are sold; reforges and enchants carry over, so the base price is on the careful side.
 export function netCost(step, gross, loadout, other, items, ctx, keepOldGear) {
   const soldIds = [];
   let resale = 0;
@@ -433,6 +445,9 @@ export function netCost(step, gross, loadout, other, items, ctx, keepOldGear) {
         const price = resaleOf(item.id, ctx);
         if (price > 0) { resale += price; soldIds.push(item.id); }
       }
+    }
+    for (const d of [step.detect ?? []].flat().filter((part) => part.kind === 'gem')) {
+      for (const g of gemResale(d, loadout, ctx)) { resale += g.price; soldIds.push(g.id); }
     }
   }
   return { net: Math.max(gross - resale, 0), resale, soldIds };
