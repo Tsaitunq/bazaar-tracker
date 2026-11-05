@@ -71,38 +71,6 @@ export function accessoryGain({ guides, area, dates, measuredAt, owned, items })
   return { gain: Object.fromEntries(Object.entries(gain).filter(([, v]) => v)), after };
 }
 
-// Essence shop perks are permanent player perks and sit in the base like accessories. Levels ticked after the measurement
-// count as a change since then (a tick of level V also stands for the levels below it); levels ticked before it count nothing.
-// A tick without a date is older than the app. Without a measurement there is nothing to add to.
-export function essenceGain({ guides, area, dates, measuredAt, checks }) {
-  if (!measuredAt) return {};
-  const perks = new Map(); // perk -> level -> { gain, at }
-  for (const guide of guides.filter((g) => g.area === area)) {
-    const marks = new Set(checks[guide.id] ?? []);
-    for (const section of guide.sections) {
-      for (const step of section.steps) {
-        const d = [step.detect ?? []].flat();
-        if (d.length !== 1 || d[0].kind !== 'essence') continue;
-        const levels = perks.get(d[0].perk) ?? new Map();
-        const key = stepKey(section, step);
-        const seen = levels.get(d[0].level) ?? { gain: step.gain, at: Infinity };
-        if (marks.has(key)) seen.at = Math.min(seen.at, dates?.[guide.id]?.[key] ?? 0);
-        levels.set(d[0].level, seen);
-        perks.set(d[0].perk, levels);
-      }
-    }
-  }
-  const out = {};
-  for (const levels of perks.values()) {
-    const ticked = [...levels].filter(([, v]) => v.at !== Infinity);
-    const top = (list) => list.reduce((n, [level]) => Math.max(n, level), 0);
-    const before = top(ticked.filter(([, v]) => v.at <= measuredAt));
-    const after = top(ticked);
-    for (const [level, v] of levels) if (level > before && level <= after) for (const [stat, n] of Object.entries(v.gain ?? {})) out[stat] = (out[stat] ?? 0) + n;
-  }
-  return out;
-}
-
 // Gear = item stats of the pieces owned + what each ticked step of the guides adds, in guide order.
 // values: the typed base, only as the state the Blaze maths of a step starts from.
 // Gives the flat gear stats, the profile and loadout the ranking works from.
@@ -146,10 +114,8 @@ export function gearOf({ guides, checks, owned, items, area, build, settings, va
   // accessories ticked after the measurement
   const accessories = area === 'blaze' ? accessoryGain({ guides, area, dates, measuredAt, owned, items }) : { gain: {}, after: 0 };
   sum(gear, accessories.gain);
-  const essence = essenceGain({ guides, area, dates, measuredAt, checks });
-  sum(gear, essence);
   // conditional effects of the ticked enchants: shown, never added
   const listed = Object.entries(enchants).map(([name, level]) => enchantLine(name, level)).filter(Boolean).map((text) => ({ text }));
   if (area === 'blaze' && catacombsNeeded && rules.gear.catacombs === null) listed.push({ text: 'Withered and Ancient: +1 per Catacombs level, set your level under Power → Gear' });
-  return { gear, profile, loadout, stepPet: loadout.pet ?? null, pet, rules, listed: area === 'blaze' ? listed : [], accessories: accessories.gain, essence, hints: accessories.after ? ['An accessory changes your Magical Power: adjust it under Power.'] : [] };
+  return { gear, profile, loadout, stepPet: loadout.pet ?? null, pet, rules, listed: area === 'blaze' ? listed : [], accessories: accessories.gain, hints: accessories.after ? ['An accessory changes your Magical Power: adjust it under Power.'] : [] };
 }

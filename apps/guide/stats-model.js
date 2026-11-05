@@ -54,7 +54,6 @@ export function statsModel(world, area) {
     ...label(id), text: signed(parts.reduce((n, p) => n + p.value, 0)), parts: parts.map((p) => `${PART_NAME[p.part]} ${signed(p.value)}`).join(', '),
   }));
   for (const [id, v] of Object.entries(worn.accessories ?? {})) if (ids.includes(id)) changes.push({ ...label(id), text: signed(v), parts: 'Accessories' });
-  for (const [id, v] of Object.entries(worn.essence ?? {})) if (ids.includes(id)) changes.push({ ...label(id), text: signed(v), parts: 'Essence shop' });
   const guides = tickedSteps(world, area);
   return {
     area, name: AREA_NAME[area], missing: DATA_AREA[area] && !world.items ? 'items' : null,

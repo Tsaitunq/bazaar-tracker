@@ -62,7 +62,7 @@ test('runMigration moves the ticks and sets the schema', () => {
   const io = { read: (k, d) => (data.has(k) ? structuredClone(data.get(k)) : d), write: (k, v) => { data.set(k, structuredClone(v)); return true; }, drop: (k) => data.delete(k) };
   assert.equal(runMigration(io, [A, B]), true);
   assert.deepEqual(data.get('pg.keys'), ['gem:divan_helmet:JADE:FLAWLESS:1']);
-  assert.equal(data.get('pg.schema'), 4);
+  assert.equal(data.get('pg.schema'), 5);
   assert.equal(runMigration(io, [A, B]), false);
 });
 

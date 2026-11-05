@@ -37,7 +37,7 @@ test('every tour step lights its target, with a status bar inset and a scrolled 
   try {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
     await context.addInitScript((inset) => {
-      try { if (!localStorage.getItem('pg.schema')) localStorage.setItem('pg.schema', '4'); } catch { /* blocked */ }
+      try { if (!localStorage.getItem('pg.schema')) localStorage.setItem('pg.schema', '5'); } catch { /* blocked */ }
       document.addEventListener('DOMContentLoaded', () => document.documentElement.style.setProperty('--safe-area-inset-top', `${inset}px`));
     }, INSET);
     await context.route('**/*', (route) => {

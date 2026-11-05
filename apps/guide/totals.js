@@ -65,6 +65,16 @@ function petStats(pet, data, out, area) {
   }
 }
 
+// The essence shop: a perk with an effect adds its stat per level; a conditional one is only described.
+function essenceStats(essence, data, out) {
+  for (const perk of data.essence?.perks ?? []) {
+    const level = Math.min(essence[perk.id] ?? 0, perk.max);
+    if (!(level > 0)) continue;
+    if (perk.effect) addTo(out.add, perk.effect.stat, perk.effect.perLevel * level);
+    else if (perk.conditional) out.listed.push({ stat: perk.conditional.stat, value: null, cond: 'essence', text: `${perk.name} ${level}: ${perk.conditional.text} (${perk.conditional.where})` });
+  }
+}
+
 function powerStats(power, data, out) {
   const d = data.power;
   const stone = d.powerStones.find((p) => p.id === power.stone);
@@ -87,12 +97,13 @@ export function statsOf(build, data, area, pet = buildPet(build, data.pets?.pets
   if (build?.attrs) attrStats(build.attrs, data, out, area);
   petStats(pet, data, out, area);
   if (build?.power) powerStats(build.power, data, out);
+  if (build?.essence) essenceStats(build.essence, data, out);
   if (build?.buffs?.godPotion) for (const [stat, v] of Object.entries(GOD_POTION)) addTo(out.add, stat, v);
   if (build?.buffs?.boosterCookie) for (const e of data.power.boosterCookie.effects) addTo(out.add, e.stat, e.value);
   return out;
 }
 
-export const PART_NAME = { hotm: 'HOTM', attrs: 'Attributes', power: 'Power', buffs: 'Buffs' };
+export const PART_NAME = { hotm: 'HOTM', attrs: 'Attributes', power: 'Power', essence: 'Essence', buffs: 'Buffs' };
 
 // Per stat, what each editor moved since the measurement: the build as it is now against the same build with that one part as it was.
 // A part that was unknown at the measurement moved nothing. Flat stats only.

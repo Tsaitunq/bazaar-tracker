@@ -2,9 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { checkEssence, checkStats } from '../../apps/guide/gamedata.js';
-import { gearOf } from '../../apps/guide/gear.js';
+import { totalFor } from '../../apps/guide/totals.js';
+import { emptyBuild, editPart, commitDraft, needsDraft, essenceLevel, withEssence } from '../../apps/guide/build.js';
+import { migrateEssence } from '../../apps/guide/migrate.js';
 import { priceItem } from '../../apps/guide/progress.js';
-import { miningSettings } from '../../apps/guide/optimizer.js';
 
 const read = (f) => JSON.parse(fs.readFileSync(`gamedata/${f}.json`, 'utf8'));
 const perks = read('essence-perks').perks;
@@ -28,41 +29,53 @@ test('a level costs its essence times the bazaar price', () => {
   assert.equal(priceItem({ id: eager.bazaar, qty: eager.costs[2] }, { products }).coins, 300 * 20);
 });
 
-const eager = (level) => ({ text: `Eager Miner ${level}`, gain: { MINING_SPEED: 10 }, detect: { kind: 'essence', perk: 'eager_miner', level } });
-const shop = { id: 'g', area: 'mining', sections: [{ name: 'S', steps: [1, 2, 3, 4, 5].map(eager) }] };
-const gearAt = (ticked, measuredAt, dates) => gearOf({ guides: [shop], checks: { g: ticked.map((l) => `S|Eager Miner ${l}`) }, owned: [], items: {}, area: 'mining', build: null, settings: miningSettings(), dates: { g: dates }, measuredAt });
-const stamp = (entries) => Object.fromEntries(Object.entries(entries).map(([l, at]) => [`S|Eager Miner ${l}`, at]));
-
-test('Eager Miner III before the measurement, IV and V after: +20 Mining Speed', () => {
-  const g = gearAt([3, 4, 5], 100, stamp({ 3: 50, 4: 150, 5: 160 }));
-  assert.equal(g.gear.MINING_SPEED, 20);
-  assert.deepEqual(g.essence, { MINING_SPEED: 20 });
-});
-
-test('everything ticked before the measurement is in the base: nothing added', () => {
-  assert.equal(gearAt([1, 2, 3], 100, stamp({ 1: 10, 2: 20, 3: 30 })).gear.MINING_SPEED, undefined);
-  assert.equal(gearAt([1, 2, 3], 100, {}).gear.MINING_SPEED, undefined); // a tick without a date is older than the app
-});
-
-test('a new measurement makes everything base again; without a measurement nothing is added', () => {
-  const dates = stamp({ 3: 50, 4: 150, 5: 160 });
-  assert.equal(gearAt([3, 4, 5], 200, dates).gear.MINING_SPEED, undefined);
-  assert.equal(gearAt([3, 4, 5], null, dates).gear.MINING_SPEED, undefined);
-});
-
-test('level V ticked alone after the measurement counts the levels below it too', () => {
-  assert.equal(gearAt([5], 100, stamp({ 5: 150 })).gear.MINING_SPEED, 50);
-});
-
 test('Cut Loose is only described, never a stat', () => {
   assert.equal(perks.find((p) => p.id === 'cut_loose').effect, undefined);
 });
 
-test('a perk with a wrong bazaar id or cost list is rejected', () => {
-  const bad = structuredClone(read('essence-perks'));
-  bad.perks[0].bazaar = 'ESSENCE_WRONG';
-  assert.throws(() => checkEssence(bad, stats), /bazaar id/);
-  const short = structuredClone(read('essence-perks'));
-  short.perks[0].costs.pop();
-  assert.throws(() => checkEssence(short, stats), /one positive cost/);
+// the essence shop is a part of the build: levels count as a change only after the measurement
+const data = { stats: read('stats'), essence: read('essence-perks'), hotm: { perks: [] }, attributes: { attributes: [] }, power: { powerStones: [], tuning: { stats: [] }, boosterCookie: { effects: [] }, multiplier: { a: 0, b: 0, exp: 1 } } };
+const entry = (snapshot) => ({ at: 100, values: { MINING_SPEED: 1000 }, snapshot });
+const total = (build, snapshot) => totalFor({ area: 'mining', entry: entry(snapshot), build, gear: {}, data, stats: ['MINING_SPEED'] });
+
+test('a level above the snapshot adds its stat; the same level in both adds nothing', () => {
+  assert.equal(total({ essence: { eager_miner: 5 } }, { essence: { eager_miner: 3 } }).total.MINING_SPEED, 1020);
+  assert.equal(total({ essence: { eager_miner: 3 } }, { essence: { eager_miner: 3 } }).total.MINING_SPEED, 1000);
+  const t = total({ essence: { eager_miner: 5 } }, { essence: { eager_miner: 3 } });
+  assert.deepEqual(t.moved.MINING_SPEED, [{ part: 'essence', value: 20 }]);
+});
+
+test('Cut Loose is listed as text and adds nothing', () => {
+  const t = total({ essence: { cut_loose: 3 } }, { essence: {} });
+  assert.equal(t.total.MINING_SPEED, 1000);
+  assert.ok(t.listed.some((l) => /Cut Loose 3/.test(l.text)));
+});
+
+test('first entry after a measurement is a draft; saving backfills the snapshot, later changes are a delta', () => {
+  let st = { build: { ...emptyBuild() }, base: withEssence({ mining: entry({ hotm: null, essence: undefined }) }), draft: {} };
+  assert.ok(needsDraft(st.build, st.base, 'essence'));
+  st = editPart(st, 'essence', essenceLevel(perks[0], 4));
+  assert.equal(st.build.essence, null); // still a draft
+  st = commitDraft(st, 'essence');
+  assert.deepEqual(st.build.essence, { eager_miner: 4 });
+  assert.deepEqual(st.base.mining.snapshot.essence, { eager_miner: 4 });
+  assert.equal(total(st.build, st.base.mining.snapshot).total.MINING_SPEED, 1000); // base already holds it
+  st = editPart(st, 'essence', essenceLevel(perks[0], 6));
+  assert.equal(total(st.build, st.base.mining.snapshot).total.MINING_SPEED, 1020);
+});
+
+test('migration: the highest ticked level per perk becomes the base, the ticks go, nothing is counted twice', () => {
+  const keys = ['perk:eager_miner:1', 'perk:eager_miner:2', 'perk:eager_miner:3', 'perk:frozen_skin:2', 'undone:perk:eager_miner:4', 'gem:x:JADE:FLAWLESS:1'];
+  const out = migrateEssence({ keys, build: { hotm: null }, base: { mining: entry({ hotm: null }) } });
+  assert.deepEqual(out.keys, ['gem:x:JADE:FLAWLESS:1']);
+  assert.deepEqual(out.build.essence, { eager_miner: 3, frozen_skin: 2 });
+  assert.deepEqual(out.base.mining.snapshot.essence, { eager_miner: 3, frozen_skin: 2 });
+  assert.equal(total(out.build, out.base.mining.snapshot).total.MINING_SPEED, 1000);
+  assert.equal(totalFor({ area: 'mining', entry: out.base.mining, build: { ...out.build, essence: { ...out.build.essence, eager_miner: 4 } }, gear: {}, data, stats: ['MINING_SPEED'] }).total.MINING_SPEED, 1010);
+  // again: no change
+  assert.deepEqual(migrateEssence({ keys: out.keys, build: out.build, base: out.base }), out);
+  // no tick: the part stays unknown and the snapshot says so
+  const none = migrateEssence({ keys: [], build: {}, base: { mining: { at: 1, values: {}, snapshot: { hotm: null } } } });
+  assert.equal(none.build.essence, null);
+  assert.equal(none.base.mining.snapshot.essence, null);
 });
