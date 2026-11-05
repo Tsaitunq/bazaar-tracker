@@ -77,3 +77,10 @@ test('validGuide keeps keys and legacy, refuses a duplicate or a bad key', () =>
   bad.sections[0].steps[0].key = 'no key';
   assert.equal(validGuide(bad), null);
 });
+
+test('an old Perfect tick means Perfect and Flawless, an old untick only Perfect', () => {
+  const out = collapseChecks([B], { b: ['Old|Perfect'] }, []);
+  assert.deepEqual(new Set(out.keys), new Set(['gem:x:JADE:PERFECT:1', 'gem:x:JADE:FLAWLESS:1']));
+  const un = collapseChecks([B], { b: ['undone:Old|Perfect'] }, []);
+  assert.deepEqual(un.keys, ['undone:gem:x:JADE:PERFECT:1']);
+});

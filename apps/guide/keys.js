@@ -37,9 +37,10 @@ export function collapseChecks(guides, checks, keys) {
     kept[id] = [];
     for (const mark of marks) {
       const [prefix, text] = split(mark);
-      const target = own.get(text) ?? legacy[text];
+      const target = legacy[text] ?? own.get(text);
       if (target === undefined) { kept[id].push(mark); continue; }
-      for (const k of [target].flat()) {
+      // an old tick can mean several keys (a Perfect gem means the Flawless one too); an untick only the first
+      for (const k of prefix ? [target].flat().slice(0, 1) : [target].flat()) {
         // a tick beats an untick when two old guides disagree
         if (!prefix) { next.add(k); next.delete(UNDONE + k); } else if (!next.has(k)) next.add(UNDONE + k);
       }
