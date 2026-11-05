@@ -1,6 +1,15 @@
 {
   "versions": [
     {
+      "version": "0.10.0",
+      "date": "2026-11-05",
+      "entries": [
+        { "title": "A short tour", "text": "On the first start, and once for everyone after this update, a six-step tour shows the guides, how ticking works and how to measure and read your stats." },
+        { "title": "What's new", "text": "After an update a sheet lists everything that changed since the version you saw last." },
+        { "title": "Help in Settings", "text": "Settings can start the tour again and show the full list of changes." }
+      ]
+    },
+    {
       "version": "0.9.0",
       "date": "2026-11-05",
       "entries": [
