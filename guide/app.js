@@ -207,8 +207,11 @@ function tourSync() {
   if (!el) return;
   if (fresh) el.scrollIntoView({ block: 'center', behavior: 'instant' });
   const r = el.getBoundingClientRect();
-  Object.assign(hole.style, { left: `${r.left - SPOT_PAD}px`, top: `${r.top - SPOT_PAD}px`, width: `${r.width + 2 * SPOT_PAD}px`, height: `${r.height + 2 * SPOT_PAD}px` });
-  tourBox.dataset.card = r.top + r.height / 2 > innerHeight / 2 ? 'top' : 'bottom';
+  // a panel taller than the screen is lit as far as it shows
+  const top = Math.max(r.top - SPOT_PAD, 0);
+  const bottom = Math.min(r.bottom + SPOT_PAD, innerHeight);
+  Object.assign(hole.style, { left: `${r.left - SPOT_PAD}px`, top: `${top}px`, width: `${r.width + 2 * SPOT_PAD}px`, height: `${bottom - top}px` });
+  tourBox.dataset.card = (top + bottom) / 2 > innerHeight / 2 ? 'top' : 'bottom';
 }
 
 function tourGo(i) {
