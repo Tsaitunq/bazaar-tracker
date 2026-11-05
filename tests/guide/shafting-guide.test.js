@@ -16,7 +16,7 @@ test('the private shafting guide holds together', { skip: !present }, () => {
   assert.equal(guide.preset, 'shafting');
   const ranked = guide.sections.filter((s) => !s.extra).flatMap((s) => s.steps);
   const extra = guide.sections.filter((s) => s.extra).flatMap((s) => s.steps);
-  assert.equal(ranked.length, 168); // 100 on the path, 32 upgrades, 36 essence shop levels
+  assert.equal(ranked.length, 182); // 100 on the path, 46 upgrades (14 enchant levels), 36 essence shop levels
   assert.equal(extra.length, 12);
   const texts = [...ranked, ...extra].map((s) => s.text);
   assert.equal(new Set(texts).size, texts.length);
@@ -61,4 +61,26 @@ test('group g1 lists six parts; the drill line is 700 MS / 25 MF, the total 1230
   assert.equal(card.parts.length, 6);
   assert.deepEqual(card.parts[0].stats.map((s) => s.text), ['+700 ⸕ Mining Speed', '+25 ☘ Mining Fortune']);
   assert.deepEqual(card.stats.map((s) => s.text), ['+1,230 ⸕ Mining Speed', '+55 ☘ Mining Fortune', '+10 ☘ Gemstone Fortune', '+1 ✧ Pristine']);
+});
+
+test('enchant levels in the Upgrades section: lower levels first, gain is the difference', { skip: !present }, async () => {
+  const { guideModel } = await import('../../apps/guide/model.js');
+  const { gamedata, baseOf, emptyBuild } = await import('../fixtures/guide-world.js');
+  const { miningSettings } = await import('../../apps/guide/optimizer.js');
+  const src = load();
+  const up = src.sections.find((s) => s.name.startsWith('Upgrades'));
+  const enchants = up.steps.filter((s) => s.detect?.kind === 'enchant');
+  assert.deepEqual(enchants.map((s) => s.key).filter((k) => k.includes('lapidary')), [2, 3, 4, 5].map((n) => `enchant:drill:lapidary:${n}`));
+  const guide = { id: 'shafting', ...src, order: 'value', milestones: undefined, sections: [{ ...up, steps: enchants }] };
+  const prices = (id) => ({ buy_summary: [{ pricePerUnit: id.endsWith('_5') ? 1e6 : 1e5, amount: 1e6 }] });
+  const products = Object.fromEntries(enchants.flatMap((s) => s.items.map((i) => [i.id, prices(i.id)])));
+  const base = baseOf({ mining: { values: { MINING_SPEED: 1000, MINING_FORTUNE: 100, PRISTINE: 0, GEMSTONE_FORTUNE: 0 } } });
+  const m = guideModel(guide, { marks: new Set(), owned: [], base, build: emptyBuild(), gamedata, products, prices: { items: items() }, settings: miningSettings({ preset: 'shafting' }) });
+  const order = m.rows.map((r) => r.name);
+  for (const line of new Set(enchants.map((s) => s.line))) {
+    const names = enchants.filter((s) => s.line === line).map((s) => s.text);
+    assert.deepEqual(order.filter((n) => names.includes(n)), names, line);
+  }
+  const eff = enchants.filter((s) => s.line.endsWith('efficiency'));
+  assert.ok(eff.every((s) => s.gain.MINING_SPEED === 20));
 });

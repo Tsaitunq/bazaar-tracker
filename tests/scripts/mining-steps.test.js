@@ -82,3 +82,34 @@ test('gem slots: a slot twice, a Perfect without Flawless and a stone inside an 
   assert.match(gemConflicts(g(perfect), items)[0], /Perfect without Flawless/);
   assert.match(gemConflicts(g({ text: 'Helm (mit Perfect Topaz)' }), items)[0], /stone inside/);
 });
+
+test('enchant upgrades: every level to the maximum, gain = difference to the level below, never before the level below', async () => {
+  const { enchantUpgrades } = await import('../../scripts/guide/mining-steps.mjs');
+  const step = (key, text) => ({ key, text });
+  const guide = { sections: [{ steps: [
+    step('enchant:drill:efficiency:5', 'X: Efficiency V'), step('enchant:drill:ultimate_flowstate:2', 'X: Flowstate II'),
+    step('enchant:drill:fortune:3', 'X: Fortune III'), step('enchant:drill:lapidary:1', 'X: Lapidary I'), step('enchant:drill:pristine:2', 'X: Prismatic II'),
+    step('enchant:divan_helmet:ice_cold:5', 'H: Ice Cold V'),
+  ] }] };
+  const out = enchantUpgrades(guide, (piece) => [[piece.toUpperCase()]]);
+  const of = (id) => out.filter((s) => s.key.includes(`:${id}:`));
+  assert.deepEqual(of('efficiency').map((s) => s.detect.level), [6, 7, 8, 9, 10]);
+  assert.ok(of('efficiency').every((s) => s.gain.MINING_SPEED === 20 && s.items[0].id === 'SIL_EX'));
+  assert.deepEqual(of('ultimate_flowstate').map((s) => s.gain.MINING_SPEED), [200]);
+  assert.match(of('ultimate_flowstate')[0].hint, /full stacks/i);
+  assert.deepEqual(of('fortune').map((s) => s.gain.MINING_FORTUNE), [15]);
+  assert.deepEqual(of('lapidary').map((s) => [s.detect.level, s.gain.GEMSTONE_FORTUNE, s.gain.MINING_SPEED]), [[2, 10, 20], [3, 10, 20], [4, 10, 20], [5, 10, 20]]);
+  assert.deepEqual(of('pristine').map((s) => s.gain.PRISTINE), [0.5, 0.5, 0.5]);
+  assert.equal(of('ice_cold').length, 0); // already at its maximum
+  assert.equal(out.length, 14);
+  // the first level hangs on the step it builds on, all levels of an enchant share one line, the book is priced as cheapest of buy or combine
+  const lap = of('lapidary');
+  assert.deepEqual(lap[0].after, ['X: Lapidary I']);
+  assert.equal(new Set(lap.map((s) => s.line)).size, 1);
+  assert.deepEqual(lap.map((s) => s.items[0].id), [2, 3, 4, 5].map((n) => `ENCHANTMENT_LAPIDARY_${n}`));
+  assert.ok(lap.every((s) => s.items[0].combine === 5));
+  // the gain of the levels adds up to the table
+  const sum = (list, stat) => list.reduce((n, s) => n + s.gain[stat], 0);
+  assert.equal(110 + sum(of('efficiency'), 'MINING_SPEED'), 210);
+  assert.equal(30 + sum(of('fortune'), 'MINING_FORTUNE'), 45);
+});

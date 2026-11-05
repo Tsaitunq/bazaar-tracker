@@ -130,3 +130,39 @@ export function gemConflicts(guide, items) {
   }
   return problems;
 }
+
+import { readFileSync } from 'node:fs';
+export const ENCHANT_LEVELS = JSON.parse(readFileSync(new URL('./enchant-levels.json', import.meta.url), 'utf8')).enchants;
+
+const statsAt = (e, level) => Object.fromEntries(Object.entries(e.table ?? Object.fromEntries(Object.entries(e.perLevel).map(([s, v]) => [s, Array.from({ length: e.max }, (_, i) => v * (i + 1))]))).map(([s, list]) => [s, level ? list[level - 1] : 0]));
+const r2 = (v) => Math.round(v * 100) / 100;
+
+// For every enchant a guide already holds on a piece (its highest level), one step per level up to the maximum.
+// Gain = the stats of the level minus those of the level below. Cost = the book of the level (the app prices the cheapest of
+// buying it or combining two of the level below, `combine`), or one Silex. A level never comes before the one below it (`line`, `after`).
+// onFor(piece): the ids of the item slot the enchant sits on. Gives the new steps; none for an enchant at its maximum.
+export function enchantUpgrades(guide, onFor, levels = ENCHANT_LEVELS) {
+  const best = new Map(); // key without level -> highest step
+  for (const step of guide.sections.flatMap((s) => s.steps)) {
+    const m = step.key?.match(/^enchant:(.+):(.+):(\d+)$/);
+    if (!m || !levels[m[2]]) continue;
+    const k = `${m[1]}:${m[2]}`;
+    if (!best.has(k) || Number(m[3]) > best.get(k).level) best.set(k, { piece: m[1], id: m[2], level: Number(m[3]), step });
+  }
+  const out = [];
+  for (const { piece, id, level, step } of best.values()) {
+    const e = levels[id];
+    const label = piece === 'drill' ? 'Drill' : step.text.split(': ')[0];
+    for (let l = level + 1; l <= e.max; l++) {
+      const gain = Object.fromEntries(Object.entries(statsAt(e, l)).map(([s, v]) => [s, r2(v - statsAt(e, l - 1)[s])]).filter(([, v]) => v));
+      const items = e.source === 'silex' ? [{ id: e.silex, qty: 1 }] : [{ id: `ENCHANTMENT_${id.toUpperCase()}_${l}`, qty: 1, combine: e.combine }];
+      const hint = [e.fullStacks && 'At full stacks', e.note].filter(Boolean).join('. ');
+      out.push({
+        text: `${label}: ${e.name} ${ROMAN[l]}`, gain, key: `enchant:${piece}:${id}:${l}`, line: `enchant:${piece}:${id}`,
+        detect: { kind: 'enchant', on: onFor(piece, step), enchant: id, level: l }, items,
+        ...(l === level + 1 && { after: [step.text] }), ...(hint && { hint }),
+      });
+    }
+  }
+  return out;
+}
