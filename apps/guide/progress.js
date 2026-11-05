@@ -81,6 +81,13 @@ function validLegacy(l) {
   return kept.length ? Object.fromEntries(kept) : null;
 }
 
+// An item step used to carry stones: owning the item (pg.owned) also ticks these keys, once, in the migration.
+function validOwnedKeys(o) {
+  if (!o || typeof o !== 'object' || Array.isArray(o)) return null;
+  const kept = Object.entries(o).filter(([id, list]) => text(id) && Array.isArray(list) && list.length && list.every(validKey));
+  return kept.length ? Object.fromEntries(kept) : null;
+}
+
 // A guide from a file is outside data: only the known fields come through, and a link only as http(s).
 export function validGuide(g) {
   if (!text(g?.title) || !Array.isArray(g.sections) || !g.sections.length) return null;
@@ -94,10 +101,11 @@ export function validGuide(g) {
   const keys = sections.flatMap((s) => s.steps.map((st) => st.key).filter(Boolean));
   if (new Set(keys).size !== keys.length) return null;
   const legacy = validLegacy(g.legacy);
+  const ownedKeys = validOwnedKeys(g.ownedKeys);
   const groups = validGroups(g.groups);
   const chapters = validChapters(g.chapters, sections);
   const milestones = validMilestones(g.milestones, sections);
-  return { title: g.title, ...(text(g.label) && { label: g.label }), ...(/^https?:\/\//i.test(g.source ?? '') && { source: g.source }), ...(['mining', 'blaze', 'farming'].includes(g.area) && { area: g.area }), ...(['fixed', 'value'].includes(g.order) && { order: g.order }), ...(text(g.preset) && { preset: g.preset }), ...(chapters && { chapters }), ...(milestones && { milestones }), ...(legacy && { legacy }), ...(groups && { groups }), sections };
+  return { title: g.title, ...(text(g.label) && { label: g.label }), ...(/^https?:\/\//i.test(g.source ?? '') && { source: g.source }), ...(['mining', 'blaze', 'farming'].includes(g.area) && { area: g.area }), ...(['fixed', 'value'].includes(g.order) && { order: g.order }), ...(text(g.preset) && { preset: g.preset }), ...(chapters && { chapters }), ...(milestones && { milestones }), ...(legacy && { legacy }), ...(ownedKeys && { ownedKeys }), ...(groups && { groups }), sections };
 }
 
 const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'guide';

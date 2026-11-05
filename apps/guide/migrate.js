@@ -4,7 +4,7 @@ import { stepKey } from './progress.js';
 import { isItemStep, idsToOwn, migrateOwned } from './owned.js';
 import { collapseChecks } from './keys.js';
 
-export const SCHEMA = 3;
+export const SCHEMA = 4;
 const UNDONE = 'undone:';
 
 // summary: the last synced profile, or null. Steps it found stay done: an item step becomes owned, any other a mark.
@@ -43,7 +43,11 @@ export function runMigration(io, guides) {
     ({ owned, checks } = migrateTicks({ guides, checks, owned, summary: stand?.summary ?? null }));
   }
   // schema 3: ticks of steps with a shared key move into one list; marks nothing knows stay where they are
-  const moved = collapseChecks(guides, checks, io.read('pg.keys', []));
+  let moved = schema < 3 ? collapseChecks(guides, checks, io.read('pg.keys', [])) : { checks, keys: io.read('pg.keys', []) };
+  // schema 4: an item that carried stones in its step (owned) now has them as steps of their own, ticked
+  const keys = new Set(moved.keys);
+  for (const guide of guides) for (const [id, list] of Object.entries(guide.ownedKeys ?? {})) if (owned.includes(id)) for (const k of list) if (!keys.has(`undone:${k}`)) keys.add(k);
+  moved = { ...moved, keys: [...keys] };
   if (!io.write('pg.keys', moved.keys) || !io.write('pg.checks', moved.checks) || !io.write('pg.owned', owned)) return false;
   if (schema < 2) {
     const { personal, ...settings } = io.read('pg.settings', {});

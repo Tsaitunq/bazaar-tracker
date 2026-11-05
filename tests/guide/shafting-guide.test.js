@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { validGuide } from '../../apps/guide/progress.js';
+import { gemConflicts } from '../../scripts/guide/mining-steps.mjs';
 
 const FILE = 'personal/guides/shafting.json';
 const present = existsSync(FILE);
@@ -38,5 +39,12 @@ test('the private shafting guide holds together', { skip: !present }, () => {
   assert.ok(guide.sections[0].steps.every((x) => x.detect?.kind !== 'recomb' && !(x.detect?.kind === 'gem' && x.detect.quality === 'PERFECT')));
   assert.ok(keys.includes('perk:dwarven_expertise:10') && keys.includes('perk:frozen_skin:5') && keys.includes('perk:cut_loose:5'));
   for (const [old, to] of Object.entries(guide.legacy)) for (const k of [to].flat()) assert.ok(keys.includes(k), `${old} -> ${k}`);
+  // one stone per gem slot: no item step carries a stone, no slot twice, every Perfect after its Flawless; the Divan armor is clean
+  assert.deepEqual(gemConflicts(guide, known), []);
+  for (const id of ['DIVAN_HELMET', 'DIVAN_CHESTPLATE', 'DIVAN_LEGGINGS', 'DIVAN_BOOTS']) {
+    const step = ranked.find((x) => x.items?.[0]?.id === id);
+    assert.equal(step.gain.PRISTINE, undefined, id);
+    assert.deepEqual(guide.ownedKeys[id].length, 2);
+  }
   console.log('steps without a price source', ranked.filter((s) => !s.items?.length).length, 'with auto tick', ranked.filter((s) => s.detect).length);
 });

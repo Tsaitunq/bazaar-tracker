@@ -57,12 +57,12 @@ test('a tick beats an untick when old guides disagree, and a second run changes 
   assert.deepEqual(twice, once);
 });
 
-test('runMigration moves the ticks and sets schema 3', () => {
+test('runMigration moves the ticks and sets the schema', () => {
   const data = new Map(Object.entries({ 'pg.schema': 2, 'pg.checks': { a: ['Gear|Helmet gem'] } }));
   const io = { read: (k, d) => (data.has(k) ? structuredClone(data.get(k)) : d), write: (k, v) => { data.set(k, structuredClone(v)); return true; }, drop: (k) => data.delete(k) };
   assert.equal(runMigration(io, [A, B]), true);
   assert.deepEqual(data.get('pg.keys'), ['gem:divan_helmet:JADE:FLAWLESS:1']);
-  assert.equal(data.get('pg.schema'), 3);
+  assert.equal(data.get('pg.schema'), 4);
   assert.equal(runMigration(io, [A, B]), false);
 });
 
@@ -83,4 +83,18 @@ test('an old Perfect tick means Perfect and Flawless, an old untick only Perfect
   assert.deepEqual(new Set(out.keys), new Set(['gem:x:JADE:PERFECT:1', 'gem:x:JADE:FLAWLESS:1']));
   const un = collapseChecks([B], { b: ['undone:Old|Perfect'] }, []);
   assert.deepEqual(un.keys, ['undone:gem:x:JADE:PERFECT:1']);
+});
+
+test('schema 4: an owned item that carried stones gets their keys ticked, once, and an untick stays', () => {
+  const guide = { id: 'a', title: 'A', ownedKeys: { HELM: ['gem:helm:TOPAZ:FLAWLESS:1', 'gem:helm:TOPAZ:PERFECT:1'] }, sections: [{ name: 'S', steps: [{ text: 'Helm', key: 'item:HELM' }] }] };
+  const data = new Map(Object.entries({ 'pg.schema': 3, 'pg.owned': ['HELM'], 'pg.keys': ['undone:gem:helm:TOPAZ:PERFECT:1'] }));
+  const io = { read: (k, d) => (data.has(k) ? structuredClone(data.get(k)) : d), write: (k, v) => { data.set(k, structuredClone(v)); return true; }, drop: () => {} };
+  assert.equal(runMigration(io, [guide]), true);
+  assert.deepEqual(new Set(data.get('pg.keys')), new Set(['gem:helm:TOPAZ:FLAWLESS:1', 'undone:gem:helm:TOPAZ:PERFECT:1']));
+  assert.deepEqual(data.get('pg.owned'), ['HELM']);
+  const without = new Map(Object.entries({ 'pg.schema': 3, 'pg.owned': [] }));
+  const io2 = { ...io, read: (k, d) => (without.has(k) ? structuredClone(without.get(k)) : d), write: (k, v) => { without.set(k, v); return true; } };
+  runMigration(io2, [guide]);
+  assert.deepEqual(without.get('pg.keys'), []);
+  assert.equal(validGuide(guide).ownedKeys.HELM.length, 2);
 });

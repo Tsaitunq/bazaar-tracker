@@ -43,7 +43,7 @@ test('migration: ticks stored, profile and flags deleted, flag set last', async 
   assert.equal(o.data.has('pg.profile'), false);
   assert.equal(o.data.has('pg.ownedV1'), false);
   assert.deepEqual(o.data.get('pg.settings'), { tax: 1 });
-  assert.equal(o.data.get('pg.schema'), 3);
+  assert.equal(o.data.get('pg.schema'), 4);
 });
 
 test('second run changes nothing', async () => {

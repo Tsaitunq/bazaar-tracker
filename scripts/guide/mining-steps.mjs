@@ -1,6 +1,6 @@
 // Game logic for the mining guides, kept out of personal/ so it can be tested: the shared step keys, the essence shop
 // steps and the jaded/clean stat hints. The private build scripts in personal/ call this. Pure functions.
-import { REFORGES } from '../../apps/guide/optimizer-data.js';
+import { REFORGES, GEMS, GEM_STAT } from '../../apps/guide/optimizer-data.js';
 
 const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
 export const RARITY_LIST = ['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGENDARY', 'MYTHIC', 'DIVINE'];
@@ -93,3 +93,40 @@ export function reforgeHint(value, rarity) {
 
 // The stats of a piece as it drops, without reforge, gems or stars.
 export const cleanHint = (stats) => `Clean: ${Object.entries(stats).map(([stat, v]) => `${name(stat)} ${v}`).join(', ')}`;
+
+// A list line like "Divan's Helmet (mit Perfect Topaz)" bundles a gem into the item. Gives the clean item: the text without the
+// bracket and the gain without the stone (at the rarity of the item), plus what the bracket named. null for a line without a gem.
+export function cleanItem(text, gain, tier) {
+  const m = text.match(/ \(mit (Rough|Flawed|Fine|Flawless|Perfect) (Jade|Amber|Topaz)[^)]*\)$/);
+  if (!m) return null;
+  const quality = m[1].toUpperCase();
+  const type = m[2].toUpperCase();
+  const value = GEMS[type]?.[quality]?.[RARITY_LIST.indexOf(tier)];
+  const next = { ...gain };
+  if (value !== undefined && next[GEM_STAT[type]] !== undefined) {
+    const left = Math.round((next[GEM_STAT[type]] - value) * 100) / 100;
+    if (left > 0) next[GEM_STAT[type]] = left; else delete next[GEM_STAT[type]];
+  }
+  return { text: text.slice(0, m.index), gain: next, gem: { type, quality } };
+}
+
+// Every gem slot holds one stone in the model: per piece, type and slot number one Flawless step and one Perfect step, the Perfect one
+// after the Flawless one, and no item step that carries a stone of its own. Gives a list of problems (empty = fine).
+export function gemConflicts(guide, items) {
+  const problems = [];
+  const seen = new Map();
+  const steps = guide.sections.flatMap((s) => s.steps);
+  for (const step of steps) {
+    const d = [step.detect ?? []].flat();
+    if (d.length === 1 && d[0].kind === 'gem') {
+      const key = keyOf(step, { guide, items });
+      if (seen.has(key)) problems.push(`slot twice: ${key}`);
+      seen.set(key, step);
+    }
+    if (/\(mit (Rough|Flawed|Fine|Flawless|Perfect) /.test(step.text)) problems.push(`stone inside an item step: ${step.text}`);
+  }
+  for (const [key, step] of seen) {
+    if (step.detect.quality === 'PERFECT' && !seen.has(key.replace(':PERFECT:', ':FLAWLESS:'))) problems.push(`Perfect without Flawless: ${key}`);
+  }
+  return problems;
+}

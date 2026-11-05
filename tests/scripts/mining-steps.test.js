@@ -61,3 +61,24 @@ test('jaded hint: stats per rarity, Mythic after the Recombobulator; clean hint 
   assert.equal(reforgeHint('nope', 'LEGENDARY'), null);
   assert.equal(cleanHint({ DEFENSE: 130, MINING_FORTUNE: 30 }), 'Clean: Defense 130, Mining Fortune 30');
 });
+
+import { cleanItem, gemConflicts } from '../../scripts/guide/mining-steps.mjs';
+
+test('an item line with a stone inside becomes the clean item: the stone leaves the text and the gain', () => {
+  const out = cleanItem("Divan's Helmet (mit Perfect Topaz)", { MINING_SPEED: 80, MINING_FORTUNE: 30, PRISTINE: 2 }, 'LEGENDARY');
+  assert.equal(out.text, "Divan's Helmet");
+  assert.deepEqual(out.gain, { MINING_SPEED: 80, MINING_FORTUNE: 30 });
+  assert.deepEqual(out.gem, { type: 'TOPAZ', quality: 'PERFECT' });
+  assert.equal(cleanItem('Titanium Drill DR-X355', {}, 'EPIC'), null);
+  assert.equal(cleanItem('Piece (mit Flawless Topaz)', { PRISTINE: 2.5 }, 'LEGENDARY').gain.PRISTINE, 0.9);
+});
+
+test('gem slots: a slot twice, a Perfect without Flawless and a stone inside an item step are found', () => {
+  const g = (...steps) => ({ sections: [{ name: 'S', steps }] });
+  const flawless = gem('Helm: Flawless Topaz Slot 1', 'DIVAN_HELMET', 'TOPAZ', 'FLAWLESS');
+  const perfect = gem('Helm: Perfect Topaz Slot 1', 'DIVAN_HELMET', 'TOPAZ', 'PERFECT');
+  assert.deepEqual(gemConflicts(g(flawless, perfect), items), []);
+  assert.match(gemConflicts(g(flawless, { ...flawless, text: 'again' }), items)[0], /slot twice/);
+  assert.match(gemConflicts(g(perfect), items)[0], /Perfect without Flawless/);
+  assert.match(gemConflicts(g({ text: 'Helm (mit Perfect Topaz)' }), items)[0], /stone inside/);
+});
