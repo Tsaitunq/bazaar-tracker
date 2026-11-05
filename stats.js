@@ -265,7 +265,7 @@ export function petLevel(pet, top = 100) {
 const WISP = (tier, health, td) => ({ tiers: [tier], stats: (l) => ({ HEALTH: health * l, ...(td && { TRUE_DEFENSE: td * l }) }) });
 const PETS = {
   LION: { tiers: ['RARE', 'EPIC', 'LEGENDARY'], stats: (l) => ({ STRENGTH: 0.5 * l }) },
-  BLAZE: { tiers: ['LEGENDARY'], stats: (l) => ({ DEFENSE: 0.3 * l }) },
+  BLAZE: { tiers: ['LEGENDARY'], stats: (l) => ({ DEFENSE: 0.3 * l, INTELLIGENCE: l }) },
   GOLDEN_DRAGON: { tiers: ['LEGENDARY'], top: 200, stats: (l) => (l > 100 ? { STRENGTH: 25.25 + 0.25 * (l - 101), ATTACK_SPEED: 25.25 + 0.25 * (l - 101) } : {}) },
   DROPLET_WISP: WISP('UNCOMMON', 1),
   FROST_WISP: WISP('RARE', 2.5, 0.15),

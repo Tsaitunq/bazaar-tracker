@@ -9,7 +9,7 @@ const copy = (o) => structuredClone(o);
 test('all five files load and validate', async () => {
   const d = await loadGameData(read);
   assert.equal(d.hotm.perks.length, 46);
-  assert.equal(d.pets.pets.length, 8);
+  assert.equal(d.pets.pets.length, 9);
   assert.ok(!d.pets.pets.some((p) => p.id === 'CROW'));
   assert.equal(d.attributes.attributes.length, 325);
   assert.equal(d.hotm.tiers[9].cumulativeXp, 1247000);
@@ -223,4 +223,23 @@ test('stats: a missing or unknown category is rejected', () => {
   assert.throws(() => checkStats(bad), /bad category nope/);
   delete bad.stats[0].category;
   assert.throws(() => checkStats(bad), /missing "category"/);
+});
+
+test('pets: Blaze has its Lv 100 stats, three computed perks and the Plushie as pet item', () => {
+  const d = read('pets');
+  const blaze = d.pets.find((p) => p.id === 'BLAZE' && p.rarity === 'LEGENDARY');
+  assert.deepEqual(blaze.stats, { DEFENSE: 30, INTELLIGENCE: 100 });
+  assert.deepEqual(blaze.perks.map((k) => k.effect.kind), ['category_multiplier', 'set_multiplier', 'potato_multiplier']);
+  assert.deepEqual(blaze.perks[0].effect.categories, ['combat', 'misc']);
+  assert.deepEqual(d.items.find((i) => i.id === 'CROCHET_TIGER_PLUSHIE').stats, { ATTACK_SPEED: 35 });
+});
+
+test('pets: an unknown effect kind or a pet item on an unknown stat is rejected', () => {
+  const stats = checkStats(read('stats'));
+  const bad = copy(read('pets'));
+  bad.pets.find((p) => p.id === 'BLAZE').perks[0].effect.kind = 'nope';
+  assert.throws(() => checkPets(bad, stats), /unknown effect kind nope/);
+  const item = copy(read('pets'));
+  item.items[0].stats.NOPE = 1;
+  assert.throws(() => checkPets(item, stats), /pets.items.CROCHET_TIGER_PLUSHIE: bad stat NOPE/);
 });

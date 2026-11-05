@@ -165,7 +165,7 @@ test('power editor: Magical Power, stone chips, tuning rows and both buffs', () 
 
 test('pet picker: one chip per pet, stats of the choice, conditional perks marked, none selected by default', () => {
   const none = editor('power', { build: emptyBuild(), base: {} });
-  assert.equal((none.match(/data-pet="[A-Z_]+:[A-Z]+"/g) ?? []).length, 8);
+  assert.equal((none.match(/data-pet="[A-Z_]+:[A-Z]+"/g) ?? []).length, 9);
   assert.match(none, /data-pet="" aria-pressed="true"/);
   assert.doesNotMatch(none, /data-pet="CROW/);
   const html = editor('power', { build: { ...emptyBuild(), pet: { id: 'GLACITE_GOLEM', rarity: 'LEGENDARY', level: 100 } }, base: {} });
@@ -306,7 +306,7 @@ test('overview: an unsaved draft shows a notice that links to its tab', () => {
 
 test('pet picker: every pet shows head, stats and perks without a tap, conditional perks marked', () => {
   const html = editor('power', { base: {} });
-  assert.equal((html.match(/class="pet-card/g) ?? []).length, 8);
+  assert.equal((html.match(/class="pet-card/g) ?? []).length, 9);
   assert.match(html, /src="img\/hypixel\/pets\/BAL_LEGENDARY\.png"/);
   assert.match(html, /<span class="cond">only: Magma Fields<\/span> <b>Furnace<\/b>/);
   assert.match(html, /Heat Resistance \+150/);

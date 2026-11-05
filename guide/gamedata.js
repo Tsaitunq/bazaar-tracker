@@ -119,8 +119,25 @@ export function checkPets(d, stats) {
     for (const k of p.perks) {
       need(`${w}.${k.name}`, k, ['name', 'text']);
       if (k.stat !== undefined && (!stats.has(k.stat) || typeof k.value !== 'number')) fail(`${w}.${k.name}`, 'stat needs a known stat and a number value');
+      if (k.effect !== undefined) checkPerkEffect(`${w}.${k.name}`, k.effect);
     }
   }
+  unique('pets.items', (d.items ?? []).map((i) => i.id));
+  for (const i of d.items ?? []) {
+    need(`pets.items.${i.id}`, i, ['id', 'name', 'stats']);
+    for (const [s, v] of Object.entries(i.stats)) if (!stats.has(s) || typeof v !== 'number') fail(`pets.items.${i.id}`, `bad stat ${s}`);
+  }
+}
+
+// An effect the stats model computes (not a stat that is simply added). percent is the value at Level 100.
+const PERK_EFFECTS = {
+  category_multiplier: (w, e) => { if (!Array.isArray(e.categories) || !e.categories.length || !(e.percent > 0)) fail(w, 'category_multiplier needs categories and percent'); },
+  set_multiplier: (w, e) => { if (typeof e.family !== 'string' || !(e.percent > 0)) fail(w, 'set_multiplier needs family and percent'); },
+  potato_multiplier: (w, e) => { if (!(e.factor > 1)) fail(w, 'potato_multiplier needs a factor above 1'); },
+};
+function checkPerkEffect(w, e) {
+  if (!PERK_EFFECTS[e?.kind]) fail(w, `unknown effect kind ${e?.kind}`);
+  PERK_EFFECTS[e.kind](w, e);
 }
 
 // The one place that evaluates an effect formula: a + b·L, plus a step every stepEvery levels, rounded down on floor, capped on cap.

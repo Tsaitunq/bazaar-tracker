@@ -1,5 +1,8 @@
 {
- "src": "u2-daten (user, 2026-11-04). Level 100. stats are always on; a perk with a condition is shown, never summed. Crow is left out on purpose.",
+ "src": "u2-daten (user, 2026-11-04); Blaze: wiki Blaze Pet and Frozen Blaze Armor (2026-11-05). Level 100. stats are always on; a perk with a condition is shown, never summed; a perk with an effect is computed by the stats model. Crow is left out on purpose.",
+ "items": [
+  { "id": "CROCHET_TIGER_PLUSHIE", "name": "Crochet Tiger Plushie", "stats": { "ATTACK_SPEED": 35 } }
+ ],
  "pets": [
   { "id": "BAL", "name": "Bal", "rarity": "LEGENDARY", "level": 100,
     "stats": { "HEAT_RESISTANCE": 150, "MINING_FORTUNE": 100 },
@@ -7,6 +10,12 @@
       { "name": "Furnace", "text": "+3 Pristine in the Magma Fields", "stat": "PRISTINE", "value": 3, "condition": "Magma Fields" },
       { "name": "Dispersion", "text": "Mob kills in the Crystal Hollows give -4 Heat", "condition": "Crystal Hollows" },
       { "name": "Cannibal", "text": "+100 % damage against Bal", "condition": "against Bal" } ] },
+  { "id": "BLAZE", "name": "Blaze", "rarity": "LEGENDARY", "level": 100,
+    "stats": { "DEFENSE": 30, "INTELLIGENCE": 100 },
+    "perks": [
+      { "name": "Nether Embodiment", "text": "+10 % Combat and Miscellaneous stats on the Crimson Isle", "effect": { "kind": "category_multiplier", "categories": ["combat", "misc"], "percent": 10, "where": "crimson_isle" } },
+      { "name": "Bling Armor", "text": "+40 % stats and ability of Blaze Armor and Frozen Blaze Armor", "effect": { "kind": "set_multiplier", "family": "BLAZE_ARMOR", "percent": 40 } },
+      { "name": "Fusion-Style Potato", "text": "Hot Potato Books work twice", "effect": { "kind": "potato_multiplier", "factor": 2 } } ] },
   { "id": "GLACITE_GOLEM", "name": "Glacite Golem", "rarity": "LEGENDARY", "level": 100,
     "stats": { "COLD_RESISTANCE": 10, "MINING_SPEED": 125 },
     "perks": [
