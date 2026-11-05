@@ -14,6 +14,7 @@ import { guideView } from './views/guide.js';
 import { statsView } from './views/stats.js';
 import { settingsView } from './views/settings.js';
 import { paintFigures } from './skin.js';
+import { decide, finishTour, STEPS, tourHtml, newsHtml } from './intro.js';
 
 const BAZAAR = 'https://api.hypixel.net/v2/skyblock/bazaar';
 const PRICE_EVERY = 300e3;
@@ -27,6 +28,7 @@ const CARD_GAP = 8;
 const MARK_MS = 250; // as in guide.css
 const HAND_QUIET_MS = 700; // a flicked list still glides this long after the finger lifts
 const FOLD_PX = 24;
+const SPOT_PAD = 6;
 
 const load = (key, fallback) => {
   try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
@@ -75,6 +77,15 @@ let foldFrom = 0; // where the list was when the head last opened
 let loading = true; // until the guide files are read, an empty list means nothing yet
 let pathEpoch = 0; // a new order of all paths: on a tick, on the first prices and when a setting changes
 const opened = {}; // a new order of one path: when that guide opens. Going back reuses what home had, so it is quick
+
+let changelog = null;
+let tour = null; // { i, from } while the tour runs
+let tourShown = -1; // the step whose card is on screen
+const tourBox = Object.assign(document.createElement('div'), { id: 'tour', className: 'tour', hidden: true });
+const newsBox = Object.assign(document.createElement('div'), { id: 'news', hidden: true });
+document.body.append(tourBox, newsBox);
+const store = { get: (key) => load(key, null), set: (key, value) => save(key, value) };
+const theme = () => document.documentElement.dataset.theme ?? 'home';
 
 const guides = () => mergeGuides(bundled, imported);
 const route = () => parseRoute(location.hash, guides());
@@ -164,6 +175,7 @@ function draw() {
   }
   preparePeek();
   askBins(pending);
+  tourSync();
 }
 
 // New prices must not wipe what is being typed into a form.
@@ -175,6 +187,78 @@ function openInfo() {
   // a sheet thrown away by a redraw may still report its close; only the one on screen counts
   sheet.addEventListener('close', () => { if (root.contains(sheet)) infoOpen = false; }, { once: true });
 }
+
+// The tour lives outside #app, so a redraw does not remove it; after each draw the spotlight finds its element again.
+function tourSync() {
+  tourBox.hidden = !tour;
+  root.inert = !!tour;
+  if (!tour) { tourShown = -1; return; }
+  tourBox.dataset.theme = theme();
+  const fresh = tourShown !== tour.i;
+  if (fresh) {
+    tourBox.innerHTML = tourHtml(tour.i);
+    tourShown = tour.i;
+    tourBox.querySelector('[data-tour="next"]').focus();
+  }
+  const el = root.querySelector(STEPS[tour.i].target);
+  const hole = tourBox.querySelector('.tour-hole');
+  tourBox.classList.toggle('tour-nohole', !el); // a missing element: the step shows without a spotlight
+  hole.hidden = !el;
+  if (!el) return;
+  if (fresh) el.scrollIntoView({ block: 'center', behavior: 'instant' });
+  const r = el.getBoundingClientRect();
+  Object.assign(hole.style, { left: `${r.left - SPOT_PAD}px`, top: `${r.top - SPOT_PAD}px`, width: `${r.width + 2 * SPOT_PAD}px`, height: `${r.height + 2 * SPOT_PAD}px` });
+  tourBox.dataset.card = r.top + r.height / 2 > innerHeight / 2 ? 'top' : 'bottom';
+}
+
+function tourGo(i) {
+  tour = { ...tour, i };
+  const want = STEPS[i].hash(guides()[0]?.id);
+  if ((location.hash || '#/') !== want) location.hash = want;
+  else tourSync();
+}
+
+function tourStart() {
+  tour = { i: 0, from: location.hash || '#/' };
+  tourShown = -1;
+  tourGo(0);
+}
+
+function tourEnd() {
+  const { from } = tour;
+  tour = null;
+  finishTour(store);
+  if ((location.hash || '#/') !== from) location.hash = from;
+  tourSync();
+}
+
+function newsShow(versions) {
+  newsBox.dataset.theme = theme();
+  newsBox.innerHTML = newsHtml(versions);
+  newsBox.hidden = false;
+  newsBox.querySelector('.bs-close').focus();
+}
+const newsClose = () => { newsBox.hidden = true; newsBox.innerHTML = ''; };
+
+async function startIntro() {
+  try { changelog = await (await fetch('changelog.json')).json(); } catch { /* offline and not cached yet: no news this time */ }
+  const what = decide(store, changelog);
+  if (what.type === 'tour') tourStart();
+  else if (what.type === 'news') newsShow(what.news);
+}
+
+tourBox.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-tour]');
+  if (!b || !tour) return;
+  if (b.dataset.tour === 'next' && tour.i + 1 < STEPS.length) tourGo(tour.i + 1);
+  else tourEnd();
+});
+newsBox.addEventListener('click', (e) => { if (e.target.closest('[data-news-close]')) newsClose(); });
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (tour) tourEnd();
+  else if (!newsBox.hidden) newsClose();
+});
 
 function drawInBackground() {
   if (!formEdited([...root.querySelectorAll('input, select, textarea')], document.activeElement)) draw();
@@ -417,6 +501,8 @@ root.addEventListener('click', (e) => {
   }
   const act = el('[data-act]')?.dataset.act;
   if (act === 'mining-reset') { settings.mining = null; saveSettings(); }
+  if (act === 'tour') tourStart();
+  if (act === 'news' && changelog) newsShow(changelog.versions);
   if (act === 'export') runExport();
   if (act === 'import') runImport(root.querySelector('[data-json]').value);
   if (act === 'import-file') root.querySelector('[data-import-file]').click();
@@ -693,6 +779,7 @@ if (await runMigration({ read: load, write: save, drop, readLegacy: readLegacyPr
 }
 stamp();
 draw();
+startIntro();
 loadForge().then((r) => { forge = r; pathEpoch++; drawInBackground(); });
 loadAh().then((r) => { ah = r; pathEpoch++; drawInBackground(); });
 loadElection().then((r) => { election = r; drawInBackground(); });
