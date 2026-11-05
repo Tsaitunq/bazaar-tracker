@@ -58,7 +58,7 @@ function measure(world, r) {
   const gear = m.gearLine.length ? `<small>Gear from your guides adds ${m.gearLine.map((g) => `<span class="c-${g.color}">${esc(g.icon)} ${esc(g.text)}</span>`).join(' · ')}</small>` : '';
   const buff = (key, label) => `<label class="check"><input type="checkbox" data-buff="${key}"${m.buffs[key] ? ' checked' : ''}> ${label}</label>`;
   const body = `<div class="scroll"><div class="panel" data-stats-area="${esc(r.area)}"><h2>Measure ${esc(m.name)} base</h2>
-    <small>Take off armor, equipment, tool or weapon and pet. Then open /stats and type what it shows. A field left empty stays unknown.</small>
+    <small>Take off armor, equipment, tool or weapon and pet${r.area === 'blaze' ? '; keep your accessories on, they are part of the base' : ''}. Then open /stats and type what it shows. A field left empty stays unknown.</small>
     ${buff('godPotion', 'God Potion active')}${buff('boosterCookie', 'Booster Cookie active')}
     ${fields}${mp}${gear}
     <div class="actions"><button type="button" class="primary" data-stats-save>Save as ${esc(m.name)} base</button></div></div></div>`;

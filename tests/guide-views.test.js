@@ -392,3 +392,11 @@ test('power editor: the gear panel and the pet item show for Blaze with a pet, n
   assert.doesNotMatch(none, /data-pet-item/);
   assert.doesNotMatch(editor('power', { build: { ...emptyBuild(), pet }, base: {} }), /data-gear=/);
 });
+
+test('Blaze measure: the Combat menu with Ferocity, Speed and Magic Find, without Health Regen, Vitality, Damage and wisdoms', () => {
+  const html = statsView(world({ base: {} }), { page: 'stats', tab: 'measure', area: 'blaze' });
+  const ids = [...html.matchAll(/data-stats-stat="([A-Z_]+)"/g)].map((m) => m[1]);
+  assert.deepEqual(ids, ['STRENGTH', 'CRITICAL_DAMAGE', 'CRITICAL_CHANCE', 'ATTACK_SPEED', 'HEALTH', 'DEFENSE', 'TRUE_DEFENSE', 'INTELLIGENCE', 'FEROCITY', 'ABILITY_DAMAGE', 'MENDING', 'SWING_RANGE', 'SPEED', 'MAGIC_FIND']);
+  assert.match(html, /keep your accessories on/);
+  assert.doesNotMatch(statsView(world({ base: {} }), { page: 'stats', tab: 'measure', area: 'mining' }), /keep your accessories on/);
+});

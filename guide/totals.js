@@ -124,5 +124,11 @@ export function totalFor({ area, entry, build, gear = {}, data, stats, pet }) {
   return { rows, total, listed: now.listed, moved: entry?.snapshot ? movedBy(build, entry.snapshot, data, area) : {} };
 }
 
+// Blaze shows the Combat menu without Health Regen, Vitality and the weapon's Damage, and the two Misc stats gear gives (Speed, Magic Find).
+const BLAZE_HIDDEN = new Set(['HEALTH_REGEN', 'VITALITY', 'DAMAGE']);
+const BLAZE_MISC = new Set(['SPEED', 'MAGIC_FIND']);
+
 // The stats of an area in the order of gamedata/stats.json.
-export const statsFor = (area, data) => data.stats.stats.filter((s) => s.areas.includes(DATA_AREA[area])).map((s) => s.id);
+export const statsFor = (area, data) => data.stats.stats
+  .filter((s) => (area === 'blaze' ? (s.category === 'combat' && !BLAZE_HIDDEN.has(s.id)) || BLAZE_MISC.has(s.id) : s.areas.includes(DATA_AREA[area])))
+  .map((s) => s.id);
