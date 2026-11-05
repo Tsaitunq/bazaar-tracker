@@ -4,6 +4,7 @@ const AREAS = new Set(['mining', 'combat', 'farming', 'general']);
 // the /stats menu category of a stat (scripts/gamedata-categories.mjs); Nether Embodiment multiplies combat and misc
 const CATEGORIES = new Set(['combat', 'misc', 'wisdom', 'mining', 'farming', 'foraging', 'fishing', 'hunting']);
 const RARITIES = ['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGENDARY'];
+export const EFFECT_KINDS = ['flat', 'per_stat', 'conditional', 'chance', 'other'];
 const POWDERS = new Set(['mithril', 'gemstone', 'glacite']);
 const TYPES = new Set(['perk', 'ability', 'core']);
 const HEX = /^#[0-9A-Fa-f]{6}$/;
@@ -83,7 +84,10 @@ export function checkAttributes(d, stats) {
     const w = `attributes.${a.id}`;
     need(w, a, ['id', 'shard', 'name', 'rarity', 'maxLevel', 'effects', 'areas', 'icon']);
     if (!RARITIES.includes(a.rarity)) fail(w, `bad rarity ${a.rarity}`);
-    if (!a.effects.length && !a.unknown && a.effectKind !== 'other') fail(w, 'no effect and not marked unknown/other');
+    if (!EFFECT_KINDS.includes(a.effectKind)) fail(w, `effectKind must be one of ${EFFECT_KINDS.join(', ')}`);
+    if (!a.effects.length && !a.desc && !a.note && !a.unknown) fail(w, 'no effect, no desc and not marked unknown');
+    if (['flat', 'per_stat'].includes(a.effectKind) && !a.effects.length) fail(w, `${a.effectKind} needs effects`);
+    if (a.desc && !(a.desc.text?.includes('{v}') && a.desc.perLevel > 0) && typeof a.desc.level1 !== 'string') fail(w, 'desc needs perLevel and a text with {v}, or level1');
     if (a.mcIcon !== undefined && !/^[a-z_]+$/.test(a.mcIcon)) fail(w, 'bad mcIcon');
     for (const e of a.effects) {
       checkEffect(w, e, stats);

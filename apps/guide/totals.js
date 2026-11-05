@@ -1,6 +1,7 @@
 // Total per stat = base (typed in) + changes since the measurement + gear. Pure functions, no DOM.
 // The multipliers come last: the base was measured with the multipliers of its snapshot inside, so they are divided out first.
 import { valueAt } from './gamedata.js';
+import { perStatAt } from './attrs-model.js';
 import { GOD_POTION } from './stats.js';
 import { lockOf } from './hotm-model.js';
 import { buildPet } from './gear.js';
@@ -39,6 +40,11 @@ function attrStats(attrs, data, out, area) {
     const level = attrs[a.key] ?? 0;
     if (!(level > 0)) continue;
     for (const e of a.effects) {
+      if (e.kind === 'per_stat') { // depends on another stat: described, never added
+        const p = perStatAt(e, level, a.maxLevel);
+        out.listed.push({ stat: e.stat, value: p.value, cond: e.cond, text: `${a.name}: +${Math.round(p.value * 100) / 100} ${e.stat} per ${p.every} ${e.per.stat} (${e.cond})` });
+        continue;
+      }
       const v = e.fixed !== undefined ? e.fixed : (e.perLevel ?? 0) * level;
       const holds = e.cond === 'always' || (e.cond === 'vs_mob_family' && FAMILIES[area].has(e.family));
       if (holds && e.kind === 'percent_multiplier') out.mult[e.stat] = (out.mult[e.stat] ?? 1) * (1 + v / 100);
