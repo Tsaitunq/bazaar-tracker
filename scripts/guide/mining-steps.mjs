@@ -61,23 +61,6 @@ export function legacyMap(oldGuide, newKeys, items) {
   return out;
 }
 
-// One step per level of every perk of the essence shop. Cost = essence of the shop times its bazaar price (the item id is in the step).
-export function essenceSteps(data) {
-  return data.perks.flatMap((p) => Array.from({ length: p.max }, (_, i) => {
-    const level = i + 1;
-    const step = {
-      text: `${cap(p.essence)} Essence Shop: ${p.name} ${ROMAN[level]}`,
-      key: `perk:${p.id}:${level}`,
-      detect: { kind: 'essence', perk: p.id, level },
-      items: [{ id: p.bazaar, qty: p.costs[i] }],
-    };
-    if (p.effect) step.gain = { [p.effect.stat]: p.effect.perLevel };
-    else step.hint = `${p.conditional.text} (${p.conditional.where}). Shown only, not counted in your stats.`;
-    if (level > 1) step.after = [`${cap(p.essence)} Essence Shop: ${p.name} ${ROMAN[level - 1]}`];
-    return { perk: p.id, level, step };
-  }));
-}
-
 const line = (stats) => Object.entries(stats).map(([stat, v]) => `+${v} ${name(stat)}`).join(' ');
 
 // What a reforge gives at the rarity of the piece and one above it (the Recombobulator), from the wiki table.

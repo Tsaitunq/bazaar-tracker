@@ -16,7 +16,7 @@ test('the private shafting guide holds together', { skip: !present }, () => {
   assert.equal(guide.preset, 'shafting');
   const ranked = guide.sections.filter((s) => !s.extra).flatMap((s) => s.steps);
   const extra = guide.sections.filter((s) => s.extra).flatMap((s) => s.steps);
-  assert.equal(ranked.length, 182); // 100 on the path, 46 upgrades (14 enchant levels), 36 essence shop levels
+  assert.equal(ranked.length, 142); // 96 on the path, 46 upgrades (14 enchant levels); the essence shop lives in Stats
   assert.equal(extra.length, 12);
   const texts = [...ranked, ...extra].map((s) => s.text);
   assert.equal(new Set(texts).size, texts.length);
@@ -37,7 +37,7 @@ test('the private shafting guide holds together', { skip: !present }, () => {
     assert.ok(step.after?.length, step.text);
   }
   assert.ok(guide.sections[0].steps.every((x) => x.detect?.kind !== 'recomb' && !(x.detect?.kind === 'gem' && x.detect.quality === 'PERFECT')));
-  assert.ok(keys.includes('perk:dwarven_expertise:10') && keys.includes('perk:frozen_skin:5') && keys.includes('perk:cut_loose:5'));
+  assert.ok(!ranked.some((x) => x.detect?.kind === 'essence') && !keys.some((k) => k.startsWith('perk:')));
   for (const [old, to] of Object.entries(guide.legacy)) for (const k of [to].flat()) assert.ok(keys.includes(k), `${old} -> ${k}`);
   // one stone per gem slot: no item step carries a stone, no slot twice, every Perfect after its Flawless; the Divan armor is clean
   assert.deepEqual(gemConflicts(guide, known), []);

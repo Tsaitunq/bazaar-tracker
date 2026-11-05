@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { keyOf, assignKeys, legacyMap, essenceSteps, reforgeHint, cleanHint, pieceOf } from '../../scripts/guide/mining-steps.mjs';
+import { keyOf, assignKeys, legacyMap, reforgeHint, cleanHint, pieceOf } from '../../scripts/guide/mining-steps.mjs';
 
 const items = { DIVAN_HELMET: { category: 'HELMET' }, TITANIUM_DRILL_2: { category: 'DRILL' }, DIVAN_DRILL: { category: 'DRILL' } };
 const gem = (text, id, type, quality) => ({ text, detect: { kind: 'gem', on: [[id]], type, quality, need: 1 } });
@@ -35,25 +35,6 @@ test('legacy: an old step of another guide maps to the new key, an unknown one i
   ] }] };
   const out = legacyMap(old, new Set(['gem:divan_helmet:JADE:FLAWLESS:1']), items);
   assert.deepEqual(out, { 'Old|Jade on the helmet': 'gem:divan_helmet:JADE:FLAWLESS:1' });
-});
-
-test('essence steps: every level, cost per level, chain, Cut Loose has no gain', () => {
-  const data = JSON.parse(fs.readFileSync('gamedata/essence-perks.json', 'utf8'));
-  const steps = essenceSteps(data);
-  assert.equal(steps.length, 10 + 10 + 10 + 5 + 5);
-  const eager3 = steps.find((s) => s.perk === 'eager_miner' && s.level === 3).step;
-  assert.deepEqual(eager3.items, [{ id: 'ESSENCE_GOLD', qty: 300 }]);
-  assert.deepEqual(eager3.gain, { MINING_SPEED: 10 });
-  assert.equal(eager3.key, 'perk:eager_miner:3');
-  assert.deepEqual(eager3.after, ['Gold Essence Shop: Eager Miner II']);
-  const dmf = steps.find((s) => s.perk === 'dwarven_expertise' && s.level === 1).step;
-  assert.deepEqual(dmf.gain, { DWARVEN_METAL_FORTUNE: 2 });
-  const cut = steps.filter((s) => s.perk === 'cut_loose').map((s) => s.step);
-  assert.ok(cut.every((s) => !s.gain && /not counted/.test(s.hint)));
-  assert.equal(steps.filter((s) => s.perk === 'frozen_skin').at(-1).step.items[0].qty, 5000);
-  const sum = (perk) => steps.filter((s) => s.perk === perk).reduce((n, s) => n + s.step.items[0].qty, 0);
-  assert.equal(sum('cut_loose'), 7500);
-  assert.equal(new Set(steps.map((s) => s.step.key)).size, steps.length);
 });
 
 test('jaded hint: stats per rarity, Mythic after the Recombobulator; clean hint lists the stats', () => {
