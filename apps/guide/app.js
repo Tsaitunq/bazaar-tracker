@@ -8,6 +8,7 @@ import { PRESETS, miningSettings } from './optimizer.js';
 import { loadGameData } from './gamedata.js';
 import { emptyBuild, measure, editPart, commitDraft, discardDraft, EMPTY_PART, perkLevel, perkEnabled, abilityPick, hotmTier, omelette, attrLevel, powerStone, powerMp, tuningPoints, setPet, setPetItem, setGear } from './build.js';
 import { runMigration } from './migrate.js';
+import { expandChecks, collapseChecks, commitGuide, resetKeys } from './keys.js';
 import { STATS_TABS, parseRoute, applyImport, stampAll, formEdited, typedFields, restoreTyped, settled, autoOf, tickStep, swipeTarget, swipeAxis, swipeLands, familyOf } from './model.js';
 import { homeView } from './views/home.js';
 import { guideView } from './views/guide.js';
@@ -40,7 +41,9 @@ const save = (key, value) => {
 const root = document.getElementById('app');
 let bundled = [];
 let imported = load('pg.guides', []);
-let checks = load('pg.checks', {});
+let checks = load('pg.checks', {}); // the marks of steps without a shared key, per guide
+let keys = load('pg.keys', []); // ticks of steps with a shared key, for all guides
+const live = () => expandChecks(guides(), checks, keys);
 let dates = load('pg.dates', {});
 let owned = load('pg.owned', []);
 const settings = load('pg.settings', {});
@@ -98,7 +101,7 @@ const targetOf = (dx) => {
 const world = () => {
   pending = new Set();
   return {
-    guides: guides(), checks, owned, dates, base, build, draft, ui, gamedata, products, now: Date.now(),
+    guides: guides(), checks: live(), owned, dates, base, build, draft, ui, gamedata, products, now: Date.now(),
     prices: { forge, ah, cofl: freshBins(bins), wants: pending, items, tax: (settings.tax ?? DEFAULT_TAX) / 100, derpy: election?.mayor?.name === 'Derpy' },
     settings: miningSettings(settings.mining), keepOldGear: settings.keepOldGear === true, brake: settings.brake > 0 ? settings.brake : 5, pathEpoch, opened, items,
     name: (id) => names[id] ?? fallbackName(id), tax: settings.tax ?? DEFAULT_TAX, importedIds: imported.map((g) => g.id),
@@ -282,7 +285,7 @@ async function askBins(wants) {
 }
 
 function stamp() {
-  dates = stampAll(guides(), checks, dates, Date.now(), owned);
+  dates = stampAll(guides(), live(), dates, Date.now(), owned);
   save('pg.dates', dates);
 }
 
@@ -334,11 +337,12 @@ function toggle(key, fromCard = false) {
   const r = route();
   const guide = guides().find((g) => g.id === r.id);
   if (!guide) return;
-  const marks = new Set(checks[guide.id] ?? []);
+  const marks = new Set(live()[guide.id] ?? []);
   const on = !doneSet(guide, marks, autoOf(guide, owned)).has(key);
   owned = [...tickStep({ guide, key, on, marks, owned })];
-  checks = { ...checks, [guide.id]: [...marks] };
+  ({ checks, keys } = commitGuide(guides(), guide, marks, checks, keys));
   save('pg.checks', checks);
+  save('pg.keys', keys);
   save('pg.owned', owned);
   dataText = ''; // an export from before this tick must not come back by accident
   follow = false; // the list stays under the finger that ticked
@@ -362,9 +366,11 @@ function runImport(raw) {
     const data = importData(raw);
     ({ imported, checks, owned } = applyImport({ imported, checks, bundled, owned }, data));
     ({ owned, checks } = migrateOwned(guides(), checks, owned));
+    ({ checks, keys } = collapseChecks(guides(), checks, keys));
     pathEpoch++;
     save('pg.guides', imported);
     save('pg.checks', checks);
+    save('pg.keys', keys);
     save('pg.owned', owned);
     stamp();
     dataText = '';
@@ -377,7 +383,7 @@ function runImport(raw) {
 }
 
 async function runExport() {
-  dataText = exportData(guides(), checks, owned);
+  dataText = exportData(guides(), live(), owned);
   let copied = false;
   try { await navigator.clipboard.writeText(dataText); copied = true; } catch { /* the text field holds it */ }
   // the Android WebView has no downloads, so there the text and the clipboard are the export
@@ -493,8 +499,11 @@ root.addEventListener('click', (e) => {
   const yes = el('[data-reset-yes]');
   if (yes) {
     armed = null;
+    const gone = guides().find((g) => g.id === yes.dataset.resetYes);
     checks = { ...checks, [yes.dataset.resetYes]: [] };
-    owned = [...resetOwned(guides().find((g) => g.id === yes.dataset.resetYes), owned)];
+    owned = [...resetOwned(gone, owned)];
+    keys = resetKeys(gone, keys);
+    save('pg.keys', keys);
     pathEpoch++;
     save('pg.checks', checks);
     save('pg.owned', owned);
@@ -778,6 +787,7 @@ pathEpoch++;
 const drop = (key) => { try { localStorage.removeItem(key); } catch { /* blocked: the next start tries again */ } };
 if (await runMigration({ read: load, write: save, drop }, guides())) {
   checks = load('pg.checks', {});
+  keys = load('pg.keys', []);
   owned = load('pg.owned', []);
 }
 stamp();

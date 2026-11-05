@@ -35,14 +35,18 @@ function validGain(g) {
   return kept.length ? Object.fromEntries(kept) : null;
 }
 
+const KEY = /^[A-Za-z0-9_.-]+(:[A-Za-z0-9_.-]+)+$/;
+const validKey = (k) => (typeof k === 'string' && KEY.test(k) ? k : null);
+
 function validStep(s) {
   if (!text(s?.text)) return null;
+  if (s.key !== undefined && !validKey(s.key)) return null;
   const items = s.items === undefined ? [] : Array.isArray(s.items) ? s.items.map(validItem) : [null];
   if (items.includes(null)) return null;
   const detect = validDetect(s.detect);
   const gain = validGain(s.gain);
   const after = Array.isArray(s.after) ? s.after.filter(text) : [];
-  return { text: s.text, ...(detect && { detect }), ...(gain && { gain }), ...(items.length && { items }), ...(text(s.hint) && { hint: s.hint }), ...(s.table === true && { table: true }), ...(text(s.line) && { line: s.line }), ...(Number.isInteger(s.priority) && s.priority > 0 && { priority: s.priority }), ...(text(s.group) && { group: s.group }), ...(after.length && { after }) };
+  return { text: s.text, ...(s.key && { key: s.key }), ...(detect && { detect }), ...(gain && { gain }), ...(items.length && { items }), ...(text(s.hint) && { hint: s.hint }), ...(s.table === true && { table: true }), ...(text(s.line) && { line: s.line }), ...(Number.isInteger(s.priority) && s.priority > 0 && { priority: s.priority }), ...(text(s.group) && { group: s.group }), ...(after.length && { after }) };
 }
 
 // Sections grouped for the ring of the guide app. A name that is no section drops out, and a chapter left empty with it.
@@ -67,6 +71,16 @@ function validMilestones(list, sections) {
   return kept.length ? kept : null;
 }
 
+// Old step marks (section|text) and the key each one now means; a text may mean several keys.
+function validLegacy(l) {
+  if (!l || typeof l !== 'object' || Array.isArray(l)) return null;
+  const kept = Object.entries(l).flatMap(([old, to]) => {
+    const list = [to].flat();
+    return list.length && list.every(validKey) ? [[old, to]] : [];
+  });
+  return kept.length ? Object.fromEntries(kept) : null;
+}
+
 // A guide from a file is outside data: only the known fields come through, and a link only as http(s).
 export function validGuide(g) {
   if (!text(g?.title) || !Array.isArray(g.sections) || !g.sections.length) return null;
@@ -77,10 +91,13 @@ export function validGuide(g) {
     return { name: s.name, ...(text(s.goal) && { goal: s.goal }), ...(s.extra === true && { extra: true }), steps };
   });
   if (sections.includes(null)) return null;
+  const keys = sections.flatMap((s) => s.steps.map((st) => st.key).filter(Boolean));
+  if (new Set(keys).size !== keys.length) return null;
+  const legacy = validLegacy(g.legacy);
   const groups = validGroups(g.groups);
   const chapters = validChapters(g.chapters, sections);
   const milestones = validMilestones(g.milestones, sections);
-  return { title: g.title, ...(text(g.label) && { label: g.label }), ...(/^https?:\/\//i.test(g.source ?? '') && { source: g.source }), ...(['mining', 'blaze', 'farming'].includes(g.area) && { area: g.area }), ...(['fixed', 'value'].includes(g.order) && { order: g.order }), ...(text(g.preset) && { preset: g.preset }), ...(chapters && { chapters }), ...(milestones && { milestones }), ...(groups && { groups }), sections };
+  return { title: g.title, ...(text(g.label) && { label: g.label }), ...(/^https?:\/\//i.test(g.source ?? '') && { source: g.source }), ...(['mining', 'blaze', 'farming'].includes(g.area) && { area: g.area }), ...(['fixed', 'value'].includes(g.order) && { order: g.order }), ...(text(g.preset) && { preset: g.preset }), ...(chapters && { chapters }), ...(milestones && { milestones }), ...(legacy && { legacy }), ...(groups && { groups }), sections };
 }
 
 const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'guide';
