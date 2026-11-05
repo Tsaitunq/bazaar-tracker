@@ -1,6 +1,8 @@
 // Loads and checks the game data in gamedata/*.json (stats, HOTM, attributes, power, pets). A broken file throws with a path to the fault.
 export const FILES = ['stats', 'hotm', 'attributes', 'power', 'pets'];
 const AREAS = new Set(['mining', 'combat', 'farming', 'general']);
+// the /stats menu category of a stat (scripts/gamedata-categories.mjs); Nether Embodiment multiplies combat and misc
+const CATEGORIES = new Set(['combat', 'misc', 'wisdom', 'mining', 'farming', 'foraging', 'fishing', 'hunting']);
 const RARITIES = ['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGENDARY'];
 const POWDERS = new Set(['mithril', 'gemstone', 'glacite']);
 const TYPES = new Set(['perk', 'ability', 'core']);
@@ -15,7 +17,8 @@ export function checkStats(d) {
   unique('stats', d.stats.map((s) => s.id));
   for (const s of d.stats) {
     const w = `stats.${s.id}`;
-    need(w, s, ['id', 'name', 'areas', 'unit', 'percent', 'src']);
+    need(w, s, ['id', 'name', 'areas', 'category', 'unit', 'percent', 'src']);
+    if (!CATEGORIES.has(s.category)) fail(w, `bad category ${s.category}`);
     if (!/^[A-Z_]+$/.test(s.id)) fail(w, 'id must be UPPER_SNAKE');
     if (!s.areas.length || s.areas.some((a) => !AREAS.has(a))) fail(w, 'bad areas');
     if (s.icon === null || s.color === null) { if (!s.unknown) fail(w, 'null icon/color needs unknown:true'); } else if (!HEX.test(s.color)) fail(w, 'bad colour');

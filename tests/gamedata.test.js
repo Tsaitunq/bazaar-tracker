@@ -207,3 +207,20 @@ test('pets: Scatha has three rarities, a bad stat or rarity fails with a path', 
   perk.pets[0].perks[0].value = 'x';
   assert.throws(() => checkPets(perk, stats), /Furnace/);
 });
+
+test('stats: every stat has a /stats category, wisdoms are their own', () => {
+  const d = read('stats');
+  const cat = (id) => d.stats.find((s) => s.id === id).category;
+  for (const id of ['HEALTH', 'DEFENSE', 'TRUE_DEFENSE', 'STRENGTH', 'CRITICAL_CHANCE', 'CRITICAL_DAMAGE', 'ATTACK_SPEED', 'FEROCITY', 'SWING_RANGE', 'INTELLIGENCE', 'ABILITY_DAMAGE', 'HEALTH_REGEN', 'VITALITY', 'MENDING']) assert.equal(cat(id), 'combat', id);
+  for (const id of ['SPEED', 'MAGIC_FIND', 'PET_LUCK', 'HEAT_RESISTANCE', 'COLD_RESISTANCE', 'RESPIRATION', 'PRESSURE_RESISTANCE', 'FEAR']) assert.equal(cat(id), 'misc', id);
+  for (const id of ['TRACKING', 'TREASURE_CHANCE', 'FISHING_SPEED', 'SEA_CREATURE_CHANCE', 'BONUS_PEST_CHANCE']) assert.notEqual(cat(id), 'misc', id);
+  for (const s of d.stats.filter((x) => x.id.endsWith('_WISDOM'))) assert.equal(s.category, 'wisdom', s.id);
+});
+
+test('stats: a missing or unknown category is rejected', () => {
+  const bad = copy(read('stats'));
+  bad.stats[0].category = 'nope';
+  assert.throws(() => checkStats(bad), /bad category nope/);
+  delete bad.stats[0].category;
+  assert.throws(() => checkStats(bad), /missing "category"/);
+});

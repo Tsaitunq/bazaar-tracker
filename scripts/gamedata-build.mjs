@@ -13,6 +13,7 @@
 //                   "Maxwell" (tuning points, templates), "Booster Cookie", "God Potion".
 // Anything the sources do not settle carries unknown:true; never fill it with a guess.
 import fs from 'node:fs';
+import { categoryOf } from './gamedata-categories.mjs';
 const NEU = process.argv[2];
 const OUT = process.argv[3];
 const read = (f) => JSON.parse(fs.readFileSync(`${NEU}/${f}`, 'utf8'));
@@ -59,6 +60,7 @@ const S = [
   ['SPEED', 'Speed', ['general']],
   ['MAGIC_FIND', 'Magic Find', ['general']],
   ['PET_LUCK', 'Pet Luck', ['general']],
+  ['FEAR', 'Fear', ['general']],
   ['TRACKING', 'Tracking', ['general']],
   ['TREASURE_CHANCE', 'Treasure Chance', ['general']],
   ['FISHING_SPEED', 'Fishing Speed', ['general']],
@@ -73,7 +75,7 @@ const S = [
   ['FISHING_WISDOM', 'Fishing Wisdom', ['general'], '☯', C.cyan],
 ];
 const stats = S.map(([id, name, areas, icon, color, percent]) => {
-  const e = { id, name, icon: icon ?? null, color: color ?? null, areas, unit: percent ? '%' : '', percent: !!percent, src: icon ? 'repo' : 'wiki' };
+  const e = { id, name, icon: icon ?? null, color: color ?? null, areas, category: categoryOf(id), unit: percent ? '%' : '', percent: !!percent, src: icon ? 'repo' : 'wiki' };
   // wiki stats page: names and area lists only, icons are images with no text; repo = guide/model.js + docs/design-guide-app.md.
   if (!icon) e.unknown = true;
   if (percent) e.percentSrc = 'not confirmed'; // wiki stats page shows Crit base values as %, not stated per stat otherwise
