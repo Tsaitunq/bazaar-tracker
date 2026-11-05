@@ -1,7 +1,9 @@
 // The item resource is 4.8 MB. The app needs these fields of it, and nothing here belongs to a player.
 const FIELDS = ['name', 'category', 'sword_type', 'tier', 'gemstone_slots', 'requirements', 'prestige'];
 
-const upperKeys = (o) => (o ? Object.fromEntries(Object.entries(o).map(([k, v]) => [k.toUpperCase(), v])) : undefined);
+// the resource says HEALTH_REGENERATION and WALK_SPEED, the game menu (and gamedata/stats.json) Health Regen and Speed
+const NAME = { HEALTH_REGENERATION: 'HEALTH_REGEN', WALK_SPEED: 'SPEED' };
+const upperKeys = (o) => (o ? Object.fromEntries(Object.entries(o).map(([k, v]) => [NAME[k.toUpperCase()] ?? k.toUpperCase(), v])) : undefined);
 
 // parents: NEU constants/parents.json, the top of a family to its lower pieces. Not on the wiki, so not confirmed.
 export function compactItems(resource, parents) {

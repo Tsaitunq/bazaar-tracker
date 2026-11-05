@@ -1,6 +1,7 @@
 // The Blaze Slayer damage model of spec 4.2: only relative values, it compares upgrades and predicts no kill time.
 // Not modelled: Thunderlord, Fire Aspect, Crimson swipe, Burning Vengeance, Venomous, demon phases, pillars.
 import { blazeScore } from './stats.js';
+import { CRIMSON_TIERS, DOMINUS } from './optimizer-data.js';
 
 // wiki Firedust, Kindlebane, Pyrochaos, Twilight, Mawdredge and Deathripper Dagger: damage against Infernal mobs
 export const DAGGERS = {
@@ -21,7 +22,18 @@ const DOMINUS_ADDITIVE = 100;
 const DOMINUS_PIECES = 2;
 const MAX_ATTACK_SPEED = 100; // wiki Attack Speed
 
-export const dominusOf = (armorIds) => (armorIds.filter((id) => id.startsWith('INFERNAL_CRIMSON_')).length >= DOMINUS_PIECES ? DOMINUS_ADDITIVE : 0);
+// The Crimson set bonus: needs DOMINUS_PIECES pieces of one tier; mixed sets count the tier with the most pieces, a tie the higher tier.
+// Gives the tier, the pieces, the flat stats of ten full stacks and the additive damage (Infernal only).
+export function setBonusOf(armorIds) {
+  const count = (tier) => armorIds.filter((id) => id.startsWith(`${tier}_`) && (tier !== 'CRIMSON' || /^CRIMSON_(HELMET|CHESTPLATE|LEGGINGS|BOOTS)$/.test(id))).length;
+  let best = null;
+  for (const tier of CRIMSON_TIERS) {
+    const n = count(tier);
+    if (n >= DOMINUS_PIECES && (!best || n >= best.pieces)) best = { tier, pieces: n };
+  }
+  return best ? { ...best, add: { ...DOMINUS[best.tier] }, additive: best.tier === 'INFERNAL_CRIMSON' ? DOMINUS_ADDITIVE : 0 } : { tier: null, pieces: 0, add: {}, additive: 0 };
+}
+export const dominusOf = (armorIds) => setBonusOf(armorIds).additive;
 
 // The strongest dagger owned per line. A dagger missing leaves null: the pair is incomplete.
 export function daggersOf(profile) {
@@ -60,7 +72,8 @@ export function blazeOutput({ common, daggers, armorIds, path }, forced = null) 
   const lines = Object.values(daggers).filter(Boolean);
   const rate = (d) => {
     const stats = merged(common, d?.lore);
-    return hitOf(stats, additiveOf(d, armorIds, way), DAGGERS[d?.id]?.m ?? 1) * hitsPerSecond(stats.ATTACK_SPEED ?? 0);
+    // every 100 Ferocity is one guaranteed extra hit, the rest a chance: the expected number of hits is 1 + Ferocity / 100
+    return hitOf(stats, additiveOf(d, armorIds, way), DAGGERS[d?.id]?.m ?? 1) * hitsPerSecond(stats.ATTACK_SPEED ?? 0) * (1 + (stats.FEROCITY ?? 0) / 100);
   };
   return lines.length ? lines.reduce((sum, d) => sum + rate(d), 0) / lines.length : rate(null);
 }

@@ -1,10 +1,11 @@
 // Which open guide step brings the most per coin (spec 4 and 5). Pure functions over the guide, the prices and the synced profile.
-import { AREA_STATS, computeStats, maxPetStats, petStats, MIN_TRUE_DEFENSE, MIN_MP, TARGET_MP } from './stats.js';
-import { DAGGERS, OFA, ADDITIVE_ENCHANTS, blazeOutput, blazeState, daggersOf, additiveOf } from './blaze.js';
+import { AREA_STATS, GEAR_STATS, computeStats, maxPetStats, petStats, MIN_TRUE_DEFENSE, MIN_MP, TARGET_MP } from './stats.js';
+import { DAGGERS, OFA, ADDITIVE_ENCHANTS, blazeOutput, blazeState, daggersOf, additiveOf, setBonusOf } from './blaze.js';
 import { stepCost, openStep, bookOf } from './progress.js';
 import { checkStep } from './requires.js';
 import { walkBook, ahNet } from './prices.js';
-import { RARITIES, ENCHANTS, ENCHANTS_NO_STAT, GEMS, GEM_STAT, GEM_SHARED_SLOTS, REFORGES, REFORGES_NO_STAT, COLDFUSED_WISP, ACCESSORY_POWER, PARTS, POLARVOID, COATING } from './optimizer-data.js';
+import { pieceExtra, pieceTotal } from './pieces.js';
+import { RARITIES, ENCHANTS, ENCHANTS_NO_STAT, GEMS, GEM_STAT, GEM_SHARED_SLOTS, REFORGES, REFORGES_NO_STAT, COLDFUSED_WISP, REFORGE_TARGETS, CATACOMBS_REFORGE, ENCHANT_EFFECTS, ACCESSORY_POWER, PARTS, POLARVOID, COATING } from './optimizer-data.js';
 
 // Spec 4.1. Gemstone Fortune applies on gemstones only (wiki Pristine), and the other fortunes are not counted, so mithril and glacite read low.
 export const PRESETS = {
@@ -34,6 +35,7 @@ function plus(sum, stats, times = 1) {
   return sum;
 }
 const onlyOf = (stats, area) => Object.fromEntries(Object.entries(stats).filter(([k]) => AREA_STATS[area].includes(k)));
+const gearOnly = (stats, area) => Object.fromEntries(Object.entries(stats).filter(([k]) => GEAR_STATS[area].includes(k)));
 const difference = (next, old) => plus(plus({}, next), old, -1);
 const total = (list) => list.reduce((sum, stats) => plus(sum, stats), {});
 const worn = (loadout) => [...loadout.armor, ...loadout.equipment, ...Object.values(loadout.daggers ?? {}).filter(Boolean), ...(loadout.held ? [loadout.held] : [])];
@@ -130,14 +132,24 @@ function gemDelta(d, guide, loadout, profile, items) {
 }
 
 // The "no stat" list only speaks for mining; for Blaze a reforge outside the table is unknown.
-const reforgeAt = (name, rarity, area = 'mining', pet = null) => {
+const reforgeAt = (name, rarity, area = 'mining', pet = null, rules = null) => {
   const table = REFORGES[name];
   if (!table) return area === 'mining' && REFORGES_NO_STAT.has(name) ? {} : null;
-  const stats = Object.fromEntries(Object.entries(table).map(([stat, values]) => [stat, values[rarity]]));
-  return name === 'coldfused' && /_WISP$/.test(pet?.type ?? '') ? plus(stats, COLDFUSED_WISP) : stats;
+  let stats = Object.fromEntries(Object.entries(table).map(([stat, values]) => [stat, values[rarity]]));
+  if (name === 'coldfused' && /_WISP$/.test(pet?.type ?? '')) stats = plus(stats, COLDFUSED_WISP);
+  // Withered and Ancient grow with the Catacombs level; unknown level counts nothing
+  const level = rules?.gear?.catacombs;
+  if (CATACOMBS_REFORGE[name] && level !== null && level !== undefined) stats = plus(stats, CATACOMBS_REFORGE[name], level);
+  return stats;
 };
 
-function reforgeDelta(d, guide, loadout, profile, items, area) {
+// Whether a reforge can sit on this piece (NEU itemTypes). A reforge without an entry fits anywhere.
+const reforgeFits = (name, id, items) => {
+  const rule = REFORGE_TARGETS[name];
+  return !rule || (rule.ids ? rule.ids.includes(id) : rule.category.includes(items?.[id]?.category));
+};
+
+function reforgeDelta(d, guide, loadout, profile, items, area, rules) {
   const targets = targetsOf(d, guide, loadout, profile);
   if (!targets || !items) return null;
   const deltas = [];
@@ -145,8 +157,9 @@ function reforgeDelta(d, guide, loadout, profile, items, area) {
     const old = t.reforge ? String(t.reforge).toLowerCase() : null;
     if (d.value.includes(old)) continue;
     const r = rarityOf(t, items);
-    const next = reforgeAt(d.value[0], r, area, loadout.pet);
-    const before = old ? reforgeAt(old, r, area, loadout.pet) : {};
+    if (area === 'blaze' && !reforgeFits(d.value[0], t.id, items)) return null;
+    const next = reforgeAt(d.value[0], r, area, loadout.pet, rules);
+    const before = old ? reforgeAt(old, r, area, loadout.pet, rules) : {};
     if (r < 0 || !next || !before) return null;
     deltas.push(difference(next, before));
   }
@@ -178,7 +191,7 @@ function recombDelta(d, guide, loadout, profile, items) {
 function recomputed(change, profile, items, loadout, area = 'mining') {
   const before = computeStats(profile, items, loadout, area).total;
   const after = computeStats({ ...profile, ...change }, items, loadout, area).total;
-  const delta = Object.fromEntries(Object.entries(onlyOf(difference(after, before), area)).filter(([, v]) => v));
+  const delta = Object.fromEntries(Object.entries(gearOnly(difference(after, before), area)).filter(([, v]) => v));
   return Object.keys(delta).length ? delta : null;
 }
 
@@ -222,12 +235,12 @@ function petDelta(d, loadout) {
   return type ? difference(maxPetStats(type, d.tier ?? 'LEGENDARY'), loadout.pet ? petStats(loadout.pet) : {}) : null;
 }
 
-function partOf(d, guide, loadout, profile, items, settings, area = 'mining') {
+function partOf(d, guide, loadout, profile, items, settings, area = 'mining', rules = null) {
   switch (d.kind) {
     case 'owned': return ownedDelta(d, guide, loadout, profile, items, area);
     case 'enchant': return enchantDelta(d, guide, loadout, profile, settings, items);
     case 'gem': return gemDelta(d, guide, loadout, profile, items);
-    case 'reforge': return reforgeDelta(d, guide, loadout, profile, items, area);
+    case 'reforge': return reforgeDelta(d, guide, loadout, profile, items, area, rules);
     case 'pet': return petDelta(d, loadout);
     case 'power': return d.value === profile.selectedPower ? {} : recomputed({ selectedPower: d.value }, profile, items, loadout, area);
     case 'recomb': return recombDelta(d, guide, loadout, profile, items);
@@ -288,7 +301,8 @@ function powerDelta(d, guide, loadout, profile, items) {
 }
 
 // A step for Blaze: what it does to the shared stats, to one dagger line, to the enchants and to the Accessory Power.
-export function blazeDelta(step, state, loadout, profile, items, settings, guide) {
+// rules (pieces.js): stars, potato books and Bling Armor of a piece; without them a piece is only its item stats.
+export function blazeDelta(step, state, loadout, profile, items, settings, guide, rules = null) {
   const change = { common: {}, lines: { ashen: {}, spirit: {} }, enchants: { ashen: {}, spirit: {} }, swaps: {}, armor: [], ofa: false, mp: 0, missing: [], notes: [] };
   const fallback = () => (step.gain ? { ...change, common: onlyOf(step.gain, 'blaze') } : null);
   const parts = [step.detect ?? []].flat();
@@ -297,22 +311,33 @@ export function blazeDelta(step, state, loadout, profile, items, settings, guide
     const slots = d.on === undefined ? null : slotsOf(d, guide);
     if (slots?.some((ids) => DAGGERS[ids[0]])) {
       for (const ids of slots.filter((list) => DAGGERS[list[0]])) {
-        if (!weaponPart({ ...d, on: [ids], need: 1 }, ids, change, state, loadout, profile, items, settings, guide)) return fallback();
+        if (!weaponPart({ ...d, on: [ids], need: 1 }, ids, change, state, loadout, profile, items, settings, guide, rules)) return fallback();
       }
       continue;
     }
-    const delta = partOf(d, guide, loadout, profile, items, settings, 'blaze');
+    const delta = partOf(d, guide, loadout, profile, items, settings, 'blaze', rules);
     const power = powerDelta(d, guide, loadout, profile, items);
     if (!delta || power === null) return fallback();
     plus(change.common, delta);
     change.mp += power;
     if (d.kind === 'owned') {
-      for (const id of openRungs(d, guide, profile) ?? []) if (isArmor(items?.[id]?.category)) change.armor.push({ out: replaced(id, loadout, profile, items, 'blaze').item?.id ?? null, in: id });
+      for (const id of openRungs(d, guide, profile) ?? []) {
+        if (!isArmor(items?.[id]?.category)) continue;
+        const out = replaced(id, loadout, profile, items, 'blaze').item?.id ?? null;
+        change.armor.push({ out, in: id });
+        plus(change.common, difference(pieceExtra(id, items, rules), out ? pieceExtra(out, items, rules) : {}));
+      }
     }
     if (d.kind === 'pet') change.notes.push('At max level. Abilities are not counted.');
   }
   if (change.mp && profile.mp !== null && profile.mp !== undefined) plus(change.common, recomputed({ mp: profile.mp + change.mp }, profile, items, loadout, 'blaze'));
-  change.common = onlyOf(change.common, 'blaze');
+  // the set bonus of the pieces that come and go (ten stacks of Dominus)
+  if (change.armor.length) {
+    const left = state.armorIds.filter((id) => !change.armor.some((piece) => piece.out === id));
+    const after = setBonusOf([...left, ...change.armor.map((piece) => piece.in)]).add;
+    plus(change.common, difference(after, setBonusOf(state.armorIds).add));
+  }
+  change.common = gearOnly(change.common, 'blaze');
   const crimson = change.armor.some((piece) => piece.in.includes('_CRIMSON_')) && new Set([...state.armorIds.filter((id) => !change.armor.some((piece) => piece.out === id)), ...change.armor.map((piece) => piece.in)].filter((id) => id.includes('_CRIMSON_'))).size === 4;
   if (crimson) change.notes.push('Set bonus not fully rated.');
   const nothing = !Object.values(change.common).some(Boolean) && !change.ofa && !change.mp && !Object.keys(change.swaps).length && !change.armor.length
@@ -323,13 +348,13 @@ export function blazeDelta(step, state, loadout, profile, items, settings, guide
 const isArmor = (category) => ['HELMET', 'CHESTPLATE', 'LEGGINGS', 'BOOTS'].includes(category);
 
 // One dagger of a step. false: nothing known about it.
-function weaponPart(d, ids, change, state, loadout, profile, items, settings, guide) {
+function weaponPart(d, ids, change, state, loadout, profile, items, settings, guide, rules) {
   const { line } = DAGGERS[ids[0]];
   const dagger = state.daggers[line];
   if (d.kind === 'owned') {
     if (dagger && ids.includes(dagger.id)) return true;
     if (!items?.[ids[0]]) return false;
-    change.swaps[line] = { id: ids[0], lore: difference(items[ids[0]].stats, items[dagger?.id]?.stats) };
+    change.swaps[line] = { id: ids[0], lore: difference(pieceTotal(ids[0], items, rules), dagger ? pieceTotal(dagger.id, items, rules) : {}) };
     if (!dagger) change.missing.push(line);
     return true;
   }
@@ -339,12 +364,22 @@ function weaponPart(d, ids, change, state, loadout, profile, items, settings, gu
       change.notes.push('Not used with One For All.');
       return true;
     }
+    // Chimera copies a share of the active pet's stats onto the dagger; the lore of the dagger gets it when the step is done
+    if (d.enchant === 'ultimate_chimera') {
+      const share = (level) => (ENCHANT_EFFECTS.ultimate_chimera.values[level - 1] ?? 0) / 100;
+      const have = dagger?.enchants?.ultimate_chimera ?? 0;
+      if (have < d.level) {
+        change.enchants[line][d.enchant] = d.level;
+        plus(change.lines[line], rules?.petStats ?? {}, share(d.level) - share(have));
+      }
+      return true;
+    }
     if (ADDITIVE_ENCHANTS.has(d.enchant)) {
       if ((dagger?.enchants?.[d.enchant] ?? 0) < d.level) change.enchants[line][d.enchant] = d.level;
       return true;
     }
   }
-  const delta = partOf(d, guide, loadout, profile, items, settings, 'blaze');
+  const delta = partOf(d, guide, loadout, profile, items, settings, 'blaze', rules);
   if (!delta) return false;
   plus(change.lines[line], delta);
   return true;
@@ -435,7 +470,7 @@ export function blazeRules(state, loadout, ctx, settings, guide) {
   const td = ctx.profile.missing?.inventory ? null : state.common.TRUE_DEFENSE ?? 0;
   const mp = ctx.profile.mp ?? null;
   return {
-    deltaOf: (step) => blazeDelta(step, state, loadout, ctx.profile, ctx.items, settings, guide),
+    deltaOf: (step) => blazeDelta(step, state, loadout, ctx.profile, ctx.items, settings, guide, ctx.rules),
     gainOf: (change) => (now > 0 ? blazeOutput(applyBlaze(state, change)) / now - 1 : 0),
     verdict: (change) => {
       const moreTd = change.common.TRUE_DEFENSE ?? 0;

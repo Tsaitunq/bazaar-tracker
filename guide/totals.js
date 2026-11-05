@@ -3,11 +3,16 @@
 import { valueAt } from './gamedata.js';
 import { GOD_POTION } from '../stats.js';
 import { lockOf } from './hotm-model.js';
+import { buildPet } from './gear.js';
 
 // The guide areas and the area names of gamedata/stats.json.
 export const DATA_AREA = { mining: 'mining', blaze: 'combat', farming: 'farming' };
 // Where the player is when the stats count. Mining islands: Dwarven Mines, Crystal Hollows, Glacite Tunnels/Mineshafts. Not the Crimson Isle.
 const HOLDS = { mining: new Set(['always', 'on_mining_islands']), blaze: new Set(['always']), farming: new Set(['always']) };
+// The mob families the fight of an area is against (wiki Inferno Demonlord: the boss and its minibosses are Infernal). An effect against another family is only listed.
+const FAMILIES = { mining: new Set(), blaze: new Set(['infernal']), farming: new Set() };
+// Perk effects that depend on where the player is: Nether Embodiment works on the Crimson Isle, which is where Blaze is fought.
+const PLACES = { mining: new Set(), blaze: new Set(['crimson_isle']), farming: new Set() };
 
 const addTo = (sum, stat, v) => { sum[stat] = (sum[stat] ?? 0) + v; };
 
@@ -29,15 +34,28 @@ function hotmStats(hotm, data, out, area) {
   }
 }
 
-function attrStats(attrs, data, out) {
+function attrStats(attrs, data, out, area) {
   for (const a of data.attributes.attributes) {
     const level = attrs[a.key] ?? 0;
     if (!(level > 0)) continue;
     for (const e of a.effects) {
       const v = e.fixed !== undefined ? e.fixed : (e.perLevel ?? 0) * level;
-      if (e.cond === 'always' && !e.kind) addTo(out.add, e.stat, v);
-      else out.listed.push({ stat: e.stat, value: v, cond: e.cond, text: `${a.name}: ${e.stat} ${v} (${e.cond})` });
+      const holds = e.cond === 'always' || (e.cond === 'vs_mob_family' && FAMILIES[area].has(e.family));
+      if (holds && e.kind === 'percent_multiplier') out.mult[e.stat] = (out.mult[e.stat] ?? 1) * (1 + v / 100);
+      else if (holds && !e.kind) addTo(out.add, e.stat, v);
+      else out.listed.push({ stat: e.stat, value: v, cond: e.cond, text: `${a.name}: ${e.stat} ${v} (${e.cond}${e.family ? ` ${e.family}` : ''})` });
     }
+    // damage attributes: a sentence, only for the fight area they are meant for
+    if (a.note && area === 'blaze') out.listed.push({ stat: null, value: a.note.perLevel * level, cond: 'damage', text: `${a.name} ${level}: +${Math.round(a.note.perLevel * level * 100) / 100}${a.note.text}` });
+  }
+}
+
+// A pet perk that multiplies a category of stats after everything is added (Nether Embodiment). Only where the perk works.
+function petStats(pet, data, out, area) {
+  for (const perk of pet?.perks ?? []) {
+    const e = perk.effect;
+    if (e?.kind !== 'category_multiplier' || !PLACES[area].has(e.where)) continue;
+    for (const s of data.stats.stats) if (e.categories.includes(s.category)) out.mult[s.id] = (out.mult[s.id] ?? 1) * (1 + e.percent / 100);
   }
 }
 
@@ -56,10 +74,12 @@ function powerStats(power, data, out) {
 
 // What a build gives: add (flat per stat), mult (factor per stat), listed (conditional effects, shown but never summed).
 // A part that is null is unknown and gives nothing.
-export function statsOf(build, data, area) {
+// pet: the pets.json entry that is active; by default the one of the build.
+export function statsOf(build, data, area, pet = buildPet(build, data.pets?.pets)) {
   const out = { add: {}, mult: {}, listed: [] };
   if (build?.hotm) hotmStats(build.hotm, data, out, area);
-  if (build?.attrs) attrStats(build.attrs, data, out);
+  if (build?.attrs) attrStats(build.attrs, data, out, area);
+  petStats(pet, data, out, area);
   if (build?.power) powerStats(build.power, data, out);
   if (build?.buffs?.godPotion) for (const [stat, v] of Object.entries(GOD_POTION)) addTo(out.add, stat, v);
   if (build?.buffs?.boosterCookie) for (const e of data.power.boosterCookie.effects) addTo(out.add, e.stat, e.value);
@@ -86,10 +106,11 @@ function movedBy(build, snapshot, data, area) {
 const entrySnapshot = (snapshot, part) => snapshot?.[part] !== undefined && snapshot[part] !== null;
 
 // gear: flat stats of the ticked steps. entry: pg.base[area]. Gives one row per stat of the area plus the conditional list.
-export function totalFor({ area, entry, build, gear = {}, data, stats }) {
-  const now = statsOf(build, data, area);
+export function totalFor({ area, entry, build, gear = {}, data, stats, pet }) {
+  const now = statsOf(build, data, area, pet);
   // a part unknown at the measurement was not changed since: it counts as the build has it now
-  const snapshot = { ...build, ...Object.fromEntries(Object.entries(entry?.snapshot ?? {}).filter(([, v]) => v !== null)) };
+  // the pet is gear: none at the measurement means none, not unknown
+  const snapshot = { ...build, ...Object.fromEntries(Object.entries(entry?.snapshot ?? {}).filter(([, v]) => v !== null)), pet: entry?.snapshot?.pet ?? null };
   const was = statsOf(snapshot, data, area);
   const total = {};
   const rows = stats.map((stat) => {
@@ -103,5 +124,11 @@ export function totalFor({ area, entry, build, gear = {}, data, stats }) {
   return { rows, total, listed: now.listed, moved: entry?.snapshot ? movedBy(build, entry.snapshot, data, area) : {} };
 }
 
+// Blaze shows the Combat menu without Health Regen, Vitality and the weapon's Damage, and the two Misc stats gear gives (Speed, Magic Find).
+const BLAZE_HIDDEN = new Set(['HEALTH_REGEN', 'VITALITY', 'DAMAGE']);
+const BLAZE_MISC = new Set(['SPEED', 'MAGIC_FIND']);
+
 // The stats of an area in the order of gamedata/stats.json.
-export const statsFor = (area, data) => data.stats.stats.filter((s) => s.areas.includes(DATA_AREA[area])).map((s) => s.id);
+export const statsFor = (area, data) => data.stats.stats
+  .filter((s) => (area === 'blaze' ? (s.category === 'combat' && !BLAZE_HIDDEN.has(s.id)) || BLAZE_MISC.has(s.id) : s.areas.includes(DATA_AREA[area])))
+  .map((s) => s.id);

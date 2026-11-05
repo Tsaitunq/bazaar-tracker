@@ -6,6 +6,9 @@ export const AREA_STATS = {
   mining: ['MINING_FORTUNE', 'GEMSTONE_FORTUNE', 'ORE_FORTUNE', 'BLOCK_FORTUNE', 'MINING_SPEED', 'PRISTINE'],
   blaze: ['STRENGTH', 'CRITICAL_DAMAGE', 'CRITICAL_CHANCE', 'ATTACK_SPEED', 'HEALTH', 'DEFENSE', 'TRUE_DEFENSE'],
 };
+// What a Blaze gear change counts: the stats above plus the rest of the Combat menu (no Health Regen, no Vitality) and the Misc stats gear gives.
+// AREA_STATS stays the short list that decides which piece is the stronger one.
+export const GEAR_STATS = { mining: AREA_STATS.mining, blaze: [...AREA_STATS.blaze, 'FEROCITY', 'SWING_RANGE', 'INTELLIGENCE', 'ABILITY_DAMAGE', 'MENDING', 'SPEED', 'MAGIC_FIND'] };
 export const GEMSTONE = { wF: 1, wS: 1, wP: 1, blockStrength: 3000 };
 const TOOLS = new Set(['DRILL', 'PICKAXE', 'GAUNTLET']);
 const WEAPONS = new Set(['SWORD', 'LONGSWORD']);
@@ -265,7 +268,7 @@ export function petLevel(pet, top = 100) {
 const WISP = (tier, health, td) => ({ tiers: [tier], stats: (l) => ({ HEALTH: health * l, ...(td && { TRUE_DEFENSE: td * l }) }) });
 const PETS = {
   LION: { tiers: ['RARE', 'EPIC', 'LEGENDARY'], stats: (l) => ({ STRENGTH: 0.5 * l }) },
-  BLAZE: { tiers: ['LEGENDARY'], stats: (l) => ({ DEFENSE: 0.3 * l }) },
+  BLAZE: { tiers: ['LEGENDARY'], stats: (l) => ({ DEFENSE: 0.3 * l, INTELLIGENCE: l }) },
   GOLDEN_DRAGON: { tiers: ['LEGENDARY'], top: 200, stats: (l) => (l > 100 ? { STRENGTH: 25.25 + 0.25 * (l - 101), ATTACK_SPEED: 25.25 + 0.25 * (l - 101) } : {}) },
   DROPLET_WISP: WISP('UNCOMMON', 1),
   FROST_WISP: WISP('RARE', 2.5, 0.15),

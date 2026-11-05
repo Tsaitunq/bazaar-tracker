@@ -32,6 +32,7 @@ function overview(world, r) {
   const gear = m.guides.length ? `Gear: <b class="c-green">${m.steps} ${m.steps === 1 ? 'step' : 'steps'}</b> ticked in ${esc(m.guides.map((g) => g.title).join(' + '))}.` : 'No guide for this area yet, so no gear.';
   const rows = m.rows.map((x) => `<div class="stat-row"><span class="c-${x.color}">${esc(x.icon)} ${esc(x.label)}</span><span>${esc(x.base)}</span><span class="c-green">${esc(x.gear)}</span><b class="c-${x.color}">${esc(x.total)}</b></div>`).join('');
   const moved = m.changes.length ? `<section class="panel changes"><h2>Changes since measurement</h2>${m.changes.map((c) => `<small><b class="c-${c.color}">${esc(c.text)} ${esc(c.label)}</b> (${esc(c.parts)})</small>`).join('')}</section>` : '';
+  const hints = m.hints?.length ? m.hints.map((h) => `<small class="note">${esc(h)}</small>`).join('') : '';
   const listed = m.listed.length ? `<section class="panel"><h2>Only when the condition holds</h2>${m.listed.map((l) => `<small>${esc(l.text)}</small>`).join('')}</section>` : '';
   const stone = world.gamedata?.power.powerStones.find((s) => s.id === world.build.power?.stone);
   const pet = m.pet.step ?? (m.pet.chosen ? petLabel(m.pet.chosen) : null);
@@ -46,7 +47,7 @@ function overview(world, r) {
   const note = m.missing === 'data' ? '<p class="note">Loading game data…</p>' : m.missing === 'items' ? '<p class="note">Loading item data… gear shows when it is there.</p>' : '';
   return `<div class="scroll">${tabs(r)}${areas(r)}
     ${draftNote}${figure}
-    <div class="panel"><small>${when}</small><small>${gear}</small>${note}<a class="primary-link" href="#/stats/measure/${esc(r.area)}">${m.measured ? 'Measure base again' : `Measure ${esc(m.name)} base`}</a></div>
+    <div class="panel"><small>${when}</small><small>${gear}</small>${hints}${note}<a class="primary-link" href="#/stats/measure/${esc(r.area)}">${m.measured ? 'Measure base again' : `Measure ${esc(m.name)} base`}</a></div>
     <div class="panel stat-table"><div class="stat-row stat-head"><span>All ${esc(m.name.toLowerCase())} stats</span><span>Base</span><span>Gear</span><span>Total</span></div>${rows}</div>${moved}${listed}</div>`;
 }
 
@@ -57,7 +58,7 @@ function measure(world, r) {
   const gear = m.gearLine.length ? `<small>Gear from your guides adds ${m.gearLine.map((g) => `<span class="c-${g.color}">${esc(g.icon)} ${esc(g.text)}</span>`).join(' · ')}</small>` : '';
   const buff = (key, label) => `<label class="check"><input type="checkbox" data-buff="${key}"${m.buffs[key] ? ' checked' : ''}> ${label}</label>`;
   const body = `<div class="scroll"><div class="panel" data-stats-area="${esc(r.area)}"><h2>Measure ${esc(m.name)} base</h2>
-    <small>Take off armor, equipment, tool or weapon and pet. Then open /stats and type what it shows. A field left empty stays unknown.</small>
+    <small>Take off armor, equipment, tool or weapon and pet${r.area === 'blaze' ? '; keep your accessories on, they are part of the base' : ''}. Then open /stats and type what it shows. A field left empty stays unknown.</small>
     ${buff('godPotion', 'God Potion active')}${buff('boosterCookie', 'Booster Cookie active')}
     ${fields}${mp}${gear}
     <div class="actions"><button type="button" class="primary" data-stats-save>Save as ${esc(m.name)} base</button></div></div></div>`;

@@ -8,7 +8,13 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import { pathToFileURL } from 'node:url';
 
-export const MC_TEXTURES = { coal: 'item/coal', emerald: 'item/emerald', diamond: 'item/diamond', coal_block: 'block/coal_block', redstone_block: 'block/redstone_block', emerald_block: 'block/emerald_block' };
+export const MC_TEXTURES = {
+  coal: 'item/coal', emerald: 'item/emerald', diamond: 'item/diamond', coal_block: 'block/coal_block', redstone_block: 'block/redstone_block', emerald_block: 'block/emerald_block',
+  // the seven attribute shards that NEU stores as a block, not as a skull (Lapis Zombie, Miner Zombie, Flora, Glacite Walker, Obsidian Defender)
+  sea_lantern: 'block/sea_lantern', diamond_block: 'block/diamond_block', packed_ice: 'block/packed_ice', obsidian: 'block/obsidian', sunflower: 'block/sunflower_front',
+};
+// ... and the two that are a mob head (Wither, Zombie Soldier): the face of the mob texture, which has no hat layer
+export const MC_FACES = { wither_skeleton_head: 'entity/skeleton/wither_skeleton', zombie_head: 'entity/zombie/zombie' };
 // personal/items.json holds no skull data, so the pet items come from the NEU item repo (not confirmed by the wiki).
 const NEU = 'https://raw.githubusercontent.com/NotEnoughUpdates/NotEnoughUpdates-REPO/master/items';
 const RARITY_NO = { COMMON: 0, UNCOMMON: 1, RARE: 2, EPIC: 3, LEGENDARY: 4, MYTHIC: 5 };
@@ -110,6 +116,19 @@ export function headFace(skin) {
   return { width: 8, height: 8, rgba: out };
 }
 
+// The face of a mob texture: 8 x 8 at (8, 8), no hat layer.
+export function mobFace(skin) {
+  const out = Buffer.alloc(8 * 8 * 4);
+  for (let y = 0; y < 8; y++) skin.rgba.copy(out, y * 8 * 4, ((8 + y) * skin.width + 8) * 4, ((8 + y) * skin.width + 16) * 4);
+  return { width: 8, height: 8, rgba: out };
+}
+
+// An animated block texture is a strip of square frames: the first one.
+export function firstFrame(image) {
+  if (image.height <= image.width) return image;
+  return { width: image.width, height: image.width, rgba: image.rgba.subarray(0, image.width * image.width * 4) };
+}
+
 // The skin URL inside the Base64 texture value of a skull.
 export function skullUrl(value) {
   return JSON.parse(Buffer.from(value, 'base64').toString('utf8')).textures?.SKIN?.url ?? null;
@@ -145,7 +164,14 @@ export function copyMinecraft(jarPath, outDir) {
   for (const [name, file] of Object.entries(MC_TEXTURES)) {
     const entry = entries.get(`assets/minecraft/textures/${file}.png`);
     if (!entry) { missing.push(name); continue; }
-    fs.writeFileSync(path.join(outDir, `${name}.png`), zipRead(jar, entry));
+    const raw = zipRead(jar, entry);
+    fs.writeFileSync(path.join(outDir, `${name}.png`), raw.readUInt32BE(20) > raw.readUInt32BE(16) ? encodePng(firstFrame(decodePng(raw))) : raw); // a strip of frames: the first one
+    found.push(name);
+  }
+  for (const [name, file] of Object.entries(MC_FACES)) {
+    const entry = entries.get(`assets/minecraft/textures/${file}.png`);
+    if (!entry) { missing.push(name); continue; }
+    fs.writeFileSync(path.join(outDir, `${name}.png`), encodePng(mobFace(decodePng(zipRead(jar, entry)))));
     found.push(name);
   }
   return { found, missing };

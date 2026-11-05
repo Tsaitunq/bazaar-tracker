@@ -13,6 +13,7 @@
 //                   "Maxwell" (tuning points, templates), "Booster Cookie", "God Potion".
 // Anything the sources do not settle carries unknown:true; never fill it with a guess.
 import fs from 'node:fs';
+import { categoryOf } from './gamedata-categories.mjs';
 const NEU = process.argv[2];
 const OUT = process.argv[3];
 const read = (f) => JSON.parse(fs.readFileSync(`${NEU}/${f}`, 'utf8'));
@@ -59,6 +60,7 @@ const S = [
   ['SPEED', 'Speed', ['general']],
   ['MAGIC_FIND', 'Magic Find', ['general']],
   ['PET_LUCK', 'Pet Luck', ['general']],
+  ['FEAR', 'Fear', ['general']],
   ['TRACKING', 'Tracking', ['general']],
   ['TREASURE_CHANCE', 'Treasure Chance', ['general']],
   ['FISHING_SPEED', 'Fishing Speed', ['general']],
@@ -73,7 +75,7 @@ const S = [
   ['FISHING_WISDOM', 'Fishing Wisdom', ['general'], '☯', C.cyan],
 ];
 const stats = S.map(([id, name, areas, icon, color, percent]) => {
-  const e = { id, name, icon: icon ?? null, color: color ?? null, areas, unit: percent ? '%' : '', percent: !!percent, src: icon ? 'repo' : 'wiki' };
+  const e = { id, name, icon: icon ?? null, color: color ?? null, areas, category: categoryOf(id), unit: percent ? '%' : '', percent: !!percent, src: icon ? 'repo' : 'wiki' };
   // wiki stats page: names and area lists only, icons are images with no text; repo = guide/model.js + docs/design-guide-app.md.
   if (!icon) e.unknown = true;
   if (percent) e.percentSrc = 'not confirmed'; // wiki stats page shows Crit base values as %, not stated per stat otherwise
@@ -237,6 +239,24 @@ const attributes = A.attributes.map((a) => {
   e.areas = [...areas].sort();
   return e;
 });
+// Blaze (wiki "Attributes", 2026-11-05; the ranges there are level I to X, linear per level is an assumption): the mob family a resistance or
+// fortune works against, the damage attributes as plain notes (shown, never added), Unlimited Fortitude as a percent of Defense.
+// NEU stores these seven shards as a block or a Vanilla skull, so there is no head: the picture is a Vanilla texture in guide/img/mc (scripts/fetch-icons.mjs)
+const MC_ICON = { SHARD_LAPIS_ZOMBIE: 'sea_lantern', SHARD_MINER_ZOMBIE: 'diamond_block', SHARD_FLORA: 'sunflower', SHARD_GLACITE_WALKER: 'packed_ice', SHARD_WITHER: 'wither_skeleton_head', SHARD_OBSIDIAN_DEFENDER: 'obsidian', SHARD_ZOMBIE_SOLDIER: 'zombie_head' };
+const FAMILY_ALIAS = { blazing: 'infernal' };
+const NOTES = {
+  skeletal_ruler: [3, '% damage against Skeletal mobs'], humanoid_ruler: [3, '% damage against Humanoid mobs'], undead_ruler: [3, '% damage against Undead mobs'],
+  airborne_ruler: [3, '% damage against Airborne mobs'], infernal_ruler: [3, '% damage against Infernal mobs'], elite: [3, '% damage against bosses and mini-bosses'],
+  warrior: [2.5, '% melee damage'], dominance: [1.5, '% damage at full health'], lifeline: [2.5, '% damage and Defense below 20 % health'],
+  payback: [2, '% damage on the next hit after you were hit'], combo: [0.1, '% damage per Grandma Wolf combo (up to 50)'],
+  mana_steal: [0.5, ' Mana per hit (0.5 s cooldown)'], ignition: [30, '% longer fire damage'], shell: [10, '% chance to negate knockback'],
+};
+for (const a of attributes) {
+  if (MC_ICON[a.icon]) a.mcIcon = MC_ICON[a.icon];
+  for (const f of a.effects) if (f.cond === 'vs_mob_family') { const fam = a.key.replace(/_[^_]+$/, ''); f.family = FAMILY_ALIAS[fam] ?? fam; }
+  if (NOTES[a.key]) a.note = { perLevel: NOTES[a.key][0], text: NOTES[a.key][1] };
+  if (a.key === 'unlimited_fortitude') { a.effects = [{ stat: 'DEFENSE', kind: 'percent_multiplier', perLevel: 0.2, cond: 'always' }]; delete a.unknown; }
+}
 write('attributes.json', { shardsPerLevel: A.attribute_levelling, shardsPerLevelNote: 'index 0 = shards for level 1; same table on the wiki Attribute Shards page', effectNote: 'effect = perLevel x level (linear, level 1..10); fixed = no scaling; per_stat = value per `every` points of another stat', attributes });
 
 // ---------- power ----------

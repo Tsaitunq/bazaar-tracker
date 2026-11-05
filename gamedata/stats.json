@@ -8,6 +8,7 @@
    "areas": [
     "mining"
    ],
+   "category": "mining",
    "unit": "",
    "percent": false,
    "src": "repo"
@@ -20,6 +21,7 @@
    "areas": [
     "mining"
    ],
+   "category": "mining",
    "unit": "",
    "percent": false,
    "src": "repo"
@@ -32,6 +34,7 @@
    "areas": [
     "mining"
    ],
+   "category": "mining",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -45,6 +48,7 @@
    "areas": [
     "mining"
    ],
+   "category": "mining",
    "unit": "",
    "percent": false,
    "src": "repo"
@@ -57,6 +61,7 @@
    "areas": [
     "mining"
    ],
+   "category": "mining",
    "unit": "",
    "percent": false,
    "src": "repo"
@@ -69,6 +74,7 @@
    "areas": [
     "mining"
    ],
+   "category": "mining",
    "unit": "",
    "percent": false,
    "src": "repo"
@@ -81,6 +87,7 @@
    "areas": [
     "mining"
    ],
+   "category": "mining",
    "unit": "",
    "percent": false,
    "src": "repo"
@@ -93,6 +100,7 @@
    "areas": [
     "mining"
    ],
+   "category": "mining",
    "unit": "",
    "percent": false,
    "src": "repo"
@@ -105,6 +113,7 @@
    "areas": [
     "mining"
    ],
+   "category": "mining",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -118,6 +127,7 @@
    "areas": [
     "mining"
    ],
+   "category": "mining",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -131,6 +141,7 @@
    "areas": [
     "mining"
    ],
+   "category": "misc",
    "unit": "",
    "percent": false,
    "src": "repo"
@@ -143,6 +154,7 @@
    "areas": [
     "mining"
    ],
+   "category": "misc",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -156,6 +168,7 @@
    "areas": [
     "mining"
    ],
+   "category": "wisdom",
    "unit": "",
    "percent": false,
    "src": "repo"
@@ -168,6 +181,7 @@
    "areas": [
     "combat"
    ],
+   "category": "combat",
    "unit": "",
    "percent": false,
    "src": "repo"
@@ -180,6 +194,7 @@
    "areas": [
     "combat"
    ],
+   "category": "combat",
    "unit": "%",
    "percent": true,
    "src": "repo",
@@ -193,6 +208,7 @@
    "areas": [
     "combat"
    ],
+   "category": "combat",
    "unit": "%",
    "percent": true,
    "src": "repo",
@@ -206,6 +222,7 @@
    "areas": [
     "combat"
    ],
+   "category": "combat",
    "unit": "%",
    "percent": true,
    "src": "repo",
@@ -219,6 +236,7 @@
    "areas": [
     "combat"
    ],
+   "category": "combat",
    "unit": "",
    "percent": false,
    "src": "repo"
@@ -231,6 +249,7 @@
    "areas": [
     "combat"
    ],
+   "category": "combat",
    "unit": "",
    "percent": false,
    "src": "repo"
@@ -243,6 +262,7 @@
    "areas": [
     "combat"
    ],
+   "category": "combat",
    "unit": "",
    "percent": false,
    "src": "repo"
@@ -255,6 +275,7 @@
    "areas": [
     "combat"
    ],
+   "category": "combat",
    "unit": "",
    "percent": false,
    "src": "repo"
@@ -267,6 +288,7 @@
    "areas": [
     "combat"
    ],
+   "category": "combat",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -280,6 +302,7 @@
    "areas": [
     "combat"
    ],
+   "category": "combat",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -293,6 +316,7 @@
    "areas": [
     "combat"
    ],
+   "category": "combat",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -306,6 +330,7 @@
    "areas": [
     "combat"
    ],
+   "category": "combat",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -319,6 +344,7 @@
    "areas": [
     "combat"
    ],
+   "category": "combat",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -332,6 +358,7 @@
    "areas": [
     "combat"
    ],
+   "category": "combat",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -345,6 +372,7 @@
    "areas": [
     "combat"
    ],
+   "category": "combat",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -358,6 +386,7 @@
    "areas": [
     "combat"
    ],
+   "category": "wisdom",
    "unit": "",
    "percent": false,
    "src": "repo"
@@ -370,6 +399,7 @@
    "areas": [
     "farming"
    ],
+   "category": "farming",
    "unit": "",
    "percent": false,
    "src": "repo"
@@ -382,6 +412,7 @@
    "areas": [
     "farming"
    ],
+   "category": "farming",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -395,6 +426,7 @@
    "areas": [
     "farming"
    ],
+   "category": "farming",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -408,6 +440,7 @@
    "areas": [
     "farming"
    ],
+   "category": "wisdom",
    "unit": "",
    "percent": false,
    "src": "repo"
@@ -420,6 +453,7 @@
    "areas": [
     "farming"
    ],
+   "category": "farming",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -433,6 +467,7 @@
    "areas": [
     "farming"
    ],
+   "category": "farming",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -446,6 +481,7 @@
    "areas": [
     "farming"
    ],
+   "category": "farming",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -459,6 +495,7 @@
    "areas": [
     "farming"
    ],
+   "category": "farming",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -472,6 +509,7 @@
    "areas": [
     "farming"
    ],
+   "category": "farming",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -485,6 +523,7 @@
    "areas": [
     "farming"
    ],
+   "category": "farming",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -498,6 +537,7 @@
    "areas": [
     "farming"
    ],
+   "category": "farming",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -511,6 +551,7 @@
    "areas": [
     "farming"
    ],
+   "category": "farming",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -524,6 +565,7 @@
    "areas": [
     "farming"
    ],
+   "category": "farming",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -537,6 +579,7 @@
    "areas": [
     "farming"
    ],
+   "category": "farming",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -550,6 +593,7 @@
    "areas": [
     "farming"
    ],
+   "category": "farming",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -563,6 +607,7 @@
    "areas": [
     "farming"
    ],
+   "category": "farming",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -576,6 +621,7 @@
    "areas": [
     "farming"
    ],
+   "category": "farming",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -589,6 +635,7 @@
    "areas": [
     "general"
    ],
+   "category": "misc",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -602,6 +649,7 @@
    "areas": [
     "general"
    ],
+   "category": "misc",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -615,6 +663,21 @@
    "areas": [
     "general"
    ],
+   "category": "misc",
+   "unit": "",
+   "percent": false,
+   "src": "wiki",
+   "unknown": true
+  },
+  {
+   "id": "FEAR",
+   "name": "Fear",
+   "icon": null,
+   "color": null,
+   "areas": [
+    "general"
+   ],
+   "category": "misc",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -628,6 +691,7 @@
    "areas": [
     "general"
    ],
+   "category": "hunting",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -641,6 +705,7 @@
    "areas": [
     "general"
    ],
+   "category": "fishing",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -654,6 +719,7 @@
    "areas": [
     "general"
    ],
+   "category": "fishing",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -667,6 +733,7 @@
    "areas": [
     "general"
    ],
+   "category": "fishing",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -680,6 +747,7 @@
    "areas": [
     "general"
    ],
+   "category": "misc",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -693,6 +761,7 @@
    "areas": [
     "general"
    ],
+   "category": "misc",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -706,6 +775,7 @@
    "areas": [
     "general"
    ],
+   "category": "foraging",
    "unit": "",
    "percent": false,
    "src": "wiki",
@@ -719,6 +789,7 @@
    "areas": [
     "general"
    ],
+   "category": "wisdom",
    "unit": "",
    "percent": false,
    "src": "repo"
@@ -731,6 +802,7 @@
    "areas": [
     "general"
    ],
+   "category": "wisdom",
    "unit": "",
    "percent": false,
    "src": "repo"
@@ -743,6 +815,7 @@
    "areas": [
     "general"
    ],
+   "category": "wisdom",
    "unit": "",
    "percent": false,
    "src": "repo"
@@ -755,6 +828,7 @@
    "areas": [
     "general"
    ],
+   "category": "wisdom",
    "unit": "",
    "percent": false,
    "src": "repo"
@@ -767,6 +841,7 @@
    "areas": [
     "general"
    ],
+   "category": "wisdom",
    "unit": "",
    "percent": false,
    "src": "repo"

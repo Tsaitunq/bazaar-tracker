@@ -2,7 +2,7 @@
 import { esc } from '../../format.js';
 import { EMPTY_PART } from '../build.js';
 import { draftBar, round2 } from './editors.js';
-import { petPanel } from './stats-pet.js';
+import { petPanel, petItemPanel, gearPanel } from './stats-pet.js';
 
 // The five stones in use first, the rest by name.
 const MAIN = ['FURBALL', 'BEATING_HEART', 'MAGMA_URCHIN', 'MANDRAA', 'SCORCHED_BOOKS'];
@@ -39,6 +39,6 @@ export function powerView(world, r, head) {
     <div class="panel"><label class="field">✦ Magical Power (Accessory Bag)<input type="number" min="0" step="1" inputmode="numeric" data-power-mp value="${power.mp ?? ''}"></label><small>Tuning points: ${esc(left)}</small></div>
     <div class="panel"><h2>Power stone</h2><div class="chips"><button type="button" class="chip-btn${power.stone ? '' : ' on'}" data-power-stone="" aria-pressed="${!power.stone}">None</button>${stones.map(chip).join('')}</div></div>${gives}
     <div class="panel"><h2>Tuning</h2>${points}</div>
-    ${petPanel(world, r)}
+    ${petPanel(world, r)}${petItemPanel(world)}${r.area === 'blaze' ? gearPanel(world) : ''}
     <div class="panel"><h2>Buffs</h2><small>Counted as always on.</small>${buff('godPotion', 'God Potion')}${buff('boosterCookie', 'Booster Cookie')}</div></div>`;
 }

@@ -1,6 +1,8 @@
 // Loads and checks the game data in gamedata/*.json (stats, HOTM, attributes, power, pets). A broken file throws with a path to the fault.
 export const FILES = ['stats', 'hotm', 'attributes', 'power', 'pets'];
 const AREAS = new Set(['mining', 'combat', 'farming', 'general']);
+// the /stats menu category of a stat (scripts/gamedata-categories.mjs); Nether Embodiment multiplies combat and misc
+const CATEGORIES = new Set(['combat', 'misc', 'wisdom', 'mining', 'farming', 'foraging', 'fishing', 'hunting']);
 const RARITIES = ['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGENDARY'];
 const POWDERS = new Set(['mithril', 'gemstone', 'glacite']);
 const TYPES = new Set(['perk', 'ability', 'core']);
@@ -15,7 +17,8 @@ export function checkStats(d) {
   unique('stats', d.stats.map((s) => s.id));
   for (const s of d.stats) {
     const w = `stats.${s.id}`;
-    need(w, s, ['id', 'name', 'areas', 'unit', 'percent', 'src']);
+    need(w, s, ['id', 'name', 'areas', 'category', 'unit', 'percent', 'src']);
+    if (!CATEGORIES.has(s.category)) fail(w, `bad category ${s.category}`);
     if (!/^[A-Z_]+$/.test(s.id)) fail(w, 'id must be UPPER_SNAKE');
     if (!s.areas.length || s.areas.some((a) => !AREAS.has(a))) fail(w, 'bad areas');
     if (s.icon === null || s.color === null) { if (!s.unknown) fail(w, 'null icon/color needs unknown:true'); } else if (!HEX.test(s.color)) fail(w, 'bad colour');
@@ -81,6 +84,7 @@ export function checkAttributes(d, stats) {
     need(w, a, ['id', 'shard', 'name', 'rarity', 'maxLevel', 'effects', 'areas', 'icon']);
     if (!RARITIES.includes(a.rarity)) fail(w, `bad rarity ${a.rarity}`);
     if (!a.effects.length && !a.unknown && a.effectKind !== 'other') fail(w, 'no effect and not marked unknown/other');
+    if (a.mcIcon !== undefined && !/^[a-z_]+$/.test(a.mcIcon)) fail(w, 'bad mcIcon');
     for (const e of a.effects) {
       checkEffect(w, e, stats);
       if (e.kind === 'per_stat') {
@@ -116,8 +120,25 @@ export function checkPets(d, stats) {
     for (const k of p.perks) {
       need(`${w}.${k.name}`, k, ['name', 'text']);
       if (k.stat !== undefined && (!stats.has(k.stat) || typeof k.value !== 'number')) fail(`${w}.${k.name}`, 'stat needs a known stat and a number value');
+      if (k.effect !== undefined) checkPerkEffect(`${w}.${k.name}`, k.effect);
     }
   }
+  unique('pets.items', (d.items ?? []).map((i) => i.id));
+  for (const i of d.items ?? []) {
+    need(`pets.items.${i.id}`, i, ['id', 'name', 'stats']);
+    for (const [s, v] of Object.entries(i.stats)) if (!stats.has(s) || typeof v !== 'number') fail(`pets.items.${i.id}`, `bad stat ${s}`);
+  }
+}
+
+// An effect the stats model computes (not a stat that is simply added). percent is the value at Level 100.
+const PERK_EFFECTS = {
+  category_multiplier: (w, e) => { if (!Array.isArray(e.categories) || !e.categories.length || !(e.percent > 0)) fail(w, 'category_multiplier needs categories and percent'); },
+  set_multiplier: (w, e) => { if (typeof e.family !== 'string' || !(e.percent > 0)) fail(w, 'set_multiplier needs family and percent'); },
+  potato_multiplier: (w, e) => { if (!(e.factor > 1)) fail(w, 'potato_multiplier needs a factor above 1'); },
+};
+function checkPerkEffect(w, e) {
+  if (!PERK_EFFECTS[e?.kind]) fail(w, `unknown effect kind ${e?.kind}`);
+  PERK_EFFECTS[e.kind](w, e);
 }
 
 // The one place that evaluates an effect formula: a + b·L, plus a step every stepEvery levels, rounded down on floor, capped on cap.

@@ -6,7 +6,7 @@ import { migrateOwned, resetOwned } from '../owned.js';
 import { fallbackName, loadItems } from '../names.js';
 import { PRESETS, miningSettings } from '../optimizer.js';
 import { loadGameData } from './gamedata.js';
-import { emptyBuild, measure, editPart, commitDraft, discardDraft, EMPTY_PART, perkLevel, perkEnabled, abilityPick, hotmTier, omelette, attrLevel, powerStone, powerMp, tuningPoints, setPet } from './build.js';
+import { emptyBuild, measure, editPart, commitDraft, discardDraft, EMPTY_PART, perkLevel, perkEnabled, abilityPick, hotmTier, omelette, attrLevel, powerStone, powerMp, tuningPoints, setPet, setPetItem, setGear } from './build.js';
 import { runMigration } from './migrate.js';
 import { STATS_TABS, parseRoute, applyImport, stampAll, formEdited, typedFields, restoreTyped, settled, autoOf, tickStep, swipeTarget, swipeAxis, swipeLands, familyOf } from './model.js';
 import { homeView } from './views/home.js';
@@ -394,6 +394,8 @@ root.addEventListener('click', (e) => {
   if (el('[data-attr-max]')) { setLevel('attr', attrOpen()?.maxLevel ?? 0); return; }
   const pet = el('[data-pet]');
   if (pet) { setPetChoice(pet.dataset.pet); return; }
+  const petItem = el('[data-pet-item]');
+  if (petItem) { build = setPetItem(build, petItem.dataset.petItem); saveBuild(); return; }
   const stone = el('[data-power-stone]');
   if (stone) { edit('power', powerStone(stone.dataset.powerStone)); return; }
   const tune = el('[data-tune]');
@@ -439,6 +441,7 @@ root.addEventListener('change', async (e) => {
   if (e.target.matches('[data-perk-level]')) { settled(e.target); return setLevel('perk', e.target.value); }
   if (e.target.matches('[data-attr-level]')) { settled(e.target); return setLevel('attr', e.target.value); }
   if (e.target.matches('[data-power-mp]')) { settled(e.target); return edit('power', powerMp(e.target.value)); }
+  if (dataset.gear) { settled(e.target); build = setGear(build, { [dataset.gear]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }); return saveBuild(); }
   if (dataset.buff) { settled(e.target); build = { ...build, buffs: { ...build.buffs, [dataset.buff]: e.target.checked } }; return saveBuild(); }
   if (e.target.matches('[data-tax], [data-flag], [data-brake]')) settled(e.target);
   if (e.target.matches('[data-brake]')) { settings.brake = Number(e.target.value) > 0 ? Number(e.target.value) : 5; return saveSettings(); }

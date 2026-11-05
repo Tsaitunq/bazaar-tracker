@@ -53,16 +53,16 @@ export const REFORGES = {
   // wiki Reforging/Sword. Conditions stay out; the Coldfused bonus with a Wisp is below.
   fabled: { STRENGTH: [30, 35, 40, 50, 60, 75, 90], CRITICAL_DAMAGE: [15, 20, 25, 32, 40, 50, 65] },
   withered: { STRENGTH: [60, 75, 90, 110, 135, 170, 220] },
-  coldfused: { STRENGTH: [15, 20, 25, 35, 45, 55, 65], CRITICAL_DAMAGE: [20, 30, 40, 50, 60, 70, 90] },
+  coldfused: { STRENGTH: [15, 20, 25, 35, 45, 55, 65], CRITICAL_DAMAGE: [20, 30, 40, 50, 60, 70, 90], MAGIC_FIND: [2, 2, 2, 2, 2, 2, 2] },
   // wiki Reforging/Armor
-  ancient: { STRENGTH: [4, 8, 12, 18, 25, 35, 50], CRITICAL_CHANCE: [3, 5, 7, 9, 12, 15, 20], HEALTH: [7, 7, 7, 7, 7, 7, 7], DEFENSE: [7, 7, 7, 7, 7, 7, 7] },
+  ancient: { STRENGTH: [4, 8, 12, 18, 25, 35, 50], CRITICAL_CHANCE: [3, 5, 7, 9, 12, 15, 20], HEALTH: [7, 7, 7, 7, 7, 7, 7], DEFENSE: [7, 7, 7, 7, 7, 7, 7], INTELLIGENCE: [6, 9, 12, 16, 20, 25, 30] },
   fierce: { STRENGTH: [2, 4, 6, 8, 10, 12, 14], CRITICAL_CHANCE: [2, 3, 4, 5, 6, 8, 10], CRITICAL_DAMAGE: [4, 7, 10, 14, 18, 24, 30] },
   renowned: { STRENGTH: [3, 4, 6, 8, 10, 12, 15], CRITICAL_CHANCE: [2, 4, 6, 8, 10, 12, 15], CRITICAL_DAMAGE: [3, 4, 6, 8, 10, 12, 15], ATTACK_SPEED: [1, 1, 2, 3, 4, 5, 6], HEALTH: [2, 3, 4, 6, 8, 10, 12], DEFENSE: [2, 3, 4, 6, 8, 10, 12] },
   titanic: { HEALTH: [10, 15, 20, 25, 35, 50, 65], DEFENSE: [10, 15, 20, 25, 35, 50, 65] },
   mythic: { STRENGTH: [2, 4, 6, 8, 10, 12, 14], CRITICAL_CHANCE: [1, 2, 3, 4, 5, 6, 7], DEFENSE: [2, 4, 6, 8, 10, 12, 14], HEALTH: [2, 4, 6, 8, 10, 12, 14] },
   // wiki Reforging/Equipment
   strengthened: { STRENGTH: [2, 3, 4, 5, 6, 7, 8], DEFENSE: [3, 4, 5, 6, 8, 10, 12] },
-  glistening: { TRUE_DEFENSE: [2, 2.5, 3, 3.5, 4, 4.5, 5] },
+  glistening: { TRUE_DEFENSE: [2, 2.5, 3, 3.5, 4, 4.5, 5], INTELLIGENCE: [5, 6, 8, 10, 12, 15, 18] },
   blood_soaked: { HEALTH: [6, 8, 8, 9, 10, 12, 14], DEFENSE: [1, 2, 3, 4, 5, 6, 7] },
   bloodshot: { STRENGTH: [1, 2, 3, 4, 5, 6, 7], CRITICAL_CHANCE: [1, 2, 3, 4, 5, 6, 7], CRITICAL_DAMAGE: [1, 2, 3, 4, 5, 6, 7] },
   unyielding: { MINING_FORTUNE: [1, 2, 3, 4, 5, 6, 7] },
@@ -108,3 +108,63 @@ export const PARTS = {
 export const POLARVOID = { speed: 10, fortune: 5, max: 5 };
 // wiki Powder Coating
 export const COATING = { drill: { MINING_SPEED: 500 }, other: { MINING_FORTUNE: 10 } };
+
+// ---- Blaze gear (wiki 2026-11-05, NEU constants/reforgestones.json for the targets)
+
+// Where a reforge can go: NEU itemTypes. ids = only these items; category = item categories (EQUIPMENT is the four equipment slots).
+const EQUIPMENT_SLOTS = ['NECKLACE', 'CLOAK', 'BELT', 'GLOVES'];
+export const REFORGE_TARGETS = {
+  fabled: { category: ['SWORD'] }, withered: { category: ['SWORD'] },
+  coldfused: { ids: ['BURSTFIRE_DAGGER', 'BURSTMAW_DAGGER', 'FIREDUST_DAGGER', 'HEARTFIRE_DAGGER', 'HEARTMAW_DAGGER', 'MAWDUST_DAGGER'] },
+  ancient: { category: ['HELMET', 'CHESTPLATE', 'LEGGINGS', 'BOOTS'] },
+  strengthened: { category: EQUIPMENT_SLOTS }, glistening: { category: EQUIPMENT_SLOTS },
+  bloodshot: { category: ['BELT'] }, blood_soaked: { category: ['CLOAK'] },
+};
+// Withered +1 Strength and Ancient +1 Crit Damage per Catacombs level (wiki, not limited to dungeons: not confirmed)
+export const CATACOMBS_REFORGE = { withered: { STRENGTH: 1 }, ancient: { CRITICAL_DAMAGE: 1 } };
+
+// NEU Hot Potato Book / Fuming Potato Book: armor and weapons, 10 books, Fuming up to 15 in all
+export const HPB = { armor: { DEFENSE: 2, HEALTH: 4 }, weapon: { STRENGTH: 2, DAMAGE: 2 }, max: 10, fumingMax: 5 };
+// Gear options of a build: Catacombs level (null = unknown), Crimson stars, all pieces with 10 Hot Potato Books, Fuming books
+export const DEFAULT_GEAR = { catacombs: null, stars: 0, hpb: true, fuming: 0 };
+// wiki Essence: +2 % stat per star on items that are not Dungeon items; the star count is one number for the whole Crimson set
+export const CRIMSON_STAR = { percent: 2, max: 10 };
+export const CRIMSON_TIERS = ['CRIMSON', 'HOT_CRIMSON', 'BURNING_CRIMSON', 'FIERY_CRIMSON', 'INFERNAL_CRIMSON'];
+// wiki Crimson Armor, Dominus at 10 stacks: Swing Range 0.05 (Crimson) or 0.1 per stack, Ferocity 1 (Burning) or 2 (Fiery, Infernal) per stack
+export const DOMINUS = {
+  CRIMSON: { SWING_RANGE: 0.5 }, HOT_CRIMSON: { SWING_RANGE: 1 },
+  BURNING_CRIMSON: { SWING_RANGE: 1, FEROCITY: 10 }, FIERY_CRIMSON: { SWING_RANGE: 1, FEROCITY: 20 }, INFERNAL_CRIMSON: { SWING_RANGE: 1, FEROCITY: 20 },
+};
+export const BLAZE_ARMOR = ['BLAZE_HELMET', 'BLAZE_CHESTPLATE', 'BLAZE_LEGGINGS', 'BLAZE_BOOTS', 'FROZEN_BLAZE_HELMET', 'FROZEN_BLAZE_CHESTPLATE', 'FROZEN_BLAZE_LEGGINGS', 'FROZEN_BLAZE_BOOTS'];
+// wiki Inferno Demonlord: boss and minibosses are Infernal; Quazii, Typhoeus and the pillars have no type, so they do not count
+export const BLAZE_FAMILIES = ['infernal'];
+
+// What the Blaze enchants do beyond the tables above. kind: damage (a multiplier under a condition), stat (a stat under a condition),
+// none (no permanent stat). values: per level, text(v) the sentence. Only listed, never added, except where the tables or blaze.js count it.
+const pct = (what) => (v) => `${v} % ${what}`;
+export const ENCHANT_EFFECTS = {
+  pyroclasm: { kind: 'damage', values: [10, 20, 30, 40, 60, 80], text: pct('damage against Magmatic mobs'), cond: 'Magmatic mobs' },
+  execute: { kind: 'damage', values: [0.2, 0.4, 0.6, 0.8, 1, 1.25], text: pct('damage per 1 % missing health of the target'), cond: 'missing health' },
+  fire_aspect: { kind: 'damage', values: [3, 6, 9], text: pct('of your damage per second as fire'), cond: 'fire' },
+  giant_killer: { kind: 'damage', values: [0.1, 0.2, 0.3, 0.4, 0.6, 0.9, 1.2], text: pct('damage per 1 % more health than you'), cond: 'target health above yours' },
+  gravity: { kind: 'damage', values: [5, 10, 15, 20, 30, 40], text: pct('damage against Airborne mobs'), cond: 'Airborne mobs' },
+  lethality: { kind: 'damage', values: [1.2, 2.4, 3.6, 4.8, 6, 9], text: pct('Defense of the target per hit (4 s, 4 stacks)'), cond: 'melee hits' },
+  smite: { kind: 'damage', values: [5, 10, 15, 20, 30, 40, 50], text: pct('damage against Skeletal, Wither and Undead mobs'), cond: 'Skeletal, Wither, Undead mobs' },
+  thunderlord: { kind: 'damage', values: [8, 16, 24, 32, 40, 50, 60], text: pct('of the hit as lightning on every third hit'), cond: 'every third hit' },
+  triple_strike: { kind: 'damage', values: [10, 20, 30, 40, 50], text: pct('damage on the first three hits on a mob'), cond: 'first three hits' },
+  cayenne: { kind: 'stat', values: [null, null, null, '0.8 Health and 0.4 True Defense', '1 Health and 0.5 True Defense'], text: (v) => `${v} per digit of Accessory Power`, cond: 'Accessory Power digits' },
+  strong_vitality: { kind: 'none', note: 'turns Vitality into Strength; Vitality is not a Blaze stat' },
+  ultimate_swarm: { kind: 'damage', values: [2, 4, 6, 8, 10], text: pct('damage per enemy within 10 blocks (up to 10)'), cond: 'enemies nearby' },
+  ultimate_last_stand: { kind: 'damage', values: [5, 10, 15, 20, 25], text: pct('Defense below 40 % health (30 s cooldown)'), cond: 'below 40 % health' },
+  ultimate_refrigerate: { kind: 'stat', values: [3, 3.75, 4.5, 5.25, 6], text: pct('of the mana used as Defense for 10 s (up to 150 per piece)'), cond: 'mana used' },
+  ultimate_habanero_tactics: { kind: 'damage', values: [null, null, null, 20, 25], text: pct('damage with Slayer weapons'), cond: 'Slayer weapons' },
+  // Chimera copies this share of the active pet's stats; it is counted on the weapon (guide/pieces.js)
+  ultimate_chimera: { kind: 'pet', values: [20, 40, 60, 80, 100], text: pct('of the active pet stats') },
+  life_steal: { kind: 'none' }, looting: { kind: 'none' }, vampirism: { kind: 'none' }, rejuvenate: { kind: 'none', note: 'Health Regen is not a Blaze stat' },
+  transylvanian: { kind: 'none' }, quantum: { kind: 'none' },
+};
+export const enchantLine = (name, level) => {
+  const e = ENCHANT_EFFECTS[name];
+  const v = e?.values?.[level - 1];
+  return e && v !== undefined && v !== null ? `${name.replace(/_/g, ' ')} ${level}: ${e.text(v)}` : null;
+};

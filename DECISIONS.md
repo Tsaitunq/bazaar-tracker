@@ -801,3 +801,35 @@ Selbstständig getroffen (Auftrag: unbeaufsichtigt, ohne Rückfragen). Spec:
   Lauf mischt sie in `timing.json`. So braucht es keinen Eingriff in den
   data-Branch, und Entfernen heißt: Datei löschen und
   `scripts/timing-remove-backfill.mjs` auf `timing.json`.
+
+## Blaze values (guide app 0.9.0)
+
+- **Kategorien in `stats.json`** (combat, misc, wisdom, mining, farming, …) nach
+  dem /stats-Menü im Spiel; Wisdoms sind eine eigene Kategorie. Der Blaze-Pet-
+  Effekt Nether Embodiment (+10 %) wirkt nur auf `combat` und `misc`.
+- **Reihenfolge auf einem Rüstungsteil (Annahme, nicht belegt):**
+  (Item-Stats × Sterne + Potato Books) × Bling Armor, danach Reforge und
+  Enchants. Sterne gelten nur für das Crimson-Set (+2 % je Stern, bis 10) und
+  nur für die Item-Stats. Fusion-Style Potato verdoppelt auch Fuming-Bücher
+  (Annahme); mit dem Blaze-Pet zählen Bücher auf Blaze/Frozen Blaze 2,8-fach.
+- **Nether Embodiment** rechnet nach dem Addieren aller Quellen und
+  multiplikativ zu anderen Multiplikatoren; im Gebiet Blaze ist immer Crimson
+  Isle. Die Basis wird ohne Pet gemessen, ein Pet im Snapshot wird herausgeteilt.
+- **Accessoires stecken in der Basis.** Vor der Messung abgehakt: keine Gear-
+  Stats. Danach abgehakt: ihre Item-Stats zählen als Änderung seit der Messung
+  (bei einer Talisman-Linie nur der Schritt zur Vorstufe, wenn diese schon
+  zur Messung da war). Das Ranking bewertet sie weiter nach Magical Power
+  (Start: Magical Power des Power-Tabs) plus Stats; der Spieler passt Magical
+  Power selbst an.
+- **Mob-Familie der Blaze-Bosse ist nur Infernal** (Wiki). Attribute gegen
+  andere Familien, Smite, Gravity und Pyroclasm werden nur gelistet, ebenso
+  Quazii/Typhoeus/Pillars (ohne Typ im Wiki).
+- **Dominus:** ab zwei Teilen derselben Stufe, gemischt zählt die Stufe mit
+  den meisten Teilen (Gleichstand: die höhere), zehn volle Stacks. Ferocity
+  zählt in der Summe und im Schadensmodell: erwarteter Schaden × (1 +
+  Ferocity/100).
+- **Reforge-Ziele** (Schwert, Dolche, Rüstung, Equipment, Gürtel, Umhang)
+  kommen aus NEU `constants/reforgestones.json`; die Tabellen in
+  `optimizer-data.js` stimmen damit überein (Test gegen eine Fixture).
+- **Nicht modelliert** bleibt, was nur gelistet wird: bedingte Enchants,
+  Cayenne, Habanero Tactics, Warden Brute Force, Schadensattribute.

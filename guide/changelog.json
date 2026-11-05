@@ -1,6 +1,16 @@
 {
   "versions": [
     {
+      "version": "0.9.0",
+      "date": "2026-11-05",
+      "entries": [
+        { "title": "Blaze stats in full", "text": "Measure the whole Combat menu for Blaze, including Ferocity, Speed and Magic Find, and every ticked step now adds its item, reforge, enchant and set bonus stats." },
+        { "title": "Gear options", "text": "On the Power page you can set your Catacombs level, Crimson stars, potato books and the pet item; the Blaze pet doubles the books and lifts Blaze Armor." },
+        { "title": "Nether Embodiment and Dominus", "text": "The Blaze pet adds 10 % to the sum of your Combat and Misc stats, and the Crimson set gives its Ferocity and Swing Range from two pieces of one tier." },
+        { "title": "Accessories and icons", "text": "Accessories ticked after you measured count as a change since then, and the seven attribute shards without a head now show a Minecraft picture." }
+      ]
+    },
+    {
       "version": "0.8.2",
       "date": "2026-11-04",
       "entries": [

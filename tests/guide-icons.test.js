@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import zlib from 'node:zlib';
-import { decodePng, encodePng, headFace, skullUrl, textureValue, zipEntries, zipRead, MC_TEXTURES, fetchHeads, petJobs, shardJobs } from '../scripts/fetch-icons.mjs';
+import { decodePng, encodePng, headFace, skullUrl, textureValue, zipEntries, zipRead, MC_TEXTURES, MC_FACES, mobFace, firstFrame, fetchHeads, petJobs, shardJobs } from '../scripts/fetch-icons.mjs';
 
 const skin = () => {
   const rgba = Buffer.alloc(64 * 64 * 4);
@@ -73,4 +73,29 @@ test('the committed Minecraft textures are there and the service worker lists th
     assert.ok(sw.includes(`'img/mc/${name}.png'`), name);
   }
   assert.match(fs.readFileSync('.gitignore', 'utf8'), /^guide\/img\/hypixel\/$/m);
+});
+
+test('the seven block and skull shards use a Vanilla picture that is committed and cached', () => {
+  const attrs = JSON.parse(fs.readFileSync('gamedata/attributes.json', 'utf8')).attributes.filter((a) => a.mcIcon);
+  assert.deepEqual(attrs.map((a) => a.icon).sort(), ['SHARD_FLORA', 'SHARD_GLACITE_WALKER', 'SHARD_LAPIS_ZOMBIE', 'SHARD_MINER_ZOMBIE', 'SHARD_OBSIDIAN_DEFENDER', 'SHARD_WITHER', 'SHARD_ZOMBIE_SOLDIER']);
+  const sw = fs.readFileSync('guide/sw.js', 'utf8');
+  for (const a of attrs) {
+    assert.ok(fs.existsSync(`guide/img/mc/${a.mcIcon}.png`), a.mcIcon);
+    assert.ok(sw.includes(`'img/mc/${a.mcIcon}.png'`), a.mcIcon);
+    assert.ok(a.mcIcon in MC_TEXTURES || a.mcIcon in MC_FACES, a.mcIcon);
+  }
+  assert.match(fs.readFileSync('guide/views/stats-attrs.js', 'utf8'), /a\.mcIcon \? `img\/mc/);
+});
+
+test('a mob face is the 8 x 8 square at (8, 8) without the hat layer; an animated texture gives its first frame', () => {
+  const rgba = Buffer.alloc(64 * 32 * 4);
+  rgba.set([1, 2, 3, 255], (8 * 64 + 8) * 4);
+  rgba.set([9, 9, 9, 255], (15 * 64 + 15) * 4);
+  rgba.set([200, 0, 0, 255], (8 * 64 + 40) * 4); // a hat pixel: not used
+  const face = mobFace({ width: 64, height: 32, rgba });
+  assert.deepEqual([...face.rgba.subarray(0, 4)], [1, 2, 3, 255]);
+  assert.deepEqual([...face.rgba.subarray(63 * 4, 64 * 4)], [9, 9, 9, 255]);
+  const strip = { width: 2, height: 6, rgba: Buffer.alloc(2 * 6 * 4, 7) };
+  assert.equal(firstFrame(strip).height, 2);
+  assert.equal(firstFrame({ width: 2, height: 2, rgba: Buffer.alloc(16) }).height, 2);
 });

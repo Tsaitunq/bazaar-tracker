@@ -1,0 +1,316 @@
+{
+ "fabled": {
+  "stone": "DRAGON_CLAW",
+  "itemTypes": "SWORD",
+  "stats": {
+   "COMMON": {
+    "strength": 30,
+    "crit_damage": 15
+   },
+   "UNCOMMON": {
+    "strength": 35,
+    "crit_damage": 20
+   },
+   "RARE": {
+    "strength": 40,
+    "crit_damage": 25
+   },
+   "EPIC": {
+    "strength": 50,
+    "crit_damage": 32
+   },
+   "LEGENDARY": {
+    "strength": 60,
+    "crit_damage": 40
+   },
+   "MYTHIC": {
+    "strength": 75,
+    "crit_damage": 50
+   },
+   "DIVINE": {
+    "strength": 90,
+    "crit_damage": 65
+   }
+  }
+ },
+ "coldfused": {
+  "stone": "ENTROPY_SUPPRESSOR",
+  "itemTypes": [
+   "BURSTFIRE_DAGGER",
+   "BURSTMAW_DAGGER",
+   "FIREDUST_DAGGER",
+   "HEARTFIRE_DAGGER",
+   "HEARTMAW_DAGGER",
+   "MAWDUST_DAGGER"
+  ],
+  "stats": {
+   "COMMON": {
+    "strength": 15,
+    "crit_damage": 20,
+    "magic_find": 2
+   },
+   "UNCOMMON": {
+    "strength": 20,
+    "crit_damage": 30,
+    "magic_find": 2
+   },
+   "RARE": {
+    "strength": 25,
+    "crit_damage": 40,
+    "magic_find": 2
+   },
+   "EPIC": {
+    "strength": 35,
+    "crit_damage": 50,
+    "magic_find": 2
+   },
+   "LEGENDARY": {
+    "strength": 45,
+    "crit_damage": 60,
+    "magic_find": 2
+   },
+   "MYTHIC": {
+    "strength": 55,
+    "crit_damage": 70,
+    "magic_find": 2
+   },
+   "DIVINE": {
+    "strength": 65,
+    "crit_damage": 90,
+    "magic_find": 2
+   }
+  }
+ },
+ "ancient": {
+  "stone": "PRECURSOR_GEAR",
+  "itemTypes": "ARMOR",
+  "stats": {
+   "COMMON": {
+    "health": 7,
+    "defense": 7,
+    "strength": 4,
+    "crit_chance": 3,
+    "intelligence": 6
+   },
+   "UNCOMMON": {
+    "health": 7,
+    "defense": 7,
+    "strength": 8,
+    "crit_chance": 5,
+    "intelligence": 9
+   },
+   "RARE": {
+    "health": 7,
+    "defense": 7,
+    "strength": 12,
+    "crit_chance": 7,
+    "intelligence": 12
+   },
+   "EPIC": {
+    "health": 7,
+    "defense": 7,
+    "strength": 18,
+    "crit_chance": 9,
+    "intelligence": 16
+   },
+   "LEGENDARY": {
+    "health": 7,
+    "defense": 7,
+    "strength": 25,
+    "crit_chance": 12,
+    "intelligence": 20
+   },
+   "MYTHIC": {
+    "health": 7,
+    "defense": 7,
+    "strength": 35,
+    "crit_chance": 15,
+    "intelligence": 25
+   },
+   "DIVINE": {
+    "health": 7,
+    "defense": 7,
+    "strength": 50,
+    "crit_chance": 20,
+    "intelligence": 30
+   }
+  }
+ },
+ "blood_soaked": {
+  "stone": "PRESUMED_GALLON_OF_RED_PAINT",
+  "itemTypes": "CLOAK",
+  "stats": {
+   "COMMON": {
+    "health": 6,
+    "defense": 1,
+    "vitality": 1
+   },
+   "UNCOMMON": {
+    "health": 8,
+    "defense": 2,
+    "vitality": 1
+   },
+   "RARE": {
+    "health": 8,
+    "defense": 3,
+    "vitality": 2
+   },
+   "EPIC": {
+    "health": 9,
+    "defense": 4,
+    "vitality": 2
+   },
+   "LEGENDARY": {
+    "health": 10,
+    "defense": 5,
+    "vitality": 3
+   },
+   "MYTHIC": {
+    "health": 12,
+    "defense": 6,
+    "vitality": 3
+   },
+   "DIVINE": {
+    "health": 14,
+    "defense": 7,
+    "vitality": 4
+   }
+  }
+ },
+ "strengthened": {
+  "stone": "SEARING_STONE",
+  "itemTypes": "EQUIPMENT",
+  "stats": {
+   "COMMON": {
+    "defense": 3,
+    "strength": 2
+   },
+   "UNCOMMON": {
+    "defense": 4,
+    "strength": 3
+   },
+   "RARE": {
+    "defense": 5,
+    "strength": 4
+   },
+   "EPIC": {
+    "defense": 6,
+    "strength": 5
+   },
+   "LEGENDARY": {
+    "defense": 8,
+    "strength": 6
+   },
+   "MYTHIC": {
+    "defense": 10,
+    "strength": 7
+   },
+   "DIVINE": {
+    "defense": 12,
+    "strength": 8
+   }
+  }
+ },
+ "glistening": {
+  "stone": "SHINY_PRISM",
+  "itemTypes": "EQUIPMENT",
+  "stats": {
+   "COMMON": {
+    "true_defense": 2,
+    "intelligence": 5
+   },
+   "UNCOMMON": {
+    "true_defense": 2.5,
+    "intelligence": 6
+   },
+   "RARE": {
+    "true_defense": 3,
+    "intelligence": 8
+   },
+   "EPIC": {
+    "true_defense": 3.5,
+    "intelligence": 10
+   },
+   "LEGENDARY": {
+    "true_defense": 4,
+    "intelligence": 12
+   },
+   "MYTHIC": {
+    "true_defense": 4.5,
+    "intelligence": 15
+   },
+   "DIVINE": {
+    "true_defense": 5,
+    "intelligence": 18
+   }
+  }
+ },
+ "bloodshot": {
+  "stone": "SHRIVELED_CORNEA",
+  "itemTypes": "BELT",
+  "stats": {
+   "COMMON": {
+    "strength": 1,
+    "crit_chance": 1,
+    "crit_damage": 1
+   },
+   "UNCOMMON": {
+    "strength": 2,
+    "crit_chance": 2,
+    "crit_damage": 2
+   },
+   "RARE": {
+    "strength": 3,
+    "crit_chance": 3,
+    "crit_damage": 3
+   },
+   "EPIC": {
+    "strength": 4,
+    "crit_chance": 4,
+    "crit_damage": 4
+   },
+   "LEGENDARY": {
+    "strength": 5,
+    "crit_chance": 5,
+    "crit_damage": 5
+   },
+   "MYTHIC": {
+    "strength": 6,
+    "crit_chance": 6,
+    "crit_damage": 6
+   },
+   "DIVINE": {
+    "strength": 7,
+    "crit_chance": 7,
+    "crit_damage": 7
+   }
+  }
+ },
+ "withered": {
+  "stone": "WITHER_BLOOD",
+  "itemTypes": "SWORD",
+  "stats": {
+   "COMMON": {
+    "strength": 60
+   },
+   "UNCOMMON": {
+    "strength": 75
+   },
+   "RARE": {
+    "strength": 90
+   },
+   "EPIC": {
+    "strength": 110
+   },
+   "LEGENDARY": {
+    "strength": 135
+   },
+   "MYTHIC": {
+    "strength": 170
+   },
+   "DIVINE": {
+    "strength": 220
+   }
+  }
+ }
+}

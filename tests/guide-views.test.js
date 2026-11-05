@@ -165,7 +165,7 @@ test('power editor: Magical Power, stone chips, tuning rows and both buffs', () 
 
 test('pet picker: one chip per pet, stats of the choice, conditional perks marked, none selected by default', () => {
   const none = editor('power', { build: emptyBuild(), base: {} });
-  assert.equal((none.match(/data-pet="[A-Z_]+:[A-Z]+"/g) ?? []).length, 8);
+  assert.equal((none.match(/data-pet="[A-Z_]+:[A-Z]+"/g) ?? []).length, 9);
   assert.match(none, /data-pet="" aria-pressed="true"/);
   assert.doesNotMatch(none, /data-pet="CROW/);
   const html = editor('power', { build: { ...emptyBuild(), pet: { id: 'GLACITE_GOLEM', rarity: 'LEGENDARY', level: 100 } }, base: {} });
@@ -306,7 +306,7 @@ test('overview: an unsaved draft shows a notice that links to its tab', () => {
 
 test('pet picker: every pet shows head, stats and perks without a tap, conditional perks marked', () => {
   const html = editor('power', { base: {} });
-  assert.equal((html.match(/class="pet-card/g) ?? []).length, 8);
+  assert.equal((html.match(/class="pet-card/g) ?? []).length, 9);
   assert.match(html, /src="img\/hypixel\/pets\/BAL_LEGENDARY\.png"/);
   assert.match(html, /<span class="cond">only: Magma Fields<\/span> <b>Furnace<\/b>/);
   assert.match(html, /Heat Resistance \+150/);
@@ -377,4 +377,26 @@ test('the attribute sheet sits over the list with stepper, effects now and next,
   assert.ok(maxed.includes('<small>Maxed.</small>'));
   assert.ok(!maxed.includes('to max'));
   assert.ok(!editor('attributes', { guides: [g] }).includes('bsheet'));
+});
+
+test('power editor: the gear panel and the pet item show for Blaze with a pet, not for Mining', () => {
+  const pet = { id: 'BLAZE', rarity: 'LEGENDARY', level: 100 };
+  const blaze = statsView(world({ build: { ...emptyBuild(), pet }, base: {} }), { page: 'stats', tab: 'power', area: 'blaze' });
+  assert.match(blaze, /data-gear="catacombs"/);
+  assert.match(blaze, /max="10"[^>]*data-gear="stars"/);
+  assert.match(blaze, /data-gear="hpb" checked/);
+  assert.match(blaze, /data-gear="fuming"/);
+  assert.match(blaze, /data-pet-item="CROCHET_TIGER_PLUSHIE"/);
+  assert.match(blaze, /Not set: Withered and Ancient are listed, not counted/);
+  const none = statsView(world({ build: emptyBuild(), base: {} }), { page: 'stats', tab: 'power', area: 'blaze' });
+  assert.doesNotMatch(none, /data-pet-item/);
+  assert.doesNotMatch(editor('power', { build: { ...emptyBuild(), pet }, base: {} }), /data-gear=/);
+});
+
+test('Blaze measure: the Combat menu with Ferocity, Speed and Magic Find, without Health Regen, Vitality, Damage and wisdoms', () => {
+  const html = statsView(world({ base: {} }), { page: 'stats', tab: 'measure', area: 'blaze' });
+  const ids = [...html.matchAll(/data-stats-stat="([A-Z_]+)"/g)].map((m) => m[1]);
+  assert.deepEqual(ids, ['STRENGTH', 'CRITICAL_DAMAGE', 'CRITICAL_CHANCE', 'ATTACK_SPEED', 'HEALTH', 'DEFENSE', 'TRUE_DEFENSE', 'INTELLIGENCE', 'FEROCITY', 'ABILITY_DAMAGE', 'MENDING', 'SWING_RANGE', 'SPEED', 'MAGIC_FIND']);
+  assert.match(html, /keep your accessories on/);
+  assert.doesNotMatch(statsView(world({ base: {} }), { page: 'stats', tab: 'measure', area: 'mining' }), /keep your accessories on/);
 });

@@ -528,7 +528,7 @@ test('critical adds crit damage on the dagger it goes on', () => {
 });
 
 test('an enchant without a fixed value gives null, a proven non-damage one nothing', () => {
-  for (const name of ['giant_killer', 'execute', 'thunderlord', 'fire_aspect', 'smite', 'pyroclasm', 'ultimate_chimera']) assert.equal(blazeOf(onDaggers(name, 1)), null, name);
+  for (const name of ['giant_killer', 'execute', 'thunderlord', 'fire_aspect', 'smite', 'pyroclasm']) assert.equal(blazeOf(onDaggers(name, 1)), null, name);
   const w = blazeWorld();
   assert.equal(blazeOutput(applyBlaze(w.state, blazeOf(onDaggers('looting', 5), w))), blazeOutput(w.state));
 });
@@ -554,9 +554,9 @@ test('fabled, withered and coldfused follow the table, coldfused adds its bonus 
   const r = (name) => ({ kind: 'reforge', on: 'weapons', value: [name] });
   assert.deepEqual(blazeOf(r('fabled')).lines.ashen, { STRENGTH: 50, CRITICAL_DAMAGE: 32 });
   assert.deepEqual(blazeOf(r('withered')).lines.ashen, { STRENGTH: 110 });
-  assert.deepEqual(blazeOf(r('coldfused')).lines.ashen, { STRENGTH: 35, CRITICAL_DAMAGE: 50 });
+  assert.deepEqual(blazeOf(r('coldfused')).lines.ashen, { STRENGTH: 35, CRITICAL_DAMAGE: 50, MAGIC_FIND: 2 });
   const wisp = blazeWorld({ pet: { type: 'SUBZERO_WISP', tier: 'LEGENDARY' } });
-  assert.deepEqual(blazeOf(r('coldfused'), wisp).lines.ashen, { STRENGTH: 110, CRITICAL_DAMAGE: 105 });
+  assert.deepEqual(blazeOf(r('coldfused'), wisp).lines.ashen, { STRENGTH: 110, CRITICAL_DAMAGE: 105, MAGIC_FIND: 2 });
 });
 
 test('a reforge outside the table is unknown for blaze, also on the old piece', () => {
