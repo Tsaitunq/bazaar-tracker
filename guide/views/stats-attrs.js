@@ -6,8 +6,8 @@ import { draftBar, stepper, pic } from './editors.js';
 const SHOWN = 60;
 const RARITY = { COMMON: 'Common', UNCOMMON: 'Uncommon', RARE: 'Rare', EPIC: 'Epic', LEGENDARY: 'Legendary' };
 
-// The shard picture (from img/hypixel/shards, not in git); without it two letters in the colour of the rarity.
-const icon = (a) => pic(`img/hypixel/shards/${a.icon ?? a.key}.png`, `attr-pic r-${a.rarity}`, a.name.slice(0, 2));
+// The shard picture (from img/hypixel/shards, not in git; seven come from img/mc, Vanilla textures); without it two letters in the colour of the rarity.
+const icon = (a) => pic(a.mcIcon ? `img/mc/${a.mcIcon}.png` : `img/hypixel/shards/${a.icon ?? a.key}.png`, `attr-pic r-${a.rarity}`, a.name.slice(0, 2));
 
 const row = (data, a, level, need) => `<button type="button" class="attr${level === 0 ? ' attr-zero' : ''}${level >= a.maxLevel ? ' attr-max' : ''}" data-attr="${esc(a.key)}" aria-label="${esc(a.name)}, level ${level} of ${a.maxLevel}">${icon(a)}<span class="attr-text"><span class="attr-name">${esc(a.name)}</span><small class="attr-fx">${esc(effectShort(data, a, level))}</small></span><span class="attr-lv">${level}/${a.maxLevel}${need ? ` <em>needs ${need}</em>` : ''}</span></button>`;
 

@@ -84,6 +84,7 @@ export function checkAttributes(d, stats) {
     need(w, a, ['id', 'shard', 'name', 'rarity', 'maxLevel', 'effects', 'areas', 'icon']);
     if (!RARITIES.includes(a.rarity)) fail(w, `bad rarity ${a.rarity}`);
     if (!a.effects.length && !a.unknown && a.effectKind !== 'other') fail(w, 'no effect and not marked unknown/other');
+    if (a.mcIcon !== undefined && !/^[a-z_]+$/.test(a.mcIcon)) fail(w, 'bad mcIcon');
     for (const e of a.effects) {
       checkEffect(w, e, stats);
       if (e.kind === 'per_stat') {

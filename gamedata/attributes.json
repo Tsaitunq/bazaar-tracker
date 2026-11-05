@@ -225,7 +225,8 @@
    "src": "neu+wiki",
    "effects": [],
    "effectKind": "other",
-   "areas": []
+   "areas": [],
+   "mcIcon": "sea_lantern"
   },
   {
    "id": "ATTRIBUTE_SHARD_MOSSY_BOX",
@@ -682,7 +683,8 @@
    ],
    "areas": [
     "mining"
-   ]
+   ],
+   "mcIcon": "diamond_block"
   },
   {
    "id": "ATTRIBUTE_SHARD_FORTUNATE_MINER",
@@ -2634,7 +2636,8 @@
    "src": "neu+wiki",
    "effects": [],
    "effectKind": "other",
-   "areas": []
+   "areas": [],
+   "mcIcon": "sunflower"
   },
   {
    "id": "ATTRIBUTE_SHARD_SLAYER_DISCOUNT",
@@ -2793,7 +2796,8 @@
    "src": "neu+wiki",
    "effects": [],
    "effectKind": "other",
-   "areas": []
+   "areas": [],
+   "mcIcon": "packed_ice"
   },
   {
    "id": "ATTRIBUTE_SHARD_BEACON_ZEALOT",
@@ -3531,7 +3535,8 @@
    "src": "neu+wiki",
    "effects": [],
    "effectKind": "other",
-   "areas": []
+   "areas": [],
+   "mcIcon": "wither_skeleton_head"
   },
   {
    "id": "ATTRIBUTE_SHARD_ECHO_OF_SHARPENING",
@@ -4395,7 +4400,8 @@
      "cond": "always"
     }
    ],
-   "areas": []
+   "areas": [],
+   "mcIcon": "obsidian"
   },
   {
    "id": "ATTRIBUTE_SHARD_PEST_FORTUNE",
@@ -4490,7 +4496,8 @@
    "note": {
     "perLevel": 3,
     "text": "% damage against Undead mobs"
-   }
+   },
+   "mcIcon": "zombie_head"
   },
   {
    "id": "ATTRIBUTE_SHARD_STRONG_ARMS",

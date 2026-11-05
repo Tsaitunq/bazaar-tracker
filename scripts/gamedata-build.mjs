@@ -241,6 +241,8 @@ const attributes = A.attributes.map((a) => {
 });
 // Blaze (wiki "Attributes", 2026-11-05; the ranges there are level I to X, linear per level is an assumption): the mob family a resistance or
 // fortune works against, the damage attributes as plain notes (shown, never added), Unlimited Fortitude as a percent of Defense.
+// NEU stores these seven shards as a block or a Vanilla skull, so there is no head: the picture is a Vanilla texture in guide/img/mc (scripts/fetch-icons.mjs)
+const MC_ICON = { SHARD_LAPIS_ZOMBIE: 'sea_lantern', SHARD_MINER_ZOMBIE: 'diamond_block', SHARD_FLORA: 'sunflower', SHARD_GLACITE_WALKER: 'packed_ice', SHARD_WITHER: 'wither_skeleton_head', SHARD_OBSIDIAN_DEFENDER: 'obsidian', SHARD_ZOMBIE_SOLDIER: 'zombie_head' };
 const FAMILY_ALIAS = { blazing: 'infernal' };
 const NOTES = {
   skeletal_ruler: [3, '% damage against Skeletal mobs'], humanoid_ruler: [3, '% damage against Humanoid mobs'], undead_ruler: [3, '% damage against Undead mobs'],
@@ -250,6 +252,7 @@ const NOTES = {
   mana_steal: [0.5, ' Mana per hit (0.5 s cooldown)'], ignition: [30, '% longer fire damage'], shell: [10, '% chance to negate knockback'],
 };
 for (const a of attributes) {
+  if (MC_ICON[a.icon]) a.mcIcon = MC_ICON[a.icon];
   for (const f of a.effects) if (f.cond === 'vs_mob_family') { const fam = a.key.replace(/_[^_]+$/, ''); f.family = FAMILY_ALIAS[fam] ?? fam; }
   if (NOTES[a.key]) a.note = { perLevel: NOTES[a.key][0], text: NOTES[a.key][1] };
   if (a.key === 'unlimited_fortitude') { a.effects = [{ stat: 'DEFENSE', kind: 'percent_multiplier', perLevel: 0.2, cond: 'always' }]; delete a.unknown; }
