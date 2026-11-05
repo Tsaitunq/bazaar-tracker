@@ -363,3 +363,5 @@ a { color: var(--area); }
 .card-part-name { font-weight: 700; flex: 1 0 100%; }
 .card-part-cost { margin-left: auto; color: var(--muted); }
 .card-part-total { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.essence-pic { width: 44px; height: 44px; }
+.essence .stepper { margin: 6px 0; }

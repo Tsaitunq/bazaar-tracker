@@ -136,7 +136,9 @@ test('a sideways drag on a stats tab leads to the next tab and stops at the ends
   assert.deepEqual(swipeTarget(at('overview'), -50, []), { hash: '#/stats/hotm/blaze', back: false });
   assert.deepEqual(swipeTarget(at('attributes'), 50, []), { hash: '#/stats/hotm/blaze', back: true });
   assert.equal(swipeTarget(at('overview'), 50, []), null);
-  assert.equal(swipeTarget(at('power'), -50, []), null);
+  assert.deepEqual(swipeTarget(at('power'), -50, []), { hash: '#/stats/essence/blaze', back: false });
+  assert.equal(swipeTarget(at('essence'), -50, []), null);
+  assert.deepEqual(swipeTarget(at('essence'), 50, []), { hash: '#/stats/power/blaze', back: true });
   assert.equal(swipeTarget({ page: 'stats', tab: 'measure', area: 'mining' }, -50, []), null);
 });
 

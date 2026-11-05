@@ -7,10 +7,11 @@ import { HOME_TABS } from './home.js';
 import { hotmView } from './stats-hotm.js';
 import { attrsView } from './stats-attrs.js';
 import { powerView } from './stats-power.js';
+import { essenceView } from './stats-essence.js';
 import { petLabel, petKey } from './stats-pet.js';
 import { pic } from './editors.js';
 
-const TAB_NAME = { overview: 'Overview', hotm: 'HOTM', attributes: 'Attributes', power: 'Power' };
+const TAB_NAME = { overview: 'Overview', hotm: 'HOTM', attributes: 'Attributes', power: 'Power', essence: 'Essence' };
 const AREAS = Object.keys(AREA_NAME);
 
 // A two-way or four-way switch like the one of the guides: one mark under the links.
@@ -42,7 +43,7 @@ function overview(world, r) {
   const shown = (m.pet.step && world.gamedata?.pets?.pets.find((p) => p.id === stepType && p.rarity === stepTier)) || m.pet.chosen;
   const float = shown ? `<a class="pet-float" href="#/stats/power/${esc(r.area)}" data-goto-pet="${esc(petKey(shown))}" aria-label="${esc(petLabel(shown))}, open the pet picker">${pic(`img/hypixel/pets/${shown.id}_${shown.rarity}.png`, 'pet-pic', shown.name[0])}</a>` : '';
   const figure = `<div class="panel figure-panel"><canvas data-figure class="figure" role="img" aria-label="Your player"></canvas>${float}<div class="tags">${tag('Pet', pet, ' data-goto-pet=""')}${tag('Power', stone?.power)}</div></div>`;
-  const drafts = ['hotm', 'attrs', 'power'].filter((p) => world.draft?.[p]).map((p) => ({ hotm: ['hotm', 'HOTM'], attrs: ['attributes', 'Attributes'], power: ['power', 'Power'] })[p]);
+  const drafts = ['hotm', 'attrs', 'power', 'essence'].filter((p) => world.draft?.[p]).map((p) => ({ hotm: ['hotm', 'HOTM'], attrs: ['attributes', 'Attributes'], power: ['power', 'Power'], essence: ['essence', 'Essence'] })[p]);
   const draftNote = drafts.map(([tab, name]) => `<a class="note draft-note" href="#/stats/${tab}/${esc(r.area)}">${name} draft not saved</a>`).join('');
   const note = m.missing === 'data' ? '<p class="note">Loading game data…</p>' : m.missing === 'items' ? '<p class="note">Loading item data… gear shows when it is there.</p>' : '';
   return `<div class="scroll">${tabs(r)}${areas(r)}
@@ -65,7 +66,7 @@ function measure(world, r) {
   return body;
 }
 
-const EDITORS = { hotm: hotmView, attributes: attrsView, power: powerView };
+const EDITORS = { hotm: hotmView, attributes: attrsView, power: powerView, essence: essenceView };
 
 export function statsView(world, r) {
   const inner = r.tab === 'measure' ? measure(world, r) : r.tab === 'overview' ? overview(world, r) : EDITORS[r.tab](world, r, tabs(r));

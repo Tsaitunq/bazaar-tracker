@@ -9,7 +9,7 @@ import zlib from 'node:zlib';
 import { pathToFileURL } from 'node:url';
 
 export const MC_TEXTURES = {
-  coal: 'item/coal', emerald: 'item/emerald', diamond: 'item/diamond', coal_block: 'block/coal_block', redstone_block: 'block/redstone_block', emerald_block: 'block/emerald_block',
+  coal: 'item/coal', emerald: 'item/emerald', diamond: 'item/diamond', gold_ingot: 'item/gold_ingot', bone: 'item/bone', coal_block: 'block/coal_block', redstone_block: 'block/redstone_block', emerald_block: 'block/emerald_block',
   // the seven attribute shards that NEU stores as a block, not as a skull (Lapis Zombie, Miner Zombie, Flora, Glacite Walker, Obsidian Defender)
   sea_lantern: 'block/sea_lantern', diamond_block: 'block/diamond_block', packed_ice: 'block/packed_ice', obsidian: 'block/obsidian', sunflower: 'block/sunflower_front',
 };

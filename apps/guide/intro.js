@@ -42,7 +42,7 @@ export const STEPS = [
   { id: 'home', hash: () => '#/', target: '.guide-card', title: 'Your guides', text: 'Every guide shows its progress here, and the next best step of each one.' },
   { id: 'guide', hash: (guide) => (guide ? `#/guide/${guide}/path` : '#/'), target: '.card .primary', title: 'Tick = you own it', text: 'Mark a step done and the app counts the item as yours, in every guide that uses it.' },
   { id: 'measure', hash: () => '#/stats/measure/mining', target: '[data-stats-area]', title: 'Measure your base', text: 'Take off pet, armor, weapon or tool and equipment first. Keep your talismans on. Then type what /stats shows.' },
-  { id: 'tabs', hash: () => '#/stats/hotm/mining', target: '.switch[aria-label="Stats pages"]', title: 'HOTM, Attributes, Power', text: 'Enter each once and tap Save. From then on, changes you make count on top of your base.' },
+  { id: 'tabs', hash: () => '#/stats/hotm/mining', target: '.switch[aria-label="Stats pages"]', title: 'HOTM, Attributes, Power, Essence', text: 'Enter each once and tap Save. From then on, changes you make count on top of your base.' },
   { id: 'overview', hash: () => '#/stats/overview/mining', target: '.stat-table', title: 'The total', text: 'Base + gear + changes = total. Bonuses that need a condition are only listed below.' },
   { id: 'settings', hash: () => '#/settings', target: '[data-act="tour"]', title: 'See it again', text: 'You can start this tour again here whenever you like.' },
 ];

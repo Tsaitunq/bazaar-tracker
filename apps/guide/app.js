@@ -6,7 +6,7 @@ import { migrateOwned, resetOwned } from './owned.js';
 import { fallbackName, loadItems } from '../../shared/names.js';
 import { PRESETS, miningSettings } from './optimizer.js';
 import { loadGameData } from './gamedata.js';
-import { emptyBuild, measure, editPart, commitDraft, discardDraft, EMPTY_PART, perkLevel, perkEnabled, abilityPick, hotmTier, omelette, attrLevel, powerStone, powerMp, tuningPoints, setPet, setPetItem, setGear } from './build.js';
+import { emptyBuild, measure, editPart, commitDraft, discardDraft, EMPTY_PART, perkLevel, essenceLevel, withEssence, perkEnabled, abilityPick, hotmTier, omelette, attrLevel, powerStone, powerMp, tuningPoints, setPet, setPetItem, setGear } from './build.js';
 import { runMigration } from './migrate.js';
 import { expandChecks, collapseChecks, commitGuide, resetKeys } from './keys.js';
 import { STATS_TABS, parseRoute, applyImport, stampAll, formEdited, typedFields, restoreTyped, settled, autoOf, tickStep, swipeTarget, swipeAxis, swipeLands, familyOf } from './model.js';
@@ -47,7 +47,7 @@ const live = () => expandChecks(guides(), checks, keys);
 let dates = load('pg.dates', {});
 let owned = load('pg.owned', []);
 const settings = load('pg.settings', {});
-let base = load('pg.base', {}); // the measured stats per area
+let base = withEssence(load('pg.base', {})); // the measured stats per area
 let build = { ...emptyBuild(), ...load('pg.build', {}) }; // HOTM, shards, power and buffs now
 let draft = load('pg.draft', {}); // a part the measurement did not know, typed but not saved yet
 let wantPet = false; // the Pet tag or the floating pet was tapped: the power tab opens on the pet picker (true) or on that pet's card (its key)
@@ -457,6 +457,7 @@ function draftDone(part, keep) {
 
 const partNow = (part) => draft[part] ?? build[part] ?? EMPTY_PART[part]();
 const perkOpen = () => gamedata?.hotm.perks.find((p) => p.id === ui.perk);
+const essenceOf = (el) => gamedata?.essence?.perks.find((p) => p.id === el.closest('[data-essence-perk]')?.dataset.essencePerk);
 const attrOpen = () => gamedata?.attributes.attributes.find((a) => a.key === ui.attr);
 
 // The level buttons and the number field of the open perk or attribute.
@@ -502,6 +503,13 @@ root.addEventListener('click', (e) => {
   if (attr) { ui = { ...ui, attr: attr.dataset.attr }; draw(); return; }
   if (el('[data-attr-close]')) { ui = { ...ui, attr: undefined }; draw(); return; }
   if (el('[data-attr-all]')) { ui = { ...ui, attrAll: !ui.attrAll }; draw(); return; }
+  const essStep = el('[data-essence-step], [data-essence-max]');
+  if (essStep && essenceOf(essStep)) {
+    const perk = essenceOf(essStep);
+    const now = partNow('essence')[perk.id] ?? 0;
+    edit('essence', essenceLevel(perk, essStep.hasAttribute('data-essence-max') ? perk.max : now + Number(essStep.dataset.essenceStep)));
+    return;
+  }
   const stepBy = el('[data-perk-step], [data-attr-step]');
   if (stepBy) {
     const kind = stepBy.hasAttribute('data-perk-step') ? 'perk' : 'attr';
@@ -567,6 +575,7 @@ root.addEventListener('change', async (e) => {
   if (e.target.matches('[data-hotm-tier]')) { settled(e.target); return edit('hotm', hotmTier(e.target.value === '' ? null : Number(e.target.value))); }
   if (e.target.matches('[data-hotm-omelette]')) { settled(e.target); return edit('hotm', omelette(e.target.checked)); }
   if (e.target.matches('[data-perk-level]')) { settled(e.target); return setLevel('perk', e.target.value); }
+  if (e.target.matches('[data-essence-level]') && essenceOf(e.target)) { settled(e.target); return edit('essence', essenceLevel(essenceOf(e.target), e.target.value)); }
   if (e.target.matches('[data-attr-level]')) { settled(e.target); return setLevel('attr', e.target.value); }
   if (e.target.matches('[data-power-mp]')) { settled(e.target); return edit('power', powerMp(e.target.value)); }
   if (dataset.gear) { settled(e.target); build = setGear(build, { [dataset.gear]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }); return saveBuild(); }

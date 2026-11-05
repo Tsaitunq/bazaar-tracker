@@ -79,3 +79,24 @@ test('migration: the highest ticked level per perk becomes the base, the ticks g
   assert.equal(none.build.essence, null);
   assert.equal(none.base.mining.snapshot.essence, null);
 });
+
+test('the Essence tab: next level and max cost in essence and coins, conditional perks as text', async () => {
+  const { essenceModel } = await import('../../apps/guide/stats-model.js');
+  const { essenceView } = await import('../../apps/guide/views/stats-essence.js');
+  const products = { ESSENCE_GOLD: { buy_summary: [{ pricePerUnit: 20, amount: 1e6 }] } };
+  const world = { gamedata: data, build: { essence: { eager_miner: 3, cut_loose: 2 } }, base: { mining: { at: 1, values: {}, snapshot: { essence: null } } }, draft: {}, products, guides: [], settings: {} };
+  const m = essenceModel(world, 'mining');
+  const eager = m.perks.find((p) => p.id === 'eager_miner');
+  assert.equal(eager.level, 3);
+  assert.equal(eager.next.essence, 400);
+  assert.equal(eager.toMax.essence, 400 + 500 + 600 + 700 + 800 + 900 + 1000);
+  assert.equal(eager.after, '+40 Mining Speed');
+  assert.equal(eager.rate, null); // no measured base: no rate
+  assert.equal(m.perks.find((p) => p.id === 'frozen_skin').next.coins, null); // no price for the ice essence
+  assert.equal(m.perks.find((p) => p.id === 'cut_loose').conditional, true);
+  const html = essenceView({ ...world, build: { essence: null }, draft: { essence: world.build.essence } }, { area: 'mining' }, '');
+  assert.match(html, /data-essence-perk="eager_miner"/);
+  assert.match(html, /data-draft-save="essence"/); // the base was measured without Essence
+  assert.doesNotMatch(essenceView(world, { area: 'mining' }, ''), /data-draft-save/);
+  assert.match(html, /data-essence-step="1"/);
+});

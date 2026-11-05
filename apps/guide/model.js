@@ -345,9 +345,9 @@ export function guideModel(guide, world) {
 }
 
 const GUIDE_TABS = ['path'];
-export const STATS_TABS = ['overview', 'hotm', 'attributes', 'power'];
+export const STATS_TABS = ['overview', 'hotm', 'attributes', 'power', 'essence'];
 export const STATS_AREAS = ['mining', 'blaze', 'farming'];
-// #/stats, #/stats/<overview|hotm|attributes|power>, #/stats/overview/<area> and #/stats/measure/<area>
+// #/stats, #/stats/<overview|hotm|attributes|power|essence>, #/stats/overview/<area> and #/stats/measure/<area>
 export function parseRoute(hash, guides) {
   const [, page, id, tab] = String(hash).split('/');
   if (page === 'settings') return { page };
@@ -364,7 +364,7 @@ export function parseRoute(hash, guides) {
 export function swipeTarget(r, dx, family) {
   if (!dx) return null;
   if (r.page === 'stats' && STATS_TABS.includes(r.tab)) {
-    // Overview, HOTM, Attributes, Power in a row; the ends do not lead anywhere
+    // Overview, HOTM, Attributes, Power, Essence in a row; the ends do not lead anywhere
     const to = STATS_TABS[STATS_TABS.indexOf(r.tab) + (dx > 0 ? -1 : 1)];
     return to ? { hash: `#/stats/${to}/${r.area}`, back: dx > 0 } : null;
   }
