@@ -115,9 +115,6 @@ export function virtualLoadout(profile, items, area) {
   };
 }
 
-// Keys of what was done after the stats were saved, oldest first. A stamp of 0 is older than the app, no date means no stats to follow.
-export const doneSince = (stamps, at) => (at ? Object.entries(stamps ?? {}).filter(([, when]) => when > at).sort((a, b) => a[1] - b[1]).map(([key]) => key) : []);
-
 export function baseStats(typed, deltas) {
   const out = { ...typed };
   for (const delta of deltas) for (const [stat, v] of Object.entries(delta)) out[stat] = (out[stat] ?? 0) + v;

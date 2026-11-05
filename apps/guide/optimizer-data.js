@@ -136,8 +136,6 @@ export const DOMINUS = {
   BURNING_CRIMSON: { SWING_RANGE: 1, FEROCITY: 10 }, FIERY_CRIMSON: { SWING_RANGE: 1, FEROCITY: 20 }, INFERNAL_CRIMSON: { SWING_RANGE: 1, FEROCITY: 20 },
 };
 export const BLAZE_ARMOR = ['BLAZE_HELMET', 'BLAZE_CHESTPLATE', 'BLAZE_LEGGINGS', 'BLAZE_BOOTS', 'FROZEN_BLAZE_HELMET', 'FROZEN_BLAZE_CHESTPLATE', 'FROZEN_BLAZE_LEGGINGS', 'FROZEN_BLAZE_BOOTS'];
-// wiki Inferno Demonlord: boss and minibosses are Infernal; Quazii, Typhoeus and the pillars have no type, so they do not count
-export const BLAZE_FAMILIES = ['infernal'];
 
 // What the Blaze enchants do beyond the tables above. kind: damage (a multiplier under a condition), stat (a stat under a condition),
 // none (no permanent stat). values: per level, text(v) the sentence. Only listed, never added, except where the tables or blaze.js count it.

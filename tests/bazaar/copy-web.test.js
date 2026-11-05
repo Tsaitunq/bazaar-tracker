@@ -42,10 +42,6 @@ test('copyPersonal takes private guides along with an index and needs none; copy
     fs.writeFileSync(path.join(root, 'personal', 'items.json'), '{}');
     copyPersonal(root, out);
     assert.ok(fs.existsSync(path.join(out, 'personal', 'items.json')));
-    assert.ok(!fs.existsSync(path.join(out, 'personal', 'stats-preset.json')));
-    fs.writeFileSync(path.join(root, 'personal', 'stats-preset.json'), '{}');
-    copyPersonal(root, out);
-    assert.ok(fs.existsSync(path.join(out, 'personal', 'stats-preset.json')));
     copyWeb(root, out);
     assert.ok(!fs.existsSync(path.join(out, 'personal')));
   } finally {

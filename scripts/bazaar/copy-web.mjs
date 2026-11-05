@@ -17,8 +17,8 @@ function copyGuides(root, out) {
 
 export function copyPersonal(root, out) {
   copyGuides(root, out);
-  // for a local test build, also outside git: public game data and the player's own /stats values
-  for (const name of ['items.json', 'stats-preset.json']) {
+  // for a local test build, also outside git: public game data
+  for (const name of ['items.json']) {
     const from = path.join(root, 'personal', name);
     if (!fs.existsSync(from)) continue;
     fs.mkdirSync(path.join(out, 'personal'), { recursive: true });

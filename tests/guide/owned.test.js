@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { isItemStep, idsToOwn, idsOfStep, ownedAuto, mergeAuto, migrateOwned, impliedDone, resetOwned } from '../../apps/guide/owned.js';
-import { virtualProfile, virtualLoadout, applyStep, baseStats, doneSince } from '../../apps/guide/virtual.js';
+import { isItemStep, idsToOwn, idsOfStep, ownedAuto, migrateOwned, impliedDone, resetOwned } from '../../apps/guide/owned.js';
+import { virtualProfile, virtualLoadout, applyStep, baseStats } from '../../apps/guide/virtual.js';
 import { daggersOf, DAGGERS } from '../../apps/guide/blaze.js';
 import { stepDelta, blazeDelta, PRESETS } from '../../apps/guide/optimizer.js';
 import { miningScore } from '../../apps/guide/stats.js';
@@ -63,15 +63,6 @@ test('migration moves ticks of item steps once and keeps the others', () => {
   assert.deepEqual(once.owned, ['LAMP']);
   assert.deepEqual(once.checks.a, [key(A, 1), `undone:${key(A)}`]);
   assert.deepEqual(migrateOwned([A, B], once.checks, once.owned), once);
-});
-
-test('a sync that finds it wins, a tick fills in where the sync says no', () => {
-  const real = new Map([['x', { have: 1, need: 1 }], ['y', { have: 0, need: 1 }]]);
-  const tick = new Map([['x', { have: 1, need: 1, ticked: true }], ['y', { have: 1, need: 1, ticked: true }], ['z', { have: 1, need: 2, ticked: true }]]);
-  const out = mergeAuto(real, tick);
-  assert.equal(out.get('x').ticked, undefined);
-  assert.equal(out.get('y').ticked, true);
-  assert.equal(out.get('z').have, 1);
 });
 
 test('reset removes the items of that guide for all guides and leaves the rest', () => {
@@ -247,8 +238,6 @@ test('without item data a virtual profile still works', () => {
 
 test('the base adds what was done after the stats were saved, oldest first', () => {
   assert.deepEqual(baseStats({ MINING_SPEED: 100 }, [{ MINING_SPEED: 5 }, { MINING_FORTUNE: 2, MINING_SPEED: 1 }]), { MINING_SPEED: 106, MINING_FORTUNE: 2 });
-  assert.deepEqual(doneSince({ a: 30, b: 10, c: 20, d: 0 }, 15), ['c', 'a']);
-  assert.deepEqual(doneSince({ a: 30 }, undefined), []);
 });
 
 test('the shafting preset reads like gemstone', () => {

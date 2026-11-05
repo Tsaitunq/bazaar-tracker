@@ -37,7 +37,6 @@ export function aliasItems(items) {
 }
 export const loadItemData = () => fetchJson('items.json').catch(localItems).then((d) => aliasItems(d?.r ?? null), () => null);
 // /stats values for a local build to start from, not in git
-export const loadStatsPreset = () => fetch('personal/stats-preset.json').then((res) => (res.ok ? res.json() : null), () => null).catch(() => null);
 export const loadAh = () => fetchJson('ah.json').then((d) => d.p ?? {}, () => ({}));
 export const loadElection = () => fetchJson('election.json').then((d) => (d?.mayor ? d : null), () => null);
 // runs per event and perk (timing.js); empty until the first one is recorded

@@ -29,16 +29,6 @@ export function ownedAuto(guide, owned, keyOf) {
   return new Map([...found].filter(([, f]) => f.have > 0).map(([key, f]) => [key, { ...f, ticked: true }]));
 }
 
-// What the sync found stands; a tick fills in where the sync does not reach as far.
-export function mergeAuto(real, ticks) {
-  const out = new Map(real);
-  for (const [key, tick] of ticks) {
-    const seen = out.get(key);
-    if (!seen || seen.have < Math.min(tick.have, seen.need)) out.set(key, tick);
-  }
-  return out;
-}
-
 // Ticks from before the shared state move over. Running it again changes nothing.
 export function migrateOwned(guides, checks, owned = []) {
   const have = new Set(owned);

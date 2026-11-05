@@ -1,4 +1,4 @@
-// Can the player use this step's items yet? Reads item requirements against the synced profile.
+// Can the player use this step's items yet? Reads item requirements against the profile a build can prove (only the HOTM tier).
 // locked needs proof: what cannot be read stays unknown, so a step never disappears because an API is off.
 
 // wiki Heart of the Mountain, cumulative. Tier 1 needs no experience.
@@ -8,13 +8,10 @@ export const SKILL_XP = [50, 175, 375, 675, 1175, 1925, 2925, 4425, 6425, 9925, 
 // wiki Slayer: the table merges equal cells, so enderman and blaze read as wolf. It does not say the values are cumulative, NEU reads them so: not confirmed.
 const WOLF = [10, 30, 250, 1500, 5000, 20000, 100000, 400000, 1000000];
 export const SLAYER_XP = { zombie: [5, 15, 200, 1000, 5000, 20000, 100000, 400000, 1000000], spider: [5, 25, 200, 1000, 5000, 20000, 100000, 400000, 1000000], wolf: WOLF, enderman: WOLF, blaze: WOLF, vampire: [20, 75, 240, 840, 2400] };
-const SLAYER_NAME = { zombie: 'Revenant', spider: 'Tarantula', wolf: 'Sven', enderman: 'Voidgloom', blaze: 'Blaze', vampire: 'Vampire' };
-const OWN_TABLE = new Set(['RUNECRAFTING', 'SOCIAL']);
 
 // How many steps of a cumulative table this much experience has reached.
 export const levelOf = (table, xp) => table.filter((need) => xp >= need).length;
 
-const title = (s) => String(s).toLowerCase().split('_').map((w) => (w[0]?.toUpperCase() ?? '') + w.slice(1)).join(' ');
 const UNKNOWN = { status: 'unknown' };
 const OK = { status: 'ok' };
 const locked = (reason) => ({ status: 'locked', reason });
@@ -26,23 +23,6 @@ function checkOne(req, p) {
       const have = levelOf(HOTM_XP, p.hotm.experience ?? 0);
       return have >= req.tier ? OK : locked(`HOTM ${req.tier} needed, you have ${have}`);
     }
-    case 'SKILL': {
-      if (!p.skills || OWN_TABLE.has(req.skill)) return UNKNOWN;
-      const have = levelOf(SKILL_XP, p.skills[`SKILL_${req.skill}`] ?? 0);
-      return have >= req.level ? OK : locked(`${title(req.skill)} ${req.level} needed, you have ${have}`);
-    }
-    case 'SLAYER': {
-      const table = SLAYER_XP[req.slayer_boss_type];
-      if (!table || !p.slayer) return UNKNOWN;
-      const have = levelOf(table, p.slayer[req.slayer_boss_type] ?? 0);
-      return have >= req.level ? OK : locked(`${SLAYER_NAME[req.slayer_boss_type]} Slayer ${req.level} needed, you have ${have}`);
-    }
-    case 'KUUDRA_COMPLETION':
-      if (!p.kuudra) return UNKNOWN;
-      return p.kuudra[String(req.kuudra_tier).toLowerCase()] > 0 ? OK : locked(`Kuudra ${title(req.kuudra_tier)} needed`);
-    case 'COLLECTION':
-      if (!p.collTiers) return UNKNOWN;
-      return p.collTiers.includes(`${req.collection}_${req.tier}`) ? OK : locked(`Collection ${title(req.collection)} ${req.tier} needed`);
     case 'ANY_OF':
     case 'ONE_OF': {
       const all = (req.requirements ?? []).map((r) => checkOne(r, p));
@@ -84,5 +64,3 @@ export function lockProfile(build) {
   const tier = build?.hotm?.tier;
   return Number.isInteger(tier) && tier >= 1 && tier <= 10 ? { hotm: { experience: HOTM_XP[tier - 1] } } : null;
 }
-
-export const lockedByBuild = (step, items, build) => checkStep(step, items, lockProfile(build));

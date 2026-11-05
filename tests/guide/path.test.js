@@ -113,9 +113,9 @@ test('no price, no gain and zero stand after the ranked steps in guide order', (
 });
 
 test('a locked line head stays last and takes its line along', () => {
-  const items = { A: { requirements: [{ type: 'SKILL', skill: 'MINING', level: 99 }] } };
+  const items = { A: { requirements: [{ type: 'HEART_OF_THE_MOUNTAIN', tier: 7 }] } };
   const g = guideOf([step('locked', 'A', 50, { line: 'L' }), step('behind', 'B', 50, { line: 'L' }), step('free', 'C', 1)]);
-  const profile = { ...virtualProfile(g, new Set(), new Set(), {}), virtual: false, skills: { MINING: 1 } };
+  const profile = { ...virtualProfile(g, new Set(), new Set(), {}), virtual: false };
   const path = pathOf({ guide: g, checked: new Set(), ctx: { products: { A: sold(1e6), B: sold(1e6), C: sold(1e6) }, items, tax: 0 }, profile, loadout: virtualLoadout(profile, {}, 'mining'), base: { MINING_FORTUNE: 100 }, settings: miningSettings(null), brake: 5, keepOldGear: true });
   assert.equal(path.order[0].step.text, 'free');
   assert.ok(texts(path).indexOf('locked') < texts(path).indexOf('behind'));
