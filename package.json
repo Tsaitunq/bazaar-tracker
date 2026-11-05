@@ -10,6 +10,7 @@
     "guide:build": "node scripts/guide/guide-build.mjs",
     "guide:icons": "node scripts/guide/fetch-icons.mjs",
     "guide:shots": "node scripts/guide/guide-shots.mjs",
+    "bazaar:serve": "node scripts/bazaar/copy-web.mjs _site --worker && node scripts/serve.mjs 8123 _site",
     "pages:build": "node scripts/bazaar/copy-web.mjs _site --worker",
     "clean": "node scripts/clean.mjs"
   },

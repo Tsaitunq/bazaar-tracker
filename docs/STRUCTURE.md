@@ -1,55 +1,72 @@
 # Aufbau des Repos
 
-Eine Zeile je Ordner oder Hauptdatei. Zwei Apps teilen sich die Logik im Wurzelordner: die Bazaar-App (`index.html`, `app.js`) und die Guide-App (`guide/`).
+Ein Repo, zwei Apps: die Bazaar-App (PWA und Android) und die Guide-App (Android). Was beide brauchen, liegt in `shared/`. Quellen liegen immer unter `apps/<app>/` oder `shared/`; gebaut wird in einen flachen Ordner, der nicht in git ist.
 
 ## Ordner
 
-- `.github/workflows/` – geplanter Lauf `snapshot.yml`, der alle 20 Minuten die Bazaar-Daten in den Branch `data` schreibt.
-- `android/` – Capacitor-Projekt der Bazaar-App (APK), mit den Hintergrund-Alarmen in Java.
-- `android-guide/` – Capacitor-Projekt der Guide-App (APK), mit Zurück-Taste, API-Key und Profil-Speicher in Java.
-- `docs/` – Pläne, Specs, Zusammenfassungen, Design-Vorlagen (`design-mockups/`) und der Maß-Abgleich `guide-design-check.md`.
-- `guide/` – die Guide-App: `app.js` (Zustand, Routen, Gesten), `model.js` (was die Screens zeigen), `views/` (Markup), `guide.css`, eigener `sw.js` und `changelog.json`.
-- `icons/` – App-Symbole und Minion-Bilder.
-- `personal/` – nicht in git: private Guides, Item-Daten, eigene /stats und Testprofile; landet nur in lokalen Builds.
-- `scripts/` – Build-, Daten- und Prüfskripte (siehe unten).
-- `tests/` – `node --test`, nur mit Fixtures in `tests/fixtures/`.
+- `apps/bazaar/` – Bazaar-App. Seite (`index.html`, `style.css`, `manifest.webmanifest`, `sw.js`), Module (siehe unten), `icons/`, `changelog.json` (Version und "What's new", auch `versionName`/`versionCode` des APK), `capacitor.config.json`, `package.json` (nur für `cap sync`), `android/` (Capacitor-Projekt mit den Hintergrund-Alarmen in Java).
+- `apps/guide/` – Guide-App. Oberfläche (`app.js`, `model.js`, `views/`, `guide.css`, `sw.js`, `changelog.json`, `brand.json`), die Rechenlogik nur dieser App (siehe unten), `img/`, `fonts/`, `capacitor.config.json`, `package.json`, `android/` (Capacitor-Projekt, nur Hülle, kein eigener Java-Code außer `MainActivity`).
+- `shared/` – Module, die beide Apps laden: `data.js` (Daten aus dem Branch `data`), `format.js`, `history.js`, `names.js`, `prices.js`, `native.js` (`isNative`, `plugin`).
+- `gamedata/` – Stats, HOTM, Attribute, Power und Pets als JSON, geladen und geprüft von `apps/guide/gamedata.js`, gebaut von `scripts/gamedata-build.mjs`.
+- `scripts/` – Daten- und CI-Skripte direkt in `scripts/`, Build-Skripte je App in `scripts/bazaar/` und `scripts/guide/`, gemeinsame Bausteine in `scripts/lib/`.
+- `tests/` – `node --test`, nur mit Fixtures. Je App ein Ordner: `tests/bazaar/`, `tests/guide/`, `tests/shared/`, `tests/scripts/`. Fixtures in `tests/fixtures/`.
+- `docs/` – aktuelle Doku oben: `STRUCTURE.md`, `design-guide-app.md`, `DECISIONS.md`, `SUMMARY.md`, `design-mockups/`, Quellenblätter (`*-sources.md`, `image-sources.md`), `blaze-data.md`, `timing-backfill.md`, `guide-design-check.md` (von `guide:shots` erzeugt). Alte Pläne, Specs, Zusammenfassungen und Fortschrittsnotizen in `docs/archive/`.
+- `.github/workflows/` – `snapshot.yml` (alle 20 Minuten Bazaar-Daten in den Branch `data`) und `pages.yml` (baut `_site/` und veröffentlicht die Bazaar-PWA).
+- `personal/` – nicht in git: private Guides, Item-Daten, Testprofile. Landet nur in lokalen Builds.
 
-Erzeugt und nicht in git, `npm run clean` löscht sie: `www/`, `www-guide/`, `android/app/build/`, `android-guide/app/build/`, `guide-shots/`.
+Erzeugt und nicht in git (`npm run clean` löscht sie): `apps/bazaar/www/`, `apps/guide/www-guide/`, `apps/*/android/app/build/`, `apps/guide/shots/`, `_site/`. Ebenfalls nicht in git: `apps/guide/img/hypixel/` (holt `guide:icons`).
 
-## Dateien im Wurzelordner
+## Bazaar-Module (`apps/bazaar/`)
 
-- `index.html`, `style.css`, `manifest.webmanifest`, `sw.js` – Hülle, Farben und Offline-Cache der Bazaar-App; `SHELL` in `sw.js` bestimmt auch den APK-Inhalt.
-- `app.js` – Bazaar-App: Zustand, Abruf, Ereignisse.
-- `render.js` – Bazaar-App: Markup aller Ansichten.
-- `sheet.js` – das eine Fenster für Einstellungen und Filter.
-- `onboarding.js`, `tour.js` – Willkommen, Tour, "What's new" und die Liste alter Speicher-Schlüssel; `tour.js` verdrahtet es mit der Seite.
-- `changelog.json` – Version und Neuigkeiten der Bazaar-App, auch `versionName`/`versionCode` des APK.
-- `flips.js` – Flip-Rechnung (identisch zu `AlertLogic.java`).
-- `npc.js`, `craft.js`, `forge.js` – NPC-, Craft- und Forge-Flips.
-- `minions.js`, `minioncosts.js` – Minion-Rechner und Baukosten.
-- `events.js`, `timing.js`, `trends.js`, `history.js`, `chart.js` – Mayor/Events, Event-Timing, Trends, Preisverlauf, Diagramme.
-- `data.js` – Laden der Daten aus dem Branch `data` und lokalen Kopien.
-- `names.js`, `prices.js`, `format.js` – Item-Namen, Preis-Helfer, Text-Helfer (beide Apps).
-- `native.js` – Brücke zu den Android-Plugins (beide Apps).
-- `progress.js` – Guides laden und prüfen, Schrittkosten, Import/Export.
-- `owned.js` – geteilter Besitz über alle Guides.
-- `detect.js`, `requires.js` – wann ein Schritt durch besessene Teile erfüllt ist, Anforderungen von Items.
-- `optimizer.js`, `optimizer-data.js`, `path.js` – Wert je Schritt, Wiki-Werte, Reihenfolge des Pfads.
+- `app.js` – Zustand, Abruf, Ereignisse. `render.js` – Markup aller Ansichten. `sheet.js` – das eine Fenster für Einstellungen und Filter.
+- `onboarding.js`, `tour.js` – Willkommen, Tour, "What's new", Liste alter Speicher-Schlüssel (`RETIRED_KEYS`); `tour.js` verdrahtet es mit der Seite.
+- `alerts.js` – Brücke zu den Android-Alarmen (Konfiguration, "gekauft", Berechtigung).
+- `flips.js` – Flip-Rechnung (identisch zu `AlertLogic.java`). `npc.js`, `craft.js`, `forge.js` – NPC-, Craft- und Forge-Flips. `minions.js`, `minioncosts.js` – Minion-Rechner.
+- `events.js`, `timing.js`, `trends.js`, `chart.js` – Mayor und Events, Event-Timing, Trends, Diagramme.
+
+## Guide-Module (`apps/guide/`)
+
+- `app.js` (Zustand, Routen, Gesten), `model.js` (was die Screens zeigen), `views/` (Markup), `intro.js` (Tour und Neuigkeiten), `migrate.js` (einmaliger Umstieg von der API-Version).
+- `progress.js` – Guides laden, prüfen, Schrittkosten, Import/Export. `owned.js` – geteilter Besitz. `detect.js`, `requires.js` – wann ein Schritt erfüllt ist, HOTM-Sperren.
+- `optimizer.js`, `optimizer-data.js`, `path.js`, `pieces.js` – Wert je Schritt, Wiki-Werte, Reihenfolge, Gear-Teile.
 - `stats.js`, `virtual.js`, `blaze.js` – Item-, Pet- und Power-Werte, Profil aus Häkchen, Blaze-Schadensmodell.
-- `gamedata/` – Stats, HOTM, Attribute und Power als JSON, geladen und geprüft von `guide/gamedata.js`.
-- `guide/totals.js`, `guide/build.js`, `guide/gear.js`, `guide/migrate.js`, `guide/stats-model.js` – Summe je Stat (Basis + Änderungen + Gear), Build und Messungen, Gear aus Häkchen, Umstieg von der API, Daten der Stats-Seiten.
-- `capacitor.config.json` – Capacitor-Konfiguration der Bazaar-App.
-- `timing-backfill.json` – nachgetragene Event-Läufe für `timing.js`.
-- `package.json` – npm-Skripte: `test`, `android:*`, `guide:*`, `clean`.
-- `CLAUDE.md`, `README.md`, `DECISIONS.md`, `SUMMARY.md`, `LICENSE` – Regeln, Überblick, Entscheidungen, Stand, Lizenz.
+- `totals.js`, `build.js`, `gear.js`, `stats-model.js`, `hotm-model.js`, `attrs-model.js`, `skin.js`, `gamedata.js` – Summe je Stat, Build und Messungen, Gear aus Häkchen, Daten der Stats-Seiten, Spielerfigur, Prüfung von `gamedata/`.
 
-## Skripte (`scripts/`)
+## Imports und flacher Build
 
-- `copy-web.mjs`, `android-build.mjs` – Bazaar-App nach `www/` legen und APK bauen.
-- `guide-copy.mjs`, `guide-build.mjs` – Guide-App nach `www-guide/` legen und APK bauen.
-- `guide-shots.mjs` – Screenshots und Layout-Prüfungen der Guide-App auf 390×844 und 412×915, nur Fixtures.
-- `clean.mjs` – löscht die erzeugten Ordner.
-- `snapshot.mjs`, `items.mjs`, `recipes.mjs`, `auctions.mjs`, `election.mjs` – Datenabzug für `data/`.
-- `timing-backfill.mjs`, `backfill-lib.mjs`, `timing-backup.mjs`, `timing-remove-backfill.mjs`, `mayors-history.json` – Event-Timing nachtragen, sichern, entfernen.
-- `gamedata-build.mjs` – baut `gamedata/*.json` (Wiki zuerst, NEU als Zweitquelle).
-- `icons.mjs`, `serve.mjs` – App-Symbol zeichnen, lokaler Server.
+In den Quellen zeigen Importe auf den echten Ort: `../../shared/format.js`, `./model.js`, `../optimizer.js` (aus `views/`). Der Build (`scripts/lib/flat.mjs`) legt alles in einen flachen Ordner und schreibt die Importe um (`apps/<app>/x` und `shared/x` werden zu `x`, `gamedata/x` bleibt `gamedata/x`). Was geladen werden darf, steht in `SHELL` in `apps/<app>/sw.js`, relativ zum App-Ordner (`'../../shared/data.js'`). Diese Liste entscheidet über Offline-Cache, APK-Inhalt und die Seite auf GitHub Pages. Eine neue Datei muss also in `SHELL` stehen.
+
+## Befehle
+
+| Befehl | Wirkung |
+|---|---|
+| `npm test` | alle Tests (`node --test`, rekursiv über `tests/`) |
+| `npm run bazaar:serve` | baut `_site/` und serviert es auf http://127.0.0.1:8123 |
+| `npm run pages:build` | baut `_site/` (mit `sw.js`), wie der Pages-Workflow |
+| `npm run bazaar:build` | Bazaar-APK (Debug): `apps/bazaar/www/` füllen, `cap sync`, Gradle |
+| `npm run bazaar:sync` | wie `bazaar:build`, ohne Gradle |
+| `npm run guide:build` | Guide-APK (Debug): `apps/guide/www-guide/` füllen, `cap sync`, Gradle |
+| `npm run guide:sync` | wie `guide:build`, ohne Gradle |
+| `npm run guide:icons` | Minecraft-Texturen und Pet-/Shard-Köpfe holen |
+| `npm run guide:shots` | Screenshots und Maß-Abgleich der Guide-App (Playwright) |
+| `npm run clean` | löscht die erzeugten Ordner (feste Liste in `scripts/clean.mjs`, nur im Repo) |
+
+APK-Pfade: `apps/bazaar/android/app/build/outputs/apk/debug/app-debug.apk` und `apps/guide/android/app/build/outputs/apk/debug/app-debug.apk`. Beide brauchen JDK 21 und das Android SDK.
+
+## Skripte
+
+- `scripts/snapshot.mjs`, `items.mjs`, `recipes.mjs`, `auctions.mjs`, `election.mjs` – Datenabzug für `data/`, vom Workflow `snapshot.yml` aufgerufen; Namen und Ort dürfen sich nicht ändern.
+- `scripts/timing-backfill.mjs`, `backfill-lib.mjs`, `timing-backup.mjs`, `timing-remove-backfill.mjs`, `timing-backfill.json`, `mayors-history.json` – Event-Timing nachtragen, sichern, entfernen.
+- `scripts/gamedata-build.mjs`, `gamedata-categories.mjs` – bauen `gamedata/*.json` (Wiki zuerst, NEU als Zweitquelle).
+- `scripts/icons.mjs` – App-Symbol zeichnen (`apps/bazaar/icons/`, Android-Ressourcen). `scripts/serve.mjs [port] [dir]` – lokaler Server. `scripts/clean.mjs` – Aufräumen.
+- `scripts/bazaar/copy-web.mjs`, `android-build.mjs` – Web-Dateien der Bazaar-App flach legen (`--worker` schreibt auch `sw.js`), APK bauen.
+- `scripts/guide/guide-copy.mjs`, `guide-build.mjs`, `guide-shots.mjs`, `fetch-icons.mjs` – dasselbe für die Guide-App, Screenshots, Icons.
+- `scripts/lib/flat.mjs` – Pfad-Abbildung und Import-Umschreibung des flachen Builds.
+
+## Was wohin gehört
+
+- Nur eine App nutzt es: in deren `apps/<app>/`. Beide nutzen es: nach `shared/`, und dann aus beiden `SHELL`-Listen laden.
+- Daten für die Guide-App: `gamedata/`. Daten des Branches `data` (Preise, Verlauf): nie im Repo, nur über `shared/data.js` laden.
+- Ein Test gehört in den Ordner der App, deren Code er prüft; Skript-Tests nach `tests/scripts/`. Fixtures nur in `tests/fixtures/`.
+- Neue Pläne und Specs während der Arbeit nach `docs/` (`plan-*.md`), nach dem Abschluss nach `docs/archive/`.
+- Private Dateien ausschließlich in `personal/`; nie in git, nie in Beispiele oder Tests.
