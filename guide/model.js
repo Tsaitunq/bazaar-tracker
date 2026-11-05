@@ -3,7 +3,7 @@ import { stepKey, doneSet, setMark, guideStats, openStep, stepCost, mergeGuides,
 import { isItemStep, idsOfStep, idsToOwn, ownedAuto, impliedDone } from '../owned.js';
 import { SCORES, miningSettings, pathsOf, LEFT_OUT } from '../optimizer.js';
 import { pathOf, entryPrice } from '../path.js';
-import { blazeState, daggersOf } from '../blaze.js';
+import { blazeState } from '../blaze.js';
 import { checkStep, lockProfile } from '../requires.js';
 import { gearOf } from './gear.js';
 import { totalFor, statsFor } from './totals.js';
@@ -186,12 +186,12 @@ function planOf(guide, world, ctx, checked, scores) {
   const entry = world.base?.[area] ?? null;
   if (!Object.keys(entry?.values ?? {}).length) return { missing: 'stats' };
   const settings = guide.preset ? miningSettings({ preset: guide.preset }) : world.settings;
-  const worn = gearOf({ guides: world.guides ?? [guide], checks: world.checks ?? { [guide.id]: [...world.marks] }, owned: world.owned ?? [], items: ctx.items, area, build: world.build, settings, values: entry.values, mp: entry.mp ?? null, pets: world.gamedata?.pets?.pets ?? null, pets: world.gamedata?.pets?.pets ?? null });
+  const worn = gearOf({ guides: world.guides ?? [guide], checks: world.checks ?? { [guide.id]: [...world.marks] }, owned: world.owned ?? [], items: ctx.items, area, build: world.build, settings, values: entry.values, mp: entry.mp ?? null, pets: world.gamedata?.pets?.pets ?? null, petItems: world.gamedata?.pets?.items ?? null });
   const base = totalFor({ area, entry, build: world.build, gear: worn.gear, data: world.gamedata, stats: statsFor(area, world.gamedata) }).total;
-  const daggers = area === 'blaze' ? daggersOf(worn.profile) : null;
-  const loadout = daggers ? { ...worn.loadout, daggers } : worn.loadout;
+  const daggers = area === 'blaze' ? worn.loadout.daggers : null; // with the potato books in their lore
+  const loadout = worn.loadout;
   const state = daggers ? blazeState(base, loadout, daggers) : null;
-  const path = pathOf({ guide, checked, ctx, profile: worn.profile, loadout, base, settings, brake: world.brake, other: null, keepOldGear: world.keepOldGear, state });
+  const path = pathOf({ guide, checked, ctx: { ...ctx, rules: worn.rules }, profile: worn.profile, loadout, base, settings, brake: world.brake, other: null, keepOldGear: world.keepOldGear, state });
   let notes = [];
   if (!settings.gemFortune && area === 'mining') notes = ['Gemstone Fortune does not count here, and Ore, Block and Dwarven Metal Fortune are not counted, so fortune steps read low.'];
   if (state) {

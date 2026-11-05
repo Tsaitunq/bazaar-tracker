@@ -125,6 +125,8 @@ export const CATACOMBS_REFORGE = { withered: { STRENGTH: 1 }, ancient: { CRITICA
 
 // NEU Hot Potato Book / Fuming Potato Book: armor and weapons, 10 books, Fuming up to 15 in all
 export const HPB = { armor: { DEFENSE: 2, HEALTH: 4 }, weapon: { STRENGTH: 2, DAMAGE: 2 }, max: 10, fumingMax: 5 };
+// Gear options of a build: Catacombs level (null = unknown), Crimson stars, all pieces with 10 Hot Potato Books, Fuming books
+export const DEFAULT_GEAR = { catacombs: null, stars: 0, hpb: true, fuming: 0 };
 // wiki Essence: +2 % stat per star on items that are not Dungeon items; the star count is one number for the whole Crimson set
 export const CRIMSON_STAR = { percent: 2, max: 10 };
 export const CRIMSON_TIERS = ['CRIMSON', 'HOT_CRIMSON', 'BURNING_CRIMSON', 'FIERY_CRIMSON', 'INFERNAL_CRIMSON'];
