@@ -1,9 +1,9 @@
-// usage: node scripts/serve.mjs [port] - serves the current directory on 127.0.0.1
+// usage: node scripts/serve.mjs [port] [dir] - serves dir (default: the current directory) on 127.0.0.1
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 
-const root = process.cwd();
+const root = path.resolve(process.argv[3] ?? process.cwd());
 const types = {
   '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css',
   '.json': 'application/json', '.png': 'image/png', '.webmanifest': 'application/manifest+json',

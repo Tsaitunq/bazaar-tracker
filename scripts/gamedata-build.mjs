@@ -2,7 +2,7 @@
 // Clone the NEU repo first: git clone --depth 1 https://github.com/NotEnoughUpdates/NotEnoughUpdates-REPO
 //
 // Sources (hypixelskyblock.minecraft.wiki unless noted; wiki values were checked on 2026-11-04):
-//   stats.json      Wiki "Stats" (names, areas). Icons and colours: guide/model.js, docs/design-guide-app.md. No icon = unknown.
+//   stats.json      Wiki "Stats" (names, areas). Icons and colours: apps/guide/model.js, docs/design-guide-app.md. No icon = unknown.
 //   hotm.json       Wiki "Heart of the Mountain" perk table (stat formulas, cost exponents, powder, Core of the Mountain table; read from
 //                   wiki screenshots 2026-11-04), ability table, tier XP. NEU constants/hotmlayout.json only for grid x/y and max level.
 //                   Positions, max levels and per-level values checked against the in-game HOTM menu (2026-11-04). Neighbours are derived
@@ -21,7 +21,7 @@ const write = (f, o) => fs.writeFileSync(`${OUT}/${f}`, JSON.stringify(o, null, 
 
 // ---------- stats ----------
 const C = { orange: '#FFAA00', pink: '#D255D2', red: '#FF5555', blue: '#8C96FF', yellow: '#FFFF55', green: '#55FF55', white: '#FFFFFF', cyan: '#55FFFF' };
-// [id, name, areas, icon, colour, percent]; icon/colour from guide/model.js + docs/design-guide-app.md (repo), else null = unknown.
+// [id, name, areas, icon, colour, percent]; icon/colour from apps/guide/model.js + docs/design-guide-app.md (repo), else null = unknown.
 const S = [
   ['MINING_FORTUNE', 'Mining Fortune', ['mining'], '☘', C.orange],
   ['MINING_SPEED', 'Mining Speed', ['mining'], '⸕', C.orange],
@@ -76,7 +76,7 @@ const S = [
 ];
 const stats = S.map(([id, name, areas, icon, color, percent]) => {
   const e = { id, name, icon: icon ?? null, color: color ?? null, areas, category: categoryOf(id), unit: percent ? '%' : '', percent: !!percent, src: icon ? 'repo' : 'wiki' };
-  // wiki stats page: names and area lists only, icons are images with no text; repo = guide/model.js + docs/design-guide-app.md.
+  // wiki stats page: names and area lists only, icons are images with no text; repo = apps/guide/model.js + docs/design-guide-app.md.
   if (!icon) e.unknown = true;
   if (percent) e.percentSrc = 'not confirmed'; // wiki stats page shows Crit base values as %, not stated per stat otherwise
   return e;
@@ -241,7 +241,7 @@ const attributes = A.attributes.map((a) => {
 });
 // Blaze (wiki "Attributes", 2026-11-05; the ranges there are level I to X, linear per level is an assumption): the mob family a resistance or
 // fortune works against, the damage attributes as plain notes (shown, never added), Unlimited Fortitude as a percent of Defense.
-// NEU stores these seven shards as a block or a Vanilla skull, so there is no head: the picture is a Vanilla texture in guide/img/mc (scripts/fetch-icons.mjs)
+// NEU stores these seven shards as a block or a Vanilla skull, so there is no head: the picture is a Vanilla texture in apps/guide/img/mc (scripts/guide/fetch-icons.mjs)
 const MC_ICON = { SHARD_LAPIS_ZOMBIE: 'sea_lantern', SHARD_MINER_ZOMBIE: 'diamond_block', SHARD_FLORA: 'sunflower', SHARD_GLACITE_WALKER: 'packed_ice', SHARD_WITHER: 'wither_skeleton_head', SHARD_OBSIDIAN_DEFENDER: 'obsidian', SHARD_ZOMBIE_SOLDIER: 'zombie_head' };
 const FAMILY_ALIAS = { blazing: 'infernal' };
 const NOTES = {

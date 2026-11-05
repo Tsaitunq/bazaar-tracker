@@ -1,11 +1,11 @@
 data/
 .superpowers/
 node_modules/
-www/
-www-guide/
-guide-shots/
+apps/bazaar/www/
+apps/guide/www-guide/
+apps/guide/shots/
 *.tmp
 timing-backfill.json.partial.json
 personal/
-guide/img/hypixel/
+apps/guide/img/hypixel/
 _site/

@@ -1,0 +1,83 @@
+import { plugin } from '../../shared/native.js';
+import { fallbackName } from '../../shared/names.js';
+
+// The bridge to the alert code of the Android app (AlertsPlugin.java).
+// The background worker runs without the web view, so it gets everything it needs up front.
+// plan: { items: [{ id, buy }], perks, term } – the stored portfolio and what planElection says about it.
+export const alertConfig = (settings, favs, names, plan = {}) => ({
+  enabled: settings.alerts === true,
+  minMargin: settings.alertMargin / 100,
+  tax: settings.tax / 100,
+  favs: [...favs].map((id) => ({ id, name: names[id] ?? fallbackName(id) })),
+  market: {
+    enabled: settings.marketAlerts === true,
+    minMargin: settings.marketMargin / 100,
+    minVolume: settings.marketMinVolume,
+    minProfitHour: settings.marketMinProfit,
+    cooldownHours: settings.marketCooldown,
+    maxCapital: settings.maxCapital,
+    share: settings.share / 100,
+  },
+  timing: { events: settings.eventAlerts === true, mayor: settings.mayorAlerts === true },
+  portfolio: {
+    price: settings.planPriceAlerts === true,
+    suspicious: settings.planSuspiciousAlerts === true,
+    election: settings.planElectionAlerts === true,
+    leaving: settings.planLeavingAlerts === true,
+    drop: settings.portfolioDrop / 100,
+    cooldownHours: settings.portfolioCooldown,
+    items: plan.items ?? [],
+    perks: plan.perks ?? {},
+    term: plan.term ?? null,
+  },
+  windows: {
+    buy: settings.windowBuy === true,
+    sell: settings.windowSell === true,
+    avoid: settings.windowAvoid === true,
+    minSpread: settings.windowMinSpread / 100,
+    favOnly: settings.windowFavOnly === true,
+    minRuns: settings.windowMinRuns,
+    maxPerDay: settings.windowMaxPerDay,
+    quietStart: settings.quietStart,
+    quietEnd: settings.quietEnd,
+  },
+});
+
+// Items marked as bought, { id: when }. The Android app keeps them natively, because the notification's "Bought"
+// works without the web view; null where there is no plugin.
+export async function loadHeld() {
+  try {
+    return (await plugin()?.getHeld())?.held ?? null;
+  } catch {
+    return null;
+  }
+}
+export async function storeHeld(id, held) {
+  try {
+    return (await plugin()?.setHeld({ id, held }))?.held ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export function syncAlerts(settings, favs, names, plan) {
+  plugin()?.configure(alertConfig(settings, favs, names, plan)).catch(() => {});
+}
+
+export async function requestAlertPermission() {
+  try {
+    return (await plugin().requestPermission()).granted === true;
+  } catch {
+    return false;
+  }
+}
+
+// Market alerts can name any item, so the worker gets a name for every product once per start.
+export function syncNames(ids, names) {
+  plugin()?.setNames({ names: Object.fromEntries(ids.map((id) => [id, names[id] ?? fallbackName(id)])) }).catch(() => {});
+}
+
+// A tapped notification tells the app which page to open.
+export function onRoute(open) {
+  plugin()?.addListener('route', (event) => open(event.hash));
+}

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { dayKey } from '../history.js';
+import { dayKey } from '../shared/history.js';
 
 // timing.json is the only data that cannot be rebuilt, so dated copies of it live on their own branch.
 const WEEK_MS = 7 * 86400000;

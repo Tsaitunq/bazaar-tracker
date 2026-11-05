@@ -1,5 +1,5 @@
 // One-off: fills timing.json's runs from SkyCofl's bazaar history, for the mayor perks and fixed events the
-// app knows items for. node scripts/timing-backfill.mjs [--out timing-backfill.json] [--count 12] [--dry-run]
+// app knows items for. node scripts/timing-backfill.mjs [--out scripts/timing-backfill.json] [--count 12] [--dry-run]
 // One request a second, Retry-After respected. Progress is kept in <out>.partial.json, so a stopped run resumes.
 // --fill: keep the runs of an earlier <out> and ask only for the items they lack (a new item in events.js).
 // Data: https://sky.coflnet.com/data (SkyCofl), please attribute.
@@ -43,7 +43,7 @@ export async function fetchHistory(item, w, fetchImpl = fetch, log = () => {}) {
 async function main() {
   const args = process.argv.slice(2);
   const opt = (name, fallback) => (args.includes(name) ? args[args.indexOf(name) + 1] : fallback);
-  const out = opt('--out', 'timing-backfill.json');
+  const out = opt('--out', 'scripts/timing-backfill.json');
   const count = Number(opt('--count', RUNS_PER_KEY));
   const dry = args.includes('--dry-run');
   const fill = args.includes('--fill');

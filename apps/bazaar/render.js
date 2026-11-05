@@ -1,0 +1,624 @@
+import { lineChart } from './chart.js';
+import { marginSeries } from '../../shared/history.js';
+import { direction } from './trends.js';
+import { skyDate, MONTHS, PERK_ITEMS, PERK_EXPECT, PERKS, YEAR_EVENTS, EVENTS, DRIVERS, expectedRole, DAY_MS } from './events.js';
+import { itemPattern, patternText, allWindows, itemRole, driverTitle, isLowVolume, windowText, MIN_ALERT_RUNS } from './timing.js';
+
+export { esc, coins } from '../../shared/format.js';
+import { esc, coins } from '../../shared/format.js';
+
+const plain = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
+
+export const percent = new Intl.NumberFormat('en-US', { style: 'percent', maximumFractionDigits: 1 });
+
+export const ICON_BASE = 'https://sky.coflnet.com/static/icon/';
+export const iconUrl = (id) => ICON_BASE + encodeURIComponent(id);
+export const itemHref = (id) => '#/item/' + encodeURIComponent(id);
+
+export const PLACEHOLDER_ICON = 'data:image/svg+xml,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect x="3" y="3" width="26" height="26" rx="6" fill="#2e2e2e"/></svg>');
+
+export const icon = (id, size = 32) =>
+  `<img class="icon" src="${esc(iconUrl(id))}" width="${size}" height="${size}" alt="" loading="lazy" decoding="async" crossorigin="anonymous">`;
+
+// Hypixel rarities; anything else (or none) counts as common
+const RARITIES = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'divine', 'special', 'very_special'];
+export const rarity = (tier) => (RARITIES.includes(tier) ? tier : 'common');
+// the item picture on a small tile that can carry the rarity colour
+const tile = (id, size) => `<span class="tile">${icon(id, size)}</span>`;
+
+// Line icons drawn for this app; index.html carries the same shapes for the static buttons.
+const svg = (body) => `<svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+const ICONS = {
+  star: svg('<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.6l1-5.8L3.5 9.7l5.9-.9z"/>'),
+  back: svg('<path d="M15 5l-7 7 7 7"/>'),
+  warn: svg('<path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.4v.1"/>'),
+  rising: svg('<path d="M6 18L18 6M10 6h8v8"/>'),
+  falling: svg('<path d="M6 6l12 12M18 10v8h-8"/>'),
+  flat: svg('<path d="M4 12h16M14 6l6 6-6 6"/>'),
+  close: svg('<path d="M6 6l12 12M18 6L6 18"/>'),
+  event: svg('<rect x="4" y="6" width="16" height="14" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>'),
+};
+
+export function scoreBadge(score, provisional = false) {
+  if (provisional) return '<span class="badge badge-prov">provisional</span>';
+  if (score == null) return '';
+  const [cls, label] = score >= 70 ? ['good', 'stable'] : score >= 40 ? ['mid', 'medium'] : ['bad', 'unstable'];
+  return `<span class="badge badge-${cls}">${label}<span class="pro"> ${Math.round(score)}</span></span>`;
+}
+
+const gain = (v) => (v > 0 ? 'gain' : 'loss');
+const num = coins;
+const star = (id, name, isFav) =>
+  `<button class="star" type="button" data-id="${esc(id)}" aria-pressed="${isFav}" aria-label="Favorite: ${esc(name)}">${ICONS.star}</button>`;
+// trend: change of the sell price per 24 hours (see trends.js); level: 'below' or 'above' its normal price
+const LEVELS = { below: 'below normal', above: 'above normal' };
+export function trendBadge(trend, level) {
+  const dir = direction(trend);
+  const text = [dir, LEVELS[level]].filter(Boolean).join(' · ');
+  return text && `<span class="badge badge-trend pro">${dir ? ICONS[dir] : ''}${text}</span>`;
+}
+// f.ah: sold on the auction house; f.event: name of an event or mayor perk the item belongs to
+const badges = (f, warn) => {
+  const html = (warn ? `<span class="badge badge-warn">${ICONS.warn}suspicious</span>` : '')
+    + (f.ah ? '<span class="badge badge-warn">AH sale – estimate</span>' : '')
+    + scoreBadge(f.score, f.provisional) + trendBadge(f.trend, f.level)
+    + (f.event ? `<span class="badge badge-event pro">${ICONS.event}${esc(f.event)}</span>` : '');
+  return html && `<div class="badges">${html}</div>`;
+};
+// the two numbers a flip is judged by
+const keyStats = (f, label = 'Profit/h') => `<div class="key">
+      <div><span class="big ${gain(f.profit)}">${num(f.profitHour)}</span><span class="lbl">${label}</span></div>
+      <div><span class="big">${percent.format(f.margin)}</span><span class="lbl">Margin</span></div>
+    </div>`;
+// pro: a fact that Simple mode leaves out (the stylesheet hides .pro there)
+const fact = (label, value, cls = '', pro = false) => `<div${pro ? ' class="pro"' : ''}><dt>${label}</dt><dd${cls ? ` class="${cls}"` : ''}>${value}</dd></div>`;
+// sell price with its 7 day median next to it, so an unusual price stands out
+const sellFact = (f) => fact('Sell offer', num(f.sell) + (f.median > 0 ? ` <span class="normal pro">normal: ${num(f.median)}</span>` : ''));
+
+const card = (f, isFav, warn, facts, extra = '', label) => `<li class="card" data-rarity="${rarity(f.tier)}">
+  ${star(f.id, f.name, isFav)}
+  <a class="body" href="${esc(itemHref(f.id))}">
+    <div class="name">${tile(f.id, 32)}<span>${esc(f.name)}</span></div>
+    ${badges(f, warn)}${f.why?.length ? `
+    <p class="why">${esc(f.why.join(' · '))}</p>` : ''}
+    ${facts.length ? `${keyStats(f, label)}
+    <dl class="facts">${facts.join('')}</dl>` : ''}${extra}
+  </a>
+</li>`;
+
+// f.craft: { id, name, extra, orders } from craftHints. A tap on it opens the Craft tab on the end product
+// (app.js reads data-craft), so it is not a link: the card body already is one.
+export const craftHint = (c) => `<small class="craft pro" role="button" tabindex="0" data-craft="${esc(c.id)}" data-name="${esc(c.name)}">Craft into ${esc(c.name)}: +${num(c.extra)}/h · uses ${c.orders} orders · recipe must be unlocked</small>`;
+
+export const flipCard = (f, isFav) => card(f, isFav, f.suspicious, [
+  fact('Buy order', num(f.buy)),
+  sellFact(f),
+  fact('Profit/item', num(f.profit), gain(f.profit), true),
+  fact('Vol./week', num(f.weekVol), '', true),
+], f.craft ? craftHint(f.craft) : '');
+
+// a search hit the current list does not hold; without prices only the name and the reason are left
+export const searchCard = (f, isFav) => (f.buy ? flipCard(f, isFav) : card(f, isFav, false, []));
+
+// f.step from npcStep: crafting the item into a higher step before the NPC takes it pays more. The lines
+// compare the same bought items sold as they are and as the crafted result; instant buy, through the book.
+const stepLines = (f, name) => {
+  const s = f.step;
+  const row = (label, v) => `<li><span>${label}</span> <span class="side">${num(v.profit)} · ${percent.format(v.profitCoin)} per coin · ${num(v.profitSale)} per item${
+    v.profitHour ? ` · ${num(v.profitHour / 60)}/min` : ''}</span></li>`;
+  return `<div class="step"><p class="why">Craft ${num(s.qty)}× into ${esc(name)}, then sell to the NPC (${s.basis === 'insta' ? 'instant buy' : 'buy order'}, ${s.runs} crafts)</p>
+    <ul class="coming">${row('As it is', s.direct)}${row('Crafted', s)}</ul></div>`;
+};
+export const npcCard = (f, isFav) => card(f, isFav, false, [
+  fact('Buy order', num(f.buy)),
+  fact('NPC price', num(f.npc)),
+  fact('Profit/item', num(f.profit), gain(f.profit)),
+  fact('Profit (instant buy)', num(f.profitInstant), gain(f.profitInstant)),
+  fact('Vol./week', num(f.weekVol)),
+], f.step ? stepLines(f, f.step.name ?? f.step.id) : '');
+
+const ingredientList = (f) => `<ul class="ingredients">${f.ingredients.map((i) => `<li>${num(i.qty)}× ${esc(i.name)} @ ${num(i.price)}</li>`).join('')}${
+  f.coins ? `<li>${num(f.coins)} coins</li>` : ''}</ul>`;
+
+export const craftCard = (f, isFav) => card(f, isFav, false, [
+  fact('Cost', num(f.cost)),
+  fact('Revenue', num(f.revenue)),
+  fact('Profit/craft', num(f.profit), gain(f.profit)),
+  fact('Profit/item', num(f.profitItem ?? f.profit / f.n), gain(f.profit)),
+  fact('Crafts/h', num(f.craftsHour)),
+  fact('Orders', String(f.orders ?? f.ingredients.length + 1)),
+  fact('Capital', num(f.capital ?? f.cost)),
+], ingredientList(f));
+
+// 21600 -> "6h", 5400 -> "1h 30m": the two largest units are enough for a forge time
+export function duration(seconds) {
+  let rest = Math.round(seconds);
+  const parts = [];
+  for (const [size, unit] of [[86400, 'd'], [3600, 'h'], [60, 'm'], [1, 's']]) {
+    const n = Math.floor(rest / size);
+    rest -= n * size;
+    if (n) parts.push(n + unit);
+  }
+  return parts.slice(0, 2).join(' ') || '0s';
+}
+
+const AH_HINT = 'Sells on the Auction House: slower and less certain than the Bazaar. The price is the lowest BIN right now.';
+const DERPY_HINT = 'Mayor Derpy: the tax on collecting the coins is 4% instead of 1%. It is already taken off.';
+// what limits the profit per hour: how fast the forge is, or how much of the item is bought
+const LIMITS = { forge: 'Forge time', sales: 'Sales volume' };
+const forgeNotes = (f) => (f.ah ? [AH_HINT, ...(f.derpy ? [DERPY_HINT] : [])] : []);
+const forgeFacts = (f) => [
+  fact('Cost', num(f.cost)),
+  fact(f.ah ? 'Lowest BIN' : 'Sell offer', num(f.sell)),
+  fact('Profit/item', num(f.profit), gain(f.profit)),
+  fact('Duration', duration(f.seconds)),
+  fact('HotM tier', f.hotm || '–'),
+  fact('Limited by', LIMITS[f.limit] ?? '–'),
+];
+export const forgeCard = (f, isFav) => card({ ...f, why: forgeNotes(f) }, isFav, false, forgeFacts(f), ingredientList(f), 'Profit/forge hour');
+
+// the switch above the Forge list
+export const forgeFilter = (withAh) => `<div class="bar ranges forge-filter" role="group" aria-label="Forge results">
+  <button type="button" data-forge-ah="0" aria-pressed="${!withAh}">Bazaar only</button>
+  <button type="button" data-forge-ah="1" aria-pressed="${!!withAh}">Incl. AH</button>
+</div>`;
+
+// The settings that narrow each tab's list. A filter counts as active once it differs from its default.
+export const FILTERS = {
+  flips: ['minVolume', 'maxCapital'],
+  opps: ['marketMargin', 'marketMinVolume', 'marketMinProfit', 'maxCapital'],
+  npc: ['minVolume', 'maxCapital'],
+  craft: ['craftMode', 'craftRuns', 'maxCapital'],
+  forge: ['hotm', 'maxCapital'],
+};
+export const activeFilters = (tab, settings, defaults) => (FILTERS[tab] ?? []).filter((key) => settings[key] !== defaults[key]);
+const FILTER_TEXT = {
+  minVolume: (v) => `Vol./week ≥ ${num(v)}`,
+  maxCapital: (v) => (v > 0 ? `Max. capital ${num(v)}` : 'No capital limit'),
+  marketMargin: (v) => `Margin ≥ ${v}%`,
+  marketMinVolume: (v) => `Vol./week ≥ ${num(v)}`,
+  marketMinProfit: (v) => `Profit/h ≥ ${num(v)}`,
+  hotm: (v) => `HotM ≤ ${v}`,
+  craftMode: (v) => ['Order → Order', 'Insta-buy → Order', 'Insta-buy → Insta-sell'][v],
+  craftRuns: (v) => `${v} crafts per pass`,
+};
+// One chip per active filter (keys from activeFilters); its X puts the filter back to the default.
+export const filterChips = (keys, settings) => keys.map((key) => {
+  const text = esc(FILTER_TEXT[key](settings[key]));
+  return `<button type="button" class="chip" data-unfilter="${key}" aria-label="Remove filter: ${text}">${text}${ICONS.close}</button>`;
+}).join('');
+
+const moreLink = (href, label) => `
+  <a class="more" href="${href}">${label}${ICONS.flat}</a>`;
+
+// One warning about a flip of the stored plan as a sentence. AlertLogic.planText says the same in a notification.
+export function warningText(w) {
+  if (w.text) return w.text; // election and leaving come with their sentence (flipRisks)
+  if (w.kind === 'suspicious') return 'Prices look suspicious now';
+  return w.fall != null ? `Buy order ${percent.format(w.fall)} below your plan price` : `Margin down to ${percent.format(w.margin)}`;
+}
+
+// The warnings of the stored plan, above the portfolio and on Today. alerts: [{ id, name, kind, ... }].
+// dismiss: a price or suspicious warning is in the list; "Got it" then stores the current plan.
+// more: add the link to the portfolio (Today shows the warnings without the plan below them).
+export function warningsView(alerts, { dismiss = false, more = false } = {}) {
+  if (!alerts.length) return '';
+  return `<section class="alerts" role="status">
+  <h2>${ICONS.warn}Portfolio warnings</h2>
+  <ul>${alerts.map((w) => `<li><a href="${esc(itemHref(w.id))}">${esc(w.name)}</a> <small>${esc(warningText(w))}</small></li>`).join('')}</ul>${dismiss ? `
+  <p class="muted">Compared with the plan you last saw. The portfolio already shows the new one.</p>
+  <div class="actions"><button type="button" data-act="plan-seen">Got it</button></div>` : ''}${more ? moreLink('#/opps', 'Open the portfolio') : ''}
+</section>`;
+}
+
+// The browser's stand-in for the Android notifications, on Today. notices: what windowAlerts says is due; limit: the
+// daily maximum from the settings. A buy can be marked as bought right here; "Got it" hides that notice for good.
+export function windowBanners(notices, { limit, name }) {
+  if (!notices.length) return '';
+  const rest = notices.length - limit;
+  return `<section class="alerts window-alerts" role="status">
+  <h2>${ICONS.warn}Buy and sell windows</h2>
+  <ul>${notices.slice(0, limit).map((a) => `<li><a href="${esc(itemHref(a.id))}">${esc(windowText(a, name(a.id)))}</a>
+    <div class="actions">${a.kind === 'buy' ? `<button type="button" data-held="${esc(a.id)}">Bought</button>` : ''}<button type="button" data-seen="${esc(a.k)}">Got it</button></div></li>`).join('')}</ul>${rest > 0 ? `
+  <p class="muted">+${rest} more</p>` : ''}
+</section>`;
+}
+
+// Why a plan leaves capital unused (plan.limit) and what would change it. Simple mode hides the settings
+// the advice names, so there it sends the player to Pro instead.
+function limitNote(plan, { capital, slots, simple }) {
+  const using = `Using ${num(plan.used)} of ${num(capital)} – limited by`;
+  const wider = 'Raise Market share or lower Portfolio min. margin to use more.';
+  const [what, advice] = {
+    // without plan.more the flips are at the bazaar's own limit: nothing to raise
+    slots: () => (plan.more
+      ? [`${using} Max. flips (${slots}).`, `With ${plan.more.slots} flips you could use ${num(plan.more.used)} (est. ${num(plan.more.profitHour)}/h).`]
+      : [`With ${slots} orders the market can absorb about ${num(plan.used)} right now. The rest stays free.`, wider]),
+    maxCapital: () => [`${using} your max. capital per flip.`, 'Raise Max. capital per flip to use more.'],
+    volume: () => [`${using} how much these items trade.`, wider],
+  }[plan.limit]();
+  return `<p class="assume">${what} ${simple ? 'Switch to Pro to adjust.' : advice}</p>`;
+}
+
+// The plan at the top of the Opportunities tab: total first, then what it is made of.
+// plan comes from portfolio() with a name on every flip, and `risk` (a sentence from flipWarnings) where
+// the election may move the item's price; sharePercent is the market share setting.
+// craft: { name, extra, orders } from craftHints where crafting the item pays more than flipping it.
+// slots: the "Max. flips" setting; simple: Simple mode (see limitNote).
+export function portfolioView(plan, { capital, slots, sharePercent, simple = false }) {
+  const hint = `<p class="assume">Assumes ${num(sharePercent)}% market share – only realistic if you relist actively</p>`;
+  if (!plan.flips.length) {
+    return `<section class="portfolio"><h2>Portfolio</h2><p class="muted">${capital > 0
+      ? 'No flip qualifies for the portfolio right now. It takes stable, unsuspicious items with 24 hours of price history.'
+      : 'Set a total capital in the settings to get a plan.'}</p></section>`;
+  }
+  const rows = plan.flips.map((f) => `<li><a href="${esc(itemHref(f.id))}"><span class="pick">${esc(f.name)}${f.risk ? `<small>${esc(f.risk)}</small>` : ''}${f.craft
+    ? `<small class="craft pro">Craft into ${esc(f.craft.name)}: +${num(f.craft.extra)}/h · uses ${f.craft.orders} orders</small>` : ''}</span><span class="stake">${num(f.stake)}</span><span class="gain">${num(f.profitHour)}/h</span></a></li>`).join('');
+  return `<section class="portfolio">
+  <h2>Portfolio</h2>
+  <div class="total"><span class="big gain">${num(plan.profitHour)}</span><span class="lbl">Profit/h</span></div>
+  <p class="muted">Using ${plan.flips.length} of ${Math.floor(slots)} flips · ${num(plan.used)} of ${num(capital)} capital in use · ${percent.format(plan.profitHour / plan.used)} return per hour</p>
+  ${plan.limit ? limitNote(plan, { capital, slots: Math.floor(slots), simple }) : ''}
+  <div class="picks-head"><span>Item</span><span>Stake</span><span>Profit/h</span></div>
+  <ol class="picks">${rows}</ol>${plan.flips.some((f) => f.craft) ? `
+  <p class="craft-note muted pro">Craft hints are not part of the plan. They only work if you have unlocked the recipe.</p>` : ''}
+  ${hint}
+</section>`;
+}
+
+const HISTORY_CREDIT = 'Historical prices provided by <a href="https://sky.coflnet.com/data" rel="noopener">SkyCofl</a>.';
+
+// The mayor and event radar of the Market area: one line as a summary, then the mayor's perks, the
+// election and the events, each of which unfolds to its details.
+// perks: activePerks(); events: upcoming(); vote: electionWindow(); name(id): an item's name;
+// open: keys of the parts that are unfolded; timing: past runs per event and perk (timing.js).
+export function radarView({ election, perks, events, vote, now, name, open = new Set(), timing = {}, query = '', tax = 0.0125, volume = () => null, minRuns = MIN_ALERT_RUNS }) {
+  const until = (t) => duration(Math.ceil(Math.max(0, t - now) / 60000) * 60);
+  const affected = (ids) => (ids?.length
+    ? `<p class="affected"><span class="muted">Typically affected:</span> ${ids.map((id) => `<a href="${esc(itemHref(id))}">${esc(name(id))}</a>`).join(', ')}</p>` : '');
+  const row = (key, title, side, body) => `<li><details data-key="${esc(key)}"${open.has(key) ? ' open' : ''}>
+    <summary><span>${esc(title)}</span> <span class="side">${esc(side)}</span></summary>${body}</details></li>`;
+  // one item per line with what its price did in past runs
+  const priced = (label, rows) => (rows.length ? `<p class="muted">${esc(label)}</p>
+  <ul class="timing">${rows.map(([id, text]) => `<li><a href="${esc(itemHref(id))}">${esc(name(id))}</a> <small>${esc(text)}</small></li>`).join('')}</ul>` : '');
+  const eventRows = (e) => e.items.map((id) => {
+    const p = itemPattern(timing[`event:${e.key}`], id).into;
+    const runs = duration((e.end - e.start) / 1000);
+    const hint = p.dir > 0 ? `Buy in the 24h before it starts, sell during the ${runs} it runs` : `Sell in the 24h before it starts, buy during the ${runs} it runs`;
+    return [id, patternText(p, 'during event') + (p.confirmed ? ` · ${hint}` : '')];
+  });
+  // items of the active perks: cheaper is expected until three terms say otherwise
+  const termRows = perks.flatMap((perk) => (PERK_EXPECT[perk.name]?.items ?? []).map((id) => {
+    const p = itemPattern(timing[`perk:${perk.name}`], id).into;
+    const text = p.confirmed ? `${patternText(p, 'during term')} · ${p.dir > 0 ? 'Buy before term' : 'Buy during term, sell after'}`
+      : `${p.dir > 0 ? '' : `Expected: ${PERK_EXPECT[perk.name].why} · `}${patternText(p, 'during term')}`;
+    return { up: p.dir > 0, row: [id, text] };
+  }));
+  const day = (t) => { const d = skyDate(t); return `${MONTHS[d.month]} ${d.day}`; };
+
+  const running = events.filter((e) => e.active);
+  const next = events.find((e) => !e.active);
+  const line = [
+    election && `Mayor ${election.mayor.name}`,
+    running.length === 1 ? `${running[0].name} now` : running.length > 1 && `${running.length} events now`,
+    next && `${next.name} in ${until(next.start)}`,
+  ].filter(Boolean).join(' · ');
+
+  const mayor = election ? `<p><strong>${esc(election.mayor.name)}</strong>${
+    election.mayor.minister ? ` · minister ${esc(election.mayor.minister.name)}` : ''}</p>
+  <ul>${perks.map((p) => row(`perk:${p.name}`, p.name, p.by, `<p>${esc(p.text)}</p>${affected(PERK_ITEMS[p.name])}`)).join('')}</ul>
+  ${priced(`Cheaper during ${election.mayor.name}:`, termRows.filter((t) => !t.up).map((t) => t.row))}
+  ${priced(`More expensive during ${election.mayor.name}:`, termRows.filter((t) => t.up).map((t) => t.row))}`
+    : '<p class="muted">Mayor data is not available right now.</p>';
+
+  const total = election?.vote?.candidates.reduce((sum, c) => sum + c.votes, 0);
+  const votes = election?.vote ? `<p class="muted">Election for year ${esc(election.vote.year)}${vote.open ? ` · closes in ${until(vote.at)}` : ''}</p>
+  <ol class="votes">${[...election.vote.candidates].sort((a, b) => b.votes - a.votes).map((c) =>
+    `<li><span>${esc(c.name)}</span> <span class="side">${total > 0 ? percent.format(c.votes / total) : '–'}</span><small>${esc(c.perks.join(', '))}</small></li>`).join('')}</ol>`
+    : `<p class="muted">${vote.open ? `The election is open and closes in ${until(vote.at)}.` : `No election right now. The next one opens in ${until(vote.at)}.`}</p>`;
+
+  const list = events.map((e) => row(`event:${e.key}`, e.name, e.active ? `now · ${until(e.end)} left` : `in ${until(e.start)}`,
+    `<p class="muted">${e.active ? 'Started' : 'Starts'} on ${day(e.start)} · lasts ${duration((e.end - e.start) / 1000)} (${Math.round((e.end - e.start) / DAY_MS)} SkyBlock days)${
+      e.perk ? ` · only with the ${esc(e.perk)} perk` : ''}</p>${priced('Typically affected:', eventRows(e))}`)).join('');
+
+  return `<section class="radar">
+  <h2><span class="radar-title">${ICONS.event}Event radar</span> <span class="radar-line">${esc(line)}</span></h2>
+  <h3>Mayor</h3>
+  ${mayor}
+  <h3>Election</h3>
+  ${votes}
+  <h3>Events</h3>
+  <ul>${list}</ul>
+  <p class="muted">Based on past events, not a guarantee. Patterns marked "historical data" use runs from SkyCofl's price history, back to 2020. ${HISTORY_CREDIT}</p>
+  ${windowsView(timing, tax, name, volume, minRuns)}
+  ${effectsView({ perks, events, now, name, query, timing })}
+</section>`;
+}
+
+// The title of a timing key: the driver, "Paul – more dungeon players" or "Spooky Festival" (timing.js driverTitle).
+export const keyTitle = driverTitle;
+
+// The role of an item as a badge; the title says what it means and, where the measurement overruled the
+// expectation, that it did.
+const ROLE_TEXT = {
+  supply: ['Supply', 'More of it while it runs: cheaper during, dearer after'],
+  demand: ['Demand', 'Used up while it runs: dearer during, cheaper after'],
+  shop: ['Shop', 'Only obtainable while it runs: cheaper during, dearer after'],
+};
+export function roleBadge(r) {
+  const [label, text] = ROLE_TEXT[r.role];
+  const note = r.mismatch ? ` Measured, not as expected (${ROLE_TEXT[r.expected][0].toLowerCase()}).` : r.measured ? '' : ' Not measured yet.';
+  return `<span class="badge role role-${r.role}" title="${esc(text + note)}">${label}${r.mismatch ? ' (measured)' : ''}</span>`;
+}
+
+// " · Vol./week 9,713" and, below LOW_WEEK_VOLUME, "low volume – hard to fill"
+export const volumeNote = (v) => (v == null ? '' : ` · Vol./week ${num(v)}${isLowVolume(v) ? ' · <strong>low volume – hard to fill</strong>' : ''}`);
+
+// "Buy and sell windows" of the radar: the items with the best typical gain after tax, from the price curves of past
+// runs (timing.js tradeWindow). timing: timing.json's r.
+const WINDOW_ROWS = 12;
+const fewData = (w, minRuns) => (w.n < minRuns ? ' <span class="badge badge-prov">few data</span>' : '');
+export function windowsView(timing, tax, name, volume = () => null, minRuns = MIN_ALERT_RUNS) {
+  const all = allWindows(timing, tax);
+  if (!all.length) return '';
+  return `<h3>Buy and sell windows</h3>
+  <p class="muted">When the price was lowest and highest around a term or event, after the ${percent.format(tax)} tax. Shown above 3% and when it paid in two thirds of the runs.</p>
+  <ul class="timing windows">${all.slice(0, WINDOW_ROWS).map((x) => `<li><a href="${esc(itemHref(x.id))}">${esc(name(x.id))}</a>${fewData(x.w, minRuns)} <small>${esc(keyTitle(x.key))}: ${esc(x.text)}${volumeNote(volume(x.id))}</small></li>`).join('')}</ul>`;
+}
+
+// "Mayor & event effects": every perk of every mayor and every event with what it does, the items it is
+// tied to and what the price is expected to do. Running and coming first, then the rest. The search box
+// filters the rows by their text (app.js hides the rest; query is the text it kept from last time).
+export function effectsView({ perks, events, now, name, query = '', timing = {} }) {
+  const until = (t) => duration(Math.ceil(Math.max(0, t - now) / 60000) * 60);
+  // each item with its role, measured where there are runs (timing.js itemRole)
+  const items = (ids, key) => (ids?.length ? `<p class="affected"><span class="muted">Items:</span> ${ids.map((id) =>
+    `<a href="${esc(itemHref(id))}">${esc(name(id))}</a> ${roleBadge(itemRole(timing[key], id, expectedRole(id)))}`).join(', ')}</p>` : '');
+  const expect = (perk) => (PERK_EXPECT[perk]
+    ? `<p class="why">Expected: lower (${esc(PERK_EXPECT[perk].why)}). Not confirmed by the wiki.</p>`
+    : '<p class="muted">No price direction stated.</p>');
+  const active = new Set(perks.map((p) => p.name));
+  const rows = [
+    ...events.map((e) => ({ group: e.name, rank: e.active ? 0 : 2, at: e.start, title: e.name, side: e.active ? `now · ${until(e.end)} left` : `in ${until(e.start)}`,
+      text: `Event${e.perk ? ` (needs the ${e.perk} perk)` : ''}`, ids: e.items, key: `event:${e.key}`, note: '<p class="muted">What its prices did in past runs is shown above.</p>' })),
+    ...PERKS.map((p) => ({ group: DRIVERS[`perk:${p.name}`]?.group ?? p.who, rank: active.has(p.name) ? 1 : 3, at: 0, title: p.name,
+      side: active.has(p.name) ? `${p.who} · active` : p.who, text: p.text, ids: PERK_ITEMS[p.name] ?? PERK_EXPECT[p.name]?.items,
+      key: `perk:${p.name}`, note: expect(p.name) })),
+    ...YEAR_EVENTS.map((y) => ({ group: y.name, rank: 4, at: 0, title: y.name, side: 'every 12 years', text: y.text, ids: y.items, key: `year:${y.key}`,
+      note: '<p class="muted">The wiki does not say in which years, so there is no date. No price direction stated.</p>' })),
+  ];
+  // grouped by what drives the market: a mayor or an event; the group that runs or comes first goes first
+  const best = new Map();
+  for (const x of rows) best.set(x.group, Math.min(best.get(x.group) ?? Infinity, x.rank * 1e13 + x.at));
+  rows.sort((x, y) => best.get(x.group) - best.get(y.group) || x.group.localeCompare(y.group) || x.rank - y.rank || x.at - y.at);
+  const q = query.trim().toLowerCase();
+  const hay = (x) => [x.group, x.title, x.side, x.text, ...(x.ids ?? []).flatMap((id) => [name(id), ROLE_TEXT[itemRole(timing[x.key], id, expectedRole(id)).role][0]])].join(' ').toLowerCase();
+  const shown = new Set(rows.filter((x) => !q || hay(x).includes(q)).map((x) => x.group));
+  let last = null;
+  const out = rows.map((x) => {
+    const head = x.group !== last ? `<li class="group-head" data-g="${esc(x.group)}"${q && !shown.has(x.group) ? ' hidden' : ''}><h4>${esc(x.group)}</h4></li>` : '';
+    last = x.group;
+    return head + `<li data-g="${esc(x.group)}" data-q="${esc(hay(x))}"${q && !hay(x).includes(q) ? ' hidden' : ''}><strong>${esc(x.title)}</strong> <span class="side">${esc(x.side)}</span>
+    <p>${esc(x.text)}</p>${items(x.ids, x.key)}${x.note}</li>`;
+  }).join('');
+  return `<h3>Mayor &amp; event effects</h3>
+  <input type="search" id="effects-q" value="${esc(query)}" placeholder="Search mayor, perk, event, item or role" aria-label="Search mayor and event effects" autocomplete="off">
+  <ul class="effects">${out}</ul>`;
+}
+
+export function parseRoute(hash) {
+  const [, view, arg] = /^#\/([^/]*)(?:\/(.*))?$/.exec(hash) ?? [];
+  if (view === 'item' && arg) {
+    try { return { view, id: decodeURIComponent(arg) }; } catch {}
+  }
+  return { view: TABS.includes(view) || AREAS.includes(view) ? view : 'flips' };
+}
+
+// The Market area's own list: the items whose sell price moved most over the last day.
+// flips: the Flips list with name and trend on every item (change per 24 hours, see trends.js).
+const TREND_ROWS = 5;
+export function trendsView(flips) {
+  const moving = (dir) => flips.filter((f) => direction(f.trend) === dir)
+    .sort((a, b) => (dir === 'rising' ? b.trend - a.trend : a.trend - b.trend)).slice(0, TREND_ROWS);
+  const part = (dir, title) => {
+    const rows = moving(dir);
+    return `<h3>${title}</h3>${rows.length ? `<ul class="timing">${rows.map((f) =>
+      `<li><a href="${esc(itemHref(f.id))}">${esc(f.name)}</a> <span class="side">${f.trend > 0 ? '+' : '−'}${percent.format(Math.abs(f.trend))} / day</span></li>`).join('')}</ul>`
+      : '<p class="muted">Nothing right now.</p>'}`;
+  };
+  return `<section class="radar trends">
+  <h2><span class="radar-title">${ICONS.rising}Trends</span> <span class="radar-line">Sell price over the last 24 hours, items from your Flips list</span></h2>
+  ${part('rising', 'Rising')}
+  ${part('falling', 'Falling')}
+  <p class="muted">A trend is a hint, not a forecast.</p>
+</section>`;
+}
+
+// The Today area: what the plan earns, what needs attention, what comes next and what is new.
+// Every block ends with a link to the tab behind it.
+// plan, capital, slots: as for portfolioView. alerts, dismiss: as for warningsView.
+// events: upcoming(); vote: electionWindow(); voteItems: ids the election may make cheaper (flipRisks).
+// fresh: up to three opportunities, best first, with a name; firstVisit: there is no last visit to compare with.
+const TODAY_EVENTS = 3;
+const TODAY_ITEMS = 3;
+export function todayView({ plan, capital, slots, alerts = [], dismiss = false, events = [], vote, election = null, voteItems = [], fresh = [], firstVisit = false, now, name, buying = [], volume = () => null, banners = '', minRuns = MIN_ALERT_RUNS }) {
+  const until = (t) => duration(Math.ceil(Math.max(0, t - now) / 60000) * 60);
+  const items = (ids) => (ids.length ? `<small>Affected: ${ids.slice(0, TODAY_ITEMS).map((id) => esc(name(id))).join(', ')}${
+    ids.length > TODAY_ITEMS ? ` +${ids.length - TODAY_ITEMS} more` : ''}</small>` : '');
+
+  const portfolio = `<section class="portfolio">
+  <h2>Portfolio</h2>${plan?.flips.length ? `
+  <div class="total"><span class="big gain">${num(plan.profitHour)}</span><span class="lbl">Profit/h</span></div>
+  <p class="muted">${num(plan.used)} of ${num(capital)} capital in use · ${plan.flips.length} of ${Math.floor(slots)} flips</p>` : `
+  <p class="muted">${capital > 0 ? 'No flip qualifies for the portfolio right now.' : 'Set a total capital in the settings to get a plan.'}</p>`}${moreLink('#/opps', 'Open the portfolio')}
+</section>`;
+
+  const lead = election?.vote && [...election.vote.candidates].sort((a, b) => b.votes - a.votes)[0];
+  const rows = [
+    ...events.slice(0, TODAY_EVENTS).map((e) => [e.name, e.active ? `now · ${until(e.end)} left` : `in ${until(e.start)}`, items(e.items)]),
+    vote && [lead?.votes > 0 ? `Election · ${lead.name} leads` : 'Election', vote.open ? `closes in ${until(vote.at)}` : `opens in ${until(vote.at)}`, items(voteItems)],
+  ].filter(Boolean);
+  const coming = `<section class="radar pro">
+  <h2><span class="radar-title">${ICONS.event}Coming up</span></h2>
+  <ul class="coming">${rows.map(([title, side, small]) => `<li><span>${esc(title)}</span> <span class="side">${esc(side)}</span>${small}</li>`).join('')}</ul>${moreLink('#/market', 'Open the market')}
+</section>`;
+
+  const news = `<section class="radar">
+  <h2><span class="radar-title">${ICONS.rising}${firstVisit ? 'Top opportunities' : 'New since your last visit'}</span></h2>${fresh.length ? `
+  <ul class="coming">${fresh.map((f) => `<li><a href="${esc(itemHref(f.id))}">${esc(f.name)}</a> <span class="side"><span class="gain">${num(f.profitHour)}/h</span> · ${percent.format(f.margin)}</span></li>`).join('')}</ul>` : `
+  <p class="muted">No new opportunity since your last visit.</p>`}${moreLink('#/opps', 'Open the opportunities')}
+</section>`;
+
+  // items whose buy phase is on or starts within a day (timing.js buyNow)
+  const buy = buying.length ? `<section class="radar">
+  <h2><span class="radar-title">${ICONS.event}Buying window</span></h2>
+  <ul class="coming">${buying.slice(0, TODAY_ITEMS).map((b) => `<li><a href="${esc(itemHref(b.id))}">${esc(name(b.id))}</a>${fewData(b.w, minRuns)} <span class="side">${b.state === 'now' ? `now · ${until(b.to)} left` : `in ${until(b.from)}`}</span><small>${esc(keyTitle(b.key))}: ${esc(b.text)}${volumeNote(volume(b.id))}</small></li>`).join('')}</ul>
+  ${moreLink('#/market', 'Open the Market')}
+</section>` : '';
+
+  return banners + portfolio + warningsView(alerts, { dismiss, more: true }) + buy + coming + news;
+}
+
+// One minion of the Minions area. row comes from minionRows; all coins are per day and for every minion placed.
+const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+// The whole card is the button that opens the sheet (app.js reads data-minion). The raw item is only
+// reached from "View item" inside the sheet. Not a link, so a tap can never navigate by itself.
+export const minionTile = (key, size) => `<span class="tile"><img class="icon" src="icons/minions/${esc(key)}.png" width="${size}" height="${size}" alt="" decoding="async"></span>`;
+// days until a cost is earned back; `missing` means part of the cost has no price, so the real figure is higher
+const paybackText = (days, missing = false, none = 'never') => (days === null ? none : (missing ? 'at least ' : '') + (days < 1 ? 'under 1 day' : `${plain.format(Math.ceil(days))} day${Math.ceil(days) === 1 ? '' : 's'}`));
+const missingText = (ids, name) => `Not on the Bazaar, left out of the cost: ${ids.map((id) => name(id)).join(', ')}.`;
+export const minionCard = (row, { name = (id) => id } = {}) => `<li class="card minion" data-minion="${esc(row.key)}">
+  <div class="body" role="button" tabindex="0" aria-haspopup="dialog">
+    <div class="name">${minionTile(row.key, 32)}<span>${esc(row.name)}</span></div>
+    <div class="badges"><span class="badge badge-trend">Tier ${ROMAN[row.tier - 1]}${row.tier === row.maxTier ? ' (highest)' : ''}</span>${
+      row.lowVolume?.length ? `<span class="badge badge-warn">${ICONS.warn}low volume</span>` : ''}${
+      row.unsure.length ? `<span class="badge badge-warn">${ICONS.warn}not confirmed</span>` : ''}${
+      row.requires ? `<span class="badge ${row.locked ? 'badge-warn' : 'badge-trend'}">requires ${esc(row.requires.split(' (')[0].split(';')[0])}</span>` : ''}</div>
+    <div class="key">
+      <div><span class="big ${gain(row.net)}">${num(row.net)}</span><span class="lbl">Coins/day</span></div>
+      <div><span class="big">${row.best === 'npc' ? 'NPC' : 'Bazaar'}</span><span class="lbl">Sell at</span></div>
+    </div>
+    <dl class="facts">${[
+      fact('Bazaar/day', num(row.bazaar)),
+      fact('NPC/day', num(row.npcCoins)),
+      fact('Fuel/day', row.fuelCost > 0 ? `−${num(row.fuelCost)}` : row.fuelPermanent ? 'permanent (one-time cost)' : '–'),
+      fact('Items/day', num(row.itemsDay)),
+      fact('Full after', `about ${duration(row.fillHours * 3600)}`),
+      fact(`Cost (Tier ${ROMAN[row.tier - 1]})`, `${num(row.cost.total)}${row.cost.missing.length ? '+' : ''}`),
+      fact('Pays back in', paybackText(row.payback, row.cost.missing.length > 0)),
+    ].join('')}</dl>${row.unsure.length ? `
+    <p class="why">${esc(row.unsure.join(' '))}</p>` : ''}${row.cost.missing.length ? `
+    <p class="why">${esc(missingText(row.cost.missing, name))}</p>` : ''}
+  </div>
+</li>`;
+
+// The Inferno Minion's fuel: two choices (the grade, and the Distillate that decides what the minion makes),
+// what a piece costs, the rare drops with their odds, and the choice that earns most right now.
+// The selects carry data-inferno; app.js stores the value and opens the sheet again.
+function infernoBlock({ row, inferno, setup, name, count }) {
+  const pick = (kind, list, current) => `<select data-inferno="${kind}">${list.map((o) => `<option value="${esc(o.key)}"${o.key === current ? ' selected' : ''}>${esc(o.name)}</option>`).join('')}</select>`;
+  const odds = Object.fromEntries(inferno.rare.map((r) => [r.id, r.odds]));
+  const fuel = row.infernoFuel;
+  const rare = row.parts.filter((p) => odds[p.id]);
+  const b = inferno.best;
+  const label = (o) => `${inferno.fuels.find((f) => f.key === o.infFuel).name}${o.infFuel === 'none' ? '' : ' with ' + inferno.specialties.find((x) => x.key === o.infSpec).name}`;
+  return `<h3>Inferno fuel</h3>
+  <div class="setup">
+    <label>Fuel ${pick('fuel', inferno.fuels, setup.infFuel ?? 'none')}</label>
+    <label>Distillate ${pick('spec', inferno.specialties, setup.infSpec ?? 'crude')}</label>
+    <label>Inferno Minions placed <select data-inferno="placed">${Array.from({ length: 10 }, (_, i) => `<option value="${i + 1}"${i + 1 === (setup.infCount ?? 10) ? ' selected' : ''}>${i + 1}</option>`).join('')}</select></label>
+  </div>
+  <p class="muted">Each one placed adds 18% speed to all, up to ten (180%). Those beyond the ones you let work only boost; they are counted at tier I${row.cost.boosterCount ? `: ${row.cost.boosterCount} × for ${num(row.cost.boosters)}` : ''}.</p>
+  <ul class="coming">${fuel?.parts.length ? fuel.parts.map((l) => `<li><span>${esc(name(l.id))} <small>${l.price === null ? '<strong>not on Bazaar</strong>' : `${l.via === 'craft' ? 'crafted from the Bazaar items · ' : ''}${num(l.price)} each${l.via === 'craft' && l.buy ? ` (buying it: ${num(l.buy)})` : ''}`}</small></span><span class="side">${num(l.amount)} · ${l.price === null ? '–' : num(l.coins)}</span></li>`).join('') : '<li class="muted">No fuel: nothing is used up.</li>'}
+    <li><span>Fuel per day and minion${fuel?.parts.length && fuel.fuel.startsWith('Legendary') ? ' (after the Ionized Ceramics it leaves)' : ''}</span><span class="side"><strong class="loss">${row.fuelCost > 0 ? '−' + num(row.fuelCost / count) : '–'}</strong></span></li>
+  </ul>
+  ${rare.length ? `<p class="muted">Rare drops of Legendary fuel, one roll per harvest:</p><ul class="coming">${rare.map((p) => `<li><span>${esc(name(p.id))} <small>1 in ${num(odds[p.id])}${p.unpriced ? ' · <strong>AH item – not priced</strong>' : p.low ? ' · <strong>price unreliable</strong>' : ''}</small></span><span class="side">${p.amount < 0.1 ? p.amount.toPrecision(2) : plain.format(p.amount)}/day · ${p.unpriced ? '–' : num(p.coins)}</span></li>`).join('')}</ul>` : ''}
+  <p class="muted">Best right now at this tier: ${b ? `${esc(label(b))}, ${num(b.net)} coins/day${b.net > 0 && b.payback !== null ? ', pays back in ' + paybackText(b.payback, row.cost.missing.length > 0) : ''}.` : '–'}</p>`;
+}
+
+// The sheet of one minion. detail comes from minionDetail; name turns an item id into its name.
+const KINDS = { raw: 'raw', enchanted: 'enchanted', block: 'block (second step)' };
+export function minionSheet({ minion, row, tiers, inferno = null }, { name, count, setup = {} }) {
+  const list = (x) => esc(x.toLocaleString('en-US', { maximumFractionDigits: 1 }));
+  const wiki = 'https://hypixelskyblock.minecraft.wiki/w/' + minion.name.replace(/ /g, '_');
+  const parts = row.parts.map((p) => `<li><span>${esc(name(p.id))} <small>${KINDS[p.kind]} · ${num(p.price)} each${p.low ? ' · <strong>price unreliable</strong>' : ''}</small></span>
+      <span class="side">${num(p.amount)}/day · ${num(p.coins)}</span></li>`).join('');
+  const bonus = row.speed > 0 ? `speed +${Math.round(row.speed * 100)}%` : 'no speed bonus';
+  return `<div class="panel-head"><h2>${minionTile(minion.key, 28)} ${esc(minion.name)}</h2><button type="button" data-act="close" aria-label="Close">${ICONS.close ?? '×'}</button></div>
+<div class="sheet-body">
+  <p class="muted">Tier ${ROMAN[row.tier - 1]} · ${count === 1 ? '1 minion' : `${count} minions`} · ${bonus} · an action every ${plain.format(row.delay)} s</p>
+  ${row.requires ? `<p class="${row.locked ? 'why' : 'muted'}">Requires ${esc(row.requires)} (wiki).${row.locked ? ' Not yet reached at your levels.' : ''}</p>` : ''}
+  ${inferno ? infernoBlock({ row, inferno, setup, name, count }) : ''}
+  <h3>Tiers (same fuel and upgrades)</h3>
+  <table class="tiers"><thead><tr><th>Tier</th><th>Action</th><th>Storage</th><th>Items/day</th><th>Coins/day</th><th>Upgrade cost</th><th>Upgrade pays back in</th></tr></thead><tbody>${
+    tiers.map((t) => `<tr${t.tier === row.tier ? ' class="on"' : ''}><td>${ROMAN[t.tier - 1]}</td><td>${plain.format(t.delay)} s</td><td>${t.storage}</td><td>${num(t.itemsDay)}</td><td>${num(t.net)}</td>${
+      t.upgrade ? `<td>${num(t.upgrade.cost)}${t.upgrade.missing.length ? '+' : ''}</td><td>${paybackText(t.upgrade.payback, t.upgrade.missing.length > 0, 'no gain')}</td>` : '<td>–</td><td>–</td>'}</tr>`).join('')}</tbody></table>
+  <p class="muted">Upgrade cost is the step from the tier before: what its recipe costs at the lowest sell offer, for all your minions. It pays back from the extra coins per day; “no gain” means the tier only holds more.</p>
+  <h3>What it earns per day</h3>
+  <ul class="coming">${parts || '<li class="muted">No price for any item right now.</li>'}
+    <li><span>Fuel</span><span class="side">${row.fuelCost > 0 ? '−' + num(row.fuelCost) : row.fuelPermanent ? 'permanent (one-time cost)' : '–'}</span></li>
+    <li><span>Sold at ${row.best === 'npc' ? 'the NPC' : 'the Bazaar, after tax'}</span><span class="side"><strong class="${gain(row.net)}">${num(row.net)}</strong></span></li>
+  </ul>
+  <h3>What it costs (Tier ${ROMAN[row.tier - 1]}${count > 1 ? `, ${count} minions` : ''})</h3>
+  <ul class="coming">${row.cost.lines.map((l) => `<li><span>${esc(name(l.id))} <small>${l.price === null ? '<strong>not on Bazaar</strong>' : `${num(l.price)} each`}</small></span>
+      <span class="side">${num(l.amount)} · ${l.price === null ? '–' : num(l.coins)}</span></li>`).join('')}
+    <li><span>Total${row.cost.missing.length ? ' (without the items not on the Bazaar)' : ''}</span><span class="side"><strong>${num(row.cost.total)}</strong></span></li>
+    <li><span>Pays back in</span><span class="side"><strong>${paybackText(row.payback, row.cost.missing.length > 0)}</strong></span></li>
+  </ul>
+  <p>Storage ${list(row.storage)} items, full after about ${duration(row.fillHours * 3600)}.</p>${row.unsure.length ? `
+  <p class="why">${esc(row.unsure.join(' '))}</p>` : ''}
+  <p class="muted">Source: <a href="${esc(wiki)}" target="_blank" rel="noopener">${esc(minion.name)} on the SkyBlock wiki</a>, details in docs/minions-sources.md.</p>
+  <p><a class="more" href="${esc(itemHref(row.id))}" data-act="close">View item</a></p>
+</div>`;
+}
+
+// The four areas of the bar at the bottom. Trade holds the tabs and the item page; the others are one page each.
+export const AREAS = ['today', 'minions', 'market'];
+export const areaOf = (view) => (AREAS.includes(view) ? view : 'trade');
+// The pages a mode can open; Simple mode has no Minions and no Market.
+export const viewsFor = (mode) => [...tabsFor(mode), ...(mode === 'simple' ? AREAS.slice(0, 1) : AREAS)];
+
+// Tab a horizontal swipe leads to, or null. A swipe to the left opens the tab on the right, like turning a page.
+// It has to be long enough and clearly more sideways than up or down, so scrolling the list never switches tabs.
+export const TABS = ['flips', 'opps', 'npc', 'craft', 'forge'];
+const SWIPE_MIN_PX = 60;
+// tabs: the tabs on screen; Simple mode shows fewer (see tabsFor).
+export function swipeTab(view, dx, dy, tabs = TABS) {
+  if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < 2 * Math.abs(dy)) return null;
+  return tabs[tabs.indexOf(view) + (dx < 0 ? 1 : -1)] ?? null;
+}
+export const tabsFor = (mode) => (mode === 'simple' ? TABS.slice(0, 2) : TABS);
+// How far the page follows the finger: fully towards a tab that exists, only a little at either end.
+export const dragOffset = (view, dx, tabs = TABS) => (tabs[tabs.indexOf(view) + (dx < 0 ? 1 : -1)] ? dx : dx * 0.25);
+
+const RANGES = [['24h', '24 h'], ['7d', '7 days']];
+
+// flip is the item's bazaar flip or null while prices are unknown; points are already cut to the range.
+// forge is the item's forge recipe as a flip (forgeFlip, with names on the ingredients), or null.
+export function detailView({ id, name, tier, flip, forge = null, score, median, provisional, trend, level, event, back = 'flips', isFav, range, points, tax, windows = [], volume = null, held = false, minRuns = MIN_ALERT_RUNS }) {
+  const stat = { score, provisional, median, trend, level, event, ah: forge?.ah };
+  const forged = forge ? `<section class="forged pro"><h3>Forge</h3>${forge.ah ? `<p class="why">${esc(forgeNotes(forge).join(' · '))}</p>` : ''}
+<div class="summary">${keyStats(forge, 'Profit/forge hour')}<dl class="facts">${forgeFacts(forge).join('')}</dl></div>
+${ingredientList(forge)}</section>` : '';
+  const current = flip ? `<div class="summary">${keyStats(flip)}<dl class="facts">${[
+    fact('Buy order', num(flip.buy)),
+    sellFact({ ...flip, median }),
+    fact('Profit/item', num(flip.profit), gain(flip.profit), true),
+    fact('Vol./week', num(flip.weekVol), '', true),
+  ].join('')}</dl></div>` : '';
+  const buttons = RANGES.map(([r, label]) => `<button type="button" data-range="${r}" aria-pressed="${r === range}">${label}</button>`).join('');
+  const charts = points === null ? '<p class="muted">Loading history…</p>'
+    : !points.length ? '<p class="muted">No history yet</p>'
+    : `<div class="charts"><section><h3>Prices</h3><p class="legend"><span class="buy">Buy order</span> <span class="sell">Sell offer</span></p>${lineChart([
+      { label: 'Buy order', cls: 'line-a', points: points.map(([t, b]) => [t, b]) },
+      { label: 'Sell offer', cls: 'line-b', points: points.map(([t, , s]) => [t, s]) },
+    ], { format: num, kind: 'coins' })}</section><section class="pro"><h3>Margin</h3><p class="legend"><span class="buy">Margin after tax</span></p>${lineChart(
+      [{ label: 'Margin', cls: 'line-a', points: marginSeries(points, tax) }], { format: (v) => percent.format(v), kind: 'percent' })}</section></div>`;
+  return `<a class="back" href="#/${back}">${ICONS.back}Back</a>
+<div class="detail-head" data-rarity="${rarity(tier)}">${star(id, name, isFav)}
+${tile(id, 48)}<h2 class="name">${esc(name)}</h2></div>
+${badges(stat, flip?.suspicious)}
+${flip ? `<div class="bar held pro"><button type="button" data-held="${esc(id)}" aria-pressed="${held}">${held ? 'Bought – remove mark' : 'Mark as bought'}</button></div>` : ''}
+${current}${forged}${windows.length ? `<section class="windows-item"><h3>Event timing</h3><ul class="timing">${windows.map((x) => `<li><small>${esc(keyTitle(x.key))}: ${esc(x.text)}${volumeNote(volume)}${fewData(x.w, minRuns)}</small></li>`).join('')}</ul></section>` : ''}${forge?.ah ? '' : `<div class="bar ranges">${buttons}</div>${charts}`}`;
+}

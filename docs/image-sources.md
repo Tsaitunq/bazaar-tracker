@@ -5,7 +5,7 @@
 `https://sky.coflnet.com/static/icon/<item id>`, loaded at run time and kept
 by the service worker. Source and licence: see below.
 
-## Minion heads (stored in `icons/minions/`)
+## Minion heads (stored in `apps/bazaar/icons/minions/`)
 
 22 files, `<minion key>.png`, 64 × 64 px, 3 to 8 kB each (about 130 kB in
 all; `inferno.png` added on 2026-10-11 as `INFERNO_GENERATOR_1`). Downloaded once on 2026-10-11 from the same source as the item pictures,
@@ -23,5 +23,5 @@ are part of the app shell (`SHELL` in `sw.js`) and so of the APK.
 | Alternative | the SkyBlock wiki (hypixelskyblock.minecraft.wiki) has minion pictures (`Tarantula_Minion_I.png`, renders). Its content is "licensed under CC BY-NC-SA 3.0; additional terms may apply" (page footer): attribution, non-commercial, share-alike; the extra terms (wgmeta:Licensing, Image Policy) were not readable. Not used, because the project rule is to use the existing icon source first |
 
 If the licence of the icon source turns out to be a problem, the files in
-`icons/minions/` can be deleted and `minionTile` in `render.js` can fall back
+`apps/bazaar/icons/minions/` can be deleted and `minionTile` in `apps/bazaar/render.js` can fall back
 to the item picture of the drop (`tile(row.id)`).

@@ -98,7 +98,7 @@ A minion needs two actions per harvest (the Fishing Minion one). With a Super Co
 - Minion, mayor and event data: the Hypixel SkyBlock wiki at hypixelskyblock.minecraft.wiki, see `docs/minions-sources.md` and `docs/events-sources.md`
 - Historical prices for the event and mayor patterns (back to 2020, filled in once): [SkyCofl](https://sky.coflnet.com/data), see `docs/timing-backfill.md`; `scripts/timing-remove-backfill.mjs` takes them out again
 - Recipes: [NotEnoughUpdates-REPO](https://github.com/NotEnoughUpdates/NotEnoughUpdates-REPO)
-- Item icons and minion heads: [sky.coflnet.com](https://sky.coflnet.com/data); the minion heads are stored in `icons/minions/`, see `docs/image-sources.md` for the licence situation
+- Item icons and minion heads: [sky.coflnet.com](https://sky.coflnet.com/data); the minion heads are stored in `apps/bazaar/icons/minions/`, see `docs/image-sources.md` for the licence situation
 
 ## Disclaimer
 
@@ -110,13 +110,14 @@ Copyright (c) 2026 Tsaitunq. All rights reserved. The code is public so you can 
 
 ## Development
 
-Plain HTML, CSS and JavaScript modules. There is no build step for the web app.
+Plain HTML, CSS and JavaScript modules, no bundler. The sources are in `apps/bazaar/` and `shared/`; a small copy step lays them flat for the browser and the APK. The Guide app lives in `apps/guide/`. Layout and commands: `docs/STRUCTURE.md`.
 
 ```
-node scripts/serve.mjs        # local server on http://127.0.0.1:8123
+npm run bazaar:serve          # builds _site/ and serves it on http://127.0.0.1:8123
 node scripts/snapshot.mjs data  # local price history for charts and scores
-node --test                   # tests
-npm run android:build         # debug APK (needs JDK 21 and the Android SDK)
+npm test                      # tests
+npm run bazaar:build          # debug APK (needs JDK 21 and the Android SDK)
+npm run guide:build           # debug APK of the Guide app
 ```
 
-When you ship a feature, raise the version (`0.minor.patch` until 1.0) and add an entry to `changelog.json`. That file is the app version and feeds the "What's new" window.
+When you ship a feature, raise the version (`0.minor.patch` until 1.0) and add an entry to `apps/bazaar/changelog.json`. That file is the app version and feeds the "What's new" window.
