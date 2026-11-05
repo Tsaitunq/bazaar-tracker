@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.11.1",
+      "date": "2026-11-05",
+      "entries": [
+        { "title": "Essence shop in your base", "text": "Essence shop levels you ticked before your last measurement are already in your stats; only levels ticked after it show up as a change." }
+      ]
+    },
+    {
       "version": "0.11.0",
       "date": "2026-11-05",
       "entries": [

@@ -28,13 +28,34 @@ test('a level costs its essence times the bazaar price', () => {
   assert.equal(priceItem({ id: eager.bazaar, qty: eager.costs[2] }, { products }).coins, 300 * 20);
 });
 
-test('Cut Loose is only described; Dwarven Metal Fortune counts as a stat from a ticked level', () => {
+const eager = (level) => ({ text: `Eager Miner ${level}`, gain: { MINING_SPEED: 10 }, detect: { kind: 'essence', perk: 'eager_miner', level } });
+const shop = { id: 'g', area: 'mining', sections: [{ name: 'S', steps: [1, 2, 3, 4, 5].map(eager) }] };
+const gearAt = (ticked, measuredAt, dates) => gearOf({ guides: [shop], checks: { g: ticked.map((l) => `S|Eager Miner ${l}`) }, owned: [], items: {}, area: 'mining', build: null, settings: miningSettings(), dates: { g: dates }, measuredAt });
+const stamp = (entries) => Object.fromEntries(Object.entries(entries).map(([l, at]) => [`S|Eager Miner ${l}`, at]));
+
+test('Eager Miner III before the measurement, IV and V after: +20 Mining Speed', () => {
+  const g = gearAt([3, 4, 5], 100, stamp({ 3: 50, 4: 150, 5: 160 }));
+  assert.equal(g.gear.MINING_SPEED, 20);
+  assert.deepEqual(g.essence, { MINING_SPEED: 20 });
+});
+
+test('everything ticked before the measurement is in the base: nothing added', () => {
+  assert.equal(gearAt([1, 2, 3], 100, stamp({ 1: 10, 2: 20, 3: 30 })).gear.MINING_SPEED, undefined);
+  assert.equal(gearAt([1, 2, 3], 100, {}).gear.MINING_SPEED, undefined); // a tick without a date is older than the app
+});
+
+test('a new measurement makes everything base again; without a measurement nothing is added', () => {
+  const dates = stamp({ 3: 50, 4: 150, 5: 160 });
+  assert.equal(gearAt([3, 4, 5], 200, dates).gear.MINING_SPEED, undefined);
+  assert.equal(gearAt([3, 4, 5], null, dates).gear.MINING_SPEED, undefined);
+});
+
+test('level V ticked alone after the measurement counts the levels below it too', () => {
+  assert.equal(gearAt([5], 100, stamp({ 5: 150 })).gear.MINING_SPEED, 50);
+});
+
+test('Cut Loose is only described, never a stat', () => {
   assert.equal(perks.find((p) => p.id === 'cut_loose').effect, undefined);
-  const guide = { id: 'g', area: 'mining', sections: [{ name: 'S', steps: [
-    { text: 'Dwarven Expertise I', gain: { DWARVEN_METAL_FORTUNE: 2 }, detect: { kind: 'essence', perk: 'dwarven_expertise', level: 1 } },
-  ] }] };
-  const g = gearOf({ guides: [guide], checks: { g: ['S|Dwarven Expertise I'] }, owned: [], items: {}, area: 'mining', build: null, settings: miningSettings() }).gear;
-  assert.equal(g.DWARVEN_METAL_FORTUNE, 2);
 });
 
 test('a perk with a wrong bazaar id or cost list is rejected', () => {
