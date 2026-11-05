@@ -257,7 +257,9 @@ function partOf(d, guide, loadout, profile, items, settings, area = 'mining', ru
 // What a step adds to the stats of the loadout. null: nothing known about it. {}: known to add nothing of ours.
 export function stepDelta(step, loadout, profile, items, settings, guide) {
   // a fixed guide states what each step adds on top of the one before; every stat stays for the display
-  if (guide?.order === 'fixed' && step.gain) return { ...step.gain };
+  const shop = step.detect && [step.detect].flat().every((d) => d.kind === 'essence');
+  // an essence perk has no table in the data, its own stats stand, Cold Resistance and Dwarven Metal Fortune included
+  if ((guide?.order === 'fixed' || shop) && step.gain) return { ...step.gain };
   const parts = [step.detect ?? []].flat().map((d) => partOf(d, guide, loadout, profile, items, settings));
   const known = parts.length && !parts.includes(null) ? onlyOf(total(parts), 'mining') : null;
   // the guide's own number stands in only where the data has nothing to say

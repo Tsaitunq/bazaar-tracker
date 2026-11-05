@@ -1,0 +1,116 @@
+{
+ "src": "Essence shop of the wiki (screenshots of the player, 2026-11-05). Pure game data. Cost is in Essence of the shop's type per level, bought with the bazaar price of the essence item. A perk with a condition is shown, never summed.",
+ "perks": [
+  {
+   "id": "eager_miner",
+   "name": "Eager Miner",
+   "essence": "GOLD",
+   "bazaar": "ESSENCE_GOLD",
+   "max": 10,
+   "costs": [
+    100,
+    200,
+    300,
+    400,
+    500,
+    600,
+    700,
+    800,
+    900,
+    1000
+   ],
+   "effect": {
+    "stat": "MINING_SPEED",
+    "perLevel": 10
+   },
+   "where": "Mining Islands"
+  },
+  {
+   "id": "rhinestone_infusion",
+   "name": "Rhinestone Infusion",
+   "essence": "DIAMOND",
+   "bazaar": "ESSENCE_DIAMOND",
+   "max": 10,
+   "costs": [
+    100,
+    200,
+    300,
+    400,
+    500,
+    600,
+    700,
+    800,
+    900,
+    1000
+   ],
+   "effect": {
+    "stat": "GEMSTONE_FORTUNE",
+    "perLevel": 2
+   },
+   "where": "Mining Islands"
+  },
+  {
+   "id": "dwarven_expertise",
+   "name": "Dwarven Expertise",
+   "essence": "FOSSIL",
+   "bazaar": "ESSENCE_FOSSIL",
+   "max": 10,
+   "costs": [
+    100,
+    200,
+    300,
+    400,
+    500,
+    600,
+    700,
+    800,
+    900,
+    1000
+   ],
+   "effect": {
+    "stat": "DWARVEN_METAL_FORTUNE",
+    "perLevel": 2
+   },
+   "where": "Mining Islands"
+  },
+  {
+   "id": "cut_loose",
+   "name": "Cut Loose",
+   "essence": "FOSSIL",
+   "bazaar": "ESSENCE_FOSSIL",
+   "max": 5,
+   "costs": [
+    500,
+    1000,
+    1500,
+    2000,
+    2500
+   ],
+   "conditional": {
+    "stat": "COLD_RESISTANCE",
+    "text": "+0.5 Cold Resistance per Glacial mob kill, stacks up to 10 times until you leave the Mineshaft",
+    "where": "Glacite Mineshafts"
+   },
+   "where": "Glacite Mineshafts"
+  },
+  {
+   "id": "frozen_skin",
+   "name": "Frozen Skin",
+   "essence": "ICE",
+   "bazaar": "ESSENCE_ICE",
+   "max": 5,
+   "costs": [
+    1000,
+    1500,
+    2000,
+    3000,
+    5000
+   ],
+   "effect": {
+    "stat": "COLD_RESISTANCE",
+    "perLevel": 1
+   },
+   "where": "always"
+  }
+ ]
+}

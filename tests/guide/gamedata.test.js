@@ -6,7 +6,7 @@ import { loadGameData, checkStats, checkHotm, checkAttributes, checkPets } from 
 const read = (f) => JSON.parse(fs.readFileSync(new URL(`../../gamedata/${f}.json`, import.meta.url), 'utf8'));
 const copy = (o) => structuredClone(o);
 
-test('all five files load and validate', async () => {
+test('all six files load and validate', async () => {
   const d = await loadGameData(read);
   assert.equal(d.hotm.perks.length, 46);
   assert.equal(d.pets.pets.length, 9);
