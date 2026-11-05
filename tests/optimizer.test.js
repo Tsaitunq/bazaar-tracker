@@ -554,9 +554,9 @@ test('fabled, withered and coldfused follow the table, coldfused adds its bonus 
   const r = (name) => ({ kind: 'reforge', on: 'weapons', value: [name] });
   assert.deepEqual(blazeOf(r('fabled')).lines.ashen, { STRENGTH: 50, CRITICAL_DAMAGE: 32 });
   assert.deepEqual(blazeOf(r('withered')).lines.ashen, { STRENGTH: 110 });
-  assert.deepEqual(blazeOf(r('coldfused')).lines.ashen, { STRENGTH: 35, CRITICAL_DAMAGE: 50 });
+  assert.deepEqual(blazeOf(r('coldfused')).lines.ashen, { STRENGTH: 35, CRITICAL_DAMAGE: 50, MAGIC_FIND: 2 });
   const wisp = blazeWorld({ pet: { type: 'SUBZERO_WISP', tier: 'LEGENDARY' } });
-  assert.deepEqual(blazeOf(r('coldfused'), wisp).lines.ashen, { STRENGTH: 110, CRITICAL_DAMAGE: 105 });
+  assert.deepEqual(blazeOf(r('coldfused'), wisp).lines.ashen, { STRENGTH: 110, CRITICAL_DAMAGE: 105, MAGIC_FIND: 2 });
 });
 
 test('a reforge outside the table is unknown for blaze, also on the old piece', () => {
