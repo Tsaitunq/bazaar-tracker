@@ -5,7 +5,7 @@ import { stepCost, openStep, bookOf } from './progress.js';
 import { checkStep } from './requires.js';
 import { walkBook, ahNet } from './prices.js';
 import { pieceExtra, pieceTotal } from './pieces.js';
-import { RARITIES, ENCHANTS, ENCHANTS_NO_STAT, GEMS, GEM_STAT, GEM_SHARED_SLOTS, REFORGES, REFORGES_NO_STAT, COLDFUSED_WISP, REFORGE_TARGETS, CATACOMBS_REFORGE, ACCESSORY_POWER, PARTS, POLARVOID, COATING } from './optimizer-data.js';
+import { RARITIES, ENCHANTS, ENCHANTS_NO_STAT, GEMS, GEM_STAT, GEM_SHARED_SLOTS, REFORGES, REFORGES_NO_STAT, COLDFUSED_WISP, REFORGE_TARGETS, CATACOMBS_REFORGE, ENCHANT_EFFECTS, ACCESSORY_POWER, PARTS, POLARVOID, COATING } from './optimizer-data.js';
 
 // Spec 4.1. Gemstone Fortune applies on gemstones only (wiki Pristine), and the other fortunes are not counted, so mithril and glacite read low.
 export const PRESETS = {
@@ -362,6 +362,16 @@ function weaponPart(d, ids, change, state, loadout, profile, items, settings, gu
     if (d.enchant === OFA) { change.ofa = state.path !== 'ofa'; return true; }
     if (state.path === 'ofa') {
       change.notes.push('Not used with One For All.');
+      return true;
+    }
+    // Chimera copies a share of the active pet's stats onto the dagger; the lore of the dagger gets it when the step is done
+    if (d.enchant === 'ultimate_chimera') {
+      const share = (level) => (ENCHANT_EFFECTS.ultimate_chimera.values[level - 1] ?? 0) / 100;
+      const have = dagger?.enchants?.ultimate_chimera ?? 0;
+      if (have < d.level) {
+        change.enchants[line][d.enchant] = d.level;
+        plus(change.lines[line], rules?.petStats ?? {}, share(d.level) - share(have));
+      }
       return true;
     }
     if (ADDITIVE_ENCHANTS.has(d.enchant)) {

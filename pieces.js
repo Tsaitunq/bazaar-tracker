@@ -1,18 +1,19 @@
 // What stars, potato books and Bling Armor add to a worn piece, on top of its item stats. Pure functions.
 // Assumed order (not confirmed): (item stats × stars + books) × Bling Armor, then reforge and enchants, which are not touched here.
-import { HPB, CRIMSON_STAR, BLAZE_ARMOR, DEFAULT_GEAR } from './optimizer-data.js';
+import { HPB, CRIMSON_STAR, BLAZE_ARMOR, DEFAULT_GEAR, ENCHANT_EFFECTS } from './optimizer-data.js';
 import { DAGGERS } from './blaze.js';
 
 const ARMOR = new Set(['HELMET', 'CHESTPLATE', 'LEGGINGS', 'BOOTS']);
 const CRIMSON = /^(HOT_|BURNING_|FIERY_|INFERNAL_)?CRIMSON_(HELMET|CHESTPLATE|LEGGINGS|BOOTS)$/;
 
-// entry: the pets.json entry of the active pet (or null). The perks carry the effects.
-export function rulesOf(build, entry) {
+// entry: the pets.json entry of the active pet (or null), its perks carry the effects. petStats: what the active pet gives, for Chimera.
+export function rulesOf(build, entry, petStats = {}) {
   const effects = (entry?.perks ?? []).map((k) => k.effect).filter(Boolean);
   return {
     gear: { ...DEFAULT_GEAR, ...(build?.gear ?? {}) },
     potato: effects.find((e) => e.kind === 'potato_multiplier')?.factor ?? 1,
     bling: effects.find((e) => e.kind === 'set_multiplier' && e.family === 'BLAZE_ARMOR')?.percent ?? 0,
+    petStats,
   };
 }
 
@@ -37,8 +38,9 @@ export function pieceExtra(id, items, rules) {
 // Lore plus extra: what the piece is worth worn.
 export const pieceTotal = (id, items, rules) => plus(items?.[id]?.stats ?? {}, pieceExtra(id, items, rules));
 
-// The daggers with their extras in the lore (potato books).
+// The daggers with their extras in the lore: potato books, and the share of the pet stats Chimera copies.
 export function dressDaggers(daggers, items, rules) {
   if (!daggers) return daggers;
-  return Object.fromEntries(Object.entries(daggers).map(([line, d]) => [line, d && { ...d, lore: plus(d.lore ?? {}, pieceExtra(d.id, items, rules)) }]));
+  const chimera = (d) => times(rules?.petStats ?? {}, (ENCHANT_EFFECTS.ultimate_chimera.values[(d.enchants?.ultimate_chimera ?? 0) - 1] ?? 0) / 100);
+  return Object.fromEntries(Object.entries(daggers).map(([line, d]) => [line, d && { ...d, lore: plus(plus(d.lore ?? {}, pieceExtra(d.id, items, rules)), chimera(d)) }]));
 }

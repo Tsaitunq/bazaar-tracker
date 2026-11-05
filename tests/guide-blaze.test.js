@@ -185,3 +185,25 @@ test('reforge: a reforge on the wrong kind of piece is unknown', () => {
   assert.equal(reforgeOf({ kind: 'reforge', on: 'gloves', value: ['ancient'] }, rulesOf(emptyBuild(), null)), null);
   assert.equal(reforgeOf({ kind: 'reforge', on: 'armor', value: ['bloodshot'] }, rulesOf(emptyBuild(), null)), null);
 });
+
+// ---- Chimera and the conditional lines
+test('Chimera: a share of the pet stats goes onto the dagger in the lore and in the ranking step', () => {
+  const rules = rulesOf(emptyBuild(), blazePet, { DEFENSE: 30, INTELLIGENCE: 100 });
+  const dressed = dressDaggers({ ashen: { id: 'HEARTFIRE_DAGGER', lore: { DAMAGE: 300 }, enchants: { ultimate_chimera: 3 } }, spirit: null }, ITEMS, { ...rules, gear: { ...rules.gear, hpb: false } });
+  assert.equal(dressed.ashen.lore.DEFENSE, 18); // 60 %
+  assert.equal(dressed.ashen.lore.INTELLIGENCE, 60);
+  const step = (level) => reforgeOf({ kind: 'enchant', on: 'weapons', enchant: 'ultimate_chimera', level, need: 2 }, rules);
+  assert.deepEqual(step(5).lines.ashen, { DEFENSE: 30, INTELLIGENCE: 100 });
+  assert.deepEqual(step(5).enchants.ashen, { ultimate_chimera: 5 });
+});
+
+test('gear: ticked conditional enchants are listed with their level and never added', () => {
+  const guide = { id: 'z', area: 'blaze', sections: [{ name: 'S', steps: [
+    { text: 'a', detect: { kind: 'enchant', on: 'weapons', enchant: 'smite', level: 5, need: 2 } },
+    { text: 'b', detect: { kind: 'enchant', on: 'weapons', enchant: 'smite', level: 6, need: 2 } },
+    { text: 'c', detect: { kind: 'reforge', on: 'armor', value: ['ancient'] } },
+  ] }], groups: { weapons: [['FIREDUST_DAGGER'], ['MAWDUST_DAGGER']], armor: [['PLATE']] } };
+  const w = gearOf({ guides: [guide], checks: { z: ['S|a', 'S|b', 'S|c'] }, owned: ['PLATE', 'FIREDUST_DAGGER', 'MAWDUST_DAGGER'], items: REF_ITEMS, area: 'blaze', build: emptyBuild(), settings: miningSettings(), pets: petData.pets });
+  assert.deepEqual(w.listed.map((l) => l.text), ['smite 6: 40 % damage against Skeletal, Wither and Undead mobs', 'Withered and Ancient: +1 per Catacombs level, set your level under Power → Gear']);
+  assert.equal(w.gear.STRENGTH, 25); // the Ancient reforge, nothing from smite
+});

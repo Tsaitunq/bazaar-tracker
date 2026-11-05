@@ -57,7 +57,7 @@ export function statsModel(world, area) {
   return {
     area, name: AREA_NAME[area], missing: DATA_AREA[area] && !world.items ? 'items' : null,
     measured: entry ? { at: entry.at, buffs: entry.snapshot?.buffs ?? {} } : null,
-    changes, fields: ids.map(label), rows, listed: t.listed,
+    changes, fields: ids.map(label), rows, listed: [...t.listed, ...(worn.listed ?? [])],
     gearLine: Object.entries(worn.gear).filter(([id, v]) => v && ids.includes(id)).slice(0, 3).map(([id, v]) => ({ ...label(id), text: signed(v) })),
     pet: { chosen: buildPet(world.build, data.pets?.pets), step: worn.stepPet ? `${worn.stepPet.type} ${worn.stepPet.tier}` : null },
     guides, steps: guides.reduce((n, g) => n + g.n, 0), buffs: world.build?.buffs ?? {},

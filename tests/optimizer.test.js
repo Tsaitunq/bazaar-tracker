@@ -528,7 +528,7 @@ test('critical adds crit damage on the dagger it goes on', () => {
 });
 
 test('an enchant without a fixed value gives null, a proven non-damage one nothing', () => {
-  for (const name of ['giant_killer', 'execute', 'thunderlord', 'fire_aspect', 'smite', 'pyroclasm', 'ultimate_chimera']) assert.equal(blazeOf(onDaggers(name, 1)), null, name);
+  for (const name of ['giant_killer', 'execute', 'thunderlord', 'fire_aspect', 'smite', 'pyroclasm']) assert.equal(blazeOf(onDaggers(name, 1)), null, name);
   const w = blazeWorld();
   assert.equal(blazeOutput(applyBlaze(w.state, blazeOf(onDaggers('looting', 5), w))), blazeOutput(w.state));
 });

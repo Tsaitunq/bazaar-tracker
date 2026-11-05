@@ -7,6 +7,7 @@ import { blazeState } from '../blaze.js';
 import { gearStats, petStats, petStatsAt } from '../stats.js';
 import { setBonusOf } from '../blaze.js';
 import { rulesOf, pieceExtra, dressDaggers } from '../pieces.js';
+import { enchantLine } from '../optimizer-data.js';
 
 // Steps about the build or the pet are not gear: HOTM, shards and power are in the base, the pet is counted once at the end.
 const BUILD_KINDS = new Set(['perk', 'attr', 'power', 'essence', 'pet', 'petItem', 'held', 'coll', 'skill']);
@@ -40,6 +41,8 @@ export function gearOf({ guides, checks, owned, items, area, build, settings, va
   let loadout = virtualLoadout(profile, items, area);
   const gear = sum({}, gearStats([...loadout.armor, ...loadout.equipment, ...(loadout.held ? [loadout.held] : [])]));
   let state = baseStats(values, [gear]);
+  const enchants = {}; // the highest level ticked per enchant, for the conditional lines
+  let catacombsNeeded = false;
   for (const guide of guides.filter((g) => g.area === area)) {
     const marks = new Set(checks[guide.id] ?? []);
     for (const section of guide.sections) {
@@ -47,6 +50,10 @@ export function gearOf({ guides, checks, owned, items, area, build, settings, va
         // an item step is in the owned store already
         if (!marks.has(stepKey(section, step)) || isItemStep(step)) continue;
         loadout = virtualLoadout(profile, items, area);
+        for (const d of [step.detect ?? []].flat()) {
+          if (d.kind === 'enchant') enchants[d.enchant] = Math.max(enchants[d.enchant] ?? 0, d.level);
+          if (d.kind === 'reforge' && d.value.some((v) => v === 'withered' || v === 'ancient')) catacombsNeeded = true;
+        }
         const change = isBuildStep(step) ? null : area === 'blaze'
           ? blazeDelta(step, blazeState(state, loadout, loadout.daggers), loadout, profile, items, settings, guide, rulesOf(build, activePet(loadout, build, pets)))
           : stepDelta(step, loadout, profile, items, settings, guide);
@@ -63,9 +70,12 @@ export function gearOf({ guides, checks, owned, items, area, build, settings, va
   sum(gear, petItemStats(loadout, build, petItems));
   // stars, potato books and Bling Armor of the worn pieces, with the pet that is active at the end
   const pet = activePet(loadout, build, pets);
-  const rules = area === 'blaze' ? rulesOf(build, pet) : null;
+  const rules = area === 'blaze' ? rulesOf(build, pet, petGear(loadout, build, pets)) : null;
   for (const piece of loadout.armor) sum(gear, pieceExtra(piece.id, items, rules));
   if (area === 'blaze') sum(gear, setBonusOf(loadout.armor.map((i) => i.id)).add);
   if (rules) loadout.daggers = dressDaggers(loadout.daggers, items, rules);
-  return { gear, profile, loadout, stepPet: loadout.pet ?? null, pet, rules };
+  // conditional effects of the ticked enchants: shown, never added
+  const listed = Object.entries(enchants).map(([name, level]) => enchantLine(name, level)).filter(Boolean).map((text) => ({ text }));
+  if (area === 'blaze' && catacombsNeeded && rules.gear.catacombs === null) listed.push({ text: 'Withered and Ancient: +1 per Catacombs level, set your level under Power → Gear' });
+  return { gear, profile, loadout, stepPet: loadout.pet ?? null, pet, rules, listed: area === 'blaze' ? listed : [] };
 }
