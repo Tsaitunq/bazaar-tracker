@@ -48,7 +48,7 @@ export function gearOf({ guides, checks, owned, items, area, build, settings, va
         if (!marks.has(stepKey(section, step)) || isItemStep(step)) continue;
         loadout = virtualLoadout(profile, items, area);
         const change = isBuildStep(step) ? null : area === 'blaze'
-          ? blazeDelta(step, blazeState(state, loadout, loadout.daggers), loadout, profile, items, settings, guide)
+          ? blazeDelta(step, blazeState(state, loadout, loadout.daggers), loadout, profile, items, settings, guide, rulesOf(build, activePet(loadout, build, pets)))
           : stepDelta(step, loadout, profile, items, settings, guide);
         const flat = change?.common ?? change ?? {};
         sum(gear, flat);

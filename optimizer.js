@@ -5,7 +5,7 @@ import { stepCost, openStep, bookOf } from './progress.js';
 import { checkStep } from './requires.js';
 import { walkBook, ahNet } from './prices.js';
 import { pieceExtra, pieceTotal } from './pieces.js';
-import { RARITIES, ENCHANTS, ENCHANTS_NO_STAT, GEMS, GEM_STAT, GEM_SHARED_SLOTS, REFORGES, REFORGES_NO_STAT, COLDFUSED_WISP, ACCESSORY_POWER, PARTS, POLARVOID, COATING } from './optimizer-data.js';
+import { RARITIES, ENCHANTS, ENCHANTS_NO_STAT, GEMS, GEM_STAT, GEM_SHARED_SLOTS, REFORGES, REFORGES_NO_STAT, COLDFUSED_WISP, REFORGE_TARGETS, CATACOMBS_REFORGE, ACCESSORY_POWER, PARTS, POLARVOID, COATING } from './optimizer-data.js';
 
 // Spec 4.1. Gemstone Fortune applies on gemstones only (wiki Pristine), and the other fortunes are not counted, so mithril and glacite read low.
 export const PRESETS = {
@@ -132,14 +132,24 @@ function gemDelta(d, guide, loadout, profile, items) {
 }
 
 // The "no stat" list only speaks for mining; for Blaze a reforge outside the table is unknown.
-const reforgeAt = (name, rarity, area = 'mining', pet = null) => {
+const reforgeAt = (name, rarity, area = 'mining', pet = null, rules = null) => {
   const table = REFORGES[name];
   if (!table) return area === 'mining' && REFORGES_NO_STAT.has(name) ? {} : null;
-  const stats = Object.fromEntries(Object.entries(table).map(([stat, values]) => [stat, values[rarity]]));
-  return name === 'coldfused' && /_WISP$/.test(pet?.type ?? '') ? plus(stats, COLDFUSED_WISP) : stats;
+  let stats = Object.fromEntries(Object.entries(table).map(([stat, values]) => [stat, values[rarity]]));
+  if (name === 'coldfused' && /_WISP$/.test(pet?.type ?? '')) stats = plus(stats, COLDFUSED_WISP);
+  // Withered and Ancient grow with the Catacombs level; unknown level counts nothing
+  const level = rules?.gear?.catacombs;
+  if (CATACOMBS_REFORGE[name] && level !== null && level !== undefined) stats = plus(stats, CATACOMBS_REFORGE[name], level);
+  return stats;
 };
 
-function reforgeDelta(d, guide, loadout, profile, items, area) {
+// Whether a reforge can sit on this piece (NEU itemTypes). A reforge without an entry fits anywhere.
+const reforgeFits = (name, id, items) => {
+  const rule = REFORGE_TARGETS[name];
+  return !rule || (rule.ids ? rule.ids.includes(id) : rule.category.includes(items?.[id]?.category));
+};
+
+function reforgeDelta(d, guide, loadout, profile, items, area, rules) {
   const targets = targetsOf(d, guide, loadout, profile);
   if (!targets || !items) return null;
   const deltas = [];
@@ -147,8 +157,9 @@ function reforgeDelta(d, guide, loadout, profile, items, area) {
     const old = t.reforge ? String(t.reforge).toLowerCase() : null;
     if (d.value.includes(old)) continue;
     const r = rarityOf(t, items);
-    const next = reforgeAt(d.value[0], r, area, loadout.pet);
-    const before = old ? reforgeAt(old, r, area, loadout.pet) : {};
+    if (area === 'blaze' && !reforgeFits(d.value[0], t.id, items)) return null;
+    const next = reforgeAt(d.value[0], r, area, loadout.pet, rules);
+    const before = old ? reforgeAt(old, r, area, loadout.pet, rules) : {};
     if (r < 0 || !next || !before) return null;
     deltas.push(difference(next, before));
   }
@@ -224,12 +235,12 @@ function petDelta(d, loadout) {
   return type ? difference(maxPetStats(type, d.tier ?? 'LEGENDARY'), loadout.pet ? petStats(loadout.pet) : {}) : null;
 }
 
-function partOf(d, guide, loadout, profile, items, settings, area = 'mining') {
+function partOf(d, guide, loadout, profile, items, settings, area = 'mining', rules = null) {
   switch (d.kind) {
     case 'owned': return ownedDelta(d, guide, loadout, profile, items, area);
     case 'enchant': return enchantDelta(d, guide, loadout, profile, settings, items);
     case 'gem': return gemDelta(d, guide, loadout, profile, items);
-    case 'reforge': return reforgeDelta(d, guide, loadout, profile, items, area);
+    case 'reforge': return reforgeDelta(d, guide, loadout, profile, items, area, rules);
     case 'pet': return petDelta(d, loadout);
     case 'power': return d.value === profile.selectedPower ? {} : recomputed({ selectedPower: d.value }, profile, items, loadout, area);
     case 'recomb': return recombDelta(d, guide, loadout, profile, items);
@@ -304,7 +315,7 @@ export function blazeDelta(step, state, loadout, profile, items, settings, guide
       }
       continue;
     }
-    const delta = partOf(d, guide, loadout, profile, items, settings, 'blaze');
+    const delta = partOf(d, guide, loadout, profile, items, settings, 'blaze', rules);
     const power = powerDelta(d, guide, loadout, profile, items);
     if (!delta || power === null) return fallback();
     plus(change.common, delta);
@@ -358,7 +369,7 @@ function weaponPart(d, ids, change, state, loadout, profile, items, settings, gu
       return true;
     }
   }
-  const delta = partOf(d, guide, loadout, profile, items, settings, 'blaze');
+  const delta = partOf(d, guide, loadout, profile, items, settings, 'blaze', rules);
   if (!delta) return false;
   plus(change.lines[line], delta);
   return true;

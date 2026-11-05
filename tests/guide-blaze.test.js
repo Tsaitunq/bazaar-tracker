@@ -142,3 +142,46 @@ test('gear: two Infernal pieces give Ferocity 20 and Swing Range 1 as gear', () 
   const one = gearOf({ guides: [guide], checks: {}, owned: ['INFERNAL_CRIMSON_HELMET'], items: ITEMS, area: 'blaze', build: setGear(emptyBuild(), { hpb: false }), settings: miningSettings(), pets: petData.pets }).gear;
   assert.equal(one.FEROCITY, undefined);
 });
+
+// ---- reforges with the Catacombs level and their targets
+import { blazeDelta } from '../optimizer.js';
+import { blazeState } from '../blaze.js';
+
+const piece = (id, extra = {}) => ({ id, where: 'inventory', gems: [], enchants: {}, parts: {}, reforge: null, recomb: false, polarvoid: 0, coating: false, scrolls: [], lore: {}, ...extra });
+const REF_ITEMS = {
+  PLATE: { category: 'CHESTPLATE', tier: 'LEGENDARY', stats: {} },
+  RING: { category: 'ACCESSORY', tier: 'LEGENDARY', stats: {} },
+  FIREDUST_DAGGER: { category: 'SWORD', tier: 'LEGENDARY', stats: { DAMAGE: 1 } },
+  MAWDUST_DAGGER: { category: 'SWORD', tier: 'LEGENDARY', stats: { DAMAGE: 1 } },
+  GAUNTLET_X: { category: 'GLOVES', tier: 'LEGENDARY', stats: {} },
+};
+const refGuide = { groups: { armor: [['PLATE']], gloves: [['GAUNTLET_X']], weapons: [['FIREDUST_DAGGER'], ['MAWDUST_DAGGER']] } };
+function reforgeOf(detect, rules, ownedIds = ['PLATE', 'GAUNTLET_X']) {
+  const armor = [piece('PLATE')];
+  const equipment = ownedIds.includes('GAUNTLET_X') ? [piece('GAUNTLET_X')] : [];
+  const daggers = { ashen: piece('FIREDUST_DAGGER'), spirit: piece('MAWDUST_DAGGER') };
+  const loadout = { armor, equipment, held: null, accessories: [], pet: null, gaps: [], daggers };
+  const profile = { items: [...armor, ...equipment, ...Object.values(daggers)], pets: [], hotm: null, attrs: {}, mp: 900, selectedPower: null };
+  const state = blazeState({ STRENGTH: 100 }, loadout, daggers);
+  return blazeDelta({ text: 's', detect }, state, loadout, profile, REF_ITEMS, miningSettings(null), refGuide, rules);
+}
+
+test('reforge: Ancient on a Legendary chestplate carries Intelligence and +1 Crit Damage per Catacombs level', () => {
+  const detect = { kind: 'reforge', on: 'armor', value: ['ancient'] };
+  const known = reforgeOf(detect, rulesOf(setGear(emptyBuild(), { catacombs: 40 }), null)).common;
+  assert.deepEqual(known, { STRENGTH: 25, CRITICAL_CHANCE: 12, HEALTH: 7, DEFENSE: 7, INTELLIGENCE: 20, CRITICAL_DAMAGE: 40 });
+  const unknown = reforgeOf(detect, rulesOf(emptyBuild(), null)).common;
+  assert.equal(unknown.CRITICAL_DAMAGE, undefined);
+  assert.equal(unknown.INTELLIGENCE, 20);
+});
+
+test('reforge: Withered counts the Catacombs level, Glistening adds Intelligence on equipment, Coldfused adds Magic Find', () => {
+  assert.equal(reforgeOf({ kind: 'reforge', on: 'weapons', value: ['withered'], need: 1 }, rulesOf(setGear(emptyBuild(), { catacombs: 30 }), null)).lines.ashen.STRENGTH, 135 + 30);
+  assert.deepEqual(reforgeOf({ kind: 'reforge', on: 'gloves', value: ['glistening'] }, rulesOf(emptyBuild(), null)).common, { TRUE_DEFENSE: 4, INTELLIGENCE: 12 });
+  assert.equal(reforgeOf({ kind: 'reforge', on: 'weapons', value: ['coldfused'], need: 1 }, rulesOf(emptyBuild(), null)).lines.ashen.MAGIC_FIND, 2);
+});
+
+test('reforge: a reforge on the wrong kind of piece is unknown', () => {
+  assert.equal(reforgeOf({ kind: 'reforge', on: 'gloves', value: ['ancient'] }, rulesOf(emptyBuild(), null)), null);
+  assert.equal(reforgeOf({ kind: 'reforge', on: 'armor', value: ['bloodshot'] }, rulesOf(emptyBuild(), null)), null);
+});
