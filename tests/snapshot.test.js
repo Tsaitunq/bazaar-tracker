@@ -275,3 +275,8 @@ test('runExtras folds the families of parents.json into items.json', async (t) =
   await runExtras(dir, new Set(), 1e12, async (url) => (url.includes('resources/skyblock/items') ? { items: many } : election));
   assert.equal(readJson(dir, 'items.json').r.I0.family, 'I1');
 });
+
+test('compactItems folds WALK_SPEED and HEALTH_REGENERATION onto Speed and Health Regen', () => {
+  const out = compactItems({ items: [{ id: 'A', stats: { walk_speed: 2, health_regeneration: 3 } }] }, {});
+  assert.deepEqual(out.A.stats, { SPEED: 2, HEALTH_REGEN: 3 });
+});

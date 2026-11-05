@@ -21,7 +21,21 @@ export const loadForge = () => fetchJson('forge.json').then((d) => d.r ?? null, 
 // game data of all items (scripts/items.mjs); null until the snapshot run has written it
 // A local build may carry its own copy (personal/items.json) for the time before that.
 const localItems = () => fetch('personal/items.json').then((res) => (res.ok ? res.json() : null));
-export const loadItemData = () => fetchJson('items.json').catch(localItems).then((d) => d?.r ?? null, () => null);
+// The resource names two stats differently from the game menu: Health Regen and Speed.
+export const STAT_ALIAS = { HEALTH_REGENERATION: 'HEALTH_REGEN', WALK_SPEED: 'SPEED' };
+export function aliasStats(stats) {
+  if (!stats) return stats;
+  const out = {};
+  for (const [k, v] of Object.entries(stats)) out[STAT_ALIAS[k] ?? k] = (out[STAT_ALIAS[k] ?? k] ?? 0) + v;
+  return out;
+}
+// items: id -> row; rows with an aliased stat are copied, the rest stay as they are
+export function aliasItems(items) {
+  if (!items) return items;
+  for (const [id, row] of Object.entries(items)) if (row.stats && Object.keys(row.stats).some((k) => STAT_ALIAS[k])) items[id] = { ...row, stats: aliasStats(row.stats) };
+  return items;
+}
+export const loadItemData = () => fetchJson('items.json').catch(localItems).then((d) => aliasItems(d?.r ?? null), () => null);
 // /stats values for a local build to start from, not in git
 export const loadStatsPreset = () => fetch('personal/stats-preset.json').then((res) => (res.ok ? res.json() : null), () => null).catch(() => null);
 export const loadAh = () => fetchJson('ah.json').then((d) => d.p ?? {}, () => ({}));

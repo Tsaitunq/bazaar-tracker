@@ -1,6 +1,6 @@
 import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { dataUrl, loadStats, loadRecipes, loadHistory, freshBins, fetchBins } from '../data.js';
+import { dataUrl, aliasItems, loadStats, loadRecipes, loadHistory, freshBins, fetchBins } from '../data.js';
 
 const realFetch = globalThis.fetch;
 afterEach(() => { globalThis.fetch = realFetch; });
@@ -52,4 +52,12 @@ test('fetchBins caches answers and no auction, stops when the service fails', as
 
 test('a price older than an hour no longer counts', () => {
   assert.deepEqual(freshBins({ A: { p: 1, t: 0 }, B: { p: 2, t: 3000e3 } }, 3600e3 + 1), { B: 2 });
+});
+
+test('item stats: the resource names are folded onto the game menu names', () => {
+  const items = { A: { name: 'a', stats: { WALK_SPEED: 2, HEALTH_REGENERATION: 5, DEFENSE: 9 } }, B: { name: 'b' } };
+  const out = aliasItems(items);
+  assert.deepEqual(out.A.stats, { SPEED: 2, HEALTH_REGEN: 5, DEFENSE: 9 });
+  assert.equal(out.B.stats, undefined);
+  assert.equal(aliasItems(null), null);
 });
