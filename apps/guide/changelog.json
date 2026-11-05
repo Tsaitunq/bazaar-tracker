@@ -1,6 +1,16 @@
 {
   "versions": [
     {
+      "version": "0.11.0",
+      "date": "2026-11-05",
+      "entries": [
+        { "title": "One tick for every guide", "text": "A gem, reforge, enchant or essence perk you tick once now counts in every guide that holds the same step." },
+        { "title": "Shafting is the mining guide", "text": "It replaces the old mining guide, splits every gemstone into Flawless first and then one Flawless to Perfect step per stone and place, and adds a Recombobulator step per piece." },
+        { "title": "Essence shop and attributes", "text": "Every level of the essence shop perks is its own step with its cost, and every attribute now shows what it does, including Freezing Spread with its current value." },
+        { "title": "Icons", "text": "Every pet and attribute shard has its picture, and the build loads the ones that are missing." }
+      ]
+    },
+    {
       "version": "0.10.0",
       "date": "2026-11-05",
       "entries": [
