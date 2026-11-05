@@ -203,19 +203,49 @@ function tourSync() {
     tourShown = tour.i;
     tourBox.querySelector('[data-tour="next"]').focus();
   }
-  const el = root.querySelector(STEPS[tour.i].target);
+  if (fresh) tourScrollTo();
+  tourPlace();
+  // the screen may still be settling (scroll, layout, the keyboard or the status bar of the phone): measure again when it is
+  requestAnimationFrame(() => requestAnimationFrame(tourPlace));
+}
+
+// The box around everything the step points at, in screen coordinates; null when nothing is there.
+function tourRect() {
+  const rects = [...root.querySelectorAll(STEPS[tour.i].target)].map((el) => el.getBoundingClientRect()).filter((r) => r.width || r.height);
+  if (!rects.length) return null;
+  return { left: Math.min(...rects.map((r) => r.left)), top: Math.min(...rects.map((r) => r.top)), right: Math.max(...rects.map((r) => r.right)), bottom: Math.max(...rects.map((r) => r.bottom)) };
+}
+
+// Brings the target into the middle of the screen; a target taller than the screen starts at the top.
+function tourScrollTo() {
+  const first = root.querySelector(STEPS[tour.i].target);
+  const r = tourRect();
+  if (first && r) first.scrollIntoView({ block: r.bottom - r.top > innerHeight * 0.6 ? 'start' : 'center', behavior: 'instant' });
+}
+
+function tourPlace() {
+  if (!tour) return;
   const hole = tourBox.querySelector('.tour-hole');
-  tourBox.classList.toggle('tour-nohole', !el); // a missing element: the step shows without a spotlight
-  hole.hidden = !el;
-  if (!el) return;
-  if (fresh) el.scrollIntoView({ block: 'center', behavior: 'instant' });
-  const r = el.getBoundingClientRect();
+  const found = hole && tourRect();
+  const r = found && found.bottom > 0 && found.top < innerHeight ? found : null; // scrolled out of sight: no spotlight
+  tourBox.classList.toggle('tour-nohole', !r); // a missing element: the step shows without a spotlight
+  if (!hole) return;
+  hole.hidden = !r;
+  if (!r) return;
   // a panel taller than the screen is lit as far as it shows
   const top = Math.max(r.top - SPOT_PAD, 0);
   const bottom = Math.min(r.bottom + SPOT_PAD, innerHeight);
-  Object.assign(hole.style, { left: `${r.left - SPOT_PAD}px`, top: `${top}px`, width: `${r.width + 2 * SPOT_PAD}px`, height: `${bottom - top}px` });
+  Object.assign(hole.style, { left: `${r.left - SPOT_PAD}px`, top: `${top}px`, width: `${r.right - r.left + 2 * SPOT_PAD}px`, height: `${bottom - top}px` });
   tourBox.dataset.card = (top + bottom) / 2 > innerHeight / 2 ? 'top' : 'bottom';
 }
+
+// Measure again whenever the page scrolls (also an inner list), is resized or has finished scrolling.
+let tourFrame = 0;
+const tourLater = () => { cancelAnimationFrame(tourFrame); tourFrame = requestAnimationFrame(tourPlace); };
+addEventListener('scroll', tourLater, true);
+addEventListener('scrollend', tourLater, true);
+addEventListener('resize', tourLater);
+visualViewport?.addEventListener('resize', tourLater);
 
 function tourGo(i) {
   tour = { ...tour, i };
