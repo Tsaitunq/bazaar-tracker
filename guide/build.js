@@ -1,6 +1,9 @@
+import { CRIMSON_STAR, HPB } from '../optimizer-data.js';
+
 // The current build and the measured bases (pg.build, pg.base). Pure: every function gives the new state.
 // hotm, attrs and power are null = unknown. They must never be read as level 0.
-export const emptyBuild = () => ({ hotm: null, attrs: null, power: null, buffs: { godPotion: false, boosterCookie: false }, pet: null });
+export const DEFAULT_GEAR = { catacombs: null, stars: 0, hpb: true, fuming: 0 };
+export const emptyBuild = () => ({ hotm: null, attrs: null, power: null, buffs: { godPotion: false, boosterCookie: false }, pet: null, gear: { ...DEFAULT_GEAR } });
 
 // One measurement per area: the typed values (an empty field is unknown), the date and a snapshot of the build.
 export function measure(base, area, { values, mp }, build, now) {
@@ -63,4 +66,22 @@ export const tuningPoints = (stat, n) => (p) => ({ ...p, tuning: { ...p.tuning, 
 
 // The pet is gear, not part of the base (the base is measured without it), so it needs no draft and no backfill.
 // pet: { id, rarity, level } or null.
-export const setPet = (build, pet) => ({ ...build, pet: pet ? { id: pet.id, rarity: pet.rarity, level: pet.level ?? 100 } : null });
+// The pet item stays on the pet when the pet is picked again.
+export const setPet = (build, pet) => ({ ...build, pet: pet ? { id: pet.id, rarity: pet.rarity, level: pet.level ?? 100, ...((pet.item ?? build.pet?.item) && { item: pet.item ?? build.pet.item }) } : null });
+export const setPetItem = (build, item) => {
+  if (!build.pet) return build;
+  const { item: _old, ...pet } = build.pet;
+  return { ...build, pet: item ? { ...pet, item } : pet };
+};
+
+// Gear options of the build, not part of the measured base: Catacombs level (null = unknown), Crimson stars, potato books, Fuming books.
+// Builds saved before this have none: they read as the defaults.
+export const gearOptions = (build) => ({ ...DEFAULT_GEAR, ...(build?.gear ?? {}) });
+export function setGear(build, patch) {
+  const next = { ...gearOptions(build) };
+  if ('catacombs' in patch) next.catacombs = patch.catacombs === '' || patch.catacombs === null || !Number.isFinite(Number(patch.catacombs)) ? null : whole(patch.catacombs, 60);
+  if ('stars' in patch) next.stars = whole(patch.stars, CRIMSON_STAR.max);
+  if ('hpb' in patch) next.hpb = patch.hpb === true;
+  if ('fuming' in patch) next.fuming = whole(patch.fuming, HPB.fumingMax);
+  return { ...build, gear: next };
+}

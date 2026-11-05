@@ -378,3 +378,17 @@ test('the attribute sheet sits over the list with stepper, effects now and next,
   assert.ok(!maxed.includes('to max'));
   assert.ok(!editor('attributes', { guides: [g] }).includes('bsheet'));
 });
+
+test('power editor: the gear panel and the pet item show for Blaze with a pet, not for Mining', () => {
+  const pet = { id: 'BLAZE', rarity: 'LEGENDARY', level: 100 };
+  const blaze = statsView(world({ build: { ...emptyBuild(), pet }, base: {} }), { page: 'stats', tab: 'power', area: 'blaze' });
+  assert.match(blaze, /data-gear="catacombs"/);
+  assert.match(blaze, /max="10"[^>]*data-gear="stars"/);
+  assert.match(blaze, /data-gear="hpb" checked/);
+  assert.match(blaze, /data-gear="fuming"/);
+  assert.match(blaze, /data-pet-item="CROCHET_TIGER_PLUSHIE"/);
+  assert.match(blaze, /Not set: Withered and Ancient are listed, not counted/);
+  const none = statsView(world({ build: emptyBuild(), base: {} }), { page: 'stats', tab: 'power', area: 'blaze' });
+  assert.doesNotMatch(none, /data-pet-item/);
+  assert.doesNotMatch(editor('power', { build: { ...emptyBuild(), pet }, base: {} }), /data-gear=/);
+});
