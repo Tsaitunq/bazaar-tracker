@@ -1,6 +1,16 @@
 {
   "versions": [
     {
+      "version": "0.11.3",
+      "date": "2026-11-05",
+      "entries": [
+        { "title": "Groups show every part", "text": "A group card is named after its first step (\"DR-X355 + 5 Enchants\"), lists each part with its own stats and cost, then the total." },
+        { "title": "Enchants up to the maximum", "text": "Every enchant on your drill now has a step for each higher level, such as Efficiency VI to X, Fortune IV and Lapidary V, ranked by coins per 1 %." },
+        { "title": "Essence tab", "text": "The essence shop moved from the guide to Stats: set each perk level, see the essence and coins to the next level and to max, and what the next level costs per 1 %." },
+        { "title": "Your ticked essence levels", "text": "Essence levels you had ticked became your essence levels and count as part of your base, so nothing is counted twice." }
+      ]
+    },
+    {
       "version": "0.11.2",
       "date": "2026-11-05",
       "entries": [
