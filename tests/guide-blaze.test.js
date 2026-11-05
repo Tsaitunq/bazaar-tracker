@@ -253,3 +253,46 @@ test('gear: the accessory gain is in the gear of the area, the hint tells to adj
   assert.equal(before.gear.STRENGTH, undefined);
   assert.deepEqual(before.hints, []);
 });
+
+// ---- totals: Nether Embodiment, attribute families
+import { loadGameData } from '../guide/gamedata.js';
+import { totalFor, statsOf, statsFor } from '../guide/totals.js';
+
+const DATA = await loadGameData((f) => JSON.parse(fs.readFileSync(new URL(`../gamedata/${f}.json`, import.meta.url), 'utf8')));
+const blazeBuild = (extra = {}) => ({ ...emptyBuild(), pet: { id: 'BLAZE', rarity: 'LEGENDARY', level: 100 }, ...extra });
+const entry = (values, snapshot = emptyBuild()) => ({ at: 1, values, snapshot });
+const totals = (build, values, gear, area = 'blaze', pet) => totalFor({ area, entry: entry(values), build, gear, data: DATA, stats: Object.keys(values), pet }).total;
+
+test('Nether Embodiment: +10 % on the sum of base and gear for Combat and Misc stats, not on wisdoms', () => {
+  const t = totals(blazeBuild(), { STRENGTH: 100, MAGIC_FIND: 50, COMBAT_WISDOM: 10 }, { STRENGTH: 20, MAGIC_FIND: 10, COMBAT_WISDOM: 10 });
+  assert.ok(Math.abs(t.STRENGTH - 132) < 1e-9);
+  assert.ok(Math.abs(t.MAGIC_FIND - 66) < 1e-9);
+  assert.equal(t.COMBAT_WISDOM, 20); // a wisdom: neither Combat nor Misc
+  assert.equal(statsOf(blazeBuild(), DATA, 'blaze').mult.STRENGTH, 1.1);
+  assert.equal(statsOf(blazeBuild(), DATA, 'blaze').mult.COMBAT_WISDOM, undefined);
+});
+
+test('Nether Embodiment: no pet, another area, and a base measured with the pet on', () => {
+  assert.equal(totals(emptyBuild(), { STRENGTH: 100 }, { STRENGTH: 20 }).STRENGTH, 120);
+  assert.equal(statsOf(blazeBuild(), DATA, 'mining').mult.STRENGTH, undefined);
+  const measuredWith = totalFor({ area: 'blaze', entry: entry({ STRENGTH: 110 }, blazeBuild()), build: blazeBuild(), gear: { STRENGTH: 10 }, data: DATA, stats: ['STRENGTH'] }).total;
+  assert.ok(Math.abs(measuredWith.STRENGTH - 121) < 1e-9); // 110 / 1.1 + 10, then × 1.1
+});
+
+test('Nether Embodiment: a pet from a ticked step is used in place of the build pet', () => {
+  const blaze = DATA.pets.pets.find((p) => p.id === 'BLAZE');
+  assert.ok(Math.abs(totals(emptyBuild(), { STRENGTH: 100 }, {}, 'blaze', blaze).STRENGTH - 110) < 1e-9);
+  assert.equal(totals(blazeBuild(), { STRENGTH: 100 }, {}, 'blaze', null).STRENGTH, 100);
+});
+
+test('attributes: against Infernal counts for Blaze, other families are listed; Unlimited Fortitude is a percent of Defense', () => {
+  const build = { ...emptyBuild(), attrs: { blazing_resistance: 10, undead_resistance: 10, unlimited_fortitude: 10, attack_speed: 4, infernal_ruler: 5, flying_fortune: 10 } };
+  const out = statsOf(build, DATA, 'blaze');
+  assert.equal(out.add.DEFENSE, 40); // 4 per level against Infernal, the Undead one is not
+  assert.equal(out.add.ATTACK_SPEED, 4);
+  assert.ok(Math.abs(out.mult.DEFENSE - 1.02) < 1e-9);
+  assert.equal(out.add.MAGIC_FIND, undefined);
+  assert.ok(out.listed.some((l) => /Undead Resistance/.test(l.text)));
+  assert.ok(out.listed.some((l) => l.text === 'Infernal Ruler 5: +15% damage against Infernal mobs'));
+  assert.equal(statsOf(build, DATA, 'mining').listed.some((l) => /Infernal Ruler/.test(l.text)), false);
+});

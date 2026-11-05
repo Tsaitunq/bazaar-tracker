@@ -169,7 +169,8 @@
     {
      "stat": "DEFENSE",
      "perLevel": 4,
-     "cond": "vs_mob_family"
+     "cond": "vs_mob_family",
+     "family": "animal"
     }
    ],
    "areas": [
@@ -204,7 +205,8 @@
     {
      "stat": "DEFENSE",
      "perLevel": 4,
-     "cond": "vs_mob_family"
+     "cond": "vs_mob_family",
+     "family": "aquatic"
     }
    ],
    "areas": [
@@ -272,7 +274,11 @@
    "src": "neu+wiki",
    "effects": [],
    "effectKind": "other",
-   "areas": []
+   "areas": [],
+   "note": {
+    "perLevel": 3,
+    "text": "% damage against Skeletal mobs"
+   }
   },
   {
    "id": "ATTRIBUTE_SHARD_FORTUNATE_FARMER",
@@ -323,7 +329,8 @@
     {
      "stat": "DEFENSE",
      "perLevel": 4,
-     "cond": "vs_mob_family"
+     "cond": "vs_mob_family",
+     "family": "arthropod"
     }
    ],
    "areas": [
@@ -372,7 +379,8 @@
     {
      "stat": "DEFENSE",
      "perLevel": 4,
-     "cond": "vs_mob_family"
+     "cond": "vs_mob_family",
+     "family": "undead"
     }
    ],
    "areas": [
@@ -421,7 +429,8 @@
     {
      "stat": "DEFENSE",
      "perLevel": 4,
-     "cond": "vs_mob_family"
+     "cond": "vs_mob_family",
+     "family": "ender"
     }
    ],
    "areas": [
@@ -561,7 +570,8 @@
     {
      "stat": "DEFENSE",
      "perLevel": 4,
-     "cond": "vs_mob_family"
+     "cond": "vs_mob_family",
+     "family": "infernal"
     }
    ],
    "areas": [
@@ -582,7 +592,8 @@
     {
      "stat": "DEFENSE",
      "perLevel": 4,
-     "cond": "vs_mob_family"
+     "cond": "vs_mob_family",
+     "family": "woodland"
     }
    ],
    "areas": [
@@ -722,7 +733,8 @@
     {
      "stat": "DEFENSE",
      "perLevel": 4,
-     "cond": "vs_mob_family"
+     "cond": "vs_mob_family",
+     "family": "mythological"
     }
    ],
    "areas": [
@@ -771,7 +783,8 @@
     {
      "stat": "DEFENSE",
      "perLevel": 4,
-     "cond": "vs_mob_family"
+     "cond": "vs_mob_family",
+     "family": "frozen"
     }
    ],
    "areas": [
@@ -813,7 +826,8 @@
     {
      "stat": "DEFENSE",
      "perLevel": 4,
-     "cond": "vs_mob_family"
+     "cond": "vs_mob_family",
+     "family": "skeletal"
     }
    ],
    "areas": [
@@ -848,7 +862,8 @@
     {
      "stat": "DEFENSE",
      "perLevel": 4,
-     "cond": "vs_mob_family"
+     "cond": "vs_mob_family",
+     "family": "subterranean"
     }
    ],
    "areas": [
@@ -869,7 +884,8 @@
     {
      "stat": "DEFENSE",
      "perLevel": 4,
-     "cond": "vs_mob_family"
+     "cond": "vs_mob_family",
+     "family": "arcane"
     }
    ],
    "areas": [
@@ -965,7 +981,8 @@
     {
      "stat": "DEFENSE",
      "perLevel": 4,
-     "cond": "vs_mob_family"
+     "cond": "vs_mob_family",
+     "family": "airborne"
     }
    ],
    "areas": [
@@ -1297,7 +1314,11 @@
    "src": "neu+wiki",
    "effects": [],
    "effectKind": "other",
-   "areas": []
+   "areas": [],
+   "note": {
+    "perLevel": 3,
+    "text": "% damage against Infernal mobs"
+   }
   },
   {
    "id": "ATTRIBUTE_SHARD_SKY_HIGH",
@@ -1409,7 +1430,11 @@
    "src": "neu+wiki",
    "effects": [],
    "effectKind": "other",
-   "areas": []
+   "areas": [],
+   "note": {
+    "perLevel": 10,
+    "text": "% chance to negate knockback"
+   }
   },
   {
    "id": "ATTRIBUTE_SHARD_WARRIOR",
@@ -1423,7 +1448,11 @@
    "src": "neu+wiki",
    "effects": [],
    "effectKind": "other",
-   "areas": []
+   "areas": [],
+   "note": {
+    "perLevel": 2.5,
+    "text": "% melee damage"
+   }
   },
   {
    "id": "ATTRIBUTE_SHARD_WHY_NOT_MORE",
@@ -1783,7 +1812,11 @@
    "src": "neu+wiki",
    "effects": [],
    "effectKind": "other",
-   "areas": []
+   "areas": [],
+   "note": {
+    "perLevel": 1.5,
+    "text": "% damage at full health"
+   }
   },
   {
    "id": "ATTRIBUTE_SHARD_SOCIAL_WISDOM",
@@ -2021,7 +2054,14 @@
    "maxLevel": 10,
    "icon": "SHARD_ENDSTONE_PROTECTOR",
    "src": "neu+wiki",
-   "effects": [],
+   "effects": [
+    {
+     "stat": "DEFENSE",
+     "kind": "percent_multiplier",
+     "perLevel": 0.2,
+     "cond": "always"
+    }
+   ],
    "effectKind": "other",
    "areas": []
   },
@@ -2098,7 +2138,11 @@
    "src": "neu+wiki",
    "effects": [],
    "effectKind": "other",
-   "areas": []
+   "areas": [],
+   "note": {
+    "perLevel": 2,
+    "text": "% damage on the next hit after you were hit"
+   }
   },
   {
    "id": "ATTRIBUTE_SHARD_MENDING",
@@ -2313,7 +2357,11 @@
    "src": "neu+wiki",
    "effects": [],
    "effectKind": "other",
-   "areas": []
+   "areas": [],
+   "note": {
+    "perLevel": 3,
+    "text": "% damage against bosses and mini-bosses"
+   }
   },
   {
    "id": "ATTRIBUTE_SHARD_PET_WISDOM",
@@ -2880,7 +2928,8 @@
     {
      "stat": "MAGIC_FIND",
      "perLevel": 0.5,
-     "cond": "vs_mob_family"
+     "cond": "vs_mob_family",
+     "family": "undead"
     }
    ],
    "areas": []
@@ -3134,7 +3183,11 @@
    "src": "neu+wiki",
    "effects": [],
    "effectKind": "other",
-   "areas": []
+   "areas": [],
+   "note": {
+    "perLevel": 2.5,
+    "text": "% damage and Defense below 20 % health"
+   }
   },
   {
    "id": "ATTRIBUTE_SHARD_CHOP",
@@ -3204,7 +3257,11 @@
    "src": "neu+wiki",
    "effects": [],
    "effectKind": "other",
-   "areas": []
+   "areas": [],
+   "note": {
+    "perLevel": 30,
+    "text": "% longer fire damage"
+   }
   },
   {
    "id": "ATTRIBUTE_SHARD_PRETTY_CLOTHES",
@@ -3267,7 +3324,8 @@
     {
      "stat": "MAGIC_FIND",
      "perLevel": 0.5,
-     "cond": "vs_mob_family"
+     "cond": "vs_mob_family",
+     "family": "animal"
     }
    ],
    "areas": []
@@ -3393,7 +3451,8 @@
     {
      "stat": "MAGIC_FIND",
      "perLevel": 0.5,
-     "cond": "vs_mob_family"
+     "cond": "vs_mob_family",
+     "family": "critter"
     }
    ],
    "areas": []
@@ -3412,7 +3471,8 @@
     {
      "stat": "MAGIC_FIND",
      "perLevel": 1,
-     "cond": "vs_mob_family"
+     "cond": "vs_mob_family",
+     "family": "infernal"
     }
    ],
    "areas": []
@@ -3501,7 +3561,8 @@
     {
      "stat": "MAGIC_FIND",
      "perLevel": 0.5,
-     "cond": "vs_mob_family"
+     "cond": "vs_mob_family",
+     "family": "construct"
     }
    ],
    "areas": []
@@ -3520,7 +3581,8 @@
     {
      "stat": "MAGIC_FIND",
      "perLevel": 0.5,
-     "cond": "vs_mob_family"
+     "cond": "vs_mob_family",
+     "family": "mythological"
     }
    ],
    "areas": []
@@ -3539,7 +3601,8 @@
     {
      "stat": "MAGIC_FIND",
      "perLevel": 0.5,
-     "cond": "vs_mob_family"
+     "cond": "vs_mob_family",
+     "family": "cubic"
     }
    ],
    "areas": []
@@ -3593,7 +3656,8 @@
     {
      "stat": "MAGIC_FIND",
      "perLevel": 0.5,
-     "cond": "vs_mob_family"
+     "cond": "vs_mob_family",
+     "family": "flying"
     }
    ],
    "areas": []
@@ -3670,7 +3734,8 @@
     {
      "stat": "MAGIC_FIND",
      "perLevel": 0.5,
-     "cond": "vs_mob_family"
+     "cond": "vs_mob_family",
+     "family": "elusive"
     }
    ],
    "areas": []
@@ -3703,7 +3768,8 @@
     {
      "stat": "MAGIC_FIND",
      "perLevel": 0.5,
-     "cond": "vs_mob_family"
+     "cond": "vs_mob_family",
+     "family": "subterranean"
     }
    ],
    "areas": []
@@ -3722,7 +3788,8 @@
     {
      "stat": "MAGIC_FIND",
      "perLevel": 0.5,
-     "cond": "vs_mob_family"
+     "cond": "vs_mob_family",
+     "family": "woodland"
     }
    ],
    "areas": []
@@ -3755,7 +3822,8 @@
     {
      "stat": "MAGIC_FIND",
      "perLevel": 0.5,
-     "cond": "vs_mob_family"
+     "cond": "vs_mob_family",
+     "family": "frozen"
     }
    ],
    "areas": []
@@ -3774,7 +3842,8 @@
     {
      "stat": "MAGIC_FIND",
      "perLevel": 0.5,
-     "cond": "vs_mob_family"
+     "cond": "vs_mob_family",
+     "family": "arcane"
     }
    ],
    "areas": []
@@ -3893,7 +3962,8 @@
     {
      "stat": "MAGIC_FIND",
      "perLevel": 0.5,
-     "cond": "vs_mob_family"
+     "cond": "vs_mob_family",
+     "family": "arthropod"
     }
    ],
    "areas": []
@@ -3926,7 +3996,8 @@
     {
      "stat": "MAGIC_FIND",
      "perLevel": 0.5,
-     "cond": "vs_mob_family"
+     "cond": "vs_mob_family",
+     "family": "aquatic"
     }
    ],
    "areas": []
@@ -4241,7 +4312,11 @@
    "src": "neu+wiki",
    "effects": [],
    "effectKind": "other",
-   "areas": []
+   "areas": [],
+   "note": {
+    "perLevel": 0.5,
+    "text": " Mana per hit (0.5 s cooldown)"
+   }
   },
   {
    "id": "ATTRIBUTE_SHARD_HUMANOID_RULER_NEW",
@@ -4255,7 +4330,11 @@
    "src": "neu+wiki",
    "effects": [],
    "effectKind": "other",
-   "areas": []
+   "areas": [],
+   "note": {
+    "perLevel": 3,
+    "text": "% damage against Humanoid mobs"
+   }
   },
   {
    "id": "ATTRIBUTE_SHARD_DRAGON_SHORTBOW_IMPROVEMENT",
@@ -4407,7 +4486,11 @@
    "src": "neu+wiki",
    "effects": [],
    "effectKind": "other",
-   "areas": []
+   "areas": [],
+   "note": {
+    "perLevel": 3,
+    "text": "% damage against Undead mobs"
+   }
   },
   {
    "id": "ATTRIBUTE_SHARD_STRONG_ARMS",
@@ -4493,7 +4576,11 @@
    "src": "neu+wiki",
    "effects": [],
    "effectKind": "other",
-   "areas": []
+   "areas": [],
+   "note": {
+    "perLevel": 0.1,
+    "text": "% damage per Grandma Wolf combo (up to 50)"
+   }
   },
   {
    "id": "ATTRIBUTE_SHARD_STRONG_LEGS",
@@ -4696,7 +4783,11 @@
    "src": "neu+wiki",
    "effects": [],
    "effectKind": "other",
-   "areas": []
+   "areas": [],
+   "note": {
+    "perLevel": 3,
+    "text": "% damage against Airborne mobs"
+   }
   },
   {
    "id": "ATTRIBUTE_SHARD_FLEXIBLE_FISHER",

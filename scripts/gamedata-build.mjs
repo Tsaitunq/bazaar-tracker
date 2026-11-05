@@ -239,6 +239,21 @@ const attributes = A.attributes.map((a) => {
   e.areas = [...areas].sort();
   return e;
 });
+// Blaze (wiki "Attributes", 2026-11-05; the ranges there are level I to X, linear per level is an assumption): the mob family a resistance or
+// fortune works against, the damage attributes as plain notes (shown, never added), Unlimited Fortitude as a percent of Defense.
+const FAMILY_ALIAS = { blazing: 'infernal' };
+const NOTES = {
+  skeletal_ruler: [3, '% damage against Skeletal mobs'], humanoid_ruler: [3, '% damage against Humanoid mobs'], undead_ruler: [3, '% damage against Undead mobs'],
+  airborne_ruler: [3, '% damage against Airborne mobs'], infernal_ruler: [3, '% damage against Infernal mobs'], elite: [3, '% damage against bosses and mini-bosses'],
+  warrior: [2.5, '% melee damage'], dominance: [1.5, '% damage at full health'], lifeline: [2.5, '% damage and Defense below 20 % health'],
+  payback: [2, '% damage on the next hit after you were hit'], combo: [0.1, '% damage per Grandma Wolf combo (up to 50)'],
+  mana_steal: [0.5, ' Mana per hit (0.5 s cooldown)'], ignition: [30, '% longer fire damage'], shell: [10, '% chance to negate knockback'],
+};
+for (const a of attributes) {
+  for (const f of a.effects) if (f.cond === 'vs_mob_family') { const fam = a.key.replace(/_[^_]+$/, ''); f.family = FAMILY_ALIAS[fam] ?? fam; }
+  if (NOTES[a.key]) a.note = { perLevel: NOTES[a.key][0], text: NOTES[a.key][1] };
+  if (a.key === 'unlimited_fortitude') { a.effects = [{ stat: 'DEFENSE', kind: 'percent_multiplier', perLevel: 0.2, cond: 'always' }]; delete a.unknown; }
+}
 write('attributes.json', { shardsPerLevel: A.attribute_levelling, shardsPerLevelNote: 'index 0 = shards for level 1; same table on the wiki Attribute Shards page', effectNote: 'effect = perLevel x level (linear, level 1..10); fixed = no scaling; per_stat = value per `every` points of another stat', attributes });
 
 // ---------- power ----------

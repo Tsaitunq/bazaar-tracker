@@ -38,7 +38,7 @@ export function statsModel(world, area) {
   if (!data) return { area, name: AREA_NAME[area], missing: 'data', fields: [], rows: [], listed: [], changes: [], pet: { chosen: null, step: null }, steps: 0, measured: null, gearLine: [], guides: [], buffs: world.build?.buffs ?? {} };
   const ids = statsFor(area, data);
   const worn = world.items ? gearOf({ guides: world.guides, checks: world.checks ?? {}, owned: world.owned ?? [], items: world.items, area, build: world.build, settings: miningSettings(world.settings), values: entry?.values ?? {}, mp: world.build?.power?.mp ?? entry?.mp ?? null, pets: world.gamedata?.pets?.pets ?? null, petItems: world.gamedata?.pets?.items ?? null, dates: world.dates ?? {}, measuredAt: entry?.at ?? null }) : { gear: {} };
-  const t = totalFor({ area, entry, build: world.build, gear: worn.gear, data, stats: ids });
+  const t = totalFor({ area, entry, build: world.build, gear: worn.gear, data, stats: ids, pet: worn.pet });
   const label = (id) => {
     const m = meta(data, id);
     return { id, icon: m.icon ?? '▚', label: m.name, color: CLASS[m.color] ?? 'white' };
