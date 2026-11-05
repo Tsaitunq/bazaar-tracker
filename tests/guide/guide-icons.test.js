@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import zlib from 'node:zlib';
-import { decodePng, encodePng, headFace, skullUrl, textureValue, zipEntries, zipRead, MC_TEXTURES, MC_FACES, mobFace, firstFrame, fetchHeads, petJobs, shardJobs } from '../../scripts/fetch-icons.mjs';
+import { decodePng, encodePng, headFace, skullUrl, textureValue, zipEntries, zipRead, MC_TEXTURES, MC_FACES, mobFace, firstFrame, fetchHeads, petJobs, shardJobs } from '../../scripts/guide/fetch-icons.mjs';
 
 const skin = () => {
   const rgba = Buffer.alloc(64 * 64 * 4);

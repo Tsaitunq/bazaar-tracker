@@ -1,4 +1,4 @@
-// Fetches the icons of the guide app: node scripts/fetch-icons.mjs  (also: npm run guide:icons)
+// Fetches the icons of the guide app: node scripts/guide/fetch-icons.mjs  (also: npm run guide:icons)
 //  - guide/img/mc/: Minecraft default textures from the local client JAR. Committed.
 //  - guide/img/hypixel/pets/: the head front of each pet in gamedata/pets.json. NOT in git (see .gitignore); built into the APK only.
 // A missing file makes the app show its placeholder.

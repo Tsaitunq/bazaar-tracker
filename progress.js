@@ -1,5 +1,5 @@
 // The guides and what their steps cost. Guides come from personal/guides (copied into the guide app by
-// scripts/guide-copy.mjs, never in git) or from an imported file.
+// scripts/guide/guide-copy.mjs, never in git) or from an imported file.
 
 import { coins } from './format.js';
 import { walkBook } from './prices.js';

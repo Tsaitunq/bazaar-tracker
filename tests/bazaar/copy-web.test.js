@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { copyWeb, copyPersonal } from '../../scripts/copy-web.mjs';
+import { copyWeb, copyPersonal } from '../../scripts/bazaar/copy-web.mjs';
 
 test('copyWeb copies the app shell and icons, nothing else', () => {
   const out = fs.mkdtempSync(path.join(os.tmpdir(), 'bt-www-'));

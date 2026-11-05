@@ -1,4 +1,4 @@
-// Copies the app shell into a clean folder for Capacitor: node scripts/copy-web.mjs [outDir]
+// Copies the app shell into a clean folder for Capacitor: node scripts/bazaar/copy-web.mjs [outDir]
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';

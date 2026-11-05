@@ -103,7 +103,7 @@ Selbstständig getroffen (Auftrag: ohne Rückfragen).
   braucht eigenen nativen Code (WorkManager); eine TWA ist nur ein
   Browser-Fenster. Kosten: Die App enthält eine Kopie der Web-Dateien und
   aktualisiert sich nicht mit der Webseite, sondern nur mit einer neuen APK.
-- **Web-Dateien werden nach `www/` kopiert (`scripts/copy-web.mjs`), `www/`
+- **Web-Dateien werden nach `www/` kopiert (`scripts/bazaar/copy-web.mjs`), `www/`
   ist nicht eingecheckt.** Grund: Capacitor braucht einen Ordner nur mit den
   App-Dateien; im Projektstamm liegen auch Doku, Tests und `node_modules`.
 - **`android/` ist eingecheckt.** Grund: Es enthält eigenen Code (Plugin,

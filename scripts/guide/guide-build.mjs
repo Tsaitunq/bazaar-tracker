@@ -1,4 +1,4 @@
-// Builds the debug APK of the guide app: node scripts/guide-build.mjs  (also: npm run guide:build). With --sync it stops before Gradle.
+// Builds the debug APK of the guide app: node scripts/guide/guide-build.mjs  (also: npm run guide:build). With --sync it stops before Gradle.
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';

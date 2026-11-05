@@ -4,12 +4,12 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "android:sync": "node scripts/copy-web.mjs && cap sync android",
-    "android:build": "node scripts/android-build.mjs",
-    "guide:sync": "node scripts/guide-build.mjs --sync",
-    "guide:build": "node scripts/guide-build.mjs",
-    "guide:icons": "node scripts/fetch-icons.mjs",
-    "guide:shots": "node scripts/guide-shots.mjs",
+    "bazaar:sync": "node scripts/bazaar/copy-web.mjs && cap sync android",
+    "bazaar:build": "node scripts/bazaar/android-build.mjs",
+    "guide:sync": "node scripts/guide/guide-build.mjs --sync",
+    "guide:build": "node scripts/guide/guide-build.mjs",
+    "guide:icons": "node scripts/guide/fetch-icons.mjs",
+    "guide:shots": "node scripts/guide/guide-shots.mjs",
     "clean": "node scripts/clean.mjs"
   },
   "dependencies": {

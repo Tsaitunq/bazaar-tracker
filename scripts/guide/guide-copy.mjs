@@ -1,8 +1,8 @@
-// Lays the guide app flat into one folder for Capacitor: node scripts/guide-copy.mjs [outDir]
+// Lays the guide app flat into one folder for Capacitor: node scripts/guide/guide-copy.mjs [outDir]
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { copyPersonal } from './copy-web.mjs';
+import { copyPersonal } from '../bazaar/copy-web.mjs';
 
 const NAME_TOKEN = /__APP_NAME__/g;
 

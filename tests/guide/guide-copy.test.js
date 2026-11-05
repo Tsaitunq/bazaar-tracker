@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { copyGuide, capConfig } from '../../scripts/guide-copy.mjs';
-import { copyWeb, copyPersonal } from '../../scripts/copy-web.mjs';
+import { copyGuide, capConfig } from '../../scripts/guide/guide-copy.mjs';
+import { copyWeb, copyPersonal } from '../../scripts/bazaar/copy-web.mjs';
 
 const temp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'pg-'));
 const out = temp();

@@ -1,4 +1,4 @@
-// Builds the debug APK: node scripts/android-build.mjs  (also: npm run android:build)
+// Builds the debug APK: node scripts/bazaar/android-build.mjs  (also: npm run android:build)
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';

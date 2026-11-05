@@ -40,7 +40,7 @@ jobs:
       # Only the Bazaar app shell and icons (the SHELL list of sw.js); no guide files, nothing from personal/.
       - name: Build _site
         run: |
-          node scripts/copy-web.mjs _site
+          node scripts/bazaar/copy-web.mjs _site
           # the service worker is not in its own SHELL list, but the live site serves it from the root
           cp sw.js _site/sw.js
       - uses: actions/configure-pages@v5
