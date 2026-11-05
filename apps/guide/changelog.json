@@ -1,6 +1,14 @@
 {
   "versions": [
     {
+      "version": "0.11.2",
+      "date": "2026-11-05",
+      "entries": [
+        { "title": "Clean gear steps", "text": "Divan armor steps are the plain piece again; every gemstone is its own step, so a Topaz is never counted twice. Ticks you made on the old steps carry over." },
+        { "title": "Tour on the phone", "text": "The tour spotlight now sits on the right button and list, also on phones with a status bar and a scrolled page." }
+      ]
+    },
+    {
       "version": "0.11.1",
       "date": "2026-11-05",
       "entries": [
