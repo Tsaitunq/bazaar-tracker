@@ -48,3 +48,17 @@ test('the private shafting guide holds together', { skip: !present }, () => {
   }
   console.log('steps without a price source', ranked.filter((s) => !s.items?.length).length, 'with auto tick', ranked.filter((s) => s.detect).length);
 });
+
+test('group g1 lists six parts; the drill line is 700 MS / 25 MF, the total 1230 / 55 / 10 GF / 1 P', { skip: !present }, async () => {
+  const { guideModel } = await import('../../apps/guide/model.js');
+  const { gamedata, baseOf, emptyBuild } = await import('../fixtures/guide-world.js');
+  const { miningSettings } = await import('../../apps/guide/optimizer.js');
+  const src = load();
+  const guide = { id: 'shafting', ...src, milestones: undefined, sections: [{ name: 'P', steps: src.sections[0].steps.filter((s) => s.group === 'g1') }] };
+  const base = baseOf({ mining: { values: { MINING_SPEED: 1000, MINING_FORTUNE: 100, PRISTINE: 0, GEMSTONE_FORTUNE: 0 } } });
+  const { card } = guideModel(guide, { marks: new Set(), owned: [], base, build: emptyBuild(), gamedata, products: {}, prices: { items: items() }, settings: miningSettings({ preset: 'shafting' }) });
+  assert.equal(card.name, 'DR-X355 + 5 Enchants');
+  assert.equal(card.parts.length, 6);
+  assert.deepEqual(card.parts[0].stats.map((s) => s.text), ['+700 ⸕ Mining Speed', '+25 ☘ Mining Fortune']);
+  assert.deepEqual(card.stats.map((s) => s.text), ['+1,230 ⸕ Mining Speed', '+55 ☘ Mining Fortune', '+10 ☘ Gemstone Fortune', '+1 ✧ Pristine']);
+});
