@@ -1,6 +1,15 @@
 {
   "versions": [
     {
+      "version": "0.13.0",
+      "date": "2026-11-06",
+      "entries": [
+        { "title": "Methods tab", "text": "The Mining guide has two tabs, Gear and Methods, and you can swipe between them; the \"So läuft's\" card is gone." },
+        { "title": "Method pages", "text": "A method page shows which option fits the current Fine Peridot price, the run as numbered steps, loadouts, auto-pet, gear in short and tips." },
+        { "title": "Your drill in step names", "text": "Enchants, gems, reforge and other drill parts are named after the drill you own now, such as DR-X555, or just Drill if you have none; your ticks stay." }
+      ]
+    },
+    {
       "version": "0.12.0",
       "date": "2026-11-06",
       "entries": [

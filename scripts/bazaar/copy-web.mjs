@@ -18,7 +18,7 @@ function copyGuides(root, out) {
 // The same for the private method pages: personal/sources/method-*.md, listed in index.json.
 function copyMethods(root, out) {
   const dir = path.join(root, 'personal', 'sources');
-  const names = fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => /^method-.+.md$/.test(f)).sort() : [];
+  const names = fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => /^method-.+\.md$/.test(f)).sort() : [];
   if (!names.length) return;
   const to = path.join(out, 'personal', 'methods');
   fs.mkdirSync(to, { recursive: true });
