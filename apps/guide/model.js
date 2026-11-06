@@ -345,7 +345,7 @@ export function guideModel(guide, world) {
 }
 
 const GUIDE_TABS = ['path'];
-export const STATS_TABS = ['overview', 'hotm', 'attributes', 'power', 'essence'];
+export const STATS_TABS = ['overview', 'hotm', 'attributes', 'power', 'essence', 'pets'];
 export const STATS_AREAS = ['mining', 'blaze', 'farming'];
 // #/stats, #/stats/<overview|hotm|attributes|power|essence>, #/stats/overview/<area> and #/stats/measure/<area>
 export function parseRoute(hash, guides) {

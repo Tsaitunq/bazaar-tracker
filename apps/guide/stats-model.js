@@ -46,17 +46,20 @@ export function statsModel(world, area) {
     const m = meta(data, id);
     return { id, icon: m.icon ?? '▚', label: m.name, color: CLASS[m.color] ?? 'white' };
   };
+  // what the editors moved since the measurement, per stat: "+12 Mining Fortune (HOTM +10, Attributes +2)"
+  const changes = Object.entries(t.moved).filter(([id]) => ids.includes(id)).map(([id, parts]) => ({
+    ...label(id), value: parts.reduce((n, p) => n + p.value, 0), text: signed(parts.reduce((n, p) => n + p.value, 0)), parts: parts.map((p) => `${PART_NAME[p.part]} ${signed(p.value)}`).join(', '),
+  }));
+  for (const [id, v] of Object.entries(worn.accessories ?? {})) if (ids.includes(id)) changes.push({ ...label(id), value: v, text: signed(v), parts: 'Accessories' });
+  const delta = {};
+  for (const c of changes) delta[c.id] = (delta[c.id] ?? 0) + c.value;
   const rows = t.rows.map((r) => ({
     ...label(r.stat),
     base: r.base === undefined ? '–' : number(Math.round(r.base * 100) / 100),
     gear: r.gear ? signed(r.gear) : '–',
+    delta: delta[r.stat] ? signed(delta[r.stat]) : '–',
     total: r.total === undefined ? (r.gear ? number(Math.round(r.gear * 100) / 100) : '–') : number(Math.round(r.total * 100) / 100),
   }));
-  // what the editors moved since the measurement, per stat: "+12 Mining Fortune (HOTM +10, Attributes +2)"
-  const changes = Object.entries(t.moved).filter(([id]) => ids.includes(id)).map(([id, parts]) => ({
-    ...label(id), text: signed(parts.reduce((n, p) => n + p.value, 0)), parts: parts.map((p) => `${PART_NAME[p.part]} ${signed(p.value)}`).join(', '),
-  }));
-  for (const [id, v] of Object.entries(worn.accessories ?? {})) if (ids.includes(id)) changes.push({ ...label(id), text: signed(v), parts: 'Accessories' });
   const guides = tickedSteps(world, area);
   return {
     area, name: AREA_NAME[area], missing: DATA_AREA[area] && !world.items ? 'items' : null,
