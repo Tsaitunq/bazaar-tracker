@@ -15,8 +15,20 @@ function copyGuides(root, out) {
   fs.writeFileSync(path.join(to, 'index.json'), JSON.stringify(names));
 }
 
+// The same for the private method pages: personal/sources/method-*.md, listed in index.json.
+function copyMethods(root, out) {
+  const dir = path.join(root, 'personal', 'sources');
+  const names = fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => /^method-.+.md$/.test(f)).sort() : [];
+  if (!names.length) return;
+  const to = path.join(out, 'personal', 'methods');
+  fs.mkdirSync(to, { recursive: true });
+  for (const f of names) fs.copyFileSync(path.join(dir, f), path.join(to, f));
+  fs.writeFileSync(path.join(to, 'index.json'), JSON.stringify(names));
+}
+
 export function copyPersonal(root, out) {
   copyGuides(root, out);
+  copyMethods(root, out);
   // for a local test build, also outside git: public game data
   for (const name of ['items.json']) {
     const from = path.join(root, 'personal', name);

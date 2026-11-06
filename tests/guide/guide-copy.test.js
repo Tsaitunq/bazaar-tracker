@@ -53,6 +53,21 @@ test('personal guides come along only when they exist', () => {
   }
 });
 
+test('private method pages come along as personal/methods, and only method-*.md', () => {
+  const root = temp();
+  const to = temp();
+  try {
+    fs.mkdirSync(path.join(root, 'personal', 'sources'), { recursive: true });
+    for (const f of ['method-a.md', 'notes.md']) fs.writeFileSync(path.join(root, 'personal', 'sources', f), '# x');
+    copyPersonal(root, to);
+    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(to, 'personal', 'methods', 'index.json'), 'utf8')), ['method-a.md']);
+    assert.deepEqual(fs.readdirSync(path.join(to, 'personal', 'methods')).sort(), ['index.json', 'method-a.md']);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(to, { recursive: true, force: true });
+  }
+});
+
 test('the name is taken from brand.json in config, manifest and title', () => {
   assert.equal(JSON.parse(capConfig('.')).appName, brand);
   assert.equal(JSON.parse(fs.readFileSync(path.join(out, 'manifest.webmanifest'), 'utf8')).name, brand);

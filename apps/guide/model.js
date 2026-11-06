@@ -344,24 +344,24 @@ export function guideModel(guide, world) {
   };
 }
 
-const GUIDE_TABS = ['path'];
+const GUIDE_TABS = ['path', 'methods'];
 export const STATS_TABS = ['overview', 'hotm', 'attributes', 'power', 'essence', 'pets'];
 export const STATS_AREAS = ['mining', 'blaze', 'farming'];
 // #/stats, #/stats/<overview|hotm|attributes|power|essence>, #/stats/overview/<area> and #/stats/measure/<area>
 export function parseRoute(hash, guides) {
-  const [, page, id, tab] = String(hash).split('/');
+  const [, page, id, tab, method] = String(hash).split('/');
   if (page === 'settings') return { page };
   if (page === 'stats') {
     const area = STATS_AREAS.includes(tab) ? tab : 'mining';
     if (id === 'measure') return { page, tab: 'measure', area };
     return { page, tab: STATS_TABS.includes(id) ? id : 'overview', area };
   }
-  if (page === 'guide' && (id === 'farming' || guides.some((g) => g.id === id))) return { page, id, tab: GUIDE_TABS.includes(tab) ? tab : 'path' };
+  if (page === 'guide' && (id === 'farming' || guides.some((g) => g.id === id))) return { page, id, tab: GUIDE_TABS.includes(tab) ? tab : 'path', ...(tab === 'methods' && method && { method }) };
   return { page: 'home' };
 }
 
 // Where a sideways drag leads: from a guide the next guide of its area, the one before, and from the first one home; from a stats page the next tab. family: the guide ids of the area in order.
-export function swipeTarget(r, dx, family) {
+export function swipeTarget(r, dx, family, hasMethods = false) {
   if (!dx) return null;
   if (r.page === 'stats' && STATS_TABS.includes(r.tab)) {
     // Overview, HOTM, Attributes, Power, Essence in a row; the ends do not lead anywhere
@@ -369,6 +369,9 @@ export function swipeTarget(r, dx, family) {
     return to ? { hash: `#/stats/${to}/${r.area}`, back: dx > 0 } : null;
   }
   if (r.page !== 'guide') return null;
+  // Gear and Methods in a row: from a method page back to the list, from the list to Gear
+  if (r.tab === 'methods') return dx > 0 ? { hash: r.method ? `#/guide/${r.id}/methods` : `#/guide/${r.id}/path`, back: true } : null;
+  if (hasMethods && dx < 0) return { hash: `#/guide/${r.id}/methods`, back: false };
   const at = Math.max(family.indexOf(r.id), 0);
   if (dx > 0) return { hash: at > 0 ? `#/guide/${family[at - 1]}/path` : '#/', back: true };
   return at + 1 < family.length ? { hash: `#/guide/${family[at + 1]}/path`, back: false } : null;
