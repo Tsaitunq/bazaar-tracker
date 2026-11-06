@@ -13,6 +13,7 @@ import { STATS_TABS, parseRoute, applyImport, stampAll, formEdited, typedFields,
 import { homeView } from './views/home.js';
 import { guideView } from './views/guide.js';
 import { statsView } from './views/stats.js';
+import { attrResults } from './views/stats-attrs.js';
 import { settingsView } from './views/settings.js';
 import { paintFigures } from './skin.js';
 import { decide, finishTour, STEPS, tourHtml, newsHtml } from './intro.js';
@@ -50,8 +51,9 @@ const settings = load('pg.settings', {});
 let base = withEssence(load('pg.base', {})); // the measured stats per area
 let build = { ...emptyBuild(), ...load('pg.build', {}) }; // HOTM, shards, power and buffs now
 let draft = load('pg.draft', {}); // a part the measurement did not know, typed but not saved yet
-let wantPet = false; // the Pet tag or the floating pet was tapped: the power tab opens on the pet picker (true) or on that pet's card (its key)
-let ui = {}; // the perk, attribute and search that are open; not saved
+let infoSeen = load('pg.infoSeen', []); // guides whose "So läuft's" card was shown open once
+let wantPet = false; // the Pet tag or the floating pet was tapped: the pets tab opens on the pet picker (true) or on that pet's card (its key)
+let ui = { attrCat: load('pg.attrCat', 'all') }; // the perk, attribute and search that are open; not saved
 let gamedata = null;
 const bins = load('pg.bins', {});
 let products = null;
@@ -105,7 +107,7 @@ const world = () => {
     prices: { forge, ah, cofl: freshBins(bins), wants: pending, items, tax: (settings.tax ?? DEFAULT_TAX) / 100, derpy: election?.mayor?.name === 'Derpy' },
     settings: miningSettings(settings.mining), keepOldGear: settings.keepOldGear === true, brake: settings.brake > 0 ? settings.brake : 5, pathEpoch, opened, items,
     name: (id) => names[id] ?? fallbackName(id), tax: settings.tax ?? DEFAULT_TAX, importedIds: imported.map((g) => g.id),
-    loading, dataMessage, dataText, armed,
+    loading, dataMessage, dataText, armed, infoSeen,
   };
 };
 
@@ -166,9 +168,9 @@ function draw() {
   }
   shownRoute = shown;
   if (wantPet) {
-    const panel = route().tab === 'power' && root.querySelector('.pet-panel');
+    const panel = route().tab === 'pets' && root.querySelector('.pet-panel');
     if (panel) (root.querySelector(`[data-pet-card="${wantPet}"]`) ?? panel).scrollIntoView({ block: 'start' });
-    if (panel || route().tab !== 'power') wantPet = false;
+    if (panel || route().tab !== 'pets') wantPet = false;
   }
   root.firstElementChild?.classList.toggle('head-min', folded);
   if (infoOpen) openInfo();
@@ -176,6 +178,8 @@ function draw() {
     const same = [...root.querySelectorAll('[data-step]')].filter((el) => el.dataset.step === focused);
     (same.find((el) => el.className === focusClass) ?? same[0])?.focus({ preventScroll: true });
   }
+  const card = root.querySelector('[data-info-card]');
+  if (card?.open && !infoSeen.includes(card.dataset.infoCard)) { infoSeen = [...infoSeen, card.dataset.infoCard]; save('pg.infoSeen', infoSeen); } // the next opening finds it closed
   preparePeek();
   askBins(pending);
   tourSync();
@@ -489,6 +493,13 @@ root.addEventListener('click', (e) => {
   const el = (selector) => e.target.closest(selector);
   const tab = el('[data-tab]');
   if (tab) { location.hash = tabTarget(tab.dataset.tab); return; }
+  const goto = el('[data-info-goto]');
+  if (goto) { document.getElementById(goto.dataset.infoGoto)?.scrollIntoView({ block: 'start' }); return; }
+  if (el('[data-info="card"]')) { // the ⓘ opens the same card as the head
+    const card = root.querySelector('[data-info-card]');
+    if (card) { card.open = true; card.scrollIntoView({ block: 'nearest' }); }
+    return;
+  }
   if (el('[data-info]')) { openInfo(); return; }
   const step = el('[data-step]');
   if (step) { if (step.closest('.card')) markCard(step, step.dataset.step); else toggle(step.dataset.step); return; }
@@ -502,7 +513,8 @@ root.addEventListener('click', (e) => {
   const attr = el('[data-attr]');
   if (attr) { ui = { ...ui, attr: attr.dataset.attr }; draw(); return; }
   if (el('[data-attr-close]')) { ui = { ...ui, attr: undefined }; draw(); return; }
-  if (el('[data-attr-all]')) { ui = { ...ui, attrAll: !ui.attrAll }; draw(); return; }
+  const cat = el('[data-attr-cat]');
+  if (cat) { ui = { ...ui, attrCat: cat.dataset.attrCat }; save('pg.attrCat', ui.attrCat); draw(); return; }
   const essStep = el('[data-essence-step], [data-essence-max]');
   if (essStep && essenceOf(essStep)) {
     const perk = essenceOf(essStep);
@@ -520,7 +532,7 @@ root.addEventListener('click', (e) => {
   if (el('[data-perk-enabled]') && perkOpen()) { edit('hotm', perkEnabled(perkOpen(), (partNow('hotm').disabled ?? []).includes(perkOpen().id))); return; }
   if (el('[data-ability-pick]') && perkOpen()) { edit('hotm', abilityPick(perkOpen())); return; }
   const goPet = el('[data-goto-pet]');
-  if (goPet) { wantPet = goPet.dataset.gotoPet || true; return; } // the link itself opens the power tab
+  if (goPet) { wantPet = goPet.dataset.gotoPet || true; return; } // the link itself opens the pets tab
   if (el('[data-perk-max]')) { setLevel('perk', perkOpen()?.maxLevel ?? 0); return; }
   if (el('[data-attr-max]')) { setLevel('attr', attrOpen()?.maxLevel ?? 0); return; }
   const pet = el('[data-pet]');
@@ -567,7 +579,8 @@ root.addEventListener('click', (e) => {
 root.addEventListener('input', (e) => {
   if (!e.target.matches('[data-attr-query]')) return;
   ui = { ...ui, attrQuery: e.target.value };
-  draw();
+  const results = root.querySelector('[data-attr-results]');
+  if (results && gamedata) results.innerHTML = attrResults(world()); // not a full draw: the field would lose its cursor
 });
 
 root.addEventListener('change', async (e) => {

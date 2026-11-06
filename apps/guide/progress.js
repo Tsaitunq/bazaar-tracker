@@ -105,7 +105,7 @@ export function validGuide(g) {
   const groups = validGroups(g.groups);
   const chapters = validChapters(g.chapters, sections);
   const milestones = validMilestones(g.milestones, sections);
-  return { title: g.title, ...(text(g.label) && { label: g.label }), ...(/^https?:\/\//i.test(g.source ?? '') && { source: g.source }), ...(['mining', 'blaze', 'farming'].includes(g.area) && { area: g.area }), ...(['fixed', 'value'].includes(g.order) && { order: g.order }), ...(text(g.preset) && { preset: g.preset }), ...(chapters && { chapters }), ...(milestones && { milestones }), ...(legacy && { legacy }), ...(ownedKeys && { ownedKeys }), ...(groups && { groups }), sections };
+  return { title: g.title, ...(text(g.label) && { label: g.label }), ...(/^https?:\/\//i.test(g.source ?? '') && { source: g.source }), ...(['mining', 'blaze', 'farming'].includes(g.area) && { area: g.area }), ...(['fixed', 'value'].includes(g.order) && { order: g.order }), ...(text(g.preset) && { preset: g.preset }), ...(text(g.info) && { info: g.info }), ...(chapters && { chapters }), ...(milestones && { milestones }), ...(legacy && { legacy }), ...(ownedKeys && { ownedKeys }), ...(groups && { groups }), sections };
 }
 
 const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'guide';

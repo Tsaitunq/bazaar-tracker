@@ -43,6 +43,19 @@ a { color: var(--area); }
 .head-min .switch { display: none; }
 
 /* notes behind the ⓘ of the head */
+.info-card { margin: 0 16px 8px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); font-size: 13px; }
+.info-card summary { min-height: 44px; display: flex; align-items: center; padding: 0 14px; font-weight: 700; color: var(--area); cursor: pointer; }
+.info-body { max-height: 55vh; overflow-y: auto; padding: 0 14px 12px; color: var(--soft); }
+.info-body h3, .info-body h4, .info-body h5 { margin: 12px 0 4px; color: var(--text); font-size: 14px; }
+.info-body p, .info-body ul, .info-body ol { margin: 4px 0; }
+.info-body ul, .info-body ol { padding-left: 20px; }
+.info-body code { font-size: 12px; }
+.md-table { overflow-x: auto; }
+.md-table table { border-collapse: collapse; font-size: 12px; }
+.md-table th, .md-table td { padding: 3px 8px 3px 0; text-align: left; vertical-align: top; }
+.info-toc { display: flex; flex-direction: column; align-items: flex-start; margin-bottom: 6px; }
+.info-toc button { min-height: 36px; padding: 0; background: none; border: none; color: var(--area); font-size: 13px; text-align: left; }
+.info-toc .toc-3 { padding-left: 16px; color: var(--soft); }
 .info { width: 44px; height: 44px; padding: 0; border-radius: 22px; background: none; border: 1px solid var(--line); color: var(--area); font-size: 20px; }
 .top > .info:nth-child(2) { margin-left: auto; }
 .sheet { width: min(100% - 32px, 448px); max-height: 80dvh; margin: auto auto 16px; padding: 16px; border-radius: 20px; background: var(--surface); border: 1px solid var(--line); color: var(--text); display: none; flex-direction: column; gap: 10px; }
@@ -171,6 +184,9 @@ a { color: var(--area); }
 .home-title { display: flex; flex-direction: column; gap: 2px; }
 .home-title small { font-size: 13px; color: var(--muted); }
 .home-title h1 { margin: 0; font-size: 28px; font-weight: 700; }
+.profile canvas { display: none; width: 36px; height: 36px; border-radius: 6px; image-rendering: pixelated; }
+.profile.has-head canvas { display: block; }
+.profile.has-head svg { display: none; }
 .profile { width: 48px; height: 48px; border-radius: 24px; background: var(--surface); border: 1px solid var(--area); display: flex; align-items: center; justify-content: center; color: var(--area); padding: 0; }
 .bests { padding: 16px 18px; border-radius: 24px; background: var(--raised); border: 1px solid var(--area); display: flex; flex-direction: column; gap: 8px; }
 .bests-title { font-size: 12px; font-weight: 700; letter-spacing: 1px; color: var(--area); }
@@ -248,7 +264,7 @@ a { color: var(--area); }
 .stats-title { margin: 0; font-size: 20px; font-weight: 700; }
 .top-fill { width: 60px; }
 .stat-table { gap: 3px; }
-.stat-row { display: grid; grid-template-columns: 1.9fr 0.9fr 0.9fr 0.9fr; gap: 4px; font-size: 12px; align-items: baseline; min-height: 19px; }
+.stat-row { display: grid; grid-template-columns: 1.7fr 0.8fr 0.8fr 0.8fr 0.9fr; gap: 3px; font-size: 12px; align-items: baseline; min-height: 19px; }
 .stat-row span:not(:first-child), .stat-row b { text-align: right; }
 .stat-head { font-size: 10px; color: var(--muted); padding-bottom: 2px; }
 .primary-link { align-self: flex-start; min-height: 44px; display: inline-flex; align-items: center; padding: 0 16px; border-radius: 22px; background: var(--raised); color: var(--text); font-size: 13px; text-decoration: none; }
@@ -299,6 +315,9 @@ a { color: var(--area); }
 .stepper input { flex: 1 1 0; min-width: 0; min-height: 44px; padding: 8px 12px; border-radius: 12px; background: var(--deep); border: 1px solid var(--line); color: var(--text); font-size: 16px; text-align: center; }
 .stepper :disabled { opacity: 0.4; }
 .count { font-size: 12px; font-weight: 400; color: var(--muted); }
+.cat-chips { flex-wrap: nowrap !important; overflow-x: auto; padding-bottom: 4px; }
+.cat-chips .chip-btn { flex: none; }
+.attr-cat { margin: 8px 0 2px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
 .attr-list { display: flex; flex-direction: column; gap: 6px; }
 .attr { min-height: 48px; display: flex; align-items: center; gap: 10px; padding: 4px 10px; border-radius: 14px; background: var(--deep); border: 1px solid var(--line); color: var(--text); font-size: 13px; text-align: left; }
 .attr-zero { opacity: 0.5; }

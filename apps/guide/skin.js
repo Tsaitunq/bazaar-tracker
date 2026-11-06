@@ -1,6 +1,7 @@
 // The player figure: the front of a 64x64 skin, hat and clothing layers included, drawn on a canvas with whole-pixel scaling.
 export const FIGURE = { w: 16, h: 32 };
 export const SCALE = 6;
+const HEAD_PX = 32;
 
 // Source rects on the skin and where they land on the 16x32 figure. Base layer first, then the clothing over it.
 // slim: arms 3 wide (the Alex model) instead of 4.
@@ -50,8 +51,17 @@ function load(repaint) {
 // Paints every canvas[data-figure] under root: the skin, or a flat silhouette while there is none.
 export function paintFigures(root) {
   const canvases = [...root.querySelectorAll('canvas[data-figure]')];
-  if (!canvases.length) return;
+  const heads = [...root.querySelectorAll('canvas[data-head]')];
+  if (!canvases.length && !heads.length) return;
   load(() => paintFigures(root));
+  for (const canvas of heads) {
+    if (!(skin instanceof Image)) continue; // until the skin is there the button keeps its icon
+    canvas.width = canvas.height = HEAD_PX;
+    const g = canvas.getContext('2d');
+    g.imageSmoothingEnabled = false;
+    for (const sx of [8, 40]) g.drawImage(skin, sx, 8, 8, 8, 0, 0, HEAD_PX, HEAD_PX); // face, then the hat layer
+    canvas.closest('.profile')?.classList.add('has-head');
+  }
   for (const canvas of canvases) {
     canvas.width = FIGURE.w * SCALE;
     canvas.height = FIGURE.h * SCALE;
