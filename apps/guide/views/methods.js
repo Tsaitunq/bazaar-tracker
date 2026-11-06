@@ -10,7 +10,7 @@ const PET_NAME = new RegExp(`\\b(${Object.keys(PETS).join('|')})\\b`, 'g');
 const petPic = (name) => pic(`img/hypixel/pets/${PETS[name]}_LEGENDARY.png`, 'pet-pic', name[0]);
 // a pet's name gets its head in front of it; text without a known pet stays text
 const withHeads = (html) => html.replace(PET_NAME, (name) => `<span class="m-pet">${petPic(name)}${name}</span>`);
-const rich = (text) => withHeads(inline(text));
+const rich = (text) => text.split(' · ').map((part) => `<span class="m-part">${withHeads(inline(part))}</span>`).join('');
 
 // the picture of a line of "Gear in short": a Minecraft texture, or the first letter
 const GEAR_PICS = { Drill: 'diamond', Armor: 'emerald', Equipment: 'gold_ingot', Lantern: 'sea_lantern' };

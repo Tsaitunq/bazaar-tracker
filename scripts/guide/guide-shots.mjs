@@ -17,7 +17,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
 const SHOTS = [
   ['home', '#/'], ['stats-measure', '#/stats/measure/mining'], ['stats-hotm', '#/stats/hotm/mining'], ['stats-blaze', '#/stats/overview/blaze'], ['mining-path', '#/guide/mining/path'],
   ['shafting-path', '#/guide/shafting/path'], ['blaze-path', '#/guide/blaze-slayer/path'],
-  ['farming', '#/guide/farming/path'], ['settings', '#/settings'], ['stats', '#/stats'],
+  ['methods-list', '#/guide/mining/methods'], ['method-top', '#/guide/mining/methods/sample'], ['farming', '#/guide/farming/path'], ['settings', '#/settings'], ['stats', '#/stats'],
 ];
 
 const COMPACT = 'Smaller head from the device test, so the open step fits without a scroll.';
@@ -61,6 +61,7 @@ const json = (route, body, status = 200) => route.fulfill({ status, contentType:
 // The real guides and values in personal/ never reach a picture: all of it comes from the fixture.
 // seed: the measured base and the owned pieces of the fixture are in the stores, as after a measurement and some ticks.
 async function stubs(context, withData, { seed = withData } = {}) {
+  const peridot = { buy_summary: [{ pricePerUnit: 52000, amount: 100 }], sell_summary: [{ pricePerUnit: 51000, amount: 100 }] };
   const owned = (fixture.profile.summary?.items ?? []).map((i) => i.id);
   const base = { mining: { at: Date.now() - 2 * 24 * 3600e3, values: { MINING_FORTUNE: 100, MINING_SPEED: 1000 }, snapshot: { hotm: null, attrs: null, power: null, buffs: { godPotion: false, boosterCookie: false }, pet: null } } };
   base.blaze = { ...base.mining, values: { STRENGTH: 300, TRUE_DEFENSE: 200, CRITICAL_DAMAGE: 100 }, mp: 1200 };
@@ -68,17 +69,24 @@ async function stubs(context, withData, { seed = withData } = {}) {
     try {
       if (localStorage.getItem('pg.schema')) return;
       localStorage.setItem('pg.schema', '2');
+      localStorage.setItem('pg.tour', 'true'); // no tour card over the pictures
+      localStorage.setItem('pg.seenVersion', JSON.stringify(newest));
       if (on) { localStorage.setItem('pg.owned', JSON.stringify(ids)); localStorage.setItem('pg.base', JSON.stringify(measured)); }
     } catch { /* blocked */ }
-  }, { on: seed, ids: owned, measured: base });
+  }, { on: seed, ids: owned, measured: base, newest: JSON.parse(fs.readFileSync('apps/guide/changelog.json', 'utf8')).versions[0].version });
   await context.route('**/*', (route) => {
     const url = new URL(route.request().url());
     const name = url.pathname.split('/').pop();
-    if (url.hostname === 'api.hypixel.net') return json(route, { success: true, products: fixture.products });
+    if (url.hostname === 'api.hypixel.net') return json(route, { success: true, products: { ...fixture.products, FINE_PERIDOT_GEM: peridot } });
     if (url.pathname.includes('/personal/guides/')) {
       if (!withData) return route.fulfill({ status: 404 });
       if (name === 'index.json') return json(route, Object.keys(fixture.guides).map((id) => `${id}.json`));
       return json(route, fixture.guides[name.replace('.json', '')]);
+    }
+    if (url.pathname.includes('/personal/methods/')) {
+      if (!withData) return route.fulfill({ status: 404 });
+      if (name === 'index.json') return json(route, ['method-sample.md']);
+      return route.fulfill({ status: 200, contentType: 'text/markdown', body: fs.readFileSync('tests/fixtures/guide/method-sample.md', 'utf8') });
     }
     if (url.pathname.includes('/personal/')) return route.fulfill({ status: 404 });
     if (url.pathname.includes('/data/')) {
@@ -196,7 +204,11 @@ async function phones(browser, base) {
       await open(page, base, hash);
       if (viewport !== VIEWPORT) await page.screenshot({ path: path.join(OUT, `${name}-${viewport.width}.png`) });
       await layoutChecks(page, `${name} ${viewport.width}`);
-      if (!hash.startsWith('#/guide/') || hash.includes('farming')) continue;
+      if (hash.includes('/methods/')) { // the method page, scrolled to its end
+        await page.locator('#app > .screen .methods').evaluate((el) => { el.scrollTop = el.scrollHeight; });
+        await page.screenshot({ path: path.join(OUT, `method-bottom-${viewport.width}.png`) });
+      }
+      if (!hash.startsWith('#/guide/') || hash.includes('farming') || hash.includes('/methods')) continue;
       const box = await page.evaluate(() => { const c = document.querySelector('.card').getBoundingClientRect(); const p = document.querySelector('.path').getBoundingClientRect(); return { top: c.top - p.top, bottom: Math.min(p.bottom, innerHeight) - c.bottom }; });
       if (box.top < 0 || box.bottom < 0) fail(`${name} ${viewport.width}: the Mark done card is cut by ${Math.round(-Math.min(box.top, box.bottom))} px`);
     }
@@ -401,6 +413,10 @@ try {
     await open(page, base, hash);
     await page.screenshot({ path: path.join(OUT, `${name}.png`) });
     await layoutChecks(page, name);
+    if (hash.includes('/methods/')) {
+      await page.locator('#app > .screen .methods').evaluate((el) => { el.scrollTop = el.scrollHeight; });
+      await page.screenshot({ path: path.join(OUT, 'method-bottom.png') });
+    }
   }
   await opensOnCard(page, base);
   await folds(page, base);

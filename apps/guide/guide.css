@@ -402,6 +402,7 @@ a { color: var(--area); }
 .m-load { display: flex; flex-direction: column; gap: 2px; padding-top: 6px; border-top: 1px solid var(--line); }
 .m-load small { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
 .m-load span { min-width: 0; color: var(--soft); overflow-wrap: anywhere; }
+.m-part { display: block; }
 .m-pet { display: inline-flex; align-items: center; gap: 4px; margin-right: 4px; color: var(--text); font-weight: 700; }
 .m-pet .pic, .m-auto .pic { width: 22px; height: 22px; }
 .m-note { margin: 0; font-size: 12px; color: var(--muted); }
