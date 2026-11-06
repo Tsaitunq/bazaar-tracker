@@ -51,7 +51,6 @@ const settings = load('pg.settings', {});
 let base = withEssence(load('pg.base', {})); // the measured stats per area
 let build = { ...emptyBuild(), ...load('pg.build', {}) }; // HOTM, shards, power and buffs now
 let draft = load('pg.draft', {}); // a part the measurement did not know, typed but not saved yet
-let infoSeen = load('pg.infoSeen', []); // guides whose "So läuft's" card was shown open once
 let wantPet = false; // the Pet tag or the floating pet was tapped: the pets tab opens on the pet picker (true) or on that pet's card (its key)
 let ui = { attrCat: load('pg.attrCat', 'all') }; // the perk, attribute and search that are open; not saved
 let gamedata = null;
@@ -107,7 +106,7 @@ const world = () => {
     prices: { forge, ah, cofl: freshBins(bins), wants: pending, items, tax: (settings.tax ?? DEFAULT_TAX) / 100, derpy: election?.mayor?.name === 'Derpy' },
     settings: miningSettings(settings.mining), keepOldGear: settings.keepOldGear === true, brake: settings.brake > 0 ? settings.brake : 5, pathEpoch, opened, items,
     name: (id) => names[id] ?? fallbackName(id), tax: settings.tax ?? DEFAULT_TAX, importedIds: imported.map((g) => g.id),
-    loading, dataMessage, dataText, armed, infoSeen,
+    loading, dataMessage, dataText, armed,
   };
 };
 
@@ -178,8 +177,6 @@ function draw() {
     const same = [...root.querySelectorAll('[data-step]')].filter((el) => el.dataset.step === focused);
     (same.find((el) => el.className === focusClass) ?? same[0])?.focus({ preventScroll: true });
   }
-  const card = root.querySelector('[data-info-card]');
-  if (card?.open && !infoSeen.includes(card.dataset.infoCard)) { infoSeen = [...infoSeen, card.dataset.infoCard]; save('pg.infoSeen', infoSeen); } // the next opening finds it closed
   preparePeek();
   askBins(pending);
   tourSync();
@@ -493,13 +490,6 @@ root.addEventListener('click', (e) => {
   const el = (selector) => e.target.closest(selector);
   const tab = el('[data-tab]');
   if (tab) { location.hash = tabTarget(tab.dataset.tab); return; }
-  const goto = el('[data-info-goto]');
-  if (goto) { document.getElementById(goto.dataset.infoGoto)?.scrollIntoView({ block: 'start' }); return; }
-  if (el('[data-info="card"]')) { // the ⓘ opens the same card as the head
-    const card = root.querySelector('[data-info-card]');
-    if (card) { card.open = true; card.scrollIntoView({ block: 'nearest' }); }
-    return;
-  }
   if (el('[data-info]')) { openInfo(); return; }
   const step = el('[data-step]');
   if (step) { if (step.closest('.card')) markCard(step, step.dataset.step); else toggle(step.dataset.step); return; }

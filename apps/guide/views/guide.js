@@ -3,7 +3,6 @@ import { esc, number } from '../../../shared/format.js';
 import { guideModel, worldFor, familyOf } from '../model.js';
 import { ring, legend, nextMilestone, statGrid, pathRow, stepCard, chips, bottomBar, backLink, profileLink, icon, shortSection } from './parts.js';
 import { HOME_TABS } from './home.js';
-import { markdown, outline } from '../markdown.js';
 
 const FARMING = { id: 'farming', title: 'Farming', area: 'farming', sections: [] };
 
@@ -23,17 +22,8 @@ const COFL = '<p class="note">Lowest BIN prices: <a href="https://sky.coflnet.co
 const hasInfo = (m) => infoOf(m).length > 0 || m.usedCofl;
 
 // The hints about the model and the stats, and where the prices come from, wait behind the ⓘ of the head, so the path keeps its room.
-const infoButton = (m, guide) => (guide.info ? '<button type="button" class="info" data-info="card" aria-label="How it works">ⓘ</button>' : hasInfo(m) ? '<button type="button" class="info" data-info aria-label="Notes on this guide" aria-haspopup="dialog">ⓘ</button>' : '');
-const infoSheet = (m, guide) => (!guide.info && hasInfo(m) ? `<dialog class="sheet"><h2>Notes</h2>${infoOf(m).map((n) => `<p class="note">${esc(n)}</p>`).join('')}${m.usedCofl ? COFL : ''}<form method="dialog"><button type="submit" class="ghost">Close</button></form></dialog>` : '');
-
-// "So läuft's": the text of the guide (field info) as a card on top, open the first time a guide is opened and closed after that; the notes of the model follow it.
-function infoCard(world, guide, m) {
-  const toc = outline(guide.info);
-  const contents = toc.length ? `<nav class="info-toc" aria-label="Contents">${toc.map((t) => `<button type="button" class="toc-${t.level}" data-info-goto="${esc(t.id)}">${esc(t.text)}</button>`).join('')}</nav>` : '';
-  const notes = [...infoOf(m).map((n) => `<p class="note">${esc(n)}</p>`), m.usedCofl ? COFL : ''].join('');
-  const seen = (world.infoSeen ?? []).includes(guide.id);
-  return `<details class="info-card" data-keep-open="info" data-info-card="${esc(guide.id)}"${seen ? '' : ' open'}><summary>So läuft's</summary><div class="info-body">${contents}${markdown(guide.info)}${notes}</div></details>`;
-}
+const infoButton = (m) => (hasInfo(m) ? '<button type="button" class="info" data-info aria-label="Notes on this guide" aria-haspopup="dialog">ⓘ</button>' : '');
+const infoSheet = (m) => (hasInfo(m) ? `<dialog class="sheet"><h2>Notes</h2>${infoOf(m).map((n) => `<p class="note">${esc(n)}</p>`).join('')}${m.usedCofl ? COFL : ''}<form method="dialog"><button type="submit" class="ghost">Close</button></form></dialog>` : '');
 
 const warning = (m) => (m.daggerMissing ? '<p class="warn" role="alert">Dagger pair incomplete: the Hellion Shield needs one dagger of each line.</p>' : '');
 
@@ -61,5 +51,5 @@ export function guideView(world, id) {
   const m = told.length ? { ...model, notes: [...model.notes, ...told] } : model;
   const empty = !guide.sections.length;
   const body = empty ? '<div class="empty"><strong>Guide coming soon</strong></div>' : pathTab(m);
-  return `<div class="${screenClass(m.theme)}" data-theme="${esc(m.theme)}"><div class="top">${backLink()}${m.source ? `<a class="source" href="${esc(m.source)}" rel="noopener">Source</a>` : ''}${infoButton(m, guide)}${profileLink()}</div>${switcher(world, guide)}${head(m, empty)}${guide.info ? infoCard(world, guide, m) : ''}${body}${infoSheet(m, guide)}</div>`;
+  return `<div class="${screenClass(m.theme)}" data-theme="${esc(m.theme)}"><div class="top">${backLink()}${m.source ? `<a class="source" href="${esc(m.source)}" rel="noopener">Source</a>` : ''}${infoButton(m)}${profileLink()}</div>${switcher(world, guide)}${head(m, empty)}${body}${infoSheet(m)}</div>`;
 }
