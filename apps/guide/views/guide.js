@@ -3,6 +3,7 @@ import { esc, number } from '../../../shared/format.js';
 import { guideModel, worldFor, familyOf } from '../model.js';
 import { ring, legend, nextMilestone, statGrid, pathRow, stepCard, chips, bottomBar, backLink, profileLink, icon, shortSection } from './parts.js';
 import { HOME_TABS } from './home.js';
+import { methodView, methodsListView } from './methods.js';
 
 const FARMING = { id: 'farming', title: 'Farming', area: 'farming', sections: [] };
 
@@ -40,16 +41,28 @@ function switcher(world, guide) {
   return `<nav class="switch" aria-label="Guides of this area">${thumb}${family.map((g) => `<a href="#/guide/${esc(g.id)}/path"${g === guide ? ' aria-current="page"' : ''}>${esc(g.label ?? g.title)}</a>`).join('')}</nav>`;
 }
 
+// Gear and Methods, where a guide has method pages
+export const hasMethods = (world, guide) => guide.area === 'mining' && (world.methods?.length ?? 0) > 0;
+function tabs(guide, at) {
+  const items = [['path', 'Gear'], ['methods', 'Methods']];
+  const thumb = `<span class="switch-thumb" aria-hidden="true" style="--n:2;--at:${at}"></span>`;
+  return `<nav class="switch" aria-label="Gear or methods">${thumb}${items.map(([tab, name], i) => `<a href="#/guide/${esc(guide.id)}/${tab}"${i === at ? ' aria-current="page"' : ''}>${name}</a>`).join('')}</nav>`;
+}
+
 const screenClass = (theme) => `screen${theme === 'blaze' ? ' screen-blaze' : ''}`;
 
-export function guideView(world, id) {
+export function guideView(world, id, r = {}) {
   const guide = world.guides.find((g) => g.id === id) ?? (id === FARMING.id ? FARMING : null);
   if (!guide) return null;
+  if (r.tab === 'methods' && hasMethods(world, guide)) {
+    const method = r.method && world.methods.find((x) => x.id === r.method);
+    return method ? methodView(world, guide, method) : methodsListView(world, guide, tabs(guide, 1));
+  }
   const model = guideModel(guide, worldFor(world, guide));
   // what a section name says in brackets waits behind the ⓘ, so the card keeps its room
   const told = guide.sections.filter((s) => shortSection(s.name) !== s.name).map((s) => `${shortSection(s.name)}: ${s.name.slice(shortSection(s.name).length).trim().slice(1, -1)}`);
   const m = told.length ? { ...model, notes: [...model.notes, ...told] } : model;
   const empty = !guide.sections.length;
   const body = empty ? '<div class="empty"><strong>Guide coming soon</strong></div>' : pathTab(m);
-  return `<div class="${screenClass(m.theme)}" data-theme="${esc(m.theme)}"><div class="top">${backLink()}${m.source ? `<a class="source" href="${esc(m.source)}" rel="noopener">Source</a>` : ''}${infoButton(m)}${profileLink()}</div>${switcher(world, guide)}${head(m, empty)}${body}${infoSheet(m)}</div>`;
+  return `<div class="${screenClass(m.theme)}" data-theme="${esc(m.theme)}"><div class="top">${backLink()}${m.source ? `<a class="source" href="${esc(m.source)}" rel="noopener">Source</a>` : ''}${infoButton(m)}${profileLink()}</div>${switcher(world, guide)}${hasMethods(world, guide) ? tabs(guide, 0) : ''}${head(m, empty)}${body}${infoSheet(m)}</div>`;
 }

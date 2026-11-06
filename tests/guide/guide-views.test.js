@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { homeView } from '../../apps/guide/views/home.js';
@@ -90,7 +91,7 @@ test('the overview shows base, gear and total per stat, with the date of the mea
   const html = statsView(world({ owned: [DRILL] }), { page: 'stats', tab: 'overview', area: 'mining' });
   assert.match(html, /data-theme="stats"/);
   assert.match(html, /class="stat-row stat-head"/);
-  assert.match(html, /Mining Speed<\/span><span>1,000<\/span><span class="c-green">\+1,600<\/span><b class="c-orange">2,600<\/b>/);
+  assert.match(html, /Mining Speed<\/span><span>1,000<\/span><span class="c-green">\+1,600<\/span><span class="c-orange">–<\/span><b class="c-orange">2,600<\/b>/);
   assert.match(html, /Base measured <b>[^<]* ago<\/b>, no gear/);
   assert.match(html, /href="#\/stats\/measure\/mining"/);
   assert.doesNotMatch(html, /data-tab="stats"/);
@@ -139,16 +140,29 @@ test('HOTM editor: a base measured without HOTM asks for a draft that is saved o
   assert.doesNotMatch(statsView(world({ base: {} }), { page: 'stats', tab: 'hotm', area: 'mining' }), /data-draft-save/);
 });
 
-test('attribute editor lists the attributes of the guides first, then all with a search', () => {
+test('attribute editor: category chips, one search field, no guide block; "needs N" stays on the row', () => {
   const g = { ...mining, sections: [{ name: 'Main', steps: [{ text: 'Ruler', items: [], detect: { kind: 'attr', attr: 'nature_elemental', need: 4 } }] }] };
-  const html = editor('attributes', { guides: [g] });
-  assert.match(html, /In your guides/);
+  const html = editor('attributes', { guides: [g], ui: { attrCat: 'combat', attrQuery: 'nature' } });
+  assert.doesNotMatch(html, /In your guides|Not in the data|Show all/);
+  for (const c of ['all', 'combat', 'fishing', 'farming', 'foraging', 'mining', 'taming', 'enchanting', 'hunting', 'global']) assert.match(html, new RegExp(`data-attr-cat="${c}"`));
+  assert.match(html, /data-attr-cat="combat" aria-pressed="true"/);
+  assert.match(html, /<input type="search" data-attr-query value="nature"/);
   assert.match(html, /data-attr="nature_elemental"[^]*needs 4/);
-  assert.equal((html.match(/data-attr="/g) ?? []).length, 1);
-  assert.match(html, /Show all 325/);
-  const searched = editor('attributes', { guides: [g], ui: { attrAll: true, attrQuery: 'nature' } });
-  assert.match(searched, /data-attr-query/);
-  assert.ok((searched.match(/data-attr="/g) ?? []).length > 1);
+  assert.ok(html.includes('<h3 class="attr-cat">Combat</h3>'));
+  const other = editor('attributes', { guides: [g], ui: { attrCat: 'fishing', attrQuery: 'nature' } });
+  assert.doesNotMatch(other, /data-attr="nature_elemental"/);
+  assert.ok((editor('attributes', { ui: { attrCat: 'all' } }).match(/data-attr="/g) ?? []).length > 1);
+});
+
+test('the search keeps its field: a keystroke redraws only the results', async () => {
+  const { attrResults } = await import('../../apps/guide/views/stats-attrs.js');
+  const html = attrResults(world({ ui: { attrCat: 'all', attrQuery: 'nature' } }));
+  assert.match(html, /data-attr="nature_elemental"/);
+  assert.doesNotMatch(html, /data-attr-query/);
+  const app = readFileSync(new URL('../../apps/guide/app.js', import.meta.url), 'utf8');
+  const input = app.slice(app.indexOf("root.addEventListener('input'"), app.indexOf("root.addEventListener('change'"));
+  assert.match(input, /[data-attr-results]/);
+  assert.doesNotMatch(input, /draw()/);
 });
 
 test('power editor: Magical Power, stone chips, tuning rows and both buffs', () => {
@@ -164,11 +178,11 @@ test('power editor: Magical Power, stone chips, tuning rows and both buffs', () 
 });
 
 test('pet picker: one chip per pet, stats of the choice, conditional perks marked, none selected by default', () => {
-  const none = editor('power', { build: emptyBuild(), base: {} });
+  const none = editor('pets', { build: emptyBuild(), base: {} });
   assert.equal((none.match(/data-pet="[A-Z_]+:[A-Z]+"/g) ?? []).length, 9);
   assert.match(none, /data-pet="" aria-pressed="true"/);
   assert.doesNotMatch(none, /data-pet="CROW/);
-  const html = editor('power', { build: { ...emptyBuild(), pet: { id: 'GLACITE_GOLEM', rarity: 'LEGENDARY', level: 100 } }, base: {} });
+  const html = editor('pets', { build: { ...emptyBuild(), pet: { id: 'GLACITE_GOLEM', rarity: 'LEGENDARY', level: 100 } }, base: {} });
   assert.match(html, /data-pet="GLACITE_GOLEM:LEGENDARY"[^>]*aria-pressed="true"/);
   assert.match(html, /Mining Speed [+]125/);
   assert.ok(html.includes('only: Glacite Mineshafts</span> <b>Iceborn'));
@@ -177,7 +191,7 @@ test('pet picker: one chip per pet, stats of the choice, conditional perks marke
 
 test('pet picker: a ticked pet step wins and the picker says so', () => {
   const g = { ...mining, sections: [{ name: 'Main', steps: [{ text: 'Bal', items: [], detect: { kind: 'pet', types: ['BAL'], tier: 'LEGENDARY' } }] }] };
-  const html = editor('power', { guides: [g], checks: { mine: ['Main|Bal'] }, build: { ...emptyBuild(), pet: { id: 'SNAIL', rarity: 'LEGENDARY', level: 100 } }, base: {} });
+  const html = editor('pets', { guides: [g], checks: { mine: ['Main|Bal'] }, build: { ...emptyBuild(), pet: { id: 'SNAIL', rarity: 'LEGENDARY', level: 100 } }, base: {} });
   assert.ok(html.includes('A ticked step already sets the pet (BAL LEGENDARY)'));
 });
 
@@ -305,7 +319,7 @@ test('overview: an unsaved draft shows a notice that links to its tab', () => {
 });
 
 test('pet picker: every pet shows head, stats and perks without a tap, conditional perks marked', () => {
-  const html = editor('power', { base: {} });
+  const html = editor('pets', { base: {} });
   assert.equal((html.match(/class="pet-card/g) ?? []).length, 9);
   assert.match(html, /src="img\/hypixel\/pets\/BAL_LEGENDARY\.png"/);
   assert.match(html, /<span class="cond">only: Magma Fields<\/span> <b>Furnace<\/b>/);
@@ -314,8 +328,8 @@ test('pet picker: every pet shows head, stats and perks without a tap, condition
 
 test('the Pet tag on the overview leads to the pet picker', () => {
   const html = statsView(world(), { page: 'stats', tab: 'overview', area: 'mining' });
-  assert.match(html, /<a class="tag" href="#\/stats\/power\/mining" data-goto-pet="">Pet:/);
-  assert.match(editor('power', { base: {} }), /class="panel pet-panel"/);
+  assert.match(html, /<a class="tag" href="#\/stats\/pets\/mining" data-goto-pet="">Pet:/);
+  assert.match(editor('pets', { base: {} }), /class="panel pet-panel"/);
 });
 
 test('HOTM icons: coal, emerald, diamond, redstone block for Core, ability blocks by state', () => {
@@ -346,18 +360,18 @@ test('a floating pet stands beside the figure and opens the picker on its card; 
   const ov = (build) => statsView(world({ build }), { page: 'stats', tab: 'overview', area: 'mining' });
   assert.doesNotMatch(ov(emptyBuild()), /pet-float/);
   const html = ov({ ...emptyBuild(), pet: { id: 'GLACITE_GOLEM', rarity: 'LEGENDARY', level: 100 } });
-  assert.match(html, /<a class="pet-float" href="#\/stats\/power\/mining" data-goto-pet="GLACITE_GOLEM:LEGENDARY"[^>]*><span class="pic pet-pic"[^>]*><img src="img\/hypixel\/pets\/GLACITE_GOLEM_LEGENDARY\.png"/);
-  assert.match(editor('power', { base: {} }), /data-pet-card="GLACITE_GOLEM:LEGENDARY"/);
+  assert.match(html, /<a class="pet-float" href="#\/stats\/pets\/mining" data-goto-pet="GLACITE_GOLEM:LEGENDARY"[^>]*><span class="pic pet-pic"[^>]*><img src="img\/hypixel\/pets\/GLACITE_GOLEM_LEGENDARY\.png"/);
+  assert.match(editor('pets', { base: {} }), /data-pet-card="GLACITE_GOLEM:LEGENDARY"/);
 });
 
 test('attribute rows: icon, name, level and a short effect line; level 0 is greyed', () => {
   const g = { ...mining, sections: [{ name: 'Main', steps: [{ text: 'Ruler', items: [], detect: { kind: 'attr', attr: 'nature_elemental', need: 4 } }] }] };
-  const zero = editor('attributes', { guides: [g] });
+  const zero = editor('attributes', { guides: [g], ui: { attrQuery: 'nature' } });
   assert.ok(zero.includes('class="attr attr-zero"'));
   assert.ok(zero.includes('src="img/hypixel/shards/SHARD_GROVE.png"'));
   assert.ok(zero.includes('data-fb="Na"'));
   assert.ok(zero.includes('<small class="attr-fx">+2 Health</small>')); // level 1 while not set
-  const set = editor('attributes', { guides: [g], build: { ...emptyBuild(), attrs: { nature_elemental: 3 } } });
+  const set = editor('attributes', { guides: [g], build: { ...emptyBuild(), attrs: { nature_elemental: 3 } }, ui: { attrQuery: 'nature_elemental' } });
   assert.ok(!set.includes('attr-zero'));
   assert.ok(set.includes('<small class="attr-fx">+6 Health</small>'));
   assert.ok(set.includes('<span class="attr-lv">3/10'));
@@ -381,14 +395,15 @@ test('the attribute sheet sits over the list with stepper, effects now and next,
 
 test('power editor: the gear panel and the pet item show for Blaze with a pet, not for Mining', () => {
   const pet = { id: 'BLAZE', rarity: 'LEGENDARY', level: 100 };
-  const blaze = statsView(world({ build: { ...emptyBuild(), pet }, base: {} }), { page: 'stats', tab: 'power', area: 'blaze' });
+  const blazeWorld = world({ build: { ...emptyBuild(), pet }, base: {} });
+  const blaze = statsView(blazeWorld, { page: 'stats', tab: 'power', area: 'blaze' }) + statsView(blazeWorld, { page: 'stats', tab: 'pets', area: 'blaze' });
   assert.match(blaze, /data-gear="catacombs"/);
   assert.match(blaze, /max="10"[^>]*data-gear="stars"/);
   assert.match(blaze, /data-gear="hpb" checked/);
   assert.match(blaze, /data-gear="fuming"/);
   assert.match(blaze, /data-pet-item="CROCHET_TIGER_PLUSHIE"/);
   assert.match(blaze, /Not set: Withered and Ancient are listed, not counted/);
-  const none = statsView(world({ build: emptyBuild(), base: {} }), { page: 'stats', tab: 'power', area: 'blaze' });
+  const none = statsView(world({ build: emptyBuild(), base: {} }), { page: 'stats', tab: 'pets', area: 'blaze' });
   assert.doesNotMatch(none, /data-pet-item/);
   assert.doesNotMatch(editor('power', { build: { ...emptyBuild(), pet }, base: {} }), /data-gear=/);
 });

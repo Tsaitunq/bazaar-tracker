@@ -69,3 +69,27 @@ export const shardsToMax = (data, attr, level) => data.attributes.shardsPerLevel
 
 // The short line of a list row: every effect at the level, at level 1 while the attribute is not set.
 export const effectShort = (data, attr, level) => effectLines(data, attr, Math.max(level, 1)).map((l) => l.text).join(' · ');
+
+// The menu categories of the game, in the order of the menu.
+export const ATTR_CATEGORIES = ['combat', 'fishing', 'farming', 'foraging', 'mining', 'taming', 'enchanting', 'hunting', 'global'];
+const WISDOM = { COMBAT: 'combat', MINING: 'mining', FARMING: 'farming', FORAGING: 'foraging', FISHING: 'fishing', ENCHANTING: 'enchanting', TAMING: 'taming', HUNTING: 'hunting' };
+// shortcut: the data has no menu category and 239 of 325 attributes no effects (not confirmed in game); the category comes from the effect stats, else from words in the key. Replace by a confirmed list once there is one.
+const WORDS = [
+  ['fishing', /fish|rod|bait|hook|treasure|lake|karma|sea_|angler|bucket|isopod|nessie|salmon/],
+  ['farming', /honey|visitor|pest|crop|compost|berry|rabbit|chocolate|garden|mutation|greenhouse|cocoa|farmer|lily|sprayonator|egg_finder|fungy/],
+  ['foraging', /forest|tree|wood|foraging|axe|helix|bayou|mangrove|galatea|fig_|sweep|chop|moonglade|tiki|bamb/],
+  ['mining', /mining|dwarven|crystal|atomized|mithril|pickaxe|glacite|mountain|cavern|torrhus|scrap|refined|diamond_frog|essence_of_(ice|fossils)/],
+  ['hunting', /hunt|tracker|trophy|deadeye/],
+  ['taming', /pet_|taming|echo_of/],
+  ['enchanting', /enchant|experience|sharpening/],
+  ['combat', /ruler|catacombs|battle|warrior|dominance|combo|strong_|slayer|kuudra|ignition|infection|payback|essence_of_|reptil|mana_|life|elite|starborn|reborn|faker/],
+];
+export function attrCategory(data, a) {
+  const cats = a.effects.map((e) => {
+    const m = /^(\w+)_WISDOM$/.exec(e.stat);
+    const c = m ? WISDOM[m[1]] : data.stats?.stats.find((s) => s.id === e.stat)?.category;
+    return ATTR_CATEGORIES.includes(c) ? c : null;
+  }).filter(Boolean);
+  if (cats.length) return cats[0];
+  return WORDS.find(([, re]) => re.test(a.key))?.[0] ?? 'global';
+}

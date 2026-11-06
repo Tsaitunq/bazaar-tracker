@@ -1,6 +1,25 @@
 {
   "versions": [
     {
+      "version": "0.13.0",
+      "date": "2026-11-06",
+      "entries": [
+        { "title": "Methods tab", "text": "The Mining guide has two tabs, Gear and Methods, and you can swipe between them; the \"So läuft's\" card is gone." },
+        { "title": "Method pages", "text": "A method page shows which option fits the current Fine Peridot price, the run as numbered steps, loadouts, auto-pet, gear in short and tips." },
+        { "title": "Your drill in step names", "text": "Enchants, gems, reforge and other drill parts are named after the drill you own now, such as DR-X555, or just Drill if you have none; your ticks stay." }
+      ]
+    },
+    {
+      "version": "0.12.0",
+      "date": "2026-11-06",
+      "entries": [
+        { "title": "Attributes by category", "text": "Attributes are sorted like in the game, with category chips on top that remember your choice, and the search no longer jumps while you type." },
+        { "title": "Δ column and Pets tab", "text": "The stats table shows what changed since your measurement, so Total adds up, and pets have their own tab after Essence." },
+        { "title": "Your head on the profile button", "text": "The profile button shows the head of your skin instead of a placeholder." },
+        { "title": "How it works card", "text": "A guide can open with a short \"So läuft's\" card that you can open again with the ⓘ button; the Shafting guide has its full explanation with a contents list." }
+      ]
+    },
+    {
       "version": "0.11.3",
       "date": "2026-11-05",
       "entries": [

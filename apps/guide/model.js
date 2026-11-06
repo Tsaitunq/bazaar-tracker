@@ -162,6 +162,19 @@ function subOf(status, rank, reasons, lines, skipped) {
   return { sub: lines.map((l) => l.text).join(' · '), subColor: lines[0]?.color ?? '' };
 }
 
+// The drill is one slot: its enchants, gems, reforge and other parts move to the next drill with the forge upgrade, so a part is
+// shown with the drill the player has now (the highest drill step ticked), or "Drill" without one. The data keeps the name of the list it came from.
+const DRILL_ID = /_DRILL(_\d+)?$/;
+const onDrill = (step, guide) => [step.detect ?? []].flat().some((d) => (typeof d.on === 'string' ? guide.groups?.[d.on] : d.on)?.flat().some((id) => DRILL_ID.test(id)));
+export function drillNow(guide, checked) {
+  let now = 'Drill';
+  for (const s of guide.sections) {
+    for (const st of s.steps) if (isItemStep(st) && idsOfStep(st, guide).some((id) => DRILL_ID.test(id)) && checked.has(stepKey(s, st))) now = /\bDR-X\d+\b/.exec(st.text)?.[0] ?? st.text;
+  }
+  return now;
+}
+export const drillText = (step, guide, now) => (!isItemStep(step) && step.text.includes(': ') && onDrill(step, guide) ? `${now}: ${step.text.slice(step.text.indexOf(': ') + 2)}` : step.text);
+
 // A group card is named by its first step and what comes with it: "DR-X355 + 5 Enchants" when the others are "DR-X355: <enchant>" lines.
 export function groupName(steps) {
   const [first, ...rest] = steps;
@@ -264,6 +277,8 @@ export function guideModel(guide, world) {
   const ctx = { ...world.prices, products: world.products, auto, profile: null, lockProfile: lockProfile(world.build), marks: world.marks, owned };
   const checked = doneSet(guide, world.marks, auto);
   const implied = impliedDone(guide, checked, stepKey);
+  const drill = drillNow(guide, checked);
+  const named = (step) => drillText(step, guide, drill);
   const held = owned;
   const costs = guideStats(guide, checked, ctx); // also sets what the cost of a book line needs
   const plan = planCached(guide, world, ctx, checked, scores);
@@ -296,7 +311,7 @@ export function guideModel(guide, world) {
     // done without the player having the piece itself: something better replaced it
     const skipped = done && !world.marks.has(key) && (implied.has(key) || (met && isItemStep(step) && !idsOfStep(step, guide).some((id) => held.has(id))));
     const row = {
-      key, name: step.text, status, tier: rank?.tier ?? null,
+      key, name: named(step), status, tier: rank?.tier ?? null,
       ...subOf(status, rank, reasons, ownLines, skipped),
       side: status === 'done' || status === 'locked' ? status : openSide(step, rank, score, ctx),
       progress: found?.have && !met ? `${number(found.have)} / ${number(found.need)}` : '',
@@ -310,15 +325,15 @@ export function guideModel(guide, world) {
       const parts = entry?.parts ? entry.parts.map((delta, j) => ({ step: order[at + j].step, delta })) : null;
       const prices = parts ? unitPrices(entry, { guide, ctx, other: plan.other, keepOldGear: world.keepOldGear }) : [];
       row.card = card = {
-        key, name: parts ? groupName(parts.map((p) => p.step)) : step.text, where: section.name, left: leftText(costs.sections[guide.sections.indexOf(section)], world.products), stats: lines, hint: step.hint ?? '', items: itemLines(open, ctx, world.name ?? String),
+        key, name: parts ? groupName(parts.map((p) => p.step)) : named(step), where: section.name, left: leftText(costs.sections[guide.sections.indexOf(section)], world.products), stats: lines, hint: step.hint ?? '', items: itemLines(open, ctx, world.name ?? String),
         gain: !rank?.gain ? '' : score.gainText(rank.gain),
         cost: costText(open, price, ctx),
         rate: rank?.perMillion === undefined ? '' : score.rateLong(rank.perMillion),
         badge: !!leader && leader.step === step && ['value', 'free'].includes(rank?.group),
         delta: rank?.delta ?? null,
-        parts: parts?.map((p, j) => ({ name: p.step.text, stats: statLines(p.delta), cost: costText(p.step, prices[j], ctx) })) ?? null,
+        parts: parts?.map((p, j) => ({ name: named(p.step), stats: statLines(p.delta), cost: costText(p.step, prices[j], ctx) })) ?? null,
         group: row.group,
-        notes: [...new Set(rank?.notes ?? []), ...(rank?.resale > 0 ? [`Net ${coins(rank.net)} (buy ${coins(rank.coins)} − resale ${coins(rank.resale)})`] : []), ...(rank?.ahead ? [`Counted up to: ${rank.ahead.text}`] : []), ],
+        notes: [...new Set(rank?.notes ?? []), ...(rank?.resale > 0 ? [`Net ${coins(rank.net)} (buy ${coins(rank.coins)} − resale ${coins(rank.resale)})`] : []), ...(rank?.ahead ? [`Counted up to: ${named(rank.ahead)}`] : []), ],
       };
     }
     return row;
@@ -344,24 +359,24 @@ export function guideModel(guide, world) {
   };
 }
 
-const GUIDE_TABS = ['path'];
-export const STATS_TABS = ['overview', 'hotm', 'attributes', 'power', 'essence'];
+const GUIDE_TABS = ['path', 'methods'];
+export const STATS_TABS = ['overview', 'hotm', 'attributes', 'power', 'essence', 'pets'];
 export const STATS_AREAS = ['mining', 'blaze', 'farming'];
 // #/stats, #/stats/<overview|hotm|attributes|power|essence>, #/stats/overview/<area> and #/stats/measure/<area>
 export function parseRoute(hash, guides) {
-  const [, page, id, tab] = String(hash).split('/');
+  const [, page, id, tab, method] = String(hash).split('/');
   if (page === 'settings') return { page };
   if (page === 'stats') {
     const area = STATS_AREAS.includes(tab) ? tab : 'mining';
     if (id === 'measure') return { page, tab: 'measure', area };
     return { page, tab: STATS_TABS.includes(id) ? id : 'overview', area };
   }
-  if (page === 'guide' && (id === 'farming' || guides.some((g) => g.id === id))) return { page, id, tab: GUIDE_TABS.includes(tab) ? tab : 'path' };
+  if (page === 'guide' && (id === 'farming' || guides.some((g) => g.id === id))) return { page, id, tab: GUIDE_TABS.includes(tab) ? tab : 'path', ...(tab === 'methods' && method && { method }) };
   return { page: 'home' };
 }
 
 // Where a sideways drag leads: from a guide the next guide of its area, the one before, and from the first one home; from a stats page the next tab. family: the guide ids of the area in order.
-export function swipeTarget(r, dx, family) {
+export function swipeTarget(r, dx, family, hasMethods = false) {
   if (!dx) return null;
   if (r.page === 'stats' && STATS_TABS.includes(r.tab)) {
     // Overview, HOTM, Attributes, Power, Essence in a row; the ends do not lead anywhere
@@ -369,6 +384,9 @@ export function swipeTarget(r, dx, family) {
     return to ? { hash: `#/stats/${to}/${r.area}`, back: dx > 0 } : null;
   }
   if (r.page !== 'guide') return null;
+  // Gear and Methods in a row: from a method page back to the list, from the list to Gear
+  if (r.tab === 'methods') return dx > 0 ? { hash: r.method ? `#/guide/${r.id}/methods` : `#/guide/${r.id}/path`, back: true } : null;
+  if (hasMethods && dx < 0) return { hash: `#/guide/${r.id}/methods`, back: false };
   const at = Math.max(family.indexOf(r.id), 0);
   if (dx > 0) return { hash: at > 0 ? `#/guide/${family[at - 1]}/path` : '#/', back: true };
   return at + 1 < family.length ? { hash: `#/guide/${family[at + 1]}/path`, back: false } : null;

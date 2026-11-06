@@ -46,3 +46,9 @@ export function gearPanel(world) {
     ${num('fuming', 'Fuming Potato Books (0–' + HPB.fumingMax + ')', HPB.fumingMax, g.fuming, 'The Blaze pet doubling is assumed to double Fuming books too.')}
     <small>Order of the maths on a piece (assumed): (item stats × stars + books) × Bling Armor, then reforge and enchants.</small></div>`;
 }
+
+// The Pets tab: the picker and the pet item.
+export function petsView(world, r, head) {
+  if (!world.gamedata) return `<div class="scroll">${head}<p class="note">Loading game data…</p></div>`;
+  return `<div class="scroll">${head}${petPanel(world, r)}${petItemPanel(world)}</div>`;
+}

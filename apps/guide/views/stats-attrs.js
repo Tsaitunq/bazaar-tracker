@@ -1,6 +1,6 @@
 // The attribute editor: the attributes the guides ask for first, then all of them with a search.
 import { esc } from '../../../shared/format.js';
-import { usedAttrs, findAttrs, nextShards, shardsToMax, effectLines, effectShort } from '../attrs-model.js';
+import { usedAttrs, findAttrs, nextShards, shardsToMax, effectLines, effectShort, ATTR_CATEGORIES, attrCategory } from '../attrs-model.js';
 import { draftBar, stepper, pic } from './editors.js';
 
 const SHOWN = 60;
@@ -27,23 +27,37 @@ function sheet(data, a, level, have) {
 // The measured value of each stat, for effects that scale with another stat (Freezing Spread: per Cold Resistance).
 const statsNow = (world) => Object.assign({}, ...Object.values(world.base ?? {}).map((e) => e.values ?? {}));
 
+const cap = (c) => c[0].toUpperCase() + c.slice(1);
+
+// The list under the search: the only part a keystroke redraws, so the field keeps its focus and cursor.
+export function attrResults(world) {
+  const data = world.gamedata;
+  const levels = world.draft?.attrs ?? world.build.attrs ?? {};
+  const used = usedAttrs(world.guides);
+  const cat = world.ui?.attrCat ?? 'all';
+  const found = findAttrs(data.attributes.attributes, world.ui?.attrQuery).filter((a) => cat === 'all' || attrCategory(data, a) === cat);
+  const rows = ATTR_CATEGORIES.map((c) => ({ c, items: found.filter((a) => attrCategory(data, a) === c) })).filter((g) => g.items.length);
+  let left = SHOWN;
+  const groups = rows.map((g) => {
+    const items = g.items.slice(0, Math.max(left, 0));
+    left -= items.length;
+    return items.length ? `<h3 class="attr-cat">${cap(g.c)}</h3><div class="attr-list">${items.map((a) => row(data, a, levels[a.key] ?? 0, used.get(a.key))).join('')}</div>` : '';
+  }).join('');
+  return `${groups}${found.length > SHOWN ? `<small>${found.length - SHOWN} more: pick a category or narrow the search.</small>` : ''}${found.length ? '' : '<small>Nothing found.</small>'}`;
+}
+
 export function attrsView(world, r, head) {
   const data = world.gamedata;
   if (!data) return `<div class="scroll">${head}<p class="note">Loading game data…</p></div>`;
   const levels = world.draft?.attrs ?? world.build.attrs ?? {};
-  const all = data.attributes.attributes;
-  const used = usedAttrs(world.guides);
-  const inGuides = all.filter((a) => used.has(a.key));
-  const unknown = [...used.keys()].filter((k) => !all.some((a) => a.key === k));
-  const open = all.find((a) => a.key === world.ui?.attr);
-  const list = (items) => items.map((a) => row(data, a, levels[a.key] ?? 0, used.get(a.key))).join('');
-  const found = findAttrs(all, world.ui?.attrQuery);
-  const allBox = world.ui?.attrAll
-    ? `<div class="panel"><label class="field">Search<input type="search" data-attr-query value="${esc(world.ui?.attrQuery ?? '')}" placeholder="Name or shard"></label><div class="attr-list">${list(found.slice(0, SHOWN))}</div>${found.length > SHOWN ? `<small>${found.length - SHOWN} more: narrow the search.</small>` : ''}${found.length ? '' : '<small>Nothing found.</small>'}<button type="button" class="ghost" data-attr-all>Hide all</button></div>`
-    : `<button type="button" class="ghost" data-attr-all>Show all ${all.length}</button>`;
+  const open = data.attributes.attributes.find((a) => a.key === world.ui?.attr);
+  const cat = world.ui?.attrCat ?? 'all';
+  const chip = (c) => `<button type="button" class="chip-btn${cat === c ? ' on' : ''}" data-attr-cat="${c}" aria-pressed="${cat === c}">${cap(c)}</button>`;
   const set = Object.values(levels).filter((v) => v > 0).length;
   return `<div class="scroll">${head}${draftBar(world, 'attrs', 'attributes')}
-    <div class="panel"><h2>In your guides <span class="count">${set} set</span></h2><div class="attr-list">${list(inGuides) || '<small>No guide asks for an attribute.</small>'}</div>${unknown.length ? `<small>Not in the data: ${esc(unknown.join(', '))}</small>` : ''}</div>
+    <div class="panel"><h2>Attributes <span class="count">${set} set</span></h2><div class="chips cat-chips" role="group" aria-label="Category">${['all', ...ATTR_CATEGORIES].map(chip).join('')}</div>
+    <label class="field">Search<input type="search" data-attr-query value="${esc(world.ui?.attrQuery ?? '')}" placeholder="Name or shard"></label>
+    <div data-attr-results>${attrResults(world)}</div></div>
     <p class="note">Tap an attribute to set its level.</p>
-    ${allBox}${open ? sheet(data, open, levels[open.key] ?? 0, statsNow(world)) : ''}</div>`;
+    ${open ? sheet(data, open, levels[open.key] ?? 0, statsNow(world)) : ''}</div>`;
 }
