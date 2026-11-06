@@ -162,6 +162,19 @@ function subOf(status, rank, reasons, lines, skipped) {
   return { sub: lines.map((l) => l.text).join(' · '), subColor: lines[0]?.color ?? '' };
 }
 
+// The drill is one slot: its enchants, gems, reforge and other parts move to the next drill with the forge upgrade, so a part is
+// shown with the drill the player has now (the highest drill step ticked), or "Drill" without one. The data keeps the name of the list it came from.
+const DRILL_ID = /_DRILL(_\d+)?$/;
+const onDrill = (step, guide) => [step.detect ?? []].flat().some((d) => (typeof d.on === 'string' ? guide.groups?.[d.on] : d.on)?.flat().some((id) => DRILL_ID.test(id)));
+export function drillNow(guide, checked) {
+  let now = 'Drill';
+  for (const s of guide.sections) {
+    for (const st of s.steps) if (isItemStep(st) && idsOfStep(st, guide).some((id) => DRILL_ID.test(id)) && checked.has(stepKey(s, st))) now = /\bDR-X\d+\b/.exec(st.text)?.[0] ?? st.text;
+  }
+  return now;
+}
+export const drillText = (step, guide, now) => (!isItemStep(step) && step.text.includes(': ') && onDrill(step, guide) ? `${now}: ${step.text.slice(step.text.indexOf(': ') + 2)}` : step.text);
+
 // A group card is named by its first step and what comes with it: "DR-X355 + 5 Enchants" when the others are "DR-X355: <enchant>" lines.
 export function groupName(steps) {
   const [first, ...rest] = steps;
@@ -264,6 +277,8 @@ export function guideModel(guide, world) {
   const ctx = { ...world.prices, products: world.products, auto, profile: null, lockProfile: lockProfile(world.build), marks: world.marks, owned };
   const checked = doneSet(guide, world.marks, auto);
   const implied = impliedDone(guide, checked, stepKey);
+  const drill = drillNow(guide, checked);
+  const named = (step) => drillText(step, guide, drill);
   const held = owned;
   const costs = guideStats(guide, checked, ctx); // also sets what the cost of a book line needs
   const plan = planCached(guide, world, ctx, checked, scores);
@@ -296,7 +311,7 @@ export function guideModel(guide, world) {
     // done without the player having the piece itself: something better replaced it
     const skipped = done && !world.marks.has(key) && (implied.has(key) || (met && isItemStep(step) && !idsOfStep(step, guide).some((id) => held.has(id))));
     const row = {
-      key, name: step.text, status, tier: rank?.tier ?? null,
+      key, name: named(step), status, tier: rank?.tier ?? null,
       ...subOf(status, rank, reasons, ownLines, skipped),
       side: status === 'done' || status === 'locked' ? status : openSide(step, rank, score, ctx),
       progress: found?.have && !met ? `${number(found.have)} / ${number(found.need)}` : '',
@@ -310,15 +325,15 @@ export function guideModel(guide, world) {
       const parts = entry?.parts ? entry.parts.map((delta, j) => ({ step: order[at + j].step, delta })) : null;
       const prices = parts ? unitPrices(entry, { guide, ctx, other: plan.other, keepOldGear: world.keepOldGear }) : [];
       row.card = card = {
-        key, name: parts ? groupName(parts.map((p) => p.step)) : step.text, where: section.name, left: leftText(costs.sections[guide.sections.indexOf(section)], world.products), stats: lines, hint: step.hint ?? '', items: itemLines(open, ctx, world.name ?? String),
+        key, name: parts ? groupName(parts.map((p) => p.step)) : named(step), where: section.name, left: leftText(costs.sections[guide.sections.indexOf(section)], world.products), stats: lines, hint: step.hint ?? '', items: itemLines(open, ctx, world.name ?? String),
         gain: !rank?.gain ? '' : score.gainText(rank.gain),
         cost: costText(open, price, ctx),
         rate: rank?.perMillion === undefined ? '' : score.rateLong(rank.perMillion),
         badge: !!leader && leader.step === step && ['value', 'free'].includes(rank?.group),
         delta: rank?.delta ?? null,
-        parts: parts?.map((p, j) => ({ name: p.step.text, stats: statLines(p.delta), cost: costText(p.step, prices[j], ctx) })) ?? null,
+        parts: parts?.map((p, j) => ({ name: named(p.step), stats: statLines(p.delta), cost: costText(p.step, prices[j], ctx) })) ?? null,
         group: row.group,
-        notes: [...new Set(rank?.notes ?? []), ...(rank?.resale > 0 ? [`Net ${coins(rank.net)} (buy ${coins(rank.coins)} − resale ${coins(rank.resale)})`] : []), ...(rank?.ahead ? [`Counted up to: ${rank.ahead.text}`] : []), ],
+        notes: [...new Set(rank?.notes ?? []), ...(rank?.resale > 0 ? [`Net ${coins(rank.net)} (buy ${coins(rank.coins)} − resale ${coins(rank.resale)})`] : []), ...(rank?.ahead ? [`Counted up to: ${named(rank.ahead)}`] : []), ],
       };
     }
     return row;
