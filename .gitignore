@@ -9,3 +9,5 @@ timing-backfill.json.partial.json
 personal/
 apps/guide/img/hypixel/
 _site/
+apps/api/.dev.vars
+apps/api/.wrangler/
