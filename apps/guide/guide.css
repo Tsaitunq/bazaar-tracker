@@ -444,3 +444,14 @@ a { color: var(--area); }
 .tile-cat small { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tile-now { border-color: var(--area); }
 .cat-note { margin: 0; padding: 8px 10px; border-radius: 10px; background: var(--deep); border: 1px solid var(--line); font-size: 12px; line-height: 1.4; color: var(--soft); }
+
+/* the profile import: rows of suggestions */
+.ghost-link { min-height: 44px; display: inline-flex; align-items: center; padding: 0 16px; border-radius: 22px; border: 1px solid var(--line); color: var(--soft); font-size: 13px; text-decoration: none; }
+.imp-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 0; }
+.imp-row .imp-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 13px; color: var(--soft); }
+.imp-row .imp-body small { color: var(--muted); }
+.imp-new { color: var(--stat-green); }
+.imp-different, .imp-suggest, .imp-partial { color: var(--stat-yellow); }
+.imp-conflict { color: var(--stat-red); }
+[data-page="import"] summary { min-height: 44px; display: flex; align-items: center; font-size: 13px; font-weight: 700; color: var(--soft); cursor: pointer; }
+[data-page="import"] h3 { margin: 6px 0 0; font-size: 12px; font-weight: 700; color: var(--muted); }

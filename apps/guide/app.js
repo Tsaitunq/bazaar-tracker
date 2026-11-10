@@ -16,6 +16,10 @@ import { guideView, hasMethods } from './views/guide.js';
 import { statsView } from './views/stats.js';
 import { attrResults } from './views/stats-attrs.js';
 import { settingsView } from './views/settings.js';
+import { importView } from './views/import.js';
+import { listProfiles, fetchProfile, defaultProfile, validName, ImportError } from './import/api.js';
+import { summarize } from './import/profile.js';
+import { proposals, applyRows, undoImport, hasUndo, isPickable, isSuggestion } from './import/propose.js';
 import { paintFigures } from './skin.js';
 import { decide, finishTour, STEPS, tourHtml, newsHtml } from './intro.js';
 
@@ -56,6 +60,11 @@ let draft = load('pg.draft', {}); // a part the measurement did not know, typed 
 let wantPet = false; // the Pet tag or the floating pet was tapped: the pets tab opens on the pet picker (true) or on that pet's card (its key)
 let ui = { attrCat: load('pg.attrCat', 'all') }; // the perk, attribute and search that are open; not saved
 let gamedata = null;
+// The profile import. All of it stays on this device: the name and chosen profile, the summary (numbers and ids only) and one step of undo.
+let api = load('pg.api', null); // { name, profileId, own }
+let profile = load('pg.profile', null);
+let undo = load('pg.undo', null);
+let imp = { profiles: null, profileId: null, nameDraft: null, busy: false, message: '', offline: false, retryUntil: 0, confirm: null, picked: new Set(), since: false };
 const bins = load('pg.bins', {});
 let products = null;
 let forge = null;
@@ -108,11 +117,27 @@ const world = () => {
     prices: { forge, ah, cofl: freshBins(bins), wants: pending, items, tax: (settings.tax ?? DEFAULT_TAX) / 100, derpy: election?.mayor?.name === 'Derpy' },
     settings: miningSettings(settings.mining), keepOldGear: settings.keepOldGear === true, brake: settings.brake > 0 ? settings.brake : 5, pathEpoch, opened, items,
     name: (id) => names[id] ?? fallbackName(id), tax: settings.tax ?? DEFAULT_TAX, importedIds: imported.map((g) => g.id),
-    methods, loading, dataMessage, dataText, armed,
+    methods, loading, dataMessage, dataText, armed, imp: impWorld(),
   };
 };
 
+// What the settings block and the import screen show. The rows are worked out only on the import screen.
+function impWorld() {
+  const cooling = Math.max(0, Math.ceil((imp.retryUntil - Date.now()) / 1000));
+  const out = {
+    available: isNative(), name: imp.nameDraft ?? api?.name ?? '', savedName: api?.name ?? null, ownName: api?.own ?? null, profiles: imp.profiles,
+    profileId: imp.profileId ?? api?.profileId ?? null, busy: imp.busy, message: imp.message, cooling, confirm: imp.confirm?.kind ?? null,
+    hasProfile: !!profile, profileName: profile?.profileName ?? null, fetchedAt: profile?.fetchedAt ?? null, undo: hasUndo(undo), offline: imp.offline,
+    since: imp.since, picked: imp.picked,
+  };
+  if (profile && gamedata && route().page === 'import') {
+    out.areas = proposals({ guides: guides(), checks: live(), owned, build, base, draft, gamedata }, profile);
+  }
+  return out;
+}
+
 function screenOf(r, w) {
+  if (r.page === 'import') return importView(w);
   if (r.page === 'stats') return statsView(w, r);
   if (r.page === 'settings') return settingsView(w);
   if (r.page === 'guide') return guideView(w, r.id, r) ?? homeView(w);
@@ -483,6 +508,123 @@ function saveBuild() {
   draw();
 }
 
+
+// ---- the profile import -------------------------------------------------------------------------------------------------------
+// Every call runs only on a tap, in try/catch, and leaves the stores as they were when it fails: the app never waits for it.
+const sameName = (a, b) => String(a ?? '').toLowerCase() === String(b ?? '').toLowerCase();
+const impSet = (patch) => { imp = { ...imp, ...patch }; draw(); };
+
+function impFail(e) {
+  const known = e instanceof ImportError;
+  const wait = known && e.retryAfter && (e.kind === 'limit' || e.kind === 'upstream') ? Date.now() + e.retryAfter * 1000 : 0;
+  imp = { ...imp, busy: false, confirm: null, message: known ? e.message : 'The inventories in the profile could not be read.', offline: known && e.kind === 'offline', retryUntil: wait };
+  if (wait) setTimeout(draw, wait - Date.now() + 100);
+  draw();
+}
+
+async function impProfiles() {
+  const name = (imp.nameDraft ?? api?.name ?? '').trim();
+  if (imp.busy) return;
+  if (!validName(name)) return impFail(new ImportError('name'));
+  impSet({ busy: true, message: '', nameDraft: name });
+  try {
+    const list = await listProfiles(name);
+    const pick = defaultProfile(list, sameName(api?.name, name) ? api.profileId : null);
+    impSet({ busy: false, profiles: list, profileId: pick?.id ?? null, offline: false, message: list.length ? '' : 'No profiles found for this name.' });
+  } catch (e) { impFail(e); }
+}
+
+// A new name replaces the stored import state, so that is asked first. The own name (the one first applied) stays.
+async function impLoad(confirmed = false) {
+  const name = (imp.nameDraft ?? api?.name ?? '').trim();
+  const id = imp.profileId ?? api?.profileId;
+  if (imp.busy || !id) return;
+  if (!gamedata) return impSet({ message: 'The game data is still loading. Try again in a moment.' });
+  if (!validName(name)) return impFail(new ImportError('name'));
+  if (profile && api && !sameName(api.name, name) && !confirmed) return impSet({ confirm: { kind: 'replace' } });
+  impSet({ busy: true, message: '', confirm: null });
+  try {
+    const answer = await fetchProfile(name, id);
+    const next = await summarize(answer, gamedata, Date.now());
+    profile = next;
+    api = { name, profileId: id, own: api?.own ?? null };
+    save('pg.profile', profile);
+    save('pg.api', api);
+    imp = { ...imp, nameDraft: null, picked: new Set(), offline: false };
+    impSet({ busy: false, message: next.missing.list.length ? `Loaded. In the game the API is off for: ${next.missing.list.join(', ')}.` : 'Loaded.' });
+  } catch (e) { impFail(e); }
+}
+
+const impRows = () => proposals({ guides: guides(), checks: live(), owned, build, base, draft, gamedata }, profile).flatMap((a) => a.rows);
+
+function impRun(rows) {
+  if (!rows.length) return;
+  const out = applyRows({ guides: guides(), checks, keys, owned, build, base, draft, dates }, rows, { now: Date.now(), newSince: imp.since });
+  ({ checks, keys, owned, build, base, draft, dates } = out.state);
+  undo = out.undo;
+  if (!api.own) api = { ...api, own: api.name };
+  save('pg.checks', checks); save('pg.keys', keys); save('pg.owned', owned); save('pg.build', build); save('pg.base', base); save('pg.draft', draft); save('pg.dates', dates);
+  save('pg.undo', undo);
+  save('pg.api', api);
+  dataText = '';
+  pathEpoch++;
+  root.querySelectorAll('[data-imp-pick]').forEach(settled);
+  imp = { ...imp, picked: new Set(), confirm: null };
+  impSet({ message: `Taken: ${out.counts.ticks} checkmarks, ${out.counts.values} values. You can undo this in the settings.` });
+}
+
+// rows go through the same check whoever asked: a name that is not the saved one is asked about once more
+function impApply(rows) {
+  if (!profile || !api) return;
+  if (!sameName(api.own, api.name)) return impSet({ confirm: { kind: 'foreign', ids: rows.map((r) => r.id) } });
+  impRun(rows);
+}
+
+function impUndo() {
+  if (!hasUndo(undo)) return;
+  const out = undoImport({ guides: guides(), checks, keys, owned, build, base, draft, dates }, undo);
+  ({ checks, keys, owned, build, base, draft, dates } = out.state);
+  undo = null;
+  save('pg.checks', checks); save('pg.keys', keys); save('pg.owned', owned); save('pg.build', build); save('pg.base', base); save('pg.draft', draft); save('pg.dates', dates);
+  drop('pg.undo');
+  pathEpoch++;
+  impSet({ message: out.kept.length ? `Undone, except what you changed since: ${out.kept.join(', ')}.` : 'Undone.' });
+}
+
+function impClear() {
+  profile = null;
+  api = null;
+  drop('pg.profile');
+  drop('pg.api');
+  imp = { ...imp, profiles: null, profileId: null, nameDraft: null, picked: new Set(), confirm: null, offline: false };
+  impSet({ message: 'Profile data deleted from this device.' });
+}
+
+function impConfirm(yes) {
+  const c = imp.confirm;
+  if (!c) return undefined;
+  if (!yes) return impSet({ confirm: null });
+  if (c.kind === 'replace') return impLoad(true);
+  if (c.kind === 'clear') return impClear();
+  // asked once: from here on this name is the saved own one
+  api = { ...api, own: api.name };
+  const ids = new Set(c.ids);
+  return impRun(impRows().filter((r) => ids.has(r.id)));
+}
+
+function impClick(el) {
+  const d = el.dataset;
+  if ('impPick' in d) {
+    const picked = new Set(imp.picked);
+    if (!picked.delete(d.impPick)) picked.add(d.impPick);
+    return impSet({ picked });
+  }
+  if ('impAll' in d) return impApply(impRows().filter((r) => r.area === d.impAll && isPickable(r)));
+  if ('impApply' in d) return impApply(impRows().filter((r) => imp.picked.has(r.id) && isPickable(r)));
+  if ('impOne' in d) return impApply(impRows().filter((r) => r.id === d.impOne && isSuggestion(r)));
+  return impConfirm(d.impConfirm === 'yes');
+}
+
 function tabTarget(tab) {
   const r = route();
   if (r.page === 'guide') return `#/guide/${r.id}/${tab}`;
@@ -493,6 +635,8 @@ root.addEventListener('click', (e) => {
   const el = (selector) => e.target.closest(selector);
   const tab = el('[data-tab]');
   if (tab) { location.hash = tabTarget(tab.dataset.tab); return; }
+  const impEl = el('[data-imp-pick], [data-imp-all], [data-imp-apply], [data-imp-one], [data-imp-confirm]');
+  if (impEl) { impClick(impEl); return; }
   if (el('[data-info]')) { openInfo(); return; }
   const step = el('[data-step]');
   if (step) { if (step.closest('.card')) markCard(step, step.dataset.step); else toggle(step.dataset.step); return; }
@@ -563,6 +707,10 @@ root.addEventListener('click', (e) => {
   if (act === 'tour') tourStart();
   if (act === 'news' && changelog) newsShow(changelog.versions);
   if (act === 'export') runExport();
+  if (act === 'imp-profiles') impProfiles();
+  if (act === 'imp-load') impLoad();
+  if (act === 'imp-undo') impUndo();
+  if (act === 'imp-clear') impSet({ confirm: { kind: 'clear' } });
   if (act === 'import') runImport(root.querySelector('[data-json]').value);
   if (act === 'import-file') root.querySelector('[data-import-file]').click();
   const removeGuide = el('[data-remove-guide]');
@@ -574,6 +722,7 @@ root.addEventListener('click', (e) => {
 });
 
 root.addEventListener('input', (e) => {
+  if (e.target.matches('[data-imp-name]')) { imp.nameDraft = e.target.value; return; } // no redraw: the field would lose its cursor
   if (!e.target.matches('[data-attr-query]')) return;
   ui = { ...ui, attrQuery: e.target.value };
   const results = root.querySelector('[data-attr-results]');
@@ -582,6 +731,9 @@ root.addEventListener('input', (e) => {
 
 root.addEventListener('change', async (e) => {
   const { dataset } = e.target;
+  if (e.target.matches('[data-imp-profile]')) { settled(e.target); return impSet({ profileId: e.target.value }); }
+  if (e.target.matches('[data-imp-since]')) { settled(e.target); return impSet({ since: e.target.checked }); }
+  if (e.target.matches('[data-imp-name]')) { settled(e.target); imp.nameDraft = e.target.value; return undefined; }
   if (e.target.matches('[data-hotm-tier]')) { settled(e.target); return edit('hotm', hotmTier(e.target.value === '' ? null : Number(e.target.value))); }
   if (e.target.matches('[data-hotm-omelette]')) { settled(e.target); return edit('hotm', omelette(e.target.checked)); }
   if (e.target.matches('[data-perk-level]')) { settled(e.target); return setLevel('perk', e.target.value); }

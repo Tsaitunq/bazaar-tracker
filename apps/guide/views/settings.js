@@ -3,6 +3,7 @@ import { esc } from '../../../shared/format.js';
 import { PRESETS } from '../optimizer.js';
 import { bottomBar } from './parts.js';
 import { HOME_TABS } from './home.js';
+import { importSettings } from './import.js';
 
 const WEIGHTS = [['wF', 'Fortune weight'], ['wS', 'Speed weight'], ['wP', 'Pristine weight'], ['blockStrength', 'Block strength']];
 const words = (s) => s[0].toUpperCase() + s.slice(1);
@@ -37,5 +38,5 @@ export function settingsView(world) {
     ${world.guides.map((g) => resetRow(g, world.armed, world.importedIds?.includes(g.id))).join('')}
   </section>`;
   const help = '<section class="panel"><h2>Help</h2><div class="actions"><button type="button" class="ghost" data-act="tour">Restart tour</button><button type="button" class="ghost" data-act="news">What&#39;s new</button></div></section>';
-  return `<div class="screen screen-home" data-theme="home" data-page="settings"><div class="home-title"><h1>Settings</h1></div><div class="scroll">${help}${mining}${data}</div>${bottomBar(HOME_TABS, 'settings')}</div>`;
+  return `<div class="screen screen-home" data-theme="home" data-page="settings"><div class="home-title"><h1>Settings</h1></div><div class="scroll">${help}${importSettings(world)}${mining}${data}</div>${bottomBar(HOME_TABS, 'settings')}</div>`;
 }

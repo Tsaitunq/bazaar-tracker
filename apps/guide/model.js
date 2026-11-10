@@ -437,6 +437,7 @@ export const STATS_AREAS = ['mining', 'blaze', 'farming'];
 export function parseRoute(hash, guides) {
   const [, page, id, tab, method] = String(hash).split('/');
   if (page === 'settings') return { page };
+  if (page === 'import') return { page };
   if (page === 'stats') {
     const area = STATS_AREAS.includes(tab) ? tab : 'mining';
     if (id === 'measure') return { page, tab: 'measure', area };
