@@ -10,13 +10,13 @@ const OUT = 'apps/guide/shots';
 const WEB = 'apps/guide/www-guide';
 const VIEWPORT = { width: 390, height: 844 };
 // the phones of the device test: every screen is shot on both, and a guide opens with its whole card in sight
-const PHONES = [VIEWPORT, { width: 412, height: 915 }];
+const PHONES = [VIEWPORT, { width: 412, height: 915 }, { width: 360, height: 780 }];
 const fixture = JSON.parse(fs.readFileSync('tests/fixtures/guide/world.json', 'utf8'));
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.woff2': 'font/woff2', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
 
 const SHOTS = [
   ['home', '#/'], ['stats-measure', '#/stats/measure/mining'], ['stats-hotm', '#/stats/hotm/mining'], ['stats-blaze', '#/stats/overview/blaze'], ['mining-path', '#/guide/mining/path'],
-  ['shafting-path', '#/guide/shafting/path'], ['blaze-path', '#/guide/blaze-slayer/path'],
+  ['shafting-path', '#/guide/shafting/path'], ['blaze-path', '#/guide/blaze-slayer/path'], ['blaze-category', '#/guide/blaze-slayer/path/armor'], ['shafting-category', '#/guide/shafting/path/armor'],
   ['methods-list', '#/guide/mining/methods'], ['method-top', '#/guide/mining/methods/sample'], ['farming', '#/guide/farming/path'], ['settings', '#/settings'], ['stats', '#/stats'],
 ];
 
@@ -39,11 +39,8 @@ const MEASURES = [
     ['.card-stat', 'font-size', '15px'], ['.card-gain', 'font-size', '13px'], ['.card-foot', 'font-size', '13px'], ['.primary', 'height', '44px'],
     ['.step-dot.dot-current', 'box-shadow', 'rgb(92, 200, 255) 0px 0px 14px 0px'],
   ]],
-  ['Blaze path', '#/guide/blaze-slayer/path', [
-    ['.screen', 'row-gap', '12px'], ['.stats', 'padding', '12px 14px', COMPACT], ['.stats', 'row-gap', '10px', COMPACT], ['.stats', 'column-gap', '8px'],
-    ['.stat-label', 'font-size', '11px'], ['.stat-value', 'font-size', '18px', COMPACT], ['.stat-delta', 'font-size', '12px'],
-    ['.chip', 'padding', '8px 12px', COMPACT], ['.chip', 'border-radius', '14px', COMPACT], ['.chips', 'font-size', '12px'],
-    ['.card', 'padding', '12px 14px'], ['.card-name', 'font-size', '16px'], ['.card-box', 'padding', '8px 12px'], ['.card-box', 'border-radius', '12px'], ['.card-stat', 'font-size', '14px'], ['.row', 'padding', '10px 0px 9px'],
+  ['Blaze category', '#/guide/blaze-slayer/path/armor', [
+    ['.screen', 'row-gap', '12px'], ['.card', 'padding', '12px 14px'], ['.card-name', 'font-size', '16px'], ['.card-box', 'padding', '8px 12px'], ['.card-box', 'border-radius', '12px'], ['.card-stat', 'font-size', '14px'], ['.row', 'padding', '10px 0px 9px'],
   ]],
   ['Farming', '#/guide/farming/path', [['.screen', 'padding', '18px 20px 12px'], ['.ring-title h1', 'font-size', '22px', COMPACT]]],
 ];

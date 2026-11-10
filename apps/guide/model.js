@@ -267,6 +267,51 @@ export function milestonesOf(guide, order, checked, ctx, products) {
   };
 }
 
+// A step of an attribute (a shard): it counts in the Attributes block, not in a category.
+const attrOf = (step) => [step.detect ?? []].flat().find((d) => d.kind === 'attr') ?? null;
+const titled = (id) => id[0].toUpperCase() + id.slice(1).replace(/[-_]/g, ' ');
+
+// The overview of a guide with categories: tiles, prerequisites, attributes. The ring counts the steps of the path:
+// no prerequisite and no attribute in it.
+function structureOf(guide, all, rows, checked, ctx, card, world) {
+  const inPath = rows.filter((r) => !r.attr && !all.find((e) => e.key === r.key)?.section.extra);
+  const categories = guide.categories.map((id) => {
+    const mine = inPath.filter((r) => r.category === id);
+    const done = mine.filter((r) => r.status === 'done').length;
+    const first = mine.find((r) => r.catCard);
+    const open = mine.filter((r) => r.status !== 'done');
+    const locked = !first && open.length && open.every((r) => r.status === 'locked' || r.tier === 'locked');
+    const power = id === 'power' ? world.build?.power?.mp : null;
+    const left = first ? `Next: ${first.name}` : locked ? `Locked · ${open[0].reasons?.[0] ?? ''}`.replace(/ · $/, '') : open.length ? `Next: ${open[0].name}` : mine.length ? 'All done' : 'No steps';
+    const next = power ? `${left} · ${number(power)} MP` : left;
+    return { id, name: titled(id), done, total: mine.length, share: mine.length ? done / mine.length : 0, next, locked: !!locked, current: !!card && mine.some((r) => r.key === card.key) };
+  });
+  const prereqs = all.filter((e) => e.step.prereq && !attrOf(e.step)).map((e) => ({ key: e.key, name: e.step.text, done: checked.has(e.key) }));
+  const attrs = all.filter((e) => attrOf(e.step));
+  const attributes = attrs.length ? {
+    done: attrs.filter((e) => checked.has(e.key)).length, total: attrs.length,
+    // the dear ones are no chip: they stay open entries with their cost, and can still be the best next step
+    open: attrs.filter((e) => !e.step.prereq && !checked.has(e.key)).map((e) => ({ key: e.key, name: e.step.text, cost: costText(openStep(e.section, e.step, ctx), stepCost(openStep(e.section, e.step, ctx), ctx), ctx) })),
+  } : null;
+  return { categories, prereqs, attributes, started: categories.filter((c) => c.done > 0).length, startNote: guide.startNote ?? '', video: guide.video ?? '', notes: guide.notes ?? {}, best: rows.find((r) => r.card) ? (rows.find((r) => r.card).attr ? 'Attributes' : titled(rows.find((r) => r.card).category)) : null };
+}
+
+// The page of one category: its rows by the plan, with the first open one as a card.
+export function categoryPage(m, id) {
+  const c = m.structure?.categories.find((x) => x.id === id);
+  if (!c) return null;
+  const rows = m.rows.filter((r) => r.category === id && !r.attr);
+  const at = rows.findIndex((r) => r.catCard);
+  const limit = at >= 0 ? at : rows.map((r) => r.status).lastIndexOf('done');
+  const shown = rows.map((r, i) => {
+    const out = { ...r, railTop: i <= limit, railBottom: i < limit };
+    if (r.catCard) out.card = { ...r.catCard, railTop: out.railTop, railBottom: out.railBottom };
+    else delete out.card;
+    return out;
+  });
+  return { ...c, note: m.structure.notes[id] ?? '', rows: shown };
+}
+
 const withNext = (n) => (n === 1 ? 'with the next step' : `with the next ${n} steps`);
 
 // The world holds what the app knows: marks, the synced state, prices and settings. rows: done first in guide order, then the path, then the extras.
@@ -286,7 +331,10 @@ export function guideModel(guide, world) {
   const entries = new Map((plan.path?.order ?? []).map((e) => [e.step, e]));
   const leader = plan.path?.order[0] ?? null;
   const all = guide.sections.flatMap((section) => section.steps.map((step) => ({ section, step, key: stepKey(section, step) })));
-  const ranked = all.filter((e) => !e.section.extra);
+  const structured = !!guide.categories?.length;
+  const categoryOf = (step) => (structured ? step.category ?? guide.categories[0] : null);
+  // a prereq step is not on the path: it shows as a chip
+  const ranked = all.filter((e) => !e.section.extra && !e.step.prereq);
   const inPlace = plan.path ? [...ranked.filter((e) => checked.has(e.key)), ...plan.path.order.filter((e) => !checked.has(e.key))] : ranked;
   const shownSteps = [...inPlace, ...all.filter((e) => e.section.extra)];
 
@@ -295,7 +343,29 @@ export function guideModel(guide, world) {
   const own = new Map();
   order.forEach((e, i) => e.parts?.forEach((d, j) => order[i + j] && own.set(order[i + j].step, d)));
 
+  // the card of a step: what to buy, what it brings, what it costs
+  const cardOf = (section, step, key, entry, rank, lines, group) => {
+    const open = openStep(section, step, ctx);
+    const price = rank?.units ? rank : stepCost(open, ctx);
+    const at = order.indexOf(entry);
+    const parts = entry?.parts ? entry.parts.map((delta, j) => ({ step: order[at + j].step, delta })) : null;
+    const prices = parts ? unitPrices(entry, { guide, ctx, other: plan.other, keepOldGear: world.keepOldGear }) : [];
+    return {
+      key, name: parts ? groupName(parts.map((p) => p.step)) : named(step), where: section.name, left: leftText(costs.sections[guide.sections.indexOf(section)], world.products), stats: lines, hint: step.hint ?? '', items: itemLines(open, ctx, world.name ?? String),
+      gain: !rank?.gain ? '' : score.gainText(rank.gain),
+      cost: costText(open, price, ctx),
+      rate: rank?.perMillion === undefined ? '' : score.rateLong(rank.perMillion),
+      badge: !!leader && leader.step === step && ['value', 'free'].includes(rank?.group),
+      delta: rank?.delta ?? null,
+      parts: parts?.map((p, j) => ({ name: named(p.step), stats: statLines(p.delta), cost: costText(p.step, prices[j], ctx) })) ?? null,
+      group,
+      notes: [...new Set(rank?.notes ?? []), ...(rank?.resale > 0 ? [`Net ${coins(rank.net)} (buy ${coins(rank.coins)} − resale ${coins(rank.resale)})`] : []), ...(rank?.ahead ? [`Counted up to: ${named(rank.ahead)}`] : []), ],
+    };
+
+  };
+
   let card = null;
+  const seen = new Set();
   const rows = shownSteps.map(({ section, step, key }) => {
     const done = checked.has(key);
     // only what the build proves locks a step (the HOTM tier); unknown is never locked
@@ -311,30 +381,19 @@ export function guideModel(guide, world) {
     // done without the player having the piece itself: something better replaced it
     const skipped = done && !world.marks.has(key) && (implied.has(key) || (met && isItemStep(step) && !idsOfStep(step, guide).some((id) => held.has(id))));
     const row = {
-      key, name: named(step), status, tier: rank?.tier ?? null,
+      key, name: named(step), status, tier: rank?.tier ?? null, category: section.extra && !step.category ? null : categoryOf(step), attr: !!attrOf(step), reasons,
       ...subOf(status, rank, reasons, ownLines, skipped),
       side: status === 'done' || status === 'locked' ? status : openSide(step, rank, score, ctx),
       progress: found?.have && !met ? `${number(found.have)} / ${number(found.need)}` : '',
       group: entry?.group?.head && entry.group.left > 0 ? withNext(entry.group.left) : '',
       member: !!entry?.group && !entry.group.head,
     };
-    if (status === 'current') {
-      const open = openStep(section, step, ctx);
-      const price = rank?.units ? rank : stepCost(open, ctx);
-      const at = order.indexOf(entry);
-      const parts = entry?.parts ? entry.parts.map((delta, j) => ({ step: order[at + j].step, delta })) : null;
-      const prices = parts ? unitPrices(entry, { guide, ctx, other: plan.other, keepOldGear: world.keepOldGear }) : [];
-      row.card = card = {
-        key, name: parts ? groupName(parts.map((p) => p.step)) : named(step), where: section.name, left: leftText(costs.sections[guide.sections.indexOf(section)], world.products), stats: lines, hint: step.hint ?? '', items: itemLines(open, ctx, world.name ?? String),
-        gain: !rank?.gain ? '' : score.gainText(rank.gain),
-        cost: costText(open, price, ctx),
-        rate: rank?.perMillion === undefined ? '' : score.rateLong(rank.perMillion),
-        badge: !!leader && leader.step === step && ['value', 'free'].includes(rank?.group),
-        delta: rank?.delta ?? null,
-        parts: parts?.map((p, j) => ({ name: named(p.step), stats: statLines(p.delta), cost: costText(p.step, prices[j], ctx) })) ?? null,
-        group: row.group,
-        notes: [...new Set(rank?.notes ?? []), ...(rank?.resale > 0 ? [`Net ${coins(rank.net)} (buy ${coins(rank.coins)} − resale ${coins(rank.resale)})`] : []), ...(rank?.ahead ? [`Counted up to: ${named(rank.ahead)}`] : []), ],
-      };
+    if (status === 'current') row.card = card = cardOf(section, step, key, entry, rank, lines, row.group);
+    // the first open step of each category gets its own card, for the page of the category
+    const cat = row.category;
+    if (structured && cat && !step.prereq && !attrOf(step) && !done && status !== 'locked' && rank?.group !== 'locked' && !seen.has(cat)) {
+      seen.add(cat);
+      row.catCard = row.card ?? cardOf(section, step, key, entry, rank, lines, row.group);
     }
     return row;
   });
@@ -349,12 +408,14 @@ export function guideModel(guide, world) {
   });
 
   const milestones = milestonesOf(guide, inPlace, checked, ctx, world.products);
-  const chapters = chaptersOf(guide, checked, costs, card?.key).map((c) => ({ ...c, leftText: c.current && c.done < c.total ? leftText(c.left, world.products) : '' }));
+  let chapters = chaptersOf(guide, checked, costs, card?.key).map((c) => ({ ...c, leftText: c.current && c.done < c.total ? leftText(c.left, world.products) : '' }));
+  const parts = structured ? structureOf(guide, all, rows, checked, ctx, card, world) : null;
+  if (parts) chapters = parts.categories.map((c) => ({ name: c.name, share: c.share, done: c.done, total: c.total, current: c.current, left: { coins: 0, unpriced: 0 }, leftText: '' }));
   // a stat with no typed base is unknown, not 0
   const shown = plan.base ?? null;
   const grid = shown ? (GRIDS[guide.area] ?? []).map((k) => ({ key: k, icon: STATS[k].icon, label: STATS[k].short ?? STATS[k].label, color: STATS[k].color, value: shown[k] === undefined ? '–' : number(shown[k]), delta: '' })) : [];
   return {
-    id: guide.id, source: guide.source ?? '', products: world.products, area: guide.area, theme: guide.area ?? 'home', name: guide.title, chapters, milestones, total: totalShare(chapters),
+    id: guide.id, source: guide.source ?? '', products: world.products, area: guide.area, theme: guide.area ?? 'home', name: guide.title, chapters, milestones, total: totalShare(chapters), ...(parts && { structure: parts }),
     stats: statDelta(grid, card?.delta ?? null), chips: plan.path?.limits ?? null, rows, card, score, leader, missing: plan.missing ?? null, notes: plan.notes ?? [], leftOut: plan.leftOut ?? null, daggerMissing: !!plan.daggerMissing, usedCofl: !!ctx.usedCofl,
   };
 }
@@ -371,7 +432,10 @@ export function parseRoute(hash, guides) {
     if (id === 'measure') return { page, tab: 'measure', area };
     return { page, tab: STATS_TABS.includes(id) ? id : 'overview', area };
   }
-  if (page === 'guide' && (id === 'farming' || guides.some((g) => g.id === id))) return { page, id, tab: GUIDE_TABS.includes(tab) ? tab : 'path', ...(tab === 'methods' && method && { method }) };
+  if (page === 'guide' && (id === 'farming' || guides.some((g) => g.id === id))) {
+    const category = tab === 'path' && guides.find((g) => g.id === id)?.categories?.includes(method) ? method : null;
+    return { page, id, tab: GUIDE_TABS.includes(tab) ? tab : 'path', ...(tab === 'methods' && method && { method }), ...(category && { category }) };
+  }
   return { page: 'home' };
 }
 
@@ -384,6 +448,8 @@ export function swipeTarget(r, dx, family, hasMethods = false) {
     return to ? { hash: `#/stats/${to}/${r.area}`, back: dx > 0 } : null;
   }
   if (r.page !== 'guide') return null;
+  // a category page leads back to the overview, and nowhere else
+  if (r.category) return dx > 0 ? { hash: `#/guide/${r.id}/path`, back: true } : null;
   // Gear and Methods in a row: from a method page back to the list, from the list to Gear
   if (r.tab === 'methods') return dx > 0 ? { hash: r.method ? `#/guide/${r.id}/methods` : `#/guide/${r.id}/path`, back: true } : null;
   if (hasMethods && dx < 0) return { hash: `#/guide/${r.id}/methods`, back: false };

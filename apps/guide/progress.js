@@ -38,6 +38,8 @@ function validGain(g) {
 const KEY = /^[A-Za-z0-9_.-]+(:[A-Za-z0-9_.-]+)+$/;
 const validKey = (k) => (typeof k === 'string' && KEY.test(k) ? k : null);
 
+const CATEGORY = /^[a-z][a-z0-9_-]{0,23}$/;
+
 function validStep(s) {
   if (!text(s?.text)) return null;
   if (s.key !== undefined && !validKey(s.key)) return null;
@@ -46,7 +48,24 @@ function validStep(s) {
   const detect = validDetect(s.detect);
   const gain = validGain(s.gain);
   const after = Array.isArray(s.after) ? s.after.filter(text) : [];
-  return { text: s.text, ...(s.key && { key: s.key }), ...(detect && { detect }), ...(gain && { gain }), ...(items.length && { items }), ...(text(s.hint) && { hint: s.hint }), ...(s.table === true && { table: true }), ...(s.calc === true && { calc: true }), ...(text(s.line) && { line: s.line }), ...(Number.isInteger(s.priority) && s.priority > 0 && { priority: s.priority }), ...(text(s.group) && { group: s.group }), ...(after.length && { after }) };
+  const needs = Array.isArray(s.needs) ? s.needs.filter(text) : [];
+  return { text: s.text, ...(s.key && { key: s.key }), ...(detect && { detect }), ...(gain && { gain }), ...(items.length && { items }), ...(text(s.hint) && { hint: s.hint }), ...(s.table === true && { table: true }), ...(s.calc === true && { calc: true }), ...(text(s.line) && { line: s.line }), ...(Number.isInteger(s.priority) && s.priority > 0 && { priority: s.priority }), ...(text(s.group) && { group: s.group }), ...(after.length && { after }), ...(needs.length && { needs }), ...(CATEGORY.test(s.category ?? '') && { category: s.category }), ...(s.prereq === true && { prereq: true }) };
+}
+
+// The categories of a guide, in the order of the overview. A step of an unlisted category falls to the first one; none listed, none shown.
+function validCategories(list, sections) {
+  if (!Array.isArray(list)) return null;
+  const kept = [...new Set(list.filter((c) => typeof c === 'string' && CATEGORY.test(c)))];
+  if (!kept.length) return null;
+  for (const sec of sections) for (const st of sec.steps) if (st.category && !kept.includes(st.category)) st.category = kept[0];
+  return kept;
+}
+
+// A short hint per category, shown on its page.
+function validNotes(n, categories) {
+  if (!categories || !n || typeof n !== 'object' || Array.isArray(n)) return null;
+  const kept = Object.entries(n).filter(([c, t]) => categories.includes(c) && text(t));
+  return kept.length ? Object.fromEntries(kept) : null;
 }
 
 // Sections grouped for the ring of the guide app. A name that is no section drops out, and a chapter left empty with it.
@@ -103,9 +122,14 @@ export function validGuide(g) {
   const legacy = validLegacy(g.legacy);
   const ownedKeys = validOwnedKeys(g.ownedKeys);
   const groups = validGroups(g.groups);
+  const categories = validCategories(g.categories, sections);
+  // a need that names no step of the guide (or the step itself) is dropped, so a typo never hides a step for good
+  const known = new Set(sections.flatMap((x) => x.steps.map((st) => st.text)));
+  for (const sec of sections) for (const st of sec.steps) if (st.needs) { st.needs = st.needs.filter((n) => known.has(n) && n !== st.text); if (!st.needs.length) delete st.needs; }
+  const notes = validNotes(g.notes, categories);
   const chapters = validChapters(g.chapters, sections);
   const milestones = validMilestones(g.milestones, sections);
-  return { title: g.title, ...(text(g.label) && { label: g.label }), ...(/^https?:\/\//i.test(g.source ?? '') && { source: g.source }), ...(['mining', 'blaze', 'farming'].includes(g.area) && { area: g.area }), ...(['fixed', 'value'].includes(g.order) && { order: g.order }), ...(text(g.preset) && { preset: g.preset }), ...(chapters && { chapters }), ...(milestones && { milestones }), ...(legacy && { legacy }), ...(ownedKeys && { ownedKeys }), ...(groups && { groups }), sections };
+  return { title: g.title, ...(text(g.label) && { label: g.label }), ...(/^https?:\/\//i.test(g.source ?? '') && { source: g.source }), ...(['mining', 'blaze', 'farming'].includes(g.area) && { area: g.area }), ...(['fixed', 'value'].includes(g.order) && { order: g.order }), ...(text(g.preset) && { preset: g.preset }), ...(chapters && { chapters }), ...(milestones && { milestones }), ...(legacy && { legacy }), ...(ownedKeys && { ownedKeys }), ...(groups && { groups }), ...(categories && { categories }), ...(notes && { notes }), ...(text(g.startNote) && { startNote: g.startNote }), ...(/^https?:\/\//i.test(g.video ?? '') && { video: g.video }), sections };
 }
 
 const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'guide';

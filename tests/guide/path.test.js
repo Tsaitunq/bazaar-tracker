@@ -268,3 +268,20 @@ test('a fixed guide: sections ranked by value follow the fixed ones, best coins 
   const path = run(g, { A: sold(1e6), B: sold(1e6), C: sold(1e6), D: sold(1e6) });
   assert.deepEqual(texts(path), ['first', 'second', 'cheap', 'dear']);
 });
+
+test('a step that needs another never comes before it, however good its value', () => {
+  const g = guideOf([step('late', 'A', 100, { needs: ['early'] }), step('early', 'B', 1)]);
+  const products = { A: sold(1e6), B: sold(1e6) };
+  assert.deepEqual(texts(run(g, products)), ['early', 'late']);
+  // done needs release the step at once
+  assert.deepEqual(texts(run(g, products, { done: ['early'] })), ['late']);
+  // without prices the guide order holds, and a need still goes first
+  assert.deepEqual(texts(run(g, undefined)), ['early', 'late']);
+});
+
+test('a chain of needs keeps its order and a cycle still ends', () => {
+  const chain = guideOf([step('c', 'C', 90, { needs: ['b'] }), step('b', 'B', 50, { needs: ['a'] }), step('a', 'A', 1)]);
+  assert.deepEqual(texts(run(chain, { A: sold(1e6), B: sold(1e6), C: sold(1e6) })), ['a', 'b', 'c']);
+  const loop = guideOf([step('x', 'X', 5, { needs: ['y'] }), step('y', 'Y', 5, { needs: ['x'] })]);
+  assert.equal(texts(run(loop, { X: sold(1e6), Y: sold(1e6) })).length, 2);
+});

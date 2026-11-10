@@ -1,9 +1,10 @@
 // A guide: its path. Also the stats of all guides, reached through the profile button.
 import { esc, number } from '../../../shared/format.js';
-import { guideModel, worldFor, familyOf } from '../model.js';
+import { guideModel, worldFor, familyOf, categoryPage } from '../model.js';
 import { ring, legend, nextMilestone, statGrid, pathRow, stepCard, chips, bottomBar, backLink, profileLink, icon, shortSection } from './parts.js';
 import { HOME_TABS } from './home.js';
 import { methodView, methodsListView } from './methods.js';
+import { overviewHead, overviewBody, categoryHead, categoryBody } from './structure.js';
 
 const FARMING = { id: 'farming', title: 'Farming', area: 'farming', sections: [] };
 
@@ -51,6 +52,18 @@ function tabs(guide, at) {
 
 const screenClass = (theme) => `screen${theme === 'blaze' ? ' screen-blaze' : ''}`;
 
+// A guide with categories opens on its overview; a tile leads to the page of one category.
+function structured(world, guide, m, r) {
+  const page = r.category ? categoryPage(m, r.category) : null;
+  const top = page
+    ? `<div class="top"><a class="back" href="#/guide/${esc(guide.id)}/path"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>${esc(guide.label ?? guide.title)}</a>${profileLink()}</div>`
+    : `<div class="top">${backLink()}${m.source ? `<a class="source" href="${esc(m.source)}" rel="noopener">Source</a>` : ''}${infoButton(m)}${profileLink()}</div>`;
+  const body = page
+    ? `${categoryHead(m, page)}${categoryBody(page)}`
+    : `${overviewHead(m)}${m.milestones ? `<p class="milestone">${esc(nextMilestone(m.milestones))}</p>` : ''}${missingNote(m)}<div class="path overview">${overviewBody(m)}</div>`;
+  return `<div class="${screenClass(m.theme)}" data-theme="${esc(m.theme)}">${top}${page ? '' : `${switcher(world, guide)}${hasMethods(world, guide) ? tabs(guide, 0) : ''}`}${body}${page ? '' : infoSheet(m)}</div>`;
+}
+
 export function guideView(world, id, r = {}) {
   const guide = world.guides.find((g) => g.id === id) ?? (id === FARMING.id ? FARMING : null);
   if (!guide) return null;
@@ -63,6 +76,7 @@ export function guideView(world, id, r = {}) {
   const told = guide.sections.filter((s) => shortSection(s.name) !== s.name).map((s) => `${shortSection(s.name)}: ${s.name.slice(shortSection(s.name).length).trim().slice(1, -1)}`);
   const m = told.length ? { ...model, notes: [...model.notes, ...told] } : model;
   const empty = !guide.sections.length;
+  if (m.structure && !empty) return structured(world, guide, m, r);
   const body = empty ? '<div class="empty"><strong>Guide coming soon</strong></div>' : pathTab(m);
   return `<div class="${screenClass(m.theme)}" data-theme="${esc(m.theme)}"><div class="top">${backLink()}${m.source ? `<a class="source" href="${esc(m.source)}" rel="noopener">Source</a>` : ''}${infoButton(m)}${profileLink()}</div>${switcher(world, guide)}${hasMethods(world, guide) ? tabs(guide, 0) : ''}${head(m, empty)}${body}${infoSheet(m)}</div>`;
 }

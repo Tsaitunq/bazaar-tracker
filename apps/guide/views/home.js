@@ -17,7 +17,7 @@ function guideCard(m) {
   const next = m.card ? `Next: ${m.card.name}` : 'All steps are done';
   const label = `${m.name} ${Math.round(m.total * 100)}%`;
   const arcs = m.milestones ? ring({ chapters: [{ share: m.total }], total: m.total, size: 70, label, marks: m.milestones.marks }) : ring({ chapters: m.chapters, total: m.total, size: 70, label });
-  const where = m.milestones ? nextMilestone(m.milestones) : `Chapter ${at + 1} · ${m.chapters[at].name}`;
+  const where = m.milestones ? nextMilestone(m.milestones) : m.structure ? `Category · ${m.chapters[at].name}` : `Chapter ${at + 1} · ${m.chapters[at].name}`;
   return `<a class="guide-card" data-theme="${esc(m.theme)}" href="#/guide/${esc(m.id)}/path">${arcs}<span class="guide-info"><strong>${esc(m.name)}</strong><small>${esc(where)}</small><em>${esc(next)}</em></span></a>`;
 }
 

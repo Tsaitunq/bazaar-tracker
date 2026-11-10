@@ -1,6 +1,15 @@
 {
   "versions": [
     {
+      "version": "0.14.0",
+      "date": "2026-11-10",
+      "entries": [
+        { "title": "Guide overview", "text": "A guide opens on an overview with its best next step, the prerequisites you tick off, your attributes and one tile per category such as Armor or Pets." },
+        { "title": "Category pages", "text": "Tap a tile to see the steps of that category in order of value, with a note from the guide on top; swipe right or tap the arrow to go back." },
+        { "title": "Steps that wait", "text": "A step can now wait for another one, so a Legendary Blaze Pet comes before the armor that needs it." }
+      ]
+    },
+    {
       "version": "0.13.0",
       "date": "2026-11-06",
       "entries": [

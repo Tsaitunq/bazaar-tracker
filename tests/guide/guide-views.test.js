@@ -415,3 +415,20 @@ test('Blaze measure: the Combat menu with Ferocity, Speed and Magic Find, withou
   assert.match(html, /keep your accessories on/);
   assert.doesNotMatch(statsView(world({ base: {} }), { page: 'stats', tab: 'measure', area: 'mining' }), /keep your accessories on/);
 });
+
+test('a guide with categories opens on its overview and a category page', async () => {
+  const { guideView } = await import('../../apps/guide/views/guide.js');
+  const { gamedata, baseOf, emptyBuild } = await import('../fixtures/guide-world.js');
+  const { miningSettings } = await import('../../apps/guide/optimizer.js');
+  const sold = (p) => ({ buy_summary: [{ pricePerUnit: p, amount: 100 }] });
+  const g = { id: 'g', title: 'G', area: 'mining', groups: {}, categories: ['armor', 'misc'], startNote: 'Starts late.', notes: { armor: 'Hot tier.' }, video: 'https://example.com/v',
+    sections: [{ name: 'S', steps: [{ text: 'one', category: 'armor', gain: { MINING_FORTUNE: 8 }, items: [{ id: 'A', qty: 1 }] }, { text: 'chip', prereq: true }, { text: 'Shard', items: [{ id: 'A', qty: 1 }], detect: { kind: 'attr', attr: 'x', need: 1 } }] }] };
+  const w = { guides: [g], checks: {}, marks: new Set(), owned: [], base: baseOf({ mining: { values: { MINING_SPEED: 1000, MINING_FORTUNE: 100 } } }), build: emptyBuild(), gamedata, products: { A: sold(1e6) }, prices: { items: {} }, settings: miningSettings(null), now: 1 };
+  const over = guideView(w, 'g', { tab: 'path' });
+  for (const part of ['categories started', 'Best next step', 'href="https://example.com/v"', 'Start here', 'Starts late.', 'data-attr-guide="g"', 'href="#/guide/g/path/armor"', '0 / 1 maxed']) assert.ok(over.includes(part), part);
+  assert.ok(!/class="row/.test(over)); // no long list on the overview
+  const page = guideView(w, 'g', { tab: 'path', category: 'armor' });
+  assert.ok(page.includes('Hot tier.') && page.includes('href="#/guide/g/path"') && page.includes('data-step'));
+  const plain = guideView({ ...w, guides: [{ ...g, categories: undefined }] }, 'g', { tab: 'path' });
+  assert.ok(!plain.includes('categories started'));
+});
