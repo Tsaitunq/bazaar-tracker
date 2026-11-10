@@ -51,7 +51,7 @@ export async function handle(request, env, deps = { fetch: (...a) => fetch(...a)
       });
     }
     return reply(200, result.value, {
-      'Cache-Control': 'public, max-age=3600',
+      'Cache-Control': 'private, max-age=300',
       'X-Cache': result.hit ? 'HIT' : 'MISS',
       'X-Cache-Mojang': mojang.hit ? 'HIT' : 'MISS',
     });

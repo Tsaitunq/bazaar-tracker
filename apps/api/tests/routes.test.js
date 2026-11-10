@@ -13,6 +13,7 @@ test('profiles: uuid and profile list, notice, cache headers', async () => {
   assert.equal(b.notAffiliated, NOTICE);
   assert.equal(res.headers.get('X-Cache'), 'MISS');
   assert.equal(res.headers.get('X-Cache-Mojang'), 'MISS');
+  assert.equal(res.headers.get('Cache-Control'), 'private, max-age=300');
   assert.equal(res.headers.get('Content-Type'), 'application/json; charset=utf-8');
 });
 

@@ -76,7 +76,7 @@ Root `npm test` is `node --test`, which finds `apps/api/tests/*.test.js` already
 ## Cache, limit, headers
 
 - Cache keys (synthetic, lowercase name, no personal data in headers): `mojang/<name>` 1 day; `profiles/<uuid>` 1 h; `profile/<uuid>/<profileId>` 1 h. Only the trimmed response is stored, never the raw Hypixel body. Name→UUID is the one personal mapping that is cached; it expires after 1 day.
-- Header `X-Cache: HIT|MISS` (and `X-Cache-Mojang` on lookups that miss), `Cache-Control: public, max-age=3600`.
+- Header `X-Cache: HIT|MISS` (and `X-Cache-Mojang` on lookups that miss), `Cache-Control: private, max-age=300`.
 - Order: method → path/validate → CORS → rate limit (counts hits too) → cache → upstream.
 - CORS: exact match against `https://localhost`, `capacitor://localhost`, `http://localhost:<port>` (and per decision 3 the Pages origin). Others: no `Access-Control-Allow-Origin` (request still answered; browsers block). `Vary: Origin` always. OPTIONS answered with 204. CORS headers are added after the cache lookup so a cached response is never bound to one origin.
 - No logging of names, UUIDs, IPs or the key. `console.error` only on upstream failure with status code and endpoint kind. `wrangler.toml` has `[observability]` off; `wrangler tail` still works.
