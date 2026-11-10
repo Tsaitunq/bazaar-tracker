@@ -288,7 +288,7 @@ export function pathOf({ guide, checked, ctx, profile, loadout, base, settings, 
   const open = guide.sections.flatMap((section) => (section.extra ? [] : section.steps.flatMap((step) => {
     const key = stepKey(section, step);
     index++;
-    return checked.has(key) ? [] : [{ section, step, key, index }];
+    return checked.has(key) || step.prereq ? [] : [{ section, step, key, index }];
   })));
   const world = { profile, loadout, base, state };
   // a fixed guide may hold sections that are ranked by value (coins per 1 %); they follow the fixed ones, in the state those leave
