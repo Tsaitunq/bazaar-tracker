@@ -162,3 +162,16 @@ test('the attribute sheet closes on its backdrop and button, does not swipe, and
   assert.ok(app.includes("!e.target.closest('input, select, .bsheet, .sheet-back')"));
   assert.ok(app.includes('if (ui.attr && shownRoute && JSON.stringify(route()) !== shownRoute)'));
 });
+
+test('a category page is a route of its own, an unknown category falls back to the overview', () => {
+  const gs = [{ id: 'blaze-slayer', categories: ['armor', 'pets'] }, { id: 'plain' }];
+  assert.deepEqual(parseRoute('#/guide/blaze-slayer/path/armor', gs), { page: 'guide', id: 'blaze-slayer', tab: 'path', category: 'armor' });
+  assert.deepEqual(parseRoute('#/guide/blaze-slayer/path/nope', gs), { page: 'guide', id: 'blaze-slayer', tab: 'path' });
+  assert.deepEqual(parseRoute('#/guide/plain/path/armor', gs), { page: 'guide', id: 'plain', tab: 'path' });
+});
+
+test('a swipe on a category page goes back to the overview and nowhere else', () => {
+  const r = { page: 'guide', id: 'g', tab: 'path', category: 'armor' };
+  assert.deepEqual(swipeTarget(r, 40, ['g', 'h'], true), { hash: '#/guide/g/path', back: true });
+  assert.equal(swipeTarget(r, -40, ['g', 'h'], true), null);
+});

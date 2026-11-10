@@ -431,7 +431,10 @@ export function parseRoute(hash, guides) {
     if (id === 'measure') return { page, tab: 'measure', area };
     return { page, tab: STATS_TABS.includes(id) ? id : 'overview', area };
   }
-  if (page === 'guide' && (id === 'farming' || guides.some((g) => g.id === id))) return { page, id, tab: GUIDE_TABS.includes(tab) ? tab : 'path', ...(tab === 'methods' && method && { method }) };
+  if (page === 'guide' && (id === 'farming' || guides.some((g) => g.id === id))) {
+    const category = tab === 'path' && guides.find((g) => g.id === id)?.categories?.includes(method) ? method : null;
+    return { page, id, tab: GUIDE_TABS.includes(tab) ? tab : 'path', ...(tab === 'methods' && method && { method }), ...(category && { category }) };
+  }
   return { page: 'home' };
 }
 
@@ -444,6 +447,8 @@ export function swipeTarget(r, dx, family, hasMethods = false) {
     return to ? { hash: `#/stats/${to}/${r.area}`, back: dx > 0 } : null;
   }
   if (r.page !== 'guide') return null;
+  // a category page leads back to the overview, and nowhere else
+  if (r.category) return dx > 0 ? { hash: `#/guide/${r.id}/path`, back: true } : null;
   // Gear and Methods in a row: from a method page back to the list, from the list to Gear
   if (r.tab === 'methods') return dx > 0 ? { hash: r.method ? `#/guide/${r.id}/methods` : `#/guide/${r.id}/path`, back: true } : null;
   if (hasMethods && dx < 0) return { hash: `#/guide/${r.id}/methods`, back: false };
