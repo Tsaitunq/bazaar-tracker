@@ -2,6 +2,15 @@
 
 Branch `feat/api-worker` (from `main`). Small commits, tests green after each, git identity `Tsaitunq`. No deploy, no push, no merge. The Hypixel key exists only as the Worker secret `HYPIXEL_KEY`: never in code, repo, log, test or fixture.
 
+## Decisions (answered)
+
+1. KV for the cache only (profiles 1 h, Mojang 1 day); a KV error is answered without cache. Rate limit through the Rate Limiting binding, not KV. Own domain later.
+2. 10 requests per 60 s per IP.
+3. CORS: no github.io. Only `https://localhost`, `capacitor://localhost`, `http://localhost[:port]`.
+4. Live checks (attribute level, wardrobe source, CPU) are a checklist in `docs/api-worker.md`.
+
+The section below is the original question list; the layout and tests follow the answers above.
+
 ## Decisions needed before I start
 
 1. **Cache API does not work on `*.workers.dev`** (Cloudflare docs, to be re-checked when I build; it silently stores nothing). Your cache (1 h / 1 day) and the cache-based rate limit both depend on it. Options:
