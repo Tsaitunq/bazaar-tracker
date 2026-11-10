@@ -219,6 +219,14 @@ function entriesOf(move, tier, rest = false) {
   }));
 }
 
+// A step with needs waits until each needed step is done or already on the path. When none is ready (a cycle, a need that never comes) the open steps go on in order, so the path always ends.
+function readyOf(left, order, env) {
+  if (!left.some((e) => e.step.needs)) return left;
+  const have = new Set([...env.done, ...order.map((e) => e.step.text)]);
+  const ready = left.filter((e) => !e.step.needs || e.step.needs.every((n) => have.has(n)));
+  return ready.length ? ready : left;
+}
+
 function nextRound(open, picked) {
   const taken = new Set(picked.map((e) => e.key));
   return open.filter((e) => !taken.has(e.key));
@@ -230,8 +238,8 @@ function inGuideOrder(open, world, env) {
   let now = world;
   let left = open;
   while (left.length) {
-    const entry = left[0];
-    const members = entry.step.group ? left.filter((e) => e.step.group === entry.step.group) : [entry];
+    const entry = readyOf(left, order, env)[0];
+    const members = entry.step.group ? readyOf(left, order, env).filter((e) => e.step.group === entry.step.group) : [entry];
     const move = moveOf(members.map((m) => [m]), now, env);
     const entries = entriesOf(move, move.tier);
     order.push(...entries);
@@ -248,9 +256,10 @@ function byValue(open, world, env, doneCost) {
   let left = open;
   let spent = doneCost;
   while (left.length) {
-    const moves = candidates(left, env, now);
+    const ready = readyOf(left, order, env);
+    const moves = candidates(ready, env, now);
     // groups blocking each other: the first open step goes on its own, so the path always ends
-    const chosen = pick(moves.length ? moves : [moveOf([[left[0]]], now, env)], env.brake * Math.max(spent, FLOOR));
+    const chosen = pick(moves.length ? moves : [moveOf([[ready[0]]], now, env)], env.brake * Math.max(spent, FLOOR));
     const entries = entriesOf(chosen.move, chosen.tier, chosen.rest);
     order.push(...entries);
     if (!chosen.rest) {
@@ -273,7 +282,8 @@ function spentSoFar(guide, checked, env) {
 
 export function pathOf({ guide, checked, ctx, profile, loadout, base, settings, brake = DEFAULT_BRAKE, other = null, keepOldGear = false, state = null }) {
   const nt = new Set(guide.sections.flatMap((s) => s.steps.flatMap((step) => (step.items ?? []).filter((i) => i.nt && i.id).map((i) => i.id))));
-  const env = { guide, ctx: { ...ctx, profile }, settings, other, keepOldGear, nt, brake: brake > 0 ? brake : DEFAULT_BRAKE };
+  const done = new Set(guide.sections.flatMap((s) => s.steps.filter((step) => checked.has(stepKey(s, step))).map((step) => step.text)));
+  const env = { guide, ctx: { ...ctx, profile }, settings, other, keepOldGear, nt, done, brake: brake > 0 ? brake : DEFAULT_BRAKE };
   let index = 0;
   const open = guide.sections.flatMap((section) => (section.extra ? [] : section.steps.flatMap((step) => {
     const key = stepKey(section, step);
