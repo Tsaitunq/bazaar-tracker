@@ -15,24 +15,42 @@ const fail = (kind, upstream, retryAfter) => {
   return new HttpError(502, `${kind} request failed`, { upstream, retryAfter });
 };
 
-// name -> dashless lowercase UUID. Unknown name -> 404.
+const UA = 'progression-guides-api';
+const TIMEOUT_MS = 3000;
+const ID = /^[0-9a-f]{32}$/i;
+
+// Sources in order; the first that answers wins. Only 404/204 means "name does not exist".
+// Anything else (403, 429, 5xx, timeout, bad body) goes on to the next source.
+export const NAME_SOURCES = [
+  { id: 'minecraftservices', url: (n) => `https://api.minecraftservices.com/minecraft/profile/lookup/name/${n}`, uuid: (j) => j && j.id },
+  { id: 'mojang', url: (n) => `https://api.mojang.com/users/profiles/minecraft/${n}`, uuid: (j) => j && j.id },
+  // Community service; the id comes dashed.
+  { id: 'playerdb', url: (n) => `https://playerdb.co/api/player/minecraft/${n}`, uuid: (j) => j && j.data && j.data.player && (j.data.player.raw_id || j.data.player.id) },
+];
+
+// name -> dashless lowercase UUID. Unknown name -> 404; every source failing -> 502.
 export async function mojangUuid(name, deps) {
-  let res;
-  try {
-    res = await deps.fetch(`https://api.mojang.com/users/profiles/minecraft/${name}`);
-  } catch {
-    throw fail('mojang', 'network');
+  let retryAfter;
+  for (const s of NAME_SOURCES) {
+    let status = 'network';
+    try {
+      const res = await deps.fetch(s.url(name), { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(TIMEOUT_MS) });
+      status = res.status;
+      if (status === 204 || status === 404) throw new HttpError(404, 'unknown player name');
+      if (res.ok) {
+        status = 'bad body';
+        const id = String(s.uuid(await res.json()) || '').replace(/-/g, '');
+        if (ID.test(id)) return id.toLowerCase();
+      } else {
+        retryAfter = res.headers.get('Retry-After') || retryAfter;
+      }
+    } catch (e) {
+      if (e instanceof HttpError) throw e;
+      if (e && e.name === 'TimeoutError') status = 'timeout';
+    }
+    console.error(`name lookup failed: ${s.id} ${status}`);
   }
-  if (res.status === 204 || res.status === 404) throw new HttpError(404, 'unknown player name');
-  if (!res.ok) throw fail('mojang', res.status, res.headers.get('Retry-After'));
-  let j;
-  try {
-    j = await res.json();
-  } catch {
-    throw fail('mojang', 'bad json');
-  }
-  if (!j || typeof j.id !== 'string' || !/^[0-9a-f]{32}$/i.test(j.id)) throw fail('mojang', 'bad body');
-  return j.id.toLowerCase();
+  throw new HttpError(502, 'name lookup failed', { upstream: 'all', retryAfter });
 }
 
 export async function hypixelGet(path, env, deps) {

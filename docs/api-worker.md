@@ -17,6 +17,7 @@ GET only, JSON.
 - A field Hypixel does not send (usually: API settings off in game) is left out and listed in `missing`, e.g. `"inventories.wardrobe"`.
 - `inventories.*` are the raw base64 strings of the profile (gzipped NBT). The worker does not decode them. The app does; the old reader is `nbt.js` in git history (`git show d349c31^:nbt.js`).
 - Errors: `400` bad name or profile id, `404` unknown name / profile / not a member, `405` not GET, `429` too many requests (10 per 60 s per IP, `Retry-After: 60`), `502` Hypixel or Mojang failed (a `Retry-After` from upstream is passed on), `500` bug.
+- Name to UUID: tries `api.minecraftservices.com`, then `api.mojang.com`, then `playerdb.co` (3 s each, User-Agent `progression-guides-api`). Only 404/204 means the name does not exist; 403, 429, 5xx or a timeout moves on to the next source. Mojang answered 403 from Cloudflare, hence the chain.
 - Headers: `X-Cache: HIT|MISS` (answer), `X-Cache-Mojang: HIT|MISS` (name lookup).
 - CORS: only `https://localhost`, `capacitor://localhost` and `http://localhost[:port]`.
 

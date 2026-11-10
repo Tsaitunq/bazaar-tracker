@@ -23,7 +23,8 @@ export function fakeFetch(over = {}) {
     calls.push({ url: String(url), headers: init.headers || {} });
     const u = new URL(url);
     if (over[u.host]) return over[u.host](u);
-    if (u.host === 'api.mojang.com') return json({ id: UUID, name: 'x' });
+    if (u.host === 'api.minecraftservices.com' || u.host === 'api.mojang.com') return json({ id: UUID, name: 'x' });
+    if (u.host === 'playerdb.co') return json({ success: true, data: { player: { raw_id: UUID, id: UUID.replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, '$1-$2-$3-$4-$5') } } });
     if (u.pathname === '/v2/skyblock/profiles') return json({ success: true, profiles: [profile] });
     if (u.pathname === '/v2/skyblock/profile') return json({ success: true, profile });
     return new Response('?', { status: 500 });
@@ -31,6 +32,9 @@ export function fakeFetch(over = {}) {
   f.calls = calls;
   return f;
 }
+
+// Same answer from all three name-lookup hosts.
+export const nameHosts = (fn) => ({ 'api.minecraftservices.com': fn, 'api.mojang.com': fn, 'playerdb.co': fn });
 
 export const json404 = () => new Response('', { status: 404 });
 

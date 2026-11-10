@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { call, fakeFetch, fakeKV, json404, PID, UUID, profile } from './helpers.js';
+import { call, fakeFetch, fakeKV, json404, nameHosts, PID, UUID, profile } from './helpers.js';
 
 const NOTICE = 'Not affiliated with or endorsed by Hypixel';
 
@@ -85,13 +85,13 @@ test('routing: 404 unknown path, 405 other methods, 204 OPTIONS', async () => {
 });
 
 test('errors: unknown name 404, unknown profile 404, non-member 404', async () => {
-  let r = await call('/v1/profiles/Some_Name', { fetch: fakeFetch({ 'api.mojang.com': () => new Response(null, { status: 204 }) }) });
+  let r = await call('/v1/profiles/Some_Name', { fetch: fakeFetch(nameHosts(() => new Response(null, { status: 204 }))) });
   assert.equal(r.res.status, 404);
-  r = await call('/v1/profiles/Some_Name', { fetch: fakeFetch({ 'api.mojang.com': json404 }) });
+  r = await call('/v1/profiles/Some_Name', { fetch: fakeFetch(nameHosts(json404)) });
   assert.equal(r.res.status, 404);
   r = await call(`/v1/profile/Some_Name/${'2'.repeat(8)}-2222-4222-8222-${'2'.repeat(12)}`, { fetch: fakeFetch({ 'api.hypixel.net': () => Response.json({ success: true, profile: null }) }) });
   assert.equal(r.res.status, 404);
-  r = await call(`/v1/profile/Some_Name/${PID}`, { fetch: fakeFetch({ 'api.mojang.com': () => Response.json({ id: 'a'.repeat(32) }) }) });
+  r = await call(`/v1/profile/Some_Name/${PID}`, { fetch: fakeFetch(nameHosts(() => Response.json({ id: 'a'.repeat(32) }))) });
   assert.equal(r.res.status, 404);
 });
 
@@ -103,7 +103,7 @@ test('errors: Hypixel/Mojang failures are 502, Retry-After passes through', asyn
   const r = await call('/v1/profiles/Some_Name', { fetch: hx(() => new Response('', { status: 429, headers: { 'Retry-After': '30' } })) });
   assert.equal(r.res.status, 502);
   assert.equal(r.res.headers.get('Retry-After'), '30');
-  assert.equal((await call('/v1/profiles/Some_Name', { fetch: fakeFetch({ 'api.mojang.com': () => new Response('', { status: 503 }) }) })).res.status, 502);
+  assert.equal((await call('/v1/profiles/Some_Name', { fetch: fakeFetch(nameHosts(() => new Response('', { status: 503 }))) })).res.status, 502);
   assert.equal((await call('/v1/profiles/Some_Name', { env: { HYPIXEL_KEY: undefined } })).res.status, 502);
 });
 
