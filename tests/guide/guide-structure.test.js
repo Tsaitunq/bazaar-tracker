@@ -77,3 +77,23 @@ test('a step of an extra section has no category unless it names one', () => {
   assert.equal(m.rows.find((r) => r.name === 'plain').category, null);
   assert.equal(m.rows.find((r) => r.name === 'tagged').category, 'armor');
 });
+
+test('a HOTM step ticks itself once the build reaches its tier, and stays manual below it', async () => {
+  const { autoOf, tickStep } = await import('../../apps/guide/model.js');
+  const { validGuide, doneSet } = await import('../../apps/guide/progress.js');
+  const g = { id: 'h', ...validGuide({ title: 'H', sections: [{ name: 'S', steps: [{ text: 'HOTM 7', prereq: true, detect: { kind: 'hotm', tier: 7 } }, { text: 'Tunnels', prereq: true }] }] }) };
+  const key = 'S|HOTM 7';
+  const at = (tier) => ({ hotm: tier === null ? null : { tier } });
+  assert.ok(doneSet(g, new Set(), autoOf(g, [], at(7))).has(key));
+  assert.ok(doneSet(g, new Set(), autoOf(g, [], at(10))).has(key));
+  assert.ok(!doneSet(g, new Set(), autoOf(g, [], at(6))).has(key));
+  assert.ok(!doneSet(g, new Set(), autoOf(g, [], at(null))).has(key)); // an unknown tier is never 0 or 7
+  assert.ok(!doneSet(g, new Set(), autoOf(g, [])).has(key));
+  // below the tier a tap ticks by hand; at the tier a tap unticks (an untick mark)
+  const marks = new Set();
+  tickStep({ guide: g, key, on: true, marks, owned: [], build: at(6) });
+  assert.ok(marks.has(key));
+  const marks2 = new Set();
+  tickStep({ guide: g, key, on: false, marks: marks2, owned: [], build: at(7) });
+  assert.ok(marks2.has(`undone:${key}`));
+});

@@ -26,7 +26,7 @@ const NEEDS = {
   owned: { on: slots }, recomb: { on: slots }, coating: { on: slots }, polarvoid: { on: slots },
   enchant: { on: slots, enchant: text, level: num }, reforge: { on: slots, value: texts }, scroll: { on: slots, value: text },
   part: { on: slots, ids: texts }, gem: { on: slots, quality: text }, pet: { types: texts }, held: { item: text },
-  perk: { perk: text, level: num }, essence: { perk: text, level: num }, petItem: { types: texts, item: text }, power: { value: text }, attr: { attr: text, need: num }, coll: { id: text, tier: num }, skill: { skill: text, xp: num },
+  perk: { perk: text, level: num }, essence: { perk: text, level: num }, petItem: { types: texts, item: text }, power: { value: text }, hotm: { tier: num }, attr: { attr: text, need: num }, coll: { id: text, tier: num }, skill: { skill: text, xp: num },
 };
 const OPTIONAL = { need: num, type: text, tier: text, slot: text };
 

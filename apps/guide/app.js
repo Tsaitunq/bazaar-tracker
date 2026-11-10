@@ -372,8 +372,8 @@ function toggle(key, fromCard = false) {
   const guide = guides().find((g) => g.id === r.id);
   if (!guide) return;
   const marks = new Set(live()[guide.id] ?? []);
-  const on = !doneSet(guide, marks, autoOf(guide, owned)).has(key);
-  owned = [...tickStep({ guide, key, on, marks, owned })];
+  const on = !doneSet(guide, marks, autoOf(guide, owned, build)).has(key);
+  owned = [...tickStep({ guide, key, on, marks, owned, build })];
   ({ checks, keys } = commitGuide(guides(), guide, marks, checks, keys));
   save('pg.checks', checks);
   save('pg.keys', keys);
