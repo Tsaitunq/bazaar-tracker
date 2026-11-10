@@ -1,6 +1,10 @@
 name = "progression-guides-api"
 main = "src/index.js"
 compatibility_date = "2025-09-01"
+
+# Public only on the workers.dev address; no preview URLs.
+workers_dev = true
+preview_urls = false
 workers_dev = true
 preview_urls = false
 

@@ -2,6 +2,8 @@
 // Usage (in apps/api):  npm run measure -- https://<worker-url> <your-name> <profile-id>
 // Prints status, cache state and CPU/wall ms per request. Names, ids and URLs are never printed or written to a file.
 import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 const [base, name, profileId] = process.argv.slice(2);
 if (!base || !name || !profileId) {
@@ -10,8 +12,16 @@ if (!base || !name || !profileId) {
 }
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const events = [];
+let jsonLines = 0;
+let sampleKeys = null;
 
-const tail = spawn('npx', ['wrangler', 'tail', '--format', 'json'], { shell: true, stdio: ['ignore', 'pipe', 'inherit'] });
+// Run wrangler's script with node directly: no shell, so no DEP0190 warning and kill() stops the tail itself.
+const wrangler = fileURLToPath(new URL('../node_modules/wrangler/bin/wrangler.js', import.meta.url));
+if (!existsSync(wrangler)) {
+  console.error('wrangler not installed: run npm install in apps/api');
+  process.exit(1);
+}
+const tail = spawn(process.execPath, [wrangler, 'tail', '--format', 'json'], { stdio: ['ignore', 'pipe', 'inherit'] });
 let buf = '';
 tail.stdout.on('data', (d) => {
   buf += d;
@@ -20,12 +30,14 @@ tail.stdout.on('data', (d) => {
   for (const l of lines) {
     try {
       const e = JSON.parse(l);
+      jsonLines++;
+      sampleKeys ??= Object.keys(e);
       if (typeof e.cpuTime === 'number') events.push({ cpu: e.cpuTime, wall: e.wallTime, outcome: e.outcome });
     } catch { /* not a JSON line */ }
   }
 });
 
-await wait(8000); // tail needs a moment to connect
+await wait(12000); // tail needs a moment to connect
 const calls = [
   ['profiles (1st, usually MISS)', `/v1/profiles/${name}`],
   ['profiles (2nd, HIT)', `/v1/profiles/${name}`],
@@ -48,4 +60,5 @@ rows.forEach((r, i) => {
   const cols = [r[0].padEnd(30), String(r[1]).padEnd(7), String(r[2]).padEnd(6), String(r[3]).padEnd(7), String(e ? e.cpu : '?').padEnd(7), e ? e.wall : '?'];
   console.log(cols.join(' '));
 });
-if (events.length !== rows.length) console.log(`note: ${events.length} tail events for ${rows.length} requests; rows may not line up, repeat the run`);
+if (!events.length) console.log(`no cpuTime events (${jsonLines} JSON lines from tail; first line keys: ${sampleKeys ? sampleKeys.join(', ') : 'none'}). Tail may not be connected yet or the field has another name; run again.`);
+else if (events.length !== rows.length) console.log(`note: ${events.length} tail events for ${rows.length} requests; rows may not line up, repeat the run`);

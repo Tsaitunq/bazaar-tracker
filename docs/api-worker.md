@@ -52,12 +52,12 @@ Needs Node 20 or newer. All commands run in `apps/api/`.
 4. **Create the cache namespace:** `npx wrangler kv namespace create CACHE`. Copy the printed `id` into `wrangler.toml` instead of `REPLACE_WITH_KV_NAMESPACE_ID`. The id is not secret.
 5. **Set the key:** `npx wrangler secret put HYPIXEL_KEY`. Paste the key at the prompt. Create it at developer.hypixel.net.
 6. **Test once locally (optional):** `npm test` (fixtures only, no network). `npx wrangler dev` needs the key in `apps/api/.dev.vars` as `HYPIXEL_KEY=...`; that file is git-ignored. Do not commit it.
-7. **Deploy:** `npx wrangler deploy`. It prints the address, `https://bazaar-guide-api.<your-subdomain>.workers.dev`.
+7. **Deploy:** `npx wrangler deploy` (name `progression-guides-api`, `workers_dev = true`, `preview_urls = false` are set in `wrangler.toml`). It prints the address, `https://progression-guides-api.<your-subdomain>.workers.dev`.
 8. **Test with curl** (Windows PowerShell: `curl.exe`, plain `curl` is a different command):
 
    ```
-   curl.exe -i https://bazaar-guide-api.<your-subdomain>.workers.dev/v1/profiles/<your-name>
-   curl.exe -i https://bazaar-guide-api.<your-subdomain>.workers.dev/v1/profile/<your-name>/<profile-id>
+   curl.exe -i https://progression-guides-api.<your-subdomain>.workers.dev/v1/profiles/<your-name>
+   curl.exe -i https://progression-guides-api.<your-subdomain>.workers.dev/v1/profile/<your-name>/<profile-id>
    curl.exe -i -H "Origin: https://localhost" https://.../v1/profiles/<your-name>
    ```
 
@@ -76,7 +76,7 @@ If a MISS is over 10 ms: Workers Paid ($5 a month) lifts the limit to 30 s and i
 ## Live checklist (after the first deploy, with your own name)
 
 - [x] **Attribute level.** Confirmed live: `attributes.stacks` is the number of shards applied; level comes from the app via the shard table.
-- [ ] **Wardrobe.** Is `inventories.wardrobe` there? If it is in `missing`, look for the wardrobe in the raw profile (`inventory.wardrobe_contents` or another `inventory.*` key) and fix `src/trim.js` plus the table.
+- [ ] **Wardrobe.** To find the real source: `node scripts/probe-inventory.mjs <name> [profile-id]` in `apps/api/` (key from the git-ignored `.dev.vars`) prints only key names under `inventory`, no values. Is `inventories.wardrobe` there? If it is in `missing`, look for the wardrobe in the raw profile (`inventory.wardrobe_contents` or another `inventory.*` key) and fix `src/trim.js` plus the table.
 - [ ] **HOTM.** `hotm.nodes`, `experience`, `selectedAbility` match the in-game Heart of the Mountain; `powder` matches the powder shown in game.
 - [ ] **Single-profile endpoint.** Hypixel may no longer serve `/v2/skyblock/profile`. The worker then falls back to the full list (bigger parse). Check CPU for both profile calls; if the fallback is used, the first call is slower.
 - [x] **CPU time** of every MISS under 10 ms (see above). Measured live (own profile): median 1.29 ms, max 2 ms. The Free plan is enough.
