@@ -295,6 +295,98 @@
       "type": 0,
       "data": "H4sIAAAAAAAA/icon0=="
      }
+    },
+    "personal_vault_contents": {
+     "type": 0,
+     "data": "H4sIAAAAAAAA/vault=="
+    }
+   },
+   "loadout": {
+    "armor": {
+     "0": {
+      "HELMET": {
+       "type": 0,
+       "data": "H4sIAAAAAAAA/w0h=="
+      },
+      "CHESTPLATE": {
+       "type": 0,
+       "data": "H4sIAAAAAAAA/w0c=="
+      },
+      "LEGGINGS": {
+       "type": 0,
+       "data": "H4sIAAAAAAAA/w0l=="
+      },
+      "BOOTS": {
+       "type": 0,
+       "data": "H4sIAAAAAAAA/w0b=="
+      }
+     },
+     "1": {
+      "HELMET": {
+       "type": 0,
+       "data": "H4sIAAAAAAAA/w1h=="
+      }
+     },
+     "equipped_set": 0
+    },
+    "equipment": {
+     "0": {
+      "EQUIPMENT_SLOT_1": {
+       "type": 0,
+       "data": "H4sIAAAAAAAA/e0a=="
+      },
+      "EQUIPMENT_SLOT_2": {
+       "type": 0,
+       "data": "H4sIAAAAAAAA/e0b=="
+      },
+      "EQUIPMENT_SLOT_3": {
+       "type": 0,
+       "data": "H4sIAAAAAAAA/e0c=="
+      },
+      "EQUIPMENT_SLOT_4": {
+       "type": 0,
+       "data": "H4sIAAAAAAAA/e0d=="
+      }
+     },
+     "equipped_set": 0
+    },
+    "loadouts": {
+     "0": {
+      "armor_set_id": 0,
+      "equipment_set_id": 0
+     },
+     "1": {
+      "armor_set_id": 1,
+      "equipment_set_id": 0
+     }
+    }
+   },
+   "garden_player_data": {
+    "farming_toolkit": {
+     "WHEAT": {
+      "0": {
+       "type": 0,
+       "data": "H4sIAAAAAAAA/wheat0=="
+      },
+      "1": {
+       "type": 0,
+       "data": "H4sIAAAAAAAA/wheat1=="
+      }
+     },
+     "CARROT": {
+      "0": {
+       "type": 0,
+       "data": "H4sIAAAAAAAA/carrot0=="
+      }
+     }
+    }
+   },
+   "rift": {
+    "inventory": {
+     "inv_contents": {
+      "type": 0,
+      "data": "H4sIAAAAAAAA/RIFT_SENTINEL=="
+     }
     }
    }
   },

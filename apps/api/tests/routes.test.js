@@ -22,7 +22,8 @@ test('profile: trimmed data of the one member, raw base64', async () => {
   const b = await res.json();
   assert.equal(b.uuid, UUID);
   assert.equal(b.inventories.enderChest, profile.members[UUID].inventory.ender_chest_contents.data);
-  assert.deepEqual(b.missing, ['inventories.wardrobe']);
+  assert.deepEqual(b.missing, []);
+assert.ok(b.inventories.wardrobe.sets[0].helmet && b.loadouts.length === 2);
   assert.equal(b.notAffiliated, NOTICE);
   assert.ok(!JSON.stringify(b).includes('OTHER_MEMBER_SENTINEL'));
 });

@@ -59,6 +59,39 @@ function attributes(m) {
 
 const data = (x) => (x && typeof x.data === 'string' ? x.data : undefined);
 
+// loadout.armor / loadout.equipment: numbered sets plus equipped_set. Parts are raw base64; missing parts are left out.
+function sets(group, parts) {
+  if (!group || typeof group !== 'object') return undefined;
+  const out = { sets: {} };
+  if (has(group.equipped_set)) out.equipped = group.equipped_set;
+  for (const n of Object.keys(group)) {
+    if (n === 'equipped_set' || !group[n] || typeof group[n] !== 'object') continue;
+    const set = {};
+    for (const [name, src] of Object.entries(parts)) if (data(group[n][src])) set[name] = group[n][src].data;
+    if (Object.keys(set).length) out.sets[n] = set;
+  }
+  return out;
+}
+
+// garden_player_data.farming_toolkit.<CROP>.<n> = {type,data}
+function farmingToolkit(m) {
+  const kit = m.garden_player_data && m.garden_player_data.farming_toolkit;
+  if (!kit || typeof kit !== 'object') return undefined;
+  const out = {};
+  for (const crop of Object.keys(kit)) {
+    const tools = kit[crop] && typeof kit[crop] === 'object' ? Object.keys(kit[crop]).sort((a, b) => a - b).map((n) => data(kit[crop][n])).filter(Boolean) : [];
+    if (tools.length) out[crop] = tools;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
+// loadout.loadouts.<n> = { armor_set_id, equipment_set_id }
+function loadouts(m) {
+  const l = m.loadout && m.loadout.loadouts;
+  if (!l || typeof l !== 'object') return undefined;
+  return Object.keys(l).filter((id) => l[id] && typeof l[id] === 'object').map((id) => ({ id, armorSet: l[id].armor_set_id, equipmentSet: l[id].equipment_set_id }));
+}
+
 function inventories(m, missing) {
   const inv = m.inventory || {};
   const out = {};
@@ -66,7 +99,10 @@ function inventories(m, missing) {
   put('inventory', data(inv.inv_contents));
   put('armor', data(inv.inv_armor));
   put('equipment', data(inv.equipment_contents));
-  put('wardrobe', data(inv.wardrobe_contents));
+  put('wardrobe', sets(m.loadout && m.loadout.armor, { helmet: 'HELMET', chestplate: 'CHESTPLATE', leggings: 'LEGGINGS', boots: 'BOOTS' }));
+  put('equipmentWardrobe', sets(m.loadout && m.loadout.equipment, { slot1: 'EQUIPMENT_SLOT_1', slot2: 'EQUIPMENT_SLOT_2', slot3: 'EQUIPMENT_SLOT_3', slot4: 'EQUIPMENT_SLOT_4' }));
+  put('farmingToolkit', farmingToolkit(m));
+  put('personalVault', data(inv.personal_vault_contents));
   put('accessoryBag', data(inv.bag_contents && inv.bag_contents.talisman_bag));
   put('enderChest', data(inv.ender_chest_contents));
   let storage;
@@ -93,6 +129,7 @@ export function trimProfile(profile, uuid) {
   take('fairySouls', fairySouls(m));
   take('accessoryBag', accessoryBag(m));
   take('attributes', attributes(m));
+  take('loadouts', loadouts(m));
   out.inventories = inventories(m, missing);
   out.missing = missing;
   return out;

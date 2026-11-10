@@ -37,7 +37,11 @@ All paths are `members.<uuid without dashes>.…`.
 | `attributes` | `attributes.stacks` = shards applied per attribute, **not the level** (e.g. `rotten_pickaxe: 8` is level 2 Common, `freezing_spread: 32` is Epic max). The app converts it with the shard table per rarity from `gamedata/attributes.json`; the worker converts nothing. `shards.owned` (Hunting Box, `type` + `amount_owned`) is passed on as `attributes.huntingBox` |
 | `inventories.inventory` | `inventory.inv_contents.data` |
 | `inventories.armor` / `equipment` | `inventory.inv_armor.data` / `inventory.equipment_contents.data` |
-| `inventories.wardrobe` | `inventory.wardrobe_contents.data` (**source unconfirmed**) |
+| `inventories.wardrobe` | `loadout.armor.<n>.{HELMET,CHESTPLATE,LEGGINGS,BOOTS}.data`, `loadout.armor.equipped_set`; answer `{ equipped, sets: { <n>: { helmet, chestplate, leggings, boots } } }`, absent parts left out (checked 10.11.2026) |
+| `inventories.equipmentWardrobe` | `loadout.equipment.<n>.EQUIPMENT_SLOT_1..4.data`, `loadout.equipment.equipped_set`; answer `{ equipped, sets: { <n>: { slot1..slot4 } } }` |
+| `loadouts` | `loadout.loadouts.<n>.{armor_set_id, equipment_set_id}`; answer `[{ id, armorSet, equipmentSet }]` |
+| `inventories.farmingToolkit` | `garden_player_data.farming_toolkit.<CROP>.<n>.data`; answer `{ <CROP>: [base64, ...] }` ordered by `<n>` |
+| `inventories.personalVault` | `inventory.personal_vault_contents.data` |
 | `inventories.accessoryBag` | `inventory.bag_contents.talisman_bag.data` |
 | `inventories.enderChest` | `inventory.ender_chest_contents.data` |
 | `inventories.storage` | `inventory.backpack_contents.<slot>.data`, as an object by slot |
@@ -76,12 +80,19 @@ If a MISS is over 10 ms: Workers Paid ($5 a month) lifts the limit to 30 s and i
 ## Live checklist (after the first deploy, with your own name)
 
 - [x] **Attribute level.** Confirmed live: `attributes.stacks` is the number of shards applied; level comes from the app via the shard table.
-- [ ] **Wardrobe.** To find the real source: `node scripts/probe-inventory.mjs <name> [profile-id]` in `apps/api/` (key from the git-ignored `.dev.vars`) prints only key names under `inventory`, no values. Is `inventories.wardrobe` there? If it is in `missing`, look for the wardrobe in the raw profile (`inventory.wardrobe_contents` or another `inventory.*` key) and fix `src/trim.js` plus the table.
+- [x] **Wardrobe.** Found with `scripts/probe-nbt.mjs`: `loadout.armor` (checked 10.11.2026). `rift.inventory.*` is deliberately not taken.
 - [ ] **HOTM.** `hotm.nodes`, `experience`, `selectedAbility` match the in-game Heart of the Mountain; `powder` matches the powder shown in game.
 - [ ] **Single-profile endpoint.** Hypixel may no longer serve `/v2/skyblock/profile`. The worker then falls back to the full list (bigger parse). Check CPU for both profile calls; if the fallback is used, the first call is slower.
 - [x] **CPU time** of every MISS under 10 ms (see above). Measured live (own profile): median 1.29 ms, max 2 ms. The Free plan is enough.
 - [ ] **`missing`.** Switch an API setting off in game (e.g. inventory), wait one hour or clear the KV key, call again: the field must be gone and listed in `missing`.
 - [ ] **KV limit.** Free plan: 1,000 KV writes per day. Past that the worker still answers, only without cache (`X-Cache: MISS` every time).
+
+## Probe tools
+
+In `apps/api/`, key from the git-ignored `.dev.vars`. They print no values, names or UUIDs.
+
+- `node scripts/probe-inventory.mjs <name> [profile-id]`: key names under `inventory`.
+- `node scripts/probe-nbt.mjs <name> [profile-id]`: every path in the member that holds item data, plus key paths containing ward, loadout, preset, equip, armor or set.
 
 ## What is stored
 

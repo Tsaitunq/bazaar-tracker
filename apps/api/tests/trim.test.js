@@ -31,17 +31,41 @@ test('trim: every guide section is present', () => {
   assert.equal(t.attributes.owned, undefined);
 });
 
-test('trim: inventory fields stay raw base64, wardrobe missing', () => {
+test('trim: inventory fields stay raw base64', () => {
   const t = trimProfile(profile, UUID);
-  const inv = profile.members[UUID].inventory;
+  const m = profile.members[UUID];
+  const inv = m.inventory;
   assert.equal(t.inventories.inventory, inv.inv_contents.data);
   assert.equal(t.inventories.armor, inv.inv_armor.data);
   assert.equal(t.inventories.equipment, inv.equipment_contents.data);
   assert.equal(t.inventories.accessoryBag, inv.bag_contents.talisman_bag.data);
   assert.equal(t.inventories.enderChest, inv.ender_chest_contents.data);
+  assert.equal(t.inventories.personalVault, inv.personal_vault_contents.data);
   assert.deepEqual(t.inventories.storage, { 0: inv.backpack_contents[0].data, 1: inv.backpack_contents[1].data });
-  assert.equal(t.inventories.wardrobe, undefined);
-  assert.deepEqual(t.missing, ['inventories.wardrobe']);
+  assert.deepEqual(t.missing, []);
+});
+
+test('trim: wardrobe from loadout.armor, parts left out when absent', () => {
+  const { wardrobe } = trimProfile(profile, UUID).inventories;
+  const a = profile.members[UUID].loadout.armor;
+  assert.equal(wardrobe.equipped, 0);
+  assert.deepEqual(wardrobe.sets[0], { helmet: a[0].HELMET.data, chestplate: a[0].CHESTPLATE.data, leggings: a[0].LEGGINGS.data, boots: a[0].BOOTS.data });
+  assert.deepEqual(wardrobe.sets[1], { helmet: a[1].HELMET.data });
+  assert.deepEqual(Object.keys(wardrobe.sets), ['0', '1']);
+});
+
+test('trim: equipment wardrobe, loadouts, farming toolkit', () => {
+  const t = trimProfile(profile, UUID);
+  const m = profile.members[UUID];
+  const e = m.loadout.equipment[0];
+  assert.deepEqual(t.inventories.equipmentWardrobe, { equipped: 0, sets: { 0: { slot1: e.EQUIPMENT_SLOT_1.data, slot2: e.EQUIPMENT_SLOT_2.data, slot3: e.EQUIPMENT_SLOT_3.data, slot4: e.EQUIPMENT_SLOT_4.data } } });
+  assert.deepEqual(t.loadouts, [{ id: '0', armorSet: 0, equipmentSet: 0 }, { id: '1', armorSet: 1, equipmentSet: 0 }]);
+  const kit = m.garden_player_data.farming_toolkit;
+  assert.deepEqual(t.inventories.farmingToolkit, { WHEAT: [kit.WHEAT[0].data, kit.WHEAT[1].data], CARROT: [kit.CARROT[0].data] });
+});
+
+test('trim: rift inventory is not taken', () => {
+  assert.ok(!JSON.stringify(trimProfile(profile, UUID)).includes('RIFT_SENTINEL'));
 });
 
 test('trim: other members never leak', () => {
@@ -56,12 +80,14 @@ test('trim: API settings off -> fields left out and listed', () => {
   const p = clone(profile);
   const m = p.members[UUID];
   delete m.inventory;
+  delete m.loadout;
+  delete m.garden_player_data;
   delete m.pets_data;
   delete m.skill_tree;
   delete m.mining_core;
   const t = trimProfile(p, UUID);
   for (const k of ['pets', 'hotm']) assert.ok(!(k in t) && t.missing.includes(k), k);
-  assert.ok(t.missing.includes('inventories.inventory') && t.missing.includes('inventories.storage'));
+  for (const k of ['inventories.inventory', 'inventories.storage', 'inventories.wardrobe', 'inventories.equipmentWardrobe', 'inventories.farmingToolkit', 'inventories.personalVault', 'loadouts']) assert.ok(t.missing.includes(k), k);
   assert.deepEqual(t.inventories, {});
 });
 
