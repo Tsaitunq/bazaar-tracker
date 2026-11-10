@@ -34,7 +34,7 @@ All paths are `members.<uuid without dashes>.…`.
 | `slayer` | `slayer.slayer_bosses.<boss>.xp` |
 | `fairySouls` | `fairy_soul` (`total_collected`, `unspent_souls`, `fairy_exchanges`) |
 | `accessoryBag` | `accessory_bag_storage` (`selected_power`, `tuning`, `highest_magical_power`) |
-| `attributes` | `attributes.stacks` (attribute key to number); `shards.owned` comes along as `owned` until the check below is done |
+| `attributes` | `attributes.stacks` = shards applied per attribute, **not the level** (e.g. `rotten_pickaxe: 8` is level 2 Common, `freezing_spread: 32` is Epic max). The app converts it with the shard table per rarity from `gamedata/attributes.json`; the worker converts nothing. `shards.owned` (Hunting Box, `type` + `amount_owned`) is passed on as `attributes.huntingBox` |
 | `inventories.inventory` | `inventory.inv_contents.data` |
 | `inventories.armor` / `equipment` | `inventory.inv_armor.data` / `inventory.equipment_contents.data` |
 | `inventories.wardrobe` | `inventory.wardrobe_contents.data` (**source unconfirmed**) |
@@ -75,11 +75,11 @@ If a MISS is over 10 ms: Workers Paid ($5 a month) lifts the limit to 30 s and i
 
 ## Live checklist (after the first deploy, with your own name)
 
-- [ ] **Attribute level.** Call `/v1/profile/<name>/<id>`. Compare `attributes.stacks` with the in-game attribute menu for 3 to 4 attributes. If the in-game level is a function of the stack number: note the table. If `stacks` is not enough, check whether `attributes.owned` (from `shards.owned`) holds the rest. Then drop `owned` from `src/trim.js` if unused. Write the result under "Where the data is" above.
+- [x] **Attribute level.** Confirmed live: `attributes.stacks` is the number of shards applied; level comes from the app via the shard table.
 - [ ] **Wardrobe.** Is `inventories.wardrobe` there? If it is in `missing`, look for the wardrobe in the raw profile (`inventory.wardrobe_contents` or another `inventory.*` key) and fix `src/trim.js` plus the table.
 - [ ] **HOTM.** `hotm.nodes`, `experience`, `selectedAbility` match the in-game Heart of the Mountain; `powder` matches the powder shown in game.
 - [ ] **Single-profile endpoint.** Hypixel may no longer serve `/v2/skyblock/profile`. The worker then falls back to the full list (bigger parse). Check CPU for both profile calls; if the fallback is used, the first call is slower.
-- [ ] **CPU time** of every MISS under 10 ms (see above). Write the numbers here: list ____ ms, profile ____ ms, HIT ____ ms.
+- [x] **CPU time** of every MISS under 10 ms (see above). Measured live (own profile): median 1.29 ms, max 2 ms. The Free plan is enough.
 - [ ] **`missing`.** Switch an API setting off in game (e.g. inventory), wait one hour or clear the KV key, call again: the field must be gone and listed in `missing`.
 - [ ] **KV limit.** Free plan: 1,000 KV writes per day. Past that the worker still answers, only without cache (`X-Cache: MISS` every time).
 

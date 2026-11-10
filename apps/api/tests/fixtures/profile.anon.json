@@ -249,7 +249,7 @@
     "owned": [
      {
       "type": "DUMMY",
-      "amount": 1
+      "amount_owned": 1
      }
     ]
    },

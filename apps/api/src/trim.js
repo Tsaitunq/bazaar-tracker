@@ -50,10 +50,11 @@ function accessoryBag(m) {
   return a ? { selectedPower: a.selected_power, tuning: a.tuning, highestMagicalPower: a.highest_magical_power } : undefined;
 }
 
-// Attributes: members.<uuid>.attributes.stacks (key -> level/stacks). shards.owned travels along until the live check confirms stacks is enough.
+// Attributes: members.<uuid>.attributes.stacks = shards applied per attribute (not the level; the app converts it with the shard table per rarity).
+// shards.owned is the Hunting Box (type + amount_owned).
 function attributes(m) {
   if (!m.attributes || !m.attributes.stacks) return undefined;
-  return { stacks: m.attributes.stacks, owned: m.shards && m.shards.owned };
+  return { stacks: m.attributes.stacks, huntingBox: m.shards && m.shards.owned };
 }
 
 const data = (x) => (x && typeof x.data === 'string' ? x.data : undefined);

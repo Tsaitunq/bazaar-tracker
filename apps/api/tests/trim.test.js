@@ -27,6 +27,8 @@ test('trim: every guide section is present', () => {
   assert.deepEqual(Object.keys(t.fairySouls), ['collected', 'unspent', 'exchanges']);
   assert.deepEqual(Object.keys(t.accessoryBag), ['selectedPower', 'tuning', 'highestMagicalPower']);
   assert.ok(Object.keys(t.attributes.stacks).length);
+  assert.deepEqual(t.attributes.huntingBox, [{ type: 'DUMMY', amount_owned: 1 }]);
+  assert.equal(t.attributes.owned, undefined);
 });
 
 test('trim: inventory fields stay raw base64, wardrobe missing', () => {
