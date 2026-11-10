@@ -133,12 +133,13 @@ export function totalFor({ area, entry, build, gear = {}, data, stats, pet }) {
   const rows = stats.map((stat) => {
     const typed = entry?.values?.[stat];
     const g = gear[stat] ?? 0;
-    if (typed === undefined) return { stat, base: undefined, gear: g, total: undefined };
+    if (typed === undefined) return { stat, base: undefined, gear: g, total: undefined, other: undefined };
     const sum = typed / (was.mult[stat] ?? 1) + ((now.add[stat] ?? 0) - (was.add[stat] ?? 0)) + g;
     total[stat] = sum * (now.mult[stat] ?? 1);
-    return { stat, base: typed, gear: g, total: total[stat] };
+    // the measurement as a reconciliation: what you typed minus what the app knew then (HOTM, attributes, essence, power, buffs) is the rest
+    return { stat, base: typed, gear: g, total: total[stat], other: typed / (was.mult[stat] ?? 1) - (was.add[stat] ?? 0) };
   });
-  return { rows, total, listed: now.listed, moved: entry?.snapshot ? movedBy(build, entry.snapshot, data, area) : {} };
+  return { rows, total, known: now, listed: now.listed, moved: entry?.snapshot ? movedBy(build, entry.snapshot, data, area) : {} };
 }
 
 // Blaze shows the Combat menu without Health Regen, Vitality and the weapon's Damage, and the two Misc stats gear gives (Speed, Magic Find).
