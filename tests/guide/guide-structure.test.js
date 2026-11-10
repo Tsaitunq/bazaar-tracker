@@ -70,3 +70,10 @@ test('a guide without categories keeps the old model', () => {
   assert.equal(m.structure, undefined);
   assert.equal(categoryPage(m, 'armor'), null);
 });
+
+test('a step of an extra section has no category unless it names one', () => {
+  const g = guide([fortune('a-drill', 'A', { category: 'drill' })], { sections: [{ name: 'Main', steps: [fortune('a-drill', 'A', { category: 'drill' })] }, { name: 'Extras', extra: true, steps: [{ text: 'plain' }, { text: 'tagged', category: 'armor' }] }] });
+  const m = guideModel(g, world());
+  assert.equal(m.rows.find((r) => r.name === 'plain').category, null);
+  assert.equal(m.rows.find((r) => r.name === 'tagged').category, 'armor');
+});

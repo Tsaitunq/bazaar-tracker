@@ -381,7 +381,7 @@ export function guideModel(guide, world) {
     // done without the player having the piece itself: something better replaced it
     const skipped = done && !world.marks.has(key) && (implied.has(key) || (met && isItemStep(step) && !idsOfStep(step, guide).some((id) => held.has(id))));
     const row = {
-      key, name: named(step), status, tier: rank?.tier ?? null, category: categoryOf(step), attr: !!attrOf(step), reasons,
+      key, name: named(step), status, tier: rank?.tier ?? null, category: section.extra && !step.category ? null : categoryOf(step), attr: !!attrOf(step), reasons,
       ...subOf(status, rank, reasons, ownLines, skipped),
       side: status === 'done' || status === 'locked' ? status : openSide(step, rank, score, ctx),
       progress: found?.have && !met ? `${number(found.have)} / ${number(found.need)}` : '',
@@ -390,7 +390,7 @@ export function guideModel(guide, world) {
     };
     if (status === 'current') row.card = card = cardOf(section, step, key, entry, rank, lines, row.group);
     // the first open step of each category gets its own card, for the page of the category
-    const cat = categoryOf(step);
+    const cat = row.category;
     if (structured && cat && !step.prereq && !attrOf(step) && !done && status !== 'locked' && rank?.group !== 'locked' && !seen.has(cat)) {
       seen.add(cat);
       row.catCard = row.card ?? cardOf(section, step, key, entry, rank, lines, row.group);
