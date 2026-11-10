@@ -282,8 +282,9 @@ function structureOf(guide, all, rows, checked, ctx, card, world) {
     const open = mine.filter((r) => r.status !== 'done');
     const locked = !first && open.length && open.every((r) => r.status === 'locked' || r.tier === 'locked');
     const power = id === 'power' ? world.build?.power?.mp : null;
-    const next = first ? first.name : locked ? `Locked · ${open[0].reasons?.[0] ?? open[0].sub ?? ''}`.replace(/ · $/, '') : open.length ? open[0].name : 'All done';
-    return { id, name: titled(id), done, total: mine.length, share: mine.length ? done / mine.length : 0, next: power && id === 'power' ? `${next === 'All done' ? 'Done' : next} · ${number(power)} MP` : next, locked: !!locked, current: !!card && mine.some((r) => r.key === card.key) };
+    const left = first ? `Next: ${first.name}` : locked ? `Locked · ${open[0].reasons?.[0] ?? ''}`.replace(/ · $/, '') : open.length ? `Next: ${open[0].name}` : mine.length ? 'All done' : 'No steps';
+    const next = power ? `${left} · ${number(power)} MP` : left;
+    return { id, name: titled(id), done, total: mine.length, share: mine.length ? done / mine.length : 0, next, locked: !!locked, current: !!card && mine.some((r) => r.key === card.key) };
   });
   const prereqs = all.filter((e) => e.step.prereq && !attrOf(e.step)).map((e) => ({ key: e.key, name: e.step.text, done: checked.has(e.key) }));
   const attrs = all.filter((e) => attrOf(e.step));

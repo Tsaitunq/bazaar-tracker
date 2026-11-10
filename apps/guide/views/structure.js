@@ -37,7 +37,7 @@ function attributes(m) {
   return `<a class="sec sec-link" href="#/stats/attributes/${esc(m.area ?? 'mining')}" data-attr-guide="${esc(m.id)}"><div class="sec-h"><b>Attributes</b><span>${a.done} / ${a.total} maxed</span></div>${bar(a.total ? a.done / a.total : 0)}${dear}</a>`;
 }
 
-const tile = (m, c) => `<a class="tile-cat${c.current ? ' tile-now' : ''}" href="#/guide/${esc(m.id)}/path/${esc(c.id)}"><b>${esc(c.name)}</b><small>${c.locked || c.next.startsWith('Locked') ? '' : c.done === c.total && c.total ? '' : 'Next: '}${esc(c.next)}</small>${bar(c.share)}</a>`;
+const tile = (m, c) => `<a class="tile-cat${c.current ? ' tile-now' : ''}" href="#/guide/${esc(m.id)}/path/${esc(c.id)}"><b>${esc(c.name)}</b><small>${esc(c.next)}</small>${bar(c.share)}</a>`;
 
 export const overviewBody = (m) => `${best(m)}${video(m.structure.video)}${prereqs(m.structure)}${attributes(m)}<div class="tiles">${m.structure.categories.map((c) => tile(m, c)).join('')}</div>`;
 

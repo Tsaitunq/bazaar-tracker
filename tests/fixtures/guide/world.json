@@ -27,19 +27,20 @@
       ]
     },
     "shafting": {
-      "title": "Shafting gear", "area": "mining", "order": "fixed",
+      "title": "Shafting gear", "area": "mining", "order": "fixed", "categories": ["drill", "armor", "equipment", "lantern", "pets", "upgrades"], "startNote": "This guide starts at shaft mining (HOTM 7). Earlier gear is not part of it.",
       "milestones": [{ "name": "Drill", "steps": ["Shaft drill"] }, { "name": "Armour", "steps": ["Shaft helmet", "Shaft boots"] }, { "name": "Pendant", "steps": ["Shaft pendant"] }],
       "sections": [
         { "name": "Shafting", "steps": [
-          { "text": "Shaft drill", "gain": { "MINING_SPEED": 200 }, "items": [{ "id": "ITEM_B", "qty": 1 }] },
-          { "text": "Shaft helmet", "gain": { "MINING_FORTUNE": 10 }, "items": [{ "id": "ITEM_A", "qty": 3 }] },
-          { "text": "Shaft boots", "gain": { "MINING_FORTUNE": 6 }, "items": [{ "id": "ITEM_A", "qty": 1 }] },
-          { "text": "Shaft pendant", "gain": { "PRISTINE": 1 }, "items": [{ "id": "ITEM_B", "qty": 4 }] }
+          { "text": "HOTM 7", "prereq": true },
+          { "text": "Shaft drill", "category": "drill", "gain": { "MINING_SPEED": 200 }, "items": [{ "id": "ITEM_B", "qty": 1 }] },
+          { "text": "Shaft helmet", "category": "armor", "gain": { "MINING_FORTUNE": 10 }, "items": [{ "id": "ITEM_A", "qty": 3 }] },
+          { "text": "Shaft boots", "category": "armor", "gain": { "MINING_FORTUNE": 6 }, "items": [{ "id": "ITEM_A", "qty": 1 }] },
+          { "text": "Shaft pendant", "category": "equipment", "gain": { "PRISTINE": 1 }, "items": [{ "id": "ITEM_B", "qty": 4 }] }
         ] }
       ]
     },
     "blaze-slayer": {
-      "title": "Blaze Slayer", "area": "blaze", "groups": {},
+      "title": "Blaze Slayer", "area": "blaze", "groups": {}, "categories": ["armor", "weapons", "equipment", "pets", "accessories", "power"], "notes": { "armor": "Base Crimson is not usable for Blaze. Start at Hot Crimson." },
       "chapters": [
         { "name": "Start", "sections": ["Start"] },
         { "name": "Crimson", "sections": ["Crimson"] },
@@ -47,15 +48,16 @@
       ],
       "sections": [
         { "name": "Start", "steps": [
-          { "text": "Starter set", "table": true },
-          { "text": "Strong boots", "gain": { "STRENGTH": 20, "CRITICAL_DAMAGE": 15 }, "items": [{ "id": "ITEM_A", "qty": 1 }] }
+          { "text": "Starter set", "table": true, "category": "armor" },
+          { "text": "Healing Wand", "prereq": true, "items": [{ "id": "ITEM_A", "qty": 1 }] },
+          { "text": "Strong boots", "category": "armor", "gain": { "STRENGTH": 20, "CRITICAL_DAMAGE": 15 }, "items": [{ "id": "ITEM_A", "qty": 1 }] }
         ] },
         { "name": "Crimson", "steps": [
-          { "text": "Crimson plate", "gain": { "STRENGTH": 40 }, "items": [{ "id": "ITEM_B", "qty": 3 }] },
-          { "text": "Recomb", "gain": { "CRITICAL_CHANCE": 5 }, "items": [{ "id": "ITEM_A", "qty": 2 }] }
+          { "text": "Crimson plate", "category": "armor", "gain": { "STRENGTH": 40 }, "items": [{ "id": "ITEM_B", "qty": 3 }] },
+          { "text": "Recomb", "category": "weapons", "gain": { "CRITICAL_CHANCE": 5 }, "items": [{ "id": "ITEM_A", "qty": 2 }] }
         ] },
         { "name": "Late", "steps": [
-          { "text": "Top dagger", "items": [{ "id": "TEST_GATED", "qty": 1 }] }
+          { "text": "Top dagger", "category": "pets", "items": [{ "id": "TEST_GATED", "qty": 1 }] }
         ] }
       ]
     }
