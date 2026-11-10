@@ -93,6 +93,7 @@ In `apps/api/`, key from the git-ignored `.dev.vars`. They print no values, name
 
 - `node scripts/probe-inventory.mjs <name> [profile-id]`: key names under `inventory`.
 - `node scripts/probe-nbt.mjs <name> [profile-id]`: every path in the member that holds item data, plus key paths containing ward, loadout, preset, equip, armor or set.
+- `node scripts/probe-items.mjs <name> [profile-id]`: decodes `inv_armor`, `equipment_contents` and one armor and one equipment wardrobe set, and prints the NBT key paths with value types for the 4 richest items of each. Also up to 2 drills (id contains DRILL) from the inventory, ender chest and backpacks. The only value printed is the item id. Imports `apps/guide/nbt.js`.
 
 ## What is stored
 
