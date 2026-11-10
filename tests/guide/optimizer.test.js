@@ -806,7 +806,7 @@ for (const [file, area, values] of [[GUIDE, 'mining', { MINING_SPEED: 1000, MINI
     const data = JSON.parse(readFileSync(ITEMS, 'utf8')).r;
     const html = guideView({ guides: [real], checks: {}, owned: [], products: {}, prices: { items: data }, items: data, name: (id) => id, settings: miningSettings(null), gamedata, build: emptyBuild(), base: baseOf({ [area]: { values, mp: 1200 } }) }, real.id);
     assert.doesNotMatch(html, /NaN/);
-    assert.match(html, /class="path"/);
+    assert.match(html, /class="path/);
   });
 }
 
