@@ -63,6 +63,8 @@ export const hotmTier = (tier) => (h) => ({ ...h, tier: Number.isInteger(tier) &
 export const perkEnabled = (perk, on) => (h) => ({ ...h, disabled: [...(h.disabled ?? []).filter((id) => id !== perk.id), ...(on ? [] : [perk.id])] });
 export const abilityPick = (perk) => (h) => ({ ...h, ability: h.ability === perk.id ? null : perk.id });
 export const omelette = (on) => (h) => ({ ...h, omelette: on === true });
+// Powder the player has now, per kind (mithril, gemstone, glacite). Not a stat: it is only shown and used for costs.
+export const hotmPowder = (powder) => (h) => ({ ...h, powder: { ...powder } });
 export const essenceLevel = (perk, level) => (e) => ({ ...e, [perk.id]: whole(level, perk.max) });
 export const attrLevel = (attr, level) => (a) => ({ ...a, [attr.key]: whole(level, attr.maxLevel) });
 export const powerStone = (id) => (p) => ({ ...p, stone: id || null });
