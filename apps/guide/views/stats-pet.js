@@ -1,9 +1,10 @@
 // The pet picker (under the power editor): one chip per pet and rarity, what it gives, its perks.
-import { esc } from '../../../shared/format.js';
+import { esc, number } from '../../../shared/format.js';
 import { statsModel } from '../stats-model.js';
 import { round2, pic } from './editors.js';
 import { gearOptions } from '../build.js';
 import { CRIMSON_STAR, HPB } from '../optimizer-data.js';
+import { petLevel } from '../gamedata.js';
 
 const RARITY = { LEGENDARY: 'Legendary', EPIC: 'Epic', RARE: 'Rare' };
 export const petLabel = (p) => `${p.name}${p.rarity === 'LEGENDARY' && p.name !== 'Scatha' ? '' : ` (${RARITY[p.rarity] ?? p.rarity})`}`;
@@ -47,8 +48,23 @@ export function gearPanel(world) {
     <small>Order of the maths on a piece (assumed): (item stats × stars + books) × Bling Armor, then reforge and enchants.</small></div>`;
 }
 
+// Every pet of the loaded profile: only a list. Which pet a guide uses stays the player's choice, made in the picker above.
+export function profilePets(world) {
+  const list = world.imp?.pets;
+  if (!list?.length) return '';
+  const known = world.gamedata?.pets;
+  const title = (p) => p.type.toLowerCase().split('_').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ');
+  const item = (id) => (id ? known?.items?.find((i) => i.id === id)?.name ?? id : null);
+  const rows = [...list].sort((a, b) => Number(b.active) - Number(a.active) || b.exp - a.exp).map((p) => {
+    const lv = petLevel(p.exp, p.tier, p.type, known?.leveling);
+    const bits = [esc(p.tier[0] + p.tier.slice(1).toLowerCase()), lv ? `level ${lv.level}` : `${number(Math.round(p.exp))} XP`, item(p.heldItem) && esc(item(p.heldItem)), p.active && 'active'].filter(Boolean);
+    return `<li><b>${esc(title(p))}</b> · ${bits.join(' · ')}</li>`;
+  }).join('');
+  return `<div class="panel" id="profile-pets"><h2>Pets in your profile</h2><small>From the import. The pet a guide uses is still your choice above.</small><ul>${rows}</ul></div>`;
+}
+
 // The Pets tab: the picker and the pet item.
 export function petsView(world, r, head) {
   if (!world.gamedata) return `<div class="scroll">${head}<p class="note">Loading game data…</p></div>`;
-  return `<div class="scroll">${head}${petPanel(world, r)}${petItemPanel(world)}</div>`;
+  return `<div class="scroll">${head}${petPanel(world, r)}${petItemPanel(world)}${profilePets(world)}</div>`;
 }

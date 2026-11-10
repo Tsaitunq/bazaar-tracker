@@ -127,11 +127,31 @@ export function checkPets(d, stats) {
       if (k.effect !== undefined) checkPerkEffect(`${w}.${k.name}`, k.effect);
     }
   }
+  if (d.leveling !== undefined) {
+    const l = d.leveling;
+    if (!Array.isArray(l.levels) || !l.levels.every((n) => Number.isFinite(n) && n > 0)) fail('pets.leveling', 'levels must be positive numbers');
+    for (const r of RARITIES) if (!Number.isInteger(l.rarityOffset?.[r]) || l.rarityOffset[r] + 99 > l.levels.length) fail('pets.leveling', `bad rarityOffset ${r}`);
+  }
   unique('pets.items', (d.items ?? []).map((i) => i.id));
   for (const i of d.items ?? []) {
     need(`pets.items.${i.id}`, i, ['id', 'name', 'stats']);
     for (const [s, v] of Object.entries(i.stats)) if (!stats.has(s) || typeof v !== 'number') fail(`pets.items.${i.id}`, `bad stat ${s}`);
   }
+}
+
+// The level of a pet from its experience: the table of its rarity (from its offset, 99 steps to level 100), plus the steps after
+// 100 of a pet that goes higher. Gives { level, max, toNext } or null without the table. toNext is the experience still missing.
+export function petLevel(exp, rarity, type, leveling) {
+  const offset = leveling?.custom?.[type]?.rarityOffset?.[rarity] ?? leveling?.rarityOffset?.[rarity];
+  if (!Array.isArray(leveling?.levels) || !Number.isInteger(offset) || !Number.isFinite(exp)) return null;
+  const custom = leveling.custom?.[type] ?? {};
+  const mult = custom.xpMultiplier ?? 1;
+  const steps = [...leveling.levels.slice(offset, offset + 99), ...(custom.extra ?? [])].map((n) => n * mult);
+  const max = custom.maxLevel ?? 100;
+  let level = 1;
+  let left = exp;
+  while (level < max && level <= steps.length && left >= steps[level - 1]) left -= steps[level - 1], level++;
+  return { level, max, toNext: level >= max ? null : Math.ceil(steps[level - 1] - left) };
 }
 
 // The essence shop: every perk has a cost per level; an effect adds a stat, a conditional is only described.

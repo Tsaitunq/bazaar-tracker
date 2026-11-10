@@ -128,7 +128,7 @@ function impWorld() {
     available: isNative(), name: imp.nameDraft ?? api?.name ?? '', savedName: api?.name ?? null, ownName: api?.own ?? null, profiles: imp.profiles,
     profileId: imp.profileId ?? api?.profileId ?? null, busy: imp.busy, message: imp.message, cooling, confirm: imp.confirm?.kind ?? null,
     hasProfile: !!profile, profileName: profile?.profileName ?? null, fetchedAt: profile?.fetchedAt ?? null, undo: hasUndo(undo), offline: imp.offline,
-    since: imp.since, picked: imp.picked,
+    since: imp.since, picked: imp.picked, pets: profile?.pets ?? null,
   };
   if (profile && gamedata && route().page === 'import') {
     out.areas = proposals({ guides: guides(), checks: live(), owned, build, base, draft, gamedata }, profile);

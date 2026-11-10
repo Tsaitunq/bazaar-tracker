@@ -129,3 +129,61 @@ test('privacy: only a tap starts a request', () => {
   for (const line of calls) assert.match(line, /act === 'imp-|return impLoad\(true\)/, line);
   assert.ok(calls.length >= 3);
 });
+
+// ---- pets and powder ----
+import { petLevel, checkPets } from '../../apps/guide/gamedata.js';
+import { petsView } from '../../apps/guide/views/stats-pet.js';
+
+const leveling = gamedata.pets.leveling;
+const sum = (from, n) => leveling.levels.slice(from, from + n).reduce((a, b) => a + b, 0);
+
+test('pet level from experience: rarity offset, level 100 cap, dragons beyond', () => {
+  assert.deepEqual(petLevel(0, 'COMMON', 'BEE', leveling), { level: 1, max: 100, toNext: 100 });
+  assert.equal(petLevel(99, 'COMMON', 'BEE', leveling).level, 1);
+  assert.equal(petLevel(100, 'COMMON', 'BEE', leveling).level, 2);
+  assert.equal(petLevel(sum(0, 99), 'COMMON', 'BEE', leveling).level, 100); // the whole Common table
+  assert.equal(petLevel(1e12, 'COMMON', 'BEE', leveling).toNext, null);
+  // Legendary starts 20 steps into the table: level 100 needs less than the sum of the first 99
+  assert.equal(petLevel(sum(20, 99), 'LEGENDARY', 'BEE', leveling).level, 100);
+  assert.equal(petLevel(sum(20, 99) - 1, 'LEGENDARY', 'BEE', leveling).level, 99);
+  assert.equal(petLevel(sum(20, 99), 'LEGENDARY', 'GOLDEN_DRAGON', leveling).level, 100);
+  assert.equal(petLevel(1e12, 'LEGENDARY', 'GOLDEN_DRAGON', leveling).level, 200);
+  assert.equal(petLevel(sum(0, 98) * 2, 'COMMON', 'REINDEER', leveling).level, 99); // every step costs double
+  assert.equal(petLevel(5, 'COMMON', 'BEE', null), null);
+  assert.equal(petLevel(NaN, 'COMMON', 'BEE', leveling), null);
+});
+
+test('the level table is checked with the rest of the pet data', () => {
+  const ok = structuredClone(gamedata.pets);
+  const stats = new Set(gamedata.stats.stats.map((s) => s.id));
+  checkPets(ok, stats);
+  assert.throws(() => checkPets({ ...ok, leveling: { ...ok.leveling, levels: [1, 'x'] } }, stats), /levels must be positive numbers/);
+  assert.throws(() => checkPets({ ...ok, leveling: { ...ok.leveling, rarityOffset: { ...ok.leveling.rarityOffset, EPIC: 500 } } }, stats), /bad rarityOffset EPIC/);
+});
+
+test('pets tab: every pet of the profile as a list with its level; none without an import', () => {
+  const pets = [
+    { type: 'GRANDMA_WOLF', tier: 'COMMON', exp: 0, heldItem: null, active: false },
+    { type: 'BEE', tier: 'UNCOMMON', exp: 1135723, heldItem: 'PET_ITEM_QUICK_CLAW', active: true },
+    { type: '<img src=x>', tier: 'RARE', exp: 1, heldItem: null, active: false },
+  ];
+  const html = petsView({ ...world({ pets }), build: emptyBuild() }, { area: 'mining' }, '');
+  assert.match(html, /Pets in your profile/);
+  assert.match(html, /<li><b>Bee<\/b> · Uncommon · level \d+ · .*active<\/li>/);
+  assert.match(html, /<b>Grandma Wolf<\/b> · Common · level 1/);
+  assert.ok(html.indexOf('<b>Bee</b>') < html.indexOf('<b>Grandma Wolf</b>')); // the active one first
+  assert.doesNotMatch(html, /<img src=x>/);
+  assert.doesNotMatch(petsView({ ...world({ pets: null }), build: emptyBuild() }, { area: 'mining' }, ''), /Pets in your profile/);
+});
+
+import { hotmView } from '../../apps/guide/views/stats-hotm.js';
+
+test('HOTM tab: the powder from the import is shown next to what the tree has cost', () => {
+  const build = { ...emptyBuild(), hotm: { tier: 3, levels: {}, omelette: false, disabled: [], ability: null, powder: { mithril: 1500, gemstone: 20000 } } };
+  const html = hotmView({ ...world(), build, draft: {}, ui: {} }, { area: 'mining' }, '');
+  assert.match(html, /chip-mithril">Mithril left 1\.5k/);
+  assert.match(html, /chip-gemstone">Gemstone left 20k/);
+  assert.doesNotMatch(html, /Glacite left/);
+  const none = hotmView({ ...world(), build: { ...build, hotm: { ...build.hotm, powder: undefined } }, draft: {}, ui: {} }, { area: 'mining' }, '');
+  assert.doesNotMatch(none, / left /);
+});
