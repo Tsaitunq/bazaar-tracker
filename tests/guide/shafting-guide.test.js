@@ -16,7 +16,7 @@ test('the private shafting guide holds together', { skip: !present }, () => {
   assert.equal(guide.preset, 'shafting');
   const ranked = guide.sections.filter((s) => !s.extra).flatMap((s) => s.steps);
   const extra = guide.sections.filter((s) => s.extra).flatMap((s) => s.steps);
-  assert.equal(ranked.length, 142); // 96 on the path, 46 upgrades (14 enchant levels); the essence shop lives in Stats
+  assert.equal(ranked.length, 144); // 98 on the path (two Start here chips), 46 upgrades (14 enchant levels); the essence shop lives in Stats
   assert.equal(extra.length, 12);
   const texts = [...ranked, ...extra].map((s) => s.text);
   assert.equal(new Set(texts).size, texts.length);

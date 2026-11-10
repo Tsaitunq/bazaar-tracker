@@ -1,6 +1,14 @@
 {
   "versions": [
     {
+      "version": "0.14.1",
+      "date": "2026-11-10",
+      "entries": [
+        { "title": "Start here chips", "text": "The Shafting guide now lists HOTM 7 and Glacite Tunnels with the Mithril set; HOTM 7 ticks itself once your Heart of the Mountain is on tier 7." },
+        { "title": "Accessories tile", "text": "Shafting has its own Accessories category, so accessories no longer sit among the cloak, belt and gloves." }
+      ]
+    },
+    {
       "version": "0.14.0",
       "date": "2026-11-10",
       "entries": [

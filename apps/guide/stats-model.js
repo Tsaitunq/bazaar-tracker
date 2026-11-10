@@ -28,7 +28,7 @@ const meta = (data, id) => data.stats.stats.find((s) => s.id === id);
 function tickedSteps(world, area) {
   return world.guides.filter((g) => g.area === area).map((guide) => {
     const marks = new Set(world.checks?.[guide.id] ?? []);
-    const done = doneSet(guide, marks, autoOf(guide, world.owned)); // a step derived without a tick still counts as owned
+    const done = doneSet(guide, marks, autoOf(guide, world.owned, world.build)); // a step derived without a tick still counts as owned
     const own = guide.sections.flatMap((s) => s.steps.map((step) => stepKey(s, step))).filter((k) => done.has(k));
     return { title: guide.title, n: own.length };
   });

@@ -185,16 +185,26 @@ export function groupName(steps) {
 }
 
 // What the ticked items make of the steps of one guide: an item step is met once its pieces are owned.
-export const autoOf = (guide, owned) => ownedAuto(guide, new Set(owned ?? []), stepKey);
+// What the profile and the build settle without a tick: owned items, and a HOTM step once the build's tier has reached it.
+export function autoOf(guide, owned, build = null) {
+  const auto = ownedAuto(guide, new Set(owned ?? []), stepKey);
+  const tier = build?.hotm?.tier;
+  if (!Number.isInteger(tier)) return auto;
+  for (const s of guide.sections) for (const st of s.steps) {
+    const d = [st.detect ?? []].flat();
+    if (d.length === 1 && d[0].kind === 'hotm' && tier >= d[0].tier) auto.set(stepKey(s, st), { have: 1, need: 1, ticked: true });
+  }
+  return auto;
+}
 
 // One tick. An item step goes to the state of all guides, anything else stays a mark of this guide. Gives the new owned state.
-export function tickStep({ guide, key, on, marks, owned }) {
+export function tickStep({ guide, key, on, marks, owned, build = null }) {
   const step = guide.sections.flatMap((s) => s.steps.filter((one) => stepKey(s, one) === key))[0];
   const next = new Set(owned);
   const item = step && isItemStep(step);
   if (item && on) for (const id of idsToOwn(step, guide, next)) next.add(id);
   if (item && !on) for (const id of idsOfStep(step, guide)) next.delete(id);
-  setMark(guide, marks, key, on, autoOf(guide, next));
+  setMark(guide, marks, key, on, autoOf(guide, next, build));
   if (item) marks.delete(key);
   return next;
 }
@@ -318,7 +328,7 @@ const withNext = (n) => (n === 1 ? 'with the next step' : `with the next ${n} st
 export function guideModel(guide, world) {
   const scores = world.scores ?? SCORES;
   const owned = new Set(world.owned ?? []);
-  const auto = autoOf(guide, owned);
+  const auto = autoOf(guide, owned, world.build);
   const ctx = { ...world.prices, products: world.products, auto, profile: null, lockProfile: lockProfile(world.build), marks: world.marks, owned };
   const checked = doneSet(guide, world.marks, auto);
   const implied = impliedDone(guide, checked, stepKey);
