@@ -106,3 +106,25 @@ test('trim: empty member -> everything missing, no crash', () => {
   const t = trimProfile({ profile_id: 'p', members: { [UUID]: {} } }, UUID);
   assert.ok(t.missing.includes('hotm') && t.missing.includes('attributes') && t.missing.includes('inventories.enderChest'));
 });
+
+test('trim: wardrobe with the real shape (equipped_set is a number among sets "1","2","3", parts partly missing)', () => {
+  const p = clone(profile);
+  const part = (tag) => ({ type: 0, data: 'H4sI' + tag });
+  p.members[UUID].loadout.armor = {
+    1: { HELMET: part('1h'), CHESTPLATE: part('1c'), LEGGINGS: part('1l'), BOOTS: part('1b') },
+    equipped_set: 2,
+    2: { CHESTPLATE: part('2c'), BOOTS: part('2b') },
+    3: { HELMET: part('3h') },
+  };
+  const t = trimProfile(p, UUID);
+  assert.deepEqual(t.inventories.wardrobe, {
+    equipped: 2,
+    sets: {
+      1: { helmet: 'H4sI1h', chestplate: 'H4sI1c', leggings: 'H4sI1l', boots: 'H4sI1b' },
+      2: { chestplate: 'H4sI2c', boots: 'H4sI2b' },
+      3: { helmet: 'H4sI3h' },
+    },
+  });
+  assert.deepEqual(t.missing, []);
+  assert.ok(!('equipped_set' in t.inventories.wardrobe.sets));
+});
