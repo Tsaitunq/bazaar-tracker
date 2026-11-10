@@ -1,0 +1,178 @@
+<title>Guide Structure Proposal</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap">
+<style>
+/* Layout: three phone screens side by side (wrap on narrow), app's own dark design system; single dark look by choice */
+:root{
+  color-scheme:dark;
+  --page:#08070B; --pagetext:#E9E6F0; --pagemuted:#A39DB5;
+  --font:"Space Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+  /* Blaze */
+  --b-area:#FF8A3D; --b-bg:#0D0908; --b-surface:#1A1210; --b-raised:#22160F; --b-deep:#120C0A; --b-line:#33221F; --b-muted:#B8A39C; --b-text:#F6F0EE; --b-dim:#4A3330;
+  /* Mining */
+  --m-area:#5CC8FF; --m-bg:#090B0E; --m-surface:#111821; --m-raised:#15202C; --m-deep:#0C1218; --m-line:#1E2A36; --m-muted:#9AAAB8; --m-text:#EEF3F7; --m-dim:#2A3A48;
+  --gain:#55FF55; --str:#FF5555; --cd:#8C96FF; --mf:#FFAA00; --pr:#D255D2; --warn:#FFB454;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--pagetext);font-family:var(--font);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px}
+.wrap{max-width:1260px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+header h1{margin:0;font-size:1.6rem;text-wrap:balance}
+header p{margin:6px 0 0;color:var(--pagemuted);max-width:68ch;line-height:1.5}
+.screens{display:flex;flex-wrap:wrap;gap:24px;justify-content:center}
+.col{display:flex;flex-direction:column;gap:10px;align-items:center;min-width:0}
+.cap{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--pagemuted)}
+.phone{width:min(360px,100%);border-radius:30px;padding:18px 16px 20px;display:flex;flex-direction:column;gap:14px;border:1px solid var(--line);
+  background:var(--bg);color:var(--text)}
+.blaze{--area:var(--b-area);--bg:var(--b-bg);--surface:var(--b-surface);--raised:var(--b-raised);--deep:var(--b-deep);--line:var(--b-line);--muted:var(--b-muted);--text:var(--b-text);--dim:var(--b-dim)}
+.mining{--area:var(--m-area);--bg:var(--m-bg);--surface:var(--m-surface);--raised:var(--m-raised);--deep:var(--m-deep);--line:var(--m-line);--muted:var(--m-muted);--text:var(--m-text);--dim:var(--m-dim)}
+.top{display:flex;justify-content:space-between;align-items:center;font-size:.85rem;color:var(--muted)}
+.tabs{display:flex;background:var(--surface);border-radius:999px;padding:3px;gap:3px}
+.tabs span{padding:6px 12px;border-radius:999px;font-size:.78rem}
+.tabs .on{background:var(--raised);color:var(--text);font-weight:700}
+.title{display:flex;align-items:center;gap:12px}
+.ring{width:56px;height:56px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:700;font-size:.9rem;
+  background:conic-gradient(var(--area) var(--p),var(--line) 0);position:relative}
+.ring::after{content:"";position:absolute;inset:7px;border-radius:50%;background:var(--bg)}
+.ring b{position:relative;z-index:1}
+.title h2{margin:0;font-size:1.3rem}
+.title small{color:var(--muted);font-size:.8rem}
+.next{background:var(--raised);border:1px solid var(--area);border-radius:18px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.eyebrow{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--area);font-weight:700}
+.next .row{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.next strong{font-size:1rem}
+.next .val{font-size:.78rem;color:var(--area);white-space:nowrap}
+.stat{font-size:.8rem}
+.video{border-radius:16px;overflow:hidden;background:var(--deep);border:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:10px}
+.thumb{width:84px;height:48px;border-radius:10px;flex:none;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--surface),var(--line))}
+.thumb i{width:0;height:0;border-left:12px solid var(--text);border-top:8px solid transparent;border-bottom:8px solid transparent;font-style:normal}
+.video div{font-size:.82rem;line-height:1.35;min-width:0}
+.video small{color:var(--muted)}
+.sec{background:var(--surface);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.sec .h{display:flex;justify-content:space-between;align-items:center}
+.sec .h b{font-size:.9rem}
+.sec .h span{font-size:.75rem;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:.74rem;padding:5px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.chip.ok{color:var(--gain);border-color:color-mix(in srgb,var(--gain) 40%,transparent)}
+.bar{height:6px;border-radius:999px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--area);width:var(--p)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tile{background:var(--surface);border-radius:14px;padding:11px 12px;display:flex;flex-direction:column;gap:6px;min-width:0;min-height:44px}
+.tile b{font-size:.88rem}
+.tile small{font-size:.72rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile.cur{outline:1px solid var(--area)}
+.path{display:flex;flex-direction:column}
+.step{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:start;padding-bottom:12px;position:relative}
+.step::before{content:"";position:absolute;left:10px;top:22px;bottom:0;width:2px;background:var(--line)}
+.step:last-child::before{display:none}
+.dot{width:22px;height:22px;border-radius:50%;border:2px solid var(--dim);display:grid;place-items:center;font-size:.7rem}
+.done .dot{background:var(--area);border-color:var(--area);color:var(--bg);font-weight:700}
+.now .dot{border-color:var(--area);box-shadow:0 0 0 4px color-mix(in srgb,var(--area) 25%,transparent)}
+.step b{font-size:.88rem;display:block}
+.step small{font-size:.74rem;color:var(--muted)}
+.step .r{font-size:.72rem;color:var(--muted);white-space:nowrap}
+.step .r.g{color:var(--gain)}
+.note{font-size:.74rem;color:var(--warn);background:color-mix(in srgb,var(--warn) 10%,transparent);border-radius:10px;padding:7px 9px;line-height:1.35}
+.legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.legend div{background:#121019;border:1px solid #221E2E;border-radius:14px;padding:12px 14px;font-size:.86rem;line-height:1.5;color:var(--pagemuted)}
+.legend b{color:var(--pagetext)}
+@media (prefers-reduced-motion:no-preference){.now .dot{transition:box-shadow .3s}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Guide structure proposal</h1>
+    <p>Each guide opens on an overview instead of one long list. The best next step across all categories stays on top, so the value ranking is not lost. Below it: video, prerequisites, attributes, and tiles that open each category's own short path. Example values only.</p>
+  </header>
+
+  <div class="screens">
+    <!-- Screen 1: Blaze overview -->
+    <div class="col">
+      <span class="cap">1 · Blaze overview</span>
+      <div class="phone blaze">
+        <div class="top"><span>‹ Guides</span><span class="tabs"><span class="on">Gear</span><span>Methods</span></span></div>
+        <div class="title"><div class="ring" style="--p:48%"><b>48%</b></div><div><h2>Blaze Slayer</h2><small>4 of 6 categories started</small></div></div>
+        <div class="next">
+          <span class="eyebrow">Best next step · Pets</span>
+          <div class="row"><strong>Legendary Blaze Pet</strong><span class="val">0.9% per 1M</span></div>
+          <span class="stat" style="color:var(--str)">+10% combat stats on Crimson Isle</span>
+        </div>
+        <div class="video"><div class="thumb"><i></i></div><div><b>Watch the guide</b><br><small>Video by the guide author · opens YouTube</small></div></div>
+        <div class="sec">
+          <div class="h"><b>Prerequisites</b><span>4 / 6</span></div>
+          <div class="chips"><span class="chip ok">✓ AOTV</span><span class="chip ok">✓ Healing Wand</span><span class="chip ok">✓ Warning Flare</span><span class="chip ok">✓ Tuba</span><span class="chip">Grappleshot</span><span class="chip">Wither Cloak</span></div>
+        </div>
+        <div class="sec">
+          <div class="h"><b>Attributes</b><span>9 / 14 maxed</span></div>
+          <div class="bar" style="--p:64%"><i></i></div>
+          <small style="font-size:.74rem;color:var(--muted)">Cheap ones belong here. Expensive ones show up as steps.</small>
+        </div>
+        <div class="grid">
+          <div class="tile cur"><b>Armor</b><small>Next: 3/4 Fiery Crimson</small><div class="bar" style="--p:55%"><i></i></div></div>
+          <div class="tile"><b>Weapons</b><small>Next: Sharpness VI</small><div class="bar" style="--p:40%"><i></i></div></div>
+          <div class="tile"><b>Equipment</b><small>Next: Scoville Belt</small><div class="bar" style="--p:30%"><i></i></div></div>
+          <div class="tile"><b>Pets</b><small>Next: Legendary Blaze</small><div class="bar" style="--p:50%"><i></i></div></div>
+          <div class="tile"><b>Accessories</b><small>Next: Anguish Ring</small><div class="bar" style="--p:62%"><i></i></div></div>
+          <div class="tile"><b>Power</b><small>Hurtful · 1,025 MP</small><div class="bar" style="--p:90%"><i></i></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 2: Blaze category -->
+    <div class="col">
+      <span class="cap">2 · Category (tap a tile)</span>
+      <div class="phone blaze">
+        <div class="top"><span>‹ Blaze Slayer</span><span style="font-size:.8rem">Armor · 55%</span></div>
+        <div class="title"><div class="ring" style="--p:55%"><b>55%</b></div><div><h2>Armor</h2><small>Sorted by value, prerequisites first</small></div></div>
+        <div class="note">Base Crimson is not usable for Blaze. Start at Hot Crimson.</div>
+        <div class="path">
+          <div class="step done"><span class="dot">✓</span><div><b>2/4 Crimson + Sorrow Chestplate</b><small>Hot tier or higher</small></div><span class="r g">done</span></div>
+          <div class="step done"><span class="dot">✓</span><div><b>Warden Helmet</b><small>Use until Crown of Avarice holds 100M</small></div><span class="r g">done</span></div>
+          <div class="step now"><span class="dot"></span><div><b>3/4 Fiery Crimson</b><small style="color:var(--str)">+38 Strength</small> <small style="color:var(--cd)">+25 Crit Damage</small></div><span class="r" style="color:var(--area)">0.6% / 1M</span></div>
+          <div class="step"><span class="dot"></span><div><b>3/4 Infernal Crimson</b><small>after Legendary Blaze Pet</small></div><span class="r">0.4% / 1M</span></div>
+          <div class="step"><span class="dot"></span><div><b>Opal gems (Infernal)</b><small>3 slots</small></div><span class="r">0.3% / 1M</span></div>
+          <div class="step"><span class="dot"></span><div><b>Crown of Avarice</b><small>once 100M coins collected</small></div><span class="r">late</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 3: Mining overview -->
+    <div class="col">
+      <span class="cap">3 · Same layout for Shafting</span>
+      <div class="phone mining">
+        <div class="top"><span>‹ Guides</span><span class="tabs"><span class="on">Gear</span><span>Methods</span></span></div>
+        <div class="title"><div class="ring" style="--p:29%"><b>29%</b></div><div><h2>Shafting gear</h2><small>Mining Cult progression</small></div></div>
+        <div class="next">
+          <span class="eyebrow">Best next step · Armor</span>
+          <div class="row"><strong>Divan's Helmet: Flawless Topaz</strong><span class="val">330k per 1%</span></div>
+          <span class="stat" style="color:var(--pr)">+1.6 ✧ Pristine</span>
+        </div>
+        <div class="sec">
+          <div class="h"><b>Start here</b><span>3 / 3</span></div>
+          <div class="chips"><span class="chip ok">✓ HOTM 7</span><span class="chip ok">✓ Glacite Tunnels</span><span class="chip ok">✓ Mithril equipment</span></div>
+          <small style="font-size:.74rem;color:var(--muted)">This guide starts at shaft mining. Earlier gear is not part of it.</small>
+        </div>
+        <div class="sec">
+          <div class="h"><b>Attributes</b><span>6 / 15 maxed</span></div>
+          <div class="bar" style="--p:40%"><i></i></div>
+        </div>
+        <div class="grid">
+          <div class="tile"><b>Drill</b><small>Next: Polarvoid Books ×5</small><div class="bar" style="--p:45%"><i></i></div></div>
+          <div class="tile cur"><b>Armor</b><small>Next: Flawless Topaz</small><div class="bar" style="--p:30%"><i></i></div></div>
+          <div class="tile"><b>Equipment</b><small>Next: Handwarmers</small><div class="bar" style="--p:25%"><i></i></div></div>
+          <div class="tile"><b>Lantern</b><small>Locked · HOTM 8</small><div class="bar" style="--p:20%"><i></i></div></div>
+          <div class="tile"><b>Pets</b><small>Next: Glacite Golem</small><div class="bar" style="--p:33%"><i></i></div></div>
+          <div class="tile"><b>Upgrades</b><small>Perfect gems, max enchants</small><div class="bar" style="--p:5%"><i></i></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div><b>Kept from today:</b> the value ranking. The top card picks the best step across all categories, and each category path is sorted the same way.</div>
+    <div><b>New:</b> prerequisites as checkable chips (cheap utility like AOTV, flares, cheap attributes) instead of path steps, and a video link per guide.</div>
+    <div><b>Notes inside a category</b> carry the expert rules, e.g. "Base Crimson is not usable" or "Warden until Crown of Avarice holds 100M".</div>
+  </div>
+</div>
