@@ -358,3 +358,24 @@ test('a guide keeps its order, preset, extra sections, groups and after, and dro
   const bad = validGuide({ title: 'T', order: 'random', preset: 3, sections: [{ name: 'S', extra: 'yes', steps: [{ text: 'a', group: 2, after: 'b' }] }] });
   assert.deepEqual([bad.order, bad.preset, bad.sections[0].extra, bad.sections[0].steps[0].group, bad.sections[0].steps[0].after], [undefined, undefined, undefined, undefined, undefined]);
 });
+
+test('validGuide keeps the structure fields and drops what does not fit', () => {
+  const g = validGuide({
+    title: 'T', video: 'https://example.com/v', startNote: 'Start here.', categories: ['armor', 'pets', 'armor'], notes: { armor: 'Hot tier.', bogus: 'x' },
+    sections: [{ name: 'S', steps: [
+      { text: 'A', category: 'armor', prereq: true },
+      { text: 'B', category: 'unlisted', needs: ['A', 'nope', 'B'] },
+      { text: 'C', needs: ['nope'] },
+    ] }],
+  });
+  assert.deepEqual(g.categories, ['armor', 'pets']);
+  assert.deepEqual(g.notes, { armor: 'Hot tier.' });
+  assert.equal(g.video, 'https://example.com/v');
+  assert.equal(g.startNote, 'Start here.');
+  const [a, b, c] = g.sections[0].steps;
+  assert.equal(a.prereq, true);
+  assert.equal(b.category, 'armor'); // an unlisted category falls to the first
+  assert.deepEqual(b.needs, ['A']);
+  assert.equal(c.needs, undefined);
+  assert.equal(validGuide({ title: 'T', video: 'javascript:1', sections: guide.sections }).video, undefined);
+});
