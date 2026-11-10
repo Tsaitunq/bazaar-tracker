@@ -128,6 +128,7 @@ function showCard(box) {
 
 // A redraw keeps the scroll position of the list and the keyboard on the same step.
 function draw() {
+  if (ui.attrGuide && !(route().page === 'stats' && route().tab === 'attributes')) ui = { ...ui, attrGuide: undefined }; // the narrowing ends with the visit
   if (ui.attr && shownRoute && JSON.stringify(route()) !== shownRoute) ui = { ...ui, attr: undefined }; // a sheet does not follow you to another page
   // a redraw would pull the screen from under the finger; it follows when the swipe is over
   // nor during Mark done: a new screen would drop the running line, dot and card; the tick draws once it is over
@@ -502,6 +503,10 @@ root.addEventListener('click', (e) => {
   if (drop) { draftDone(drop.dataset.draftDiscard, false); return; }
   const perk = el('[data-perk]');
   if (perk) { ui = { ...ui, perk: perk.dataset.perk }; draw(); return; }
+  // the Attributes block of a guide: the link goes on to the stats, narrowed to this guide
+  const own = el('[data-attr-guide]');
+  if (own) ui = { ...ui, attrGuide: own.dataset.attrGuide, attrCat: 'all', attrQuery: '' };
+  if (el('[data-attr-guide-off]')) { ui = { ...ui, attrGuide: undefined }; draw(); return; }
   const attr = el('[data-attr]');
   if (attr) { ui = { ...ui, attr: attr.dataset.attr }; draw(); return; }
   if (el('[data-attr-close]')) { ui = { ...ui, attr: undefined }; draw(); return; }

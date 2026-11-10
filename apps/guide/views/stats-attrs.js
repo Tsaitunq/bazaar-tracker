@@ -35,7 +35,8 @@ export function attrResults(world) {
   const levels = world.draft?.attrs ?? world.build.attrs ?? {};
   const used = usedAttrs(world.guides);
   const cat = world.ui?.attrCat ?? 'all';
-  const found = findAttrs(data.attributes.attributes, world.ui?.attrQuery).filter((a) => cat === 'all' || attrCategory(data, a) === cat);
+  const only = world.ui?.attrGuide ? usedAttrs(world.guides.filter((g) => g.id === world.ui.attrGuide)) : null;
+  const found = findAttrs(data.attributes.attributes, world.ui?.attrQuery).filter((a) => (cat === 'all' || attrCategory(data, a) === cat) && (!only || only.has(a.key)));
   const rows = ATTR_CATEGORIES.map((c) => ({ c, items: found.filter((a) => attrCategory(data, a) === c) })).filter((g) => g.items.length);
   let left = SHOWN;
   const groups = rows.map((g) => {
@@ -46,6 +47,12 @@ export function attrResults(world) {
   return `${groups}${found.length > SHOWN ? `<small>${found.length - SHOWN} more: pick a category or narrow the search.</small>` : ''}${found.length ? '' : '<small>Nothing found.</small>'}`;
 }
 
+// Opened from a guide: only its attributes, and a chip to see all again.
+const guideChip = (world) => {
+  const g = world.guides.find((x) => x.id === world.ui?.attrGuide);
+  return g ? `<div class="chips cat-chips"><button type="button" class="chip-btn on" data-attr-guide-off aria-label="Show all attributes">${esc(g.label ?? g.title)} only ✕</button></div>` : '';
+};
+
 export function attrsView(world, r, head) {
   const data = world.gamedata;
   if (!data) return `<div class="scroll">${head}<p class="note">Loading game data…</p></div>`;
@@ -55,7 +62,7 @@ export function attrsView(world, r, head) {
   const chip = (c) => `<button type="button" class="chip-btn${cat === c ? ' on' : ''}" data-attr-cat="${c}" aria-pressed="${cat === c}">${cap(c)}</button>`;
   const set = Object.values(levels).filter((v) => v > 0).length;
   return `<div class="scroll">${head}${draftBar(world, 'attrs', 'attributes')}
-    <div class="panel"><h2>Attributes <span class="count">${set} set</span></h2><div class="chips cat-chips" role="group" aria-label="Category">${['all', ...ATTR_CATEGORIES].map(chip).join('')}</div>
+    <div class="panel"><h2>Attributes <span class="count">${set} set</span></h2>${guideChip(world)}<div class="chips cat-chips" role="group" aria-label="Category">${['all', ...ATTR_CATEGORIES].map(chip).join('')}</div>
     <label class="field">Search<input type="search" data-attr-query value="${esc(world.ui?.attrQuery ?? '')}" placeholder="Name or shard"></label>
     <div data-attr-results>${attrResults(world)}</div></div>
     <p class="note">Tap an attribute to set its level.</p>
