@@ -1,6 +1,16 @@
 {
   "versions": [
     {
+      "version": "0.15.0",
+      "date": "2026-11-10",
+      "entries": [
+        { "title": "Import your profile", "text": "In Settings you can load your SkyBlock profile (Android app only) and see what you already own; nothing is ticked until you confirm it.", "target": "[data-imp]", "route": "#/settings" },
+        { "title": "Review the suggestions", "text": "The import screen lists what is new, different or in conflict by area, lets you take them one by one or all at once, and can undo the last import.", "target": "[data-page=\"import\"]", "route": "#/import" },
+        { "title": "Pets and powder", "text": "The Pets tab lists every pet of your profile with its level, and the HOTM tab shows the powder you have left." },
+        { "title": "Base is optional", "text": "The Stats now show what the app knows by itself; typing your /stats adds everything else as other sources." }
+      ]
+    },
+    {
       "version": "0.14.1",
       "date": "2026-11-10",
       "entries": [
