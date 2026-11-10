@@ -1,0 +1,315 @@
+{
+ "profile_id": "11111111-1111-4111-8111-111111111111",
+ "cute_name": "Apple",
+ "game_mode": "ironman",
+ "selected": true,
+ "members": {
+  "00000000000040008000000000000001": {
+   "skill_tree": {
+    "nodes": {
+     "mining": {
+      "mining_speed": 39,
+      "toggle_mining_speed": true,
+      "mining_fortune": 19,
+      "titanium_insanium": 14,
+      "toggle_mining_fortune": true,
+      "toggle_titanium_insanium": true,
+      "efficient_miner": 69,
+      "pickobulus": 1,
+      "toggle_efficient_miner": true,
+      "toggle_pickobulus": true,
+      "gem_lover": 1,
+      "mole": 113,
+      "toggle_gem_lover": true,
+      "toggle_mole": true,
+      "core_of_the_mountain": 5,
+      "daily_powder": 1,
+      "front_loaded": 1,
+      "seasoned_mineman": 1,
+      "toggle_core_of_the_mountain": true,
+      "toggle_daily_powder": true,
+      "toggle_front_loaded": true,
+      "toggle_seasoned_mineman": true,
+      "great_explorer": 20,
+      "professional": 2,
+      "toggle_great_explorer": true,
+      "toggle_professional": true
+     },
+     "foraging": {
+      "center_of_the_forest": 5,
+      "toggle_center_of_the_forest": true,
+      "sweep": 46,
+      "toggle_sweep": true,
+      "foraging_fortune": 22,
+      "toggle_foraging_fortune": true,
+      "luck_of_the_forest": 34,
+      "toggle_luck_of_the_forest": true,
+      "hunters_luck": 32,
+      "toggle_hunters_luck": true,
+      "250_gifts": 40,
+      "toggle_250_gifts": true,
+      "daily_wishes": 100,
+      "toggle_daily_wishes": true,
+      "early_bird": 1,
+      "toggle_early_bird": true,
+      "iron_lungs": 17,
+      "toggle_iron_lungs": true,
+      "foraging_madness": 1,
+      "toggle_foraging_madness": true,
+      "lottery": 1,
+      "toggle_lottery": true,
+      "tree_whisperer": 1,
+      "toggle_tree_whisperer": true,
+      "starlyn_supreme": 54,
+      "toggle_starlyn_supreme": true
+     },
+     "foraging_2": {
+      "center_of_the_forest": 5,
+      "toggle_center_of_the_forest": true,
+      "foraging_fortune": 1,
+      "hunters_luck": 43,
+      "sweep": 1,
+      "toggle_foraging_fortune": true,
+      "toggle_hunters_luck": true,
+      "toggle_sweep": true
+     },
+     "foraging_3": {
+      "center_of_the_forest": 5,
+      "toggle_center_of_the_forest": true
+     },
+     "foraging_4": {
+      "center_of_the_forest": 5,
+      "toggle_center_of_the_forest": true
+     },
+     "foraging_5": {
+      "center_of_the_forest": 5,
+      "toggle_center_of_the_forest": true
+     },
+     "mining_2": {
+      "core_of_the_mountain": 5,
+      "toggle_core_of_the_mountain": true
+     },
+     "mining_3": {
+      "core_of_the_mountain": 5,
+      "toggle_core_of_the_mountain": true
+     }
+    },
+    "experience": {
+     "mining": 324495.69999999914,
+     "foraging": 216914.80000000002
+    },
+    "tokens_spent": {
+     "mountain": 12,
+     "forest": 12,
+     "forest_2": 3
+    },
+    "selected_ability": {
+     "mining": "pickobulus"
+    }
+   },
+   "mining_core": {
+    "powder_mithril": 2162012,
+    "powder_mithril_total": 2162012,
+    "powder_spent_mithril": 1992124,
+    "powder_gemstone": 3362838,
+    "powder_gemstone_total": 3362838,
+    "powder_spent_gemstone": 2019423,
+    "powder_spent_non_refundable_mithril": 150000,
+    "powder_spent_non_refundable_mithril_2": 150000,
+    "powder_spent_non_refundable_gemstone": 500000,
+    "powder_spent_non_refundable_gemstone_2": 500000
+   },
+   "player_data": {
+    "perks": {
+     "agatha_fig_personal_best": 1,
+     "agatha_power": 2,
+     "agatha_fig_fortune": 5,
+     "forest_training": 2,
+     "lumberjack": 7
+    },
+    "experience": {
+     "SKILL_FARMING": 48633039.42911076,
+     "SKILL_MINING": 11108819.451885898,
+     "SKILL_TAMING": 49919511.39454048,
+     "SKILL_COMBAT": 27367841.709434737,
+     "SKILL_ENCHANTING": 31234194.15782062,
+     "SKILL_FORAGING": 12618552.169999842
+    }
+   },
+   "pets_data": {
+    "pets": [
+     {
+      "uuid": "dummy0",
+      "uniqueId": "dummy0",
+      "type": "BEE",
+      "tier": "UNCOMMON",
+      "exp": 1135723.0047974633,
+      "active": true,
+      "heldItem": "PET_ITEM_DUMMY",
+      "candyUsed": 0
+     },
+     {
+      "uuid": "dummy1",
+      "uniqueId": "dummy1",
+      "type": "GRANDMA_WOLF",
+      "tier": "COMMON",
+      "exp": 0,
+      "active": false,
+      "heldItem": null,
+      "candyUsed": 0
+     },
+     {
+      "uuid": "dummy2",
+      "uniqueId": "dummy2",
+      "type": "ENDERMAN",
+      "tier": "RARE",
+      "exp": 133895.16200336418,
+      "active": false,
+      "heldItem": null,
+      "candyUsed": 0
+     }
+    ]
+   },
+   "slayer": {
+    "slayer_bosses": {
+     "zombie": {
+      "xp": 102120,
+      "boss_kills_tier_0": 1
+     },
+     "spider": {
+      "xp": 102880,
+      "boss_kills_tier_0": 1
+     },
+     "wolf": {
+      "xp": 100255,
+      "boss_kills_tier_0": 1
+     },
+     "enderman": {
+      "xp": 24036,
+      "boss_kills_tier_0": 1
+     },
+     "vampire": {
+      "boss_kills_tier_0": 1
+     },
+     "blaze": {
+      "xp": 1655,
+      "boss_kills_tier_0": 1
+     }
+    }
+   },
+   "fairy_soul": {
+    "unspent_souls": 5,
+    "total_collected": 275,
+    "fairy_exchanges": 54
+   },
+   "accessory_bag_storage": {
+    "selected_power": "scorching",
+    "highest_magical_power": 1003,
+    "tuning": {
+     "slot_0": {
+      "health": 0,
+      "defense": 0,
+      "walk_speed": 0,
+      "strength": 0,
+      "critical_damage": 100,
+      "critical_chance": 0,
+      "attack_speed": 0,
+      "intelligence": 0
+     },
+     "highest_unlocked_slot": 1,
+     "refund_2": true,
+     "slot_1": {
+      "purchase_ts": 1792151435912,
+      "attack_speed": 0,
+      "critical_chance": 0,
+      "critical_damage": 93,
+      "defense": 0,
+      "health": 0,
+      "intelligence": 0,
+      "strength": 0,
+      "walk_speed": 0
+     }
+    },
+    "unlocked_powers": [
+     "x"
+    ],
+    "bag_upgrades_purchased": 1
+   },
+   "attributes": {
+    "stacks": {
+     "visitor_bait": 96,
+     "bucket_lover": 96,
+     "cheapstake": 1,
+     "experience": 2,
+     "forest_fishing": 96,
+     "forest_strength": 5
+    }
+   },
+   "shards": {
+    "owned": [
+     {
+      "type": "DUMMY",
+      "amount": 1
+     }
+    ]
+   },
+   "inventory": {
+    "inv_contents": {
+     "type": 0,
+     "data": "H4sIAAAAAAAA/inv=="
+    },
+    "inv_armor": {
+     "type": 0,
+     "data": "H4sIAAAAAAAA/armor=="
+    },
+    "equipment_contents": {
+     "type": 0,
+     "data": "H4sIAAAAAAAA/equip=="
+    },
+    "ender_chest_contents": {
+     "type": 0,
+     "data": "H4sIAAAAAAAA/ender=="
+    },
+    "bag_contents": {
+     "talisman_bag": {
+      "type": 0,
+      "data": "H4sIAAAAAAAA/acc=="
+     },
+     "quiver": {
+      "type": 0,
+      "data": "H4sIAAAAAAAA/quiver=="
+     }
+    },
+    "backpack_contents": {
+     "0": {
+      "type": 0,
+      "data": "H4sIAAAAAAAA/bp0=="
+     },
+     "1": {
+      "type": 0,
+      "data": "H4sIAAAAAAAA/bp1=="
+     }
+    },
+    "backpack_icons": {
+     "0": {
+      "type": 0,
+      "data": "H4sIAAAAAAAA/icon0=="
+     }
+    }
+   }
+  },
+  "ffffffffffff4fffbfffffffffffff02": {
+   "player_data": {
+    "perks": {
+     "OTHER_MEMBER_SENTINEL": 1
+    }
+   },
+   "inventory": {
+    "inv_contents": {
+     "type": 0,
+     "data": "H4sIAAAAAAAA/OTHER_MEMBER_SENTINEL=="
+    }
+   }
+  }
+ }
+}
