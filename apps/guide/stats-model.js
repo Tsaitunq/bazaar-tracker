@@ -36,7 +36,7 @@ function tickedSteps(world, area) {
 }
 
 // The gear of an area from the ticked steps and the owned pieces.
-const wornOf = (world, area, entry, calc) => (world.items ? gearOf({ guides: world.guides, checks: world.checks ?? {}, owned: world.owned ?? [], items: world.items, area, build: world.build, settings: miningSettings(world.settings), values: entry?.values ?? {}, mp: world.build?.power?.mp ?? entry?.mp ?? null, pets: world.gamedata?.pets?.pets ?? null, petItems: world.gamedata?.pets?.items ?? null, dates: world.dates ?? {}, measuredAt: entry?.at ?? null, bagCounted: !!calc }) : { gear: {} });
+const wornOf = (world, area, entry, calc) => (world.items ? gearOf({ guides: world.guides, checks: world.checks ?? {}, owned: world.owned ?? [], items: world.items, area, build: world.build, settings: miningSettings(world.settings), values: entry?.values ?? {}, mp: world.build?.power?.mp ?? entry?.mp ?? null, pets: world.gamedata?.pets?.pets ?? null, petItems: world.gamedata?.pets?.items ?? null, dates: world.dates ?? {}, measuredAt: entry?.at ?? null, bagCounted: !!calc, real: world.profile?.items ?? null }) : { gear: {} });
 
 // area: mining | blaze | farming. world needs gamedata, base, build, guides, checks, owned, items.
 export function statsModel(world, area) {
