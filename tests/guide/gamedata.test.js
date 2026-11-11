@@ -171,8 +171,9 @@ test('hotm: cost samples', () => {
   assert.equal(levelCost(perk('mining_master').cost, 2), 59049);
   assert.equal(perk('mining_master').cost.powder, 'glacite');
   assert.equal(total('speedy_mineman', 2, 10), 6745);
-  assert.equal(perk('mining_speed').cost, null);
-  assert.equal(perk('mining_speed').unknown, true);
+  // read from a live profile: (N+1)^3 gives its powder_spent to the coin
+  assert.equal(perk('mining_speed').cost.exp, 3);
+  assert.equal(total('mining_speed', 2, 43), 980091);
 });
 
 test('hotm: omelette is a global flag and no perk of its own', () => {

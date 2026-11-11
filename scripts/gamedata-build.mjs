@@ -93,7 +93,7 @@ const X = (key, unit, a, b, cond = 'always', extra = {}) => ({ key, unit, a, b, 
 const MULT = ['STRENGTH', 'CRITICAL_CHANCE', 'CRITICAL_DAMAGE', 'DEFENSE', 'HEALTH'];
 // id: [powder, exponent, effects, otherEffects, extra]. Cost to reach level N = floor((N + offset) ^ exp), offset 1 unless given.
 const PERKS = {
-  mining_speed: [null, null, [E('MINING_SPEED', 0, 20)], [], { note: 'cost exponent not read yet' }],
+  mining_speed: ['mithril', 3, [E('MINING_SPEED', 0, 20)], [], { note: 'cost (N+1)^3: matches powder_spent of a live profile exactly (not read from the wiki)' }],
   mining_fortune: ['mithril', 3.05, [E('MINING_FORTUNE', 0, 2)]],
   titanium_insanium: ['mithril', 3.1, [], [X('titanium_replace_chance', '%', 2, 0.1, 'always', { note: 'Mithril to Titanium' })]],
   luck_of_the_cave: ['mithril', 3.07, [], [X('rare_spawn_chance', '%', 5, 1, 'dwarven_mines', { formula: 'final = base * (1 + TunnelVisionLevel / 100 + x / 100)', note: 'Golden Goblin only when also in Glacite Tunnels; not affected by Tracking' })]],
@@ -154,7 +154,6 @@ const perks = Object.entries(L.perks).map(([neuId, p]) => {
     e.effects = effects;
     if (other.length) e.otherEffects = other;
     if (powder) e.cost = { powder, exp, offset: extra.offset ?? 1 };
-    else if (id === 'mining_speed') { e.cost = null; e.unknown = true; }
     else e.cost = { kind: 'none' };
     if (extra.note) e.note = extra.note;
     if (p.maxLevel > 1) e.omeletteBonus = true; // Blue Cheese Goblin Omelette: max level + 1
