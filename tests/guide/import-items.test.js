@@ -26,7 +26,7 @@ test('readItem takes the fields detect asks for and nothing else', () => {
   }), 'Inventar');
   assert.deepEqual(got, {
     id: 'DIVAN_DRILL', reforge: 'jaded', enchants: { fortune: 4 }, gems: [], unlocked: [], recomb: true, upgradedRarity: null,
-    hpb: 10, fuming: 3, stars: 4, parts: {}, polarvoid: 5, coating: true, enrichment: null, scrolls: ['IMPLOSION_SCROLL', 'X'], at: ['Inventar'], uuid: 'u-DIVAN_DRILL',
+    hpb: 10, fuming: 3, stars: 4, parts: {}, polarvoid: 5, coating: true, enrichment: null, scrolls: ['IMPLOSION_SCROLL', 'X'], at: ['Inventar'], tip: { MINING_SPEED: 1 }, uuid: 'u-DIVAN_DRILL',
   });
   assert.equal(JSON.stringify(got).includes('Lore'), false);
 });
@@ -114,9 +114,10 @@ test('readTip keeps the stat numbers of a tooltip: the total, names mapped, noth
   assert.deepEqual(readTip(undefined), {});
 });
 
-test('a bag accessory keeps its tip; an item elsewhere does not', async () => {
+test('an item keeps its tip wherever it was found', async () => {
   const { readItem } = await import('../../apps/guide/import/items.js');
   const raw = { id: 1, tag: { ExtraAttributes: { id: 'X' }, display: { Lore: ['§7Health: §a+10'] } } };
   assert.deepEqual(readItem(raw, 'Accessory Bag').tip, { HEALTH: 10 });
-  assert.equal('tip' in readItem(raw, 'Inventar'), false);
+  assert.deepEqual(readItem(raw, 'Inventar').tip, { HEALTH: 10 });
+  assert.equal('tip' in readItem({ id: 1, tag: { ExtraAttributes: { id: 'X' }, display: { Lore: ['§7plain'] } } }, 'Inventar'), false);
 });

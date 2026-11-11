@@ -56,8 +56,8 @@ export function readItem(raw, at) {
     enrichment: text(e.talisman_enrichment),
     scrolls: [...(Array.isArray(e.ability_scroll) ? e.ability_scroll : []), ...(text(e.power_ability_scroll) ? [e.power_ability_scroll] : [])].filter(text),
     at: [at],
-    // what the tooltip of a bag accessory says it gives; the app takes this in place of its own sum
-    ...(at === 'Accessory Bag' && Object.keys(readTip(raw.tag.display?.Lore)).length ? { tip: readTip(raw.tag.display.Lore) } : {}),
+    // what the tooltip says the item gives (stat numbers only): the app takes this in place of its own sum for accessories and worn gear
+    ...(Object.keys(readTip(raw.tag.display?.Lore)).length ? { tip: readTip(raw.tag.display.Lore) } : {}),
     uuid: text(e.uuid),
   };
 }
