@@ -1,6 +1,16 @@
 {
   "versions": [
     {
+      "version": "0.19.0",
+      "date": "2026-11-11",
+      "entries": [
+        { "title": "Gear in detail", "text": "Tap a stat to see your gear piece by piece, from armor and drill to pet, and open a piece to see its base, gems, reforge and enchants." },
+        { "title": "Real values for your gear", "text": "Pieces found in your profile count the value from their game tooltip, and both numbers show when the app calculates something different." },
+        { "title": "Multipliers with a switch", "text": "Multipliers such as Nether Embodiment and Lonesome Miner get their own row with their condition and a switch for whether it holds right now." },
+        { "title": "Active buffs on top", "text": "The Stats page now names the potions and consumables it counts as active, so an expired potion does not add stats unnoticed." }
+      ]
+    },
+    {
       "version": "0.18.0",
       "date": "2026-11-11",
       "entries": [
