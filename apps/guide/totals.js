@@ -19,7 +19,12 @@ const PLACES = { mining: new Set(), blaze: new Set(['crimson_isle']), farming: n
 
 const addTo = (sum, stat, v) => { sum[stat] = (sum[stat] ?? 0) + v; };
 
-function hotmStats(hotm, data, out, area) {
+// A condition the player can switch: where it holds is a default per area, build.conditions overrides it (stats-model: Multipliers).
+export const CONDITIONS = { on_mining_islands: 'Mining islands (Dwarven Mines, Crystal Hollows, Glacite)', crimson_isle: 'Crimson Isle' };
+const holdsDefault = (key, area) => (key === 'crimson_isle' ? PLACES[area].has(key) : HOLDS[area].has(key));
+export const holds = (build, area, key) => build?.conditions?.[key] ?? holdsDefault(key, area);
+
+function hotmStats(hotm, data, out, area, build) {
   const omelette = hotm.omelette === true;
   for (const perk of data.hotm.perks) {
     const base = hotm.levels?.[perk.id] ?? 0;
@@ -30,7 +35,7 @@ function hotmStats(hotm, data, out, area) {
     for (const e of perk.effects) {
       if (e.hidden) continue;
       const v = valueAt(e, level);
-      if (e.kind === 'percent_multiplier' && HOLDS[area].has(e.cond)) out.mult[e.stat] = (out.mult[e.stat] ?? 1) * (1 + v / 100);
+      if (e.kind === 'percent_multiplier' && (e.cond === 'on_mining_islands' ? holds(build, area, e.cond) : HOLDS[area].has(e.cond))) out.mult[e.stat] = (out.mult[e.stat] ?? 1) * (1 + v / 100);
       else if (!e.kind && e.cond === 'always') addTo(out.add, e.stat, v);
       else out.listed.push({ stat: e.stat, value: v, cond: e.cond, text: `${perk.name}: ${e.stat} ${v}${e.kind === 'percent_multiplier' ? ' %' : ''} (${e.cond})` });
     }
@@ -59,10 +64,10 @@ function attrStats(attrs, data, out, area) {
 }
 
 // A pet perk that multiplies a category of stats after everything is added (Nether Embodiment). Only where the perk works.
-function petStats(pet, data, out, area) {
+function petStats(pet, data, out, area, build) {
   for (const perk of pet?.perks ?? []) {
     const e = perk.effect;
-    if (e?.kind !== 'category_multiplier' || !PLACES[area].has(e.where)) continue;
+    if (e?.kind !== 'category_multiplier' || !holds(build, area, e.where)) continue;
     for (const s of data.stats.stats) if (e.categories.includes(s.category)) out.mult[s.id] = (out.mult[s.id] ?? 1) * (1 + e.percent / 100);
   }
 }
@@ -95,9 +100,9 @@ function powerStats(power, data, out) {
 // pet: the pets.json entry that is active; by default the one of the build. calc: with an import the buff values come from stat-sources.json.
 export function statsOf(build, data, area, pet = buildPet(build, data.pets?.pets), calc = null) {
   const out = { add: {}, mult: {}, listed: [] };
-  if (build?.hotm) hotmStats(build.hotm, data, out, area);
+  if (build?.hotm) hotmStats(build.hotm, data, out, area, build);
   if (build?.attrs) attrStats(build.attrs, data, out, area);
-  petStats(pet, data, out, area);
+  petStats(pet, data, out, area, build);
   if (build?.power) powerStats(build.power, data, out);
   if (build?.essence) essenceStats(build.essence, data, out);
   if (calc) for (const [stat, v] of Object.entries(buffsOf(build?.buffs, data.statSources).add)) addTo(out.add, stat, v);
