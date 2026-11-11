@@ -1,6 +1,15 @@
 {
   "versions": [
     {
+      "version": "0.17.0",
+      "date": "2026-11-11",
+      "entries": [
+        { "title": "Stats add up by themselves", "text": "After an import the Stats page adds up your skills, slayers, SkyBlock level, accessories, buffs and the game base, so measuring is optional and Other sources gets small." },
+        { "title": "Unsure values are marked", "text": "Values that rest on one source only carry a ≈, and a stat that still differs from /stats names the unsure sources that may explain it." },
+        { "title": "Your levels at a glance", "text": "Below your figure, tap Skills, Slayer or SkyBlock to see your levels from the import." }
+      ]
+    },
+    {
       "version": "0.16.0",
       "date": "2026-11-11",
       "entries": [

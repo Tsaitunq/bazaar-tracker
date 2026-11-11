@@ -95,11 +95,13 @@ Git identity Tsaitunq (noreply) as configured. No push, no merge.
 - Chips use `<details>`, not a new route.
 - `computeStats` in `stats.js` keeps its own tables for the optimizer; not merged.
 
-## Open points
+## Answers and what the data showed
 
-1. **Accessory reforge values.** `optimizer-data.js` holds reforge tables for our mining and Blaze stats only. Reforges outside it make a piece "unknown". Acceptable, or should I collect the full accessory reforge table first (more work, more data)?
-2. **Equipment pieces** (necklace, cloak, belt, gloves) are counted by the ticked gear, not by the bag. If your gear steps do not cover the worn ones, they stay in "Other". OK?
-3. **Farming** area: no import-based sources for crop stats yet (Farming Fortune is in `stat-sources` but one source). It follows the same rules; unsafe marks show.
+1. **Accessory reforges: there is nothing to collect.** NEU (`reforges.json`, 50 entries, and `reforgestones.json`, 86) has no accessory reforge; the stones marked EQUIPMENT are for worn necklace, cloak, belt and gloves. The wiki page Reforging/Accessory says accessory reforges were removed and replaced by Thaumaturgy (the power stone, already in the build). So a reforge on a bag accessory counts as no stat. Stored as `accessories.reforges` in `stat-sources.json`, unsafe (one source). A bag in the private fixture shows only `modifier: none`, which fits. A recombobulated accessory changes no base stat (no accessory in the item list has `tiered_stats`).
+2. **Equipment** (necklace, cloak, belt, gloves) stays with the ticked gear steps; the bag is only the Accessory Bag.
+3. **Base stats** are a source: Health 100, Crit Chance 30, Crit Damage 50 (safe), Speed 100, Sea Creature Chance 20, Health Regen 100, Vitality 100, Mending 100, Swing Range 3 (unsafe, given by the player), all others 0. Stored as `baseStats`.
+4. Probe on the private fixture (counts only): the accessory bag holds 109 items; `talisman_enrichment` is on 20 of them and holds a stat name (`sea_creature_chance`); the skill cap is a separate key `SKILL_<NAME>_extra_level_cap`, which needs no handling because XP stops at the cap level; `leveling.experience` is not in the fixture (it is trimmed by the worker, which did not send it).
+5. Guide path ranking still needs a measurement (`planOf` asks for typed values); only the Stats page works without one.
 
 ## Not in this change
 
