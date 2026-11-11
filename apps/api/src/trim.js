@@ -126,6 +126,7 @@ export function trimProfile(profile, uuid) {
   take('pets', pets(m));
   take('skills', m.player_data && m.player_data.experience);
   take('slayer', slayer(m));
+  take('skyblockXp', m.leveling && typeof m.leveling.experience === 'number' ? m.leveling.experience : undefined);
   take('fairySouls', fairySouls(m));
   take('accessoryBag', accessoryBag(m));
   take('attributes', attributes(m));

@@ -52,6 +52,8 @@ export function readItem(raw, at) {
     parts: readParts(e),
     polarvoid: whole(e.polarvoid),
     coating: !!e.divan_powder_coating,
+    // an accessory enrichment is stored as the stat it gives (sea_creature_chance)
+    enrichment: text(e.talisman_enrichment),
     scrolls: [...(Array.isArray(e.ability_scroll) ? e.ability_scroll : []), ...(text(e.power_ability_scroll) ? [e.power_ability_scroll] : [])].filter(text),
     at: [at],
     uuid: text(e.uuid),

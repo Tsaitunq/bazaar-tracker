@@ -128,3 +128,13 @@ test('trim: wardrobe with the real shape (equipped_set is a number among sets "1
   assert.deepEqual(t.missing, []);
   assert.ok(!('equipped_set' in t.inventories.wardrobe.sets));
 });
+
+test('trim: skyblockXp is leveling.experience, a missing or odd value is listed as missing', () => {
+  assert.equal(trimProfile(profile, UUID).skyblockXp, 34567.5);
+  for (const leveling of [undefined, {}, { experience: '5' }]) {
+    const p = clone(profile);
+    p.members[UUID].leveling = leveling;
+    const t = trimProfile(p, UUID);
+    assert.ok(!('skyblockXp' in t) && t.missing.includes('skyblockXp'));
+  }
+});

@@ -26,7 +26,7 @@ test('readItem takes the fields detect asks for and nothing else', () => {
   }), 'Inventar');
   assert.deepEqual(got, {
     id: 'DIVAN_DRILL', reforge: 'jaded', enchants: { fortune: 4 }, gems: [], unlocked: [], recomb: true, upgradedRarity: null,
-    hpb: 10, fuming: 3, stars: 4, parts: {}, polarvoid: 5, coating: true, scrolls: ['IMPLOSION_SCROLL', 'X'], at: ['Inventar'], uuid: 'u-DIVAN_DRILL',
+    hpb: 10, fuming: 3, stars: 4, parts: {}, polarvoid: 5, coating: true, enrichment: null, scrolls: ['IMPLOSION_SCROLL', 'X'], at: ['Inventar'], uuid: 'u-DIVAN_DRILL',
   });
   assert.equal(JSON.stringify(got).includes('Lore'), false);
 });
@@ -36,6 +36,11 @@ test('upgraded_rarity is its own field and not a recombobulator', () => {
   assert.equal(belt.upgradedRarity, 'MYTHIC');
   assert.equal(belt.recomb, false);
   assert.equal(readItem(item({ rarity_upgrades: 0 }), 'x').recomb, false);
+});
+
+test('an accessory enrichment is kept as the stat name', () => {
+  assert.equal(readItem(item({ talisman_enrichment: 'sea_creature_chance' }, 'ARTIFACT_X'), 'Accessory Bag').enrichment, 'sea_creature_chance');
+  assert.equal(readItem(item({}, 'ARTIFACT_X'), 'Accessory Bag').enrichment, null);
 });
 
 test('drill parts: the text form and the compound form', () => {

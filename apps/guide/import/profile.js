@@ -117,6 +117,8 @@ export async function summarize(answer, data, fetchedAt = Date.now()) {
     powers: null, selectedPower: bag?.selectedPower ?? null, stone: stone?.id ?? null,
     tuning: bag ? tuningOf(bag.tuning) : null,
     skills: answer.skills ? numbers(answer.skills) : null,
+    // SkyBlock XP (leveling.experience); null until the worker sends it
+    skyblockXp: Number.isFinite(answer.skyblockXp) ? answer.skyblockXp : null,
     collTiers: null,
     missing: { inventory: noInventory, list: missing },
   };

@@ -11,7 +11,7 @@ GET only, JSON.
 | Path | Answer |
 |---|---|
 | `/v1/profiles/<name>` | `{ uuid, profiles: [{ id, cute_name, game_mode, selected }], notAffiliated }` |
-| `/v1/profile/<name>/<profileId>` | Trimmed data of that player only: `hotm`, `essencePerks`, `pets`, `skills`, `slayer`, `fairySouls`, `accessoryBag`, `attributes`, `inventories`, `missing` |
+| `/v1/profile/<name>/<profileId>` | Trimmed data of that player only: `hotm`, `essencePerks`, `pets`, `skills`, `slayer`, `skyblockXp`, `fairySouls`, `accessoryBag`, `attributes`, `inventories`, `missing` |
 | `/v1/skin/<uuid>` | The player's skin as `image/png` (not JSON). Mojang session server, then PlayerDB; only `https://textures.minecraft.net` urls are fetched, at most 64 KB, PNG signature checked. KV cache 1 day, same rate limit. `404` no custom skin |
 
 - `<name>`: 3 to 16 characters, `A-Z a-z 0-9 _`. `<profileId>`: a UUID, with or without dashes.
@@ -33,6 +33,7 @@ All paths are `members.<uuid without dashes>.…`.
 | `pets` | `pets_data.pets[]` (`type`, `tier`, `exp`, `heldItem`, `active`) |
 | `skills` | `player_data.experience` (`SKILL_*`) |
 | `slayer` | `slayer.slayer_bosses.<boss>.xp` |
+| `skyblockXp` | `leveling.experience` (SkyBlock XP, a number; 100 XP a level). Added in guide 0.17.0: the worker has to be deployed before the app can read the level |
 | `fairySouls` | `fairy_soul` (`total_collected`, `unspent_souls`, `fairy_exchanges`) |
 | `accessoryBag` | `accessory_bag_storage` (`selected_power`, `tuning`, `highest_magical_power`) |
 | `attributes` | `attributes.stacks` = shards applied per attribute, **not the level** (e.g. `rotten_pickaxe: 8` is level 2 Common, `freezing_spread: 32` is Epic max). The app converts it with the shard table per rarity from `gamedata/attributes.json`; the worker converts nothing. `shards.owned` (Hunting Box, `type` + `amount_owned`) is passed on as `attributes.huntingBox` |
