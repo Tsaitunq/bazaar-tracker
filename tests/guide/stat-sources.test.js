@@ -133,3 +133,11 @@ test('accessories: the gaps are counted, enrichments are flat and one source', (
   assert.equal(a.enrichments.values.SPEED.value, 1);
   assert.ok(Object.values(a.enrichments.values).every((v) => v.confidence === 'unsafe'));
 });
+
+test('base stats: the three the app had are safe, the rest are given by the player and not safe', () => {
+  const b = data.baseStats;
+  assert.deepEqual(Object.fromEntries(Object.entries(b).map(([k, v]) => [k, v.value])), { HEALTH: 100, CRITICAL_CHANCE: 30, CRITICAL_DAMAGE: 50, SPEED: 100, SEA_CREATURE_CHANCE: 20, HEALTH_REGEN: 100, VITALITY: 100, MENDING: 100, SWING_RANGE: 3 });
+  for (const id of ['HEALTH', 'CRITICAL_CHANCE', 'CRITICAL_DAMAGE']) assert.equal(b[id].confidence, 'safe', id);
+  for (const id of ['SPEED', 'SEA_CREATURE_CHANCE', 'HEALTH_REGEN', 'VITALITY', 'MENDING', 'SWING_RANGE']) assert.equal(b[id].confidence, 'unsafe', id);
+  assert.equal(data.accessories.reforges.stats, 'none');
+});

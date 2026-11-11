@@ -4380,6 +4380,88 @@
    },
    "perRarity": null,
    "note": "The wiki gives one flat value per enrichment and no value per rarity; \"Legendary or higher\" is only the requirement. No value per rarity was found in either source."
+  },
+  "reforges": {
+   "stats": "none",
+   "src": [
+    "wiki Reforging/Accessory (removal notice)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source; NEU has no accessory reforge either. A reforge name on a bag accessory is read as no stat."
+  }
+ },
+ "baseStats": {
+  "HEALTH": {
+   "value": 100,
+   "src": [
+    "wiki Stats",
+    "apps/guide/stats.js BASE"
+   ],
+   "confidence": "safe"
+  },
+  "CRITICAL_CHANCE": {
+   "value": 30,
+   "src": [
+    "wiki Stats",
+    "apps/guide/stats.js BASE"
+   ],
+   "confidence": "safe"
+  },
+  "CRITICAL_DAMAGE": {
+   "value": 50,
+   "src": [
+    "wiki Stats",
+    "apps/guide/stats.js BASE"
+   ],
+   "confidence": "safe"
+  },
+  "SPEED": {
+   "value": 100,
+   "src": [
+    "/stats in the game, given by the player (Swing Range 3 matches the player's /stats)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source, not on a wiki page checked"
+  },
+  "SEA_CREATURE_CHANCE": {
+   "value": 20,
+   "src": [
+    "/stats in the game, given by the player (Swing Range 3 matches the player's /stats)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source, not on a wiki page checked"
+  },
+  "HEALTH_REGEN": {
+   "value": 100,
+   "src": [
+    "/stats in the game, given by the player (Swing Range 3 matches the player's /stats)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source, not on a wiki page checked"
+  },
+  "VITALITY": {
+   "value": 100,
+   "src": [
+    "/stats in the game, given by the player (Swing Range 3 matches the player's /stats)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source, not on a wiki page checked"
+  },
+  "MENDING": {
+   "value": 100,
+   "src": [
+    "/stats in the game, given by the player (Swing Range 3 matches the player's /stats)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source, not on a wiki page checked"
+  },
+  "SWING_RANGE": {
+   "value": 3,
+   "src": [
+    "/stats in the game, given by the player (Swing Range 3 matches the player's /stats)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source, not on a wiki page checked"
   }
  }
 }

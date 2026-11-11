@@ -181,7 +181,7 @@ function checkValue(w, v) {
 const increasing = (w, values) => values.forEach((v, i) => { if (!(v > 0) || (i && !(v >= values[i - 1]))) fail(w, `xp not rising at level ${i + 1}`); });
 
 export function checkStatSources(d, stats) {
-  for (const key of ['skills', 'slayers', 'fairySouls', 'skyblockLevel', 'boosterCookie', 'godPotion', 'accessories']) need('stat-sources', d, [key]);
+  for (const key of ['skills', 'slayers', 'fairySouls', 'skyblockLevel', 'boosterCookie', 'godPotion', 'accessories', 'baseStats']) need('stat-sources', d, [key]);
   const group = (kind, list, cumulativeXp) => {
     for (const [id, e] of Object.entries(list)) {
       const w = `stat-sources.${kind}.${id}`;
@@ -216,6 +216,8 @@ export function checkStatSources(d, stats) {
   }
   for (const [stat, v] of Object.entries(d.boosterCookie.stats)) { if (!stats.has(stat)) fail('stat-sources.boosterCookie', `unknown stat ${stat}`); checkValue(`stat-sources.boosterCookie.${stat}`, v); }
   for (const [stat, v] of Object.entries(d.godPotion.stats)) { if (!stats.has(stat)) fail('stat-sources.godPotion', `unknown stat ${stat}`); checkValue(`stat-sources.godPotion.${stat}`, v); }
+  for (const [stat, v] of Object.entries(d.baseStats)) { if (!stats.has(stat)) fail('stat-sources.baseStats', `unknown stat ${stat}`); checkValue(`stat-sources.baseStats.${stat}`, v); }
+  checkConfidence('stat-sources.accessories.reforges', d.accessories.reforges);
   for (const [stat, v] of Object.entries(d.accessories.enrichments?.values ?? {})) { if (!stats.has(stat)) fail('stat-sources.accessories', `unknown stat ${stat}`); checkValue(`stat-sources.accessories.enrichments.${stat}`, v); }
 }
 
