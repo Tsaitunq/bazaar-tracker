@@ -211,3 +211,13 @@ test('the expanded marks of the app match what a tick leaves', () => {
   const live = expandChecks(w.guides, out.state.checks, out.state.keys);
   assert.ok(live.g1.includes(key('Jaded helmet')));
 });
+
+test('gear: Polarvoid Books on DR-X355 are found on DR-X655 and the place says so', () => {
+  const drill = { id: 'g2', title: 'Drills', area: 'mining', sections: [{ name: 'Drill', steps: [{ text: 'DR-X355: Polarvoid Books x5', detect: { kind: 'polarvoid', on: [['TITANIUM_DRILL_1']], need: 5 } }] }] };
+  const items = { TITANIUM_DRILL_1: { name: 'Titanium Drill DR-X355', parent: { TITANIUM_DRILL_1: 'TITANIUM_DRILL_2' } }, TITANIUM_DRILL_2: { name: 'Titanium Drill DR-X455', parent: { TITANIUM_DRILL_2: 'TITANIUM_DRILL_3' } }, TITANIUM_DRILL_3: { name: 'Titanium Drill DR-X555', parent: { TITANIUM_DRILL_3: 'TITANIUM_DRILL_4' } }, TITANIUM_DRILL_4: { name: 'Titanium Drill DR-X655' } };
+  const w = world({ guides: [drill], checks: { g2: [] }, items });
+  const gear = area(proposals(w, profile({ items: [item('TITANIUM_DRILL_4', ['Inventar'], { polarvoid: 5 })] })), 'gear');
+  assert.equal(gear.rows.length, 1);
+  assert.equal(gear.rows[0].status, 'new');
+  assert.deepEqual(gear.rows[0].where, ['on DR-X655, Inventar']);
+});

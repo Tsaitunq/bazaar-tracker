@@ -131,7 +131,7 @@ function impWorld() {
     since: imp.since, picked: imp.picked, pets: profile?.pets ?? null,
   };
   if (profile && gamedata && route().page === 'import') {
-    out.areas = proposals({ guides: guides(), checks: live(), owned, build, base, draft, gamedata }, profile);
+    out.areas = proposals({ guides: guides(), checks: live(), owned, build, base, draft, gamedata, items }, profile);
   }
   return out;
 }
@@ -555,7 +555,7 @@ async function impLoad(confirmed = false) {
   } catch (e) { impFail(e); }
 }
 
-const impRows = () => proposals({ guides: guides(), checks: live(), owned, build, base, draft, gamedata }, profile).flatMap((a) => a.rows);
+const impRows = () => proposals({ guides: guides(), checks: live(), owned, build, base, draft, gamedata, items }, profile).flatMap((a) => a.rows);
 
 function impRun(rows) {
   if (!rows.length) return;

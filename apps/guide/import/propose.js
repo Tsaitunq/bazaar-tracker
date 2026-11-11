@@ -1,7 +1,7 @@
 // What the profile suggests, against what the app holds now: rows by area, each new / different / same / conflict, and the
 // way to apply a chosen set of rows and to take them back. Pure: nothing here reads or writes the stores.
 // A row is only a suggestion. Nothing is ticked or changed without the player picking it. A tick the player made is never removed.
-import { detectGuide } from '../detect.js';
+import { detectGuide, lineOf } from '../detect.js';
 import { doneSet, stepKey } from '../progress.js';
 import { autoOf, tickStep, stampAll } from '../model.js';
 import { commitGuide, expandChecks } from '../keys.js';
@@ -145,10 +145,13 @@ function powerRows(world, profile) {
 }
 
 // The part of the profile each detect part looked at, for "where": the items on the step's slots.
+// A trait found on a higher piece of the line says so: "on DR-X655, Inventar".
 const idsOf = (step, guide) => [step.detect ?? []].flat().flatMap((d) => (typeof d.on === 'string' ? guide.groups?.[d.on] : d.on) ?? []).flat();
-function whereOf(step, guide, profile) {
-  const ids = new Set(idsOf(step, guide));
-  const places = profile.items.filter((i) => ids.has(i.id)).flatMap((i) => i.at ?? []);
+const shortName = (name) => /[A-Z]{2}-[A-Z]?\d+/.exec(name ?? '')?.[0] ?? name;
+function whereOf(step, guide, profile, items) {
+  const own = new Set(idsOf(step, guide));
+  const reach = new Set([...own].flatMap((id) => (step.detect && [step.detect].flat().every((d) => d.kind === 'owned') ? [id] : lineOf(id, items))));
+  const places = profile.items.filter((i) => reach.has(i.id)).flatMap((i) => (i.at ?? []).map((at) => (own.has(i.id) ? at : `on ${shortName(items?.[i.id]?.name) ?? i.id}, ${at}`)));
   return [...new Set(places)].slice(0, 4);
 }
 
@@ -157,7 +160,7 @@ function gearRows(world, profile) {
   let equal = 0;
   const live = world.checks;
   for (const guide of world.guides) {
-    const found = detectGuide(guide, profile, stepKey);
+    const found = detectGuide(guide, profile, stepKey, world.items);
     if (!found.size) continue;
     const marks = new Set(live[guide.id] ?? []);
     const done = doneSet(guide, marks, autoOf(guide, world.owned, world.build));
@@ -167,7 +170,7 @@ function gearRows(world, profile) {
         const f = found.get(key);
         if (!f) continue;
         const ticked = done.has(key);
-        const base = { id: `gear:${guide.id}:${key}`, area: 'gear', guide: guide.id, title: guide.title, section: section.name, label: step.text, key, where: whereOf(step, guide, profile) };
+        const base = { id: `gear:${guide.id}:${key}`, area: 'gear', guide: guide.id, title: guide.title, section: section.name, label: step.text, key, where: whereOf(step, guide, profile, world.items) };
         if (f.have >= f.need) {
           if (ticked) equal++;
           else rows.push({ ...base, status: 'new', kind: 'tick', from: 'open', to: 'done' });
@@ -182,7 +185,7 @@ function gearRows(world, profile) {
   return { rows, equal, notes: profile.missing.inventory ? ['The inventory API is off in the game, so no gear is suggested.'] : profile.items.length ? [] : ['No items were found in the profile.'] };
 }
 
-// world: { guides, checks (as the app reads them: live), owned, build, base, gamedata }; profile: summarize(...)
+// world: { guides, checks (as the app reads them: live), owned, build, base, gamedata, items }; profile: summarize(...)
 export function proposals(world, profile) {
   const make = { hotm: hotmRows, attributes: attrRows, essence: essenceRows, pets: petRows, power: powerRows, gear: gearRows };
   return AREAS.map(([id, name]) => {
