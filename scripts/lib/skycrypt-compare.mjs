@@ -8,7 +8,7 @@ const sorted = (o) => Object.entries(o ?? {}).map(([k, v]) => `${k}:${v}`).sort(
 
 // where an item was found, reduced to the kind of place so both sides can be compared
 const place = (at) => String(at).replace(/\s*(Set\s*)?\d+$/, '').replace(/-Set$/, '').replace(/^Equipment$/, 'Wardrobe').replace(/^Farming-Toolkit.*/, 'Farming-Toolkit');
-const SKY_PLACE = { armor: 'Getragen', equipment: 'Getragen', inventory: 'Inventar', wardrobe: 'Wardrobe', enderchest: 'Ender Chest', ender_chest: 'Ender Chest', accessory_bag: 'Accessory Bag', talismans: 'Accessory Bag', personal_vault: 'Personal Vault', backpack: 'Backpack', storage: 'Backpack' };
+const SKY_PLACE = { armor: 'Getragen', equipment: 'Getragen', equipmentWardrobe: 'Wardrobe', weapons: 'Inventar', inventory: 'Inventar', wardrobe: 'Wardrobe', enderchest: 'Ender Chest', ender_chest: 'Ender Chest', accessory_bag: 'Accessory Bag', talismans: 'Accessory Bag', personal_vault: 'Personal Vault', backpack: 'Backpack', storage: 'Backpack' };
 
 // the fields of an item that are compared, in the form a row shows
 const FIELDS = {
