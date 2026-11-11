@@ -128,3 +128,16 @@ test('stats page: after a measurement the gap lists the unsafe sources behind it
   assert.match(html, /Unsafe sources behind it[^<]*SkyBlock level 123/);
   assert.doesNotMatch(html, /From known sources/);
 });
+
+test('a measurement older than the import, with a build part, is stale; removing it gives the known sources', () => {
+  const build = { ...emptyBuild(), hotm: { tier: 1, levels: { x: 1 }, omelette: false, disabled: [], ability: null }, buffs: { godPotion: true, boosterCookie: false } };
+  const base = measure({}, 'blaze', { values: { HEALTH: 500 } }, build, 1e9);
+  assert.equal(base.blaze.snapshot.buffs.godPotion, true); // the God Potion switch is in the snapshot
+  const w = world(build, base, profile({ fetchedAt: 2e9 }));
+  assert.equal(statsModel(w, 'blaze').stale, true);
+  assert.match(statsView(w, { tab: 'overview', area: 'blaze' }), /data-stats-remove="blaze"/);
+  assert.equal(statsModel(world(build, base, profile({ fetchedAt: 5 })), 'blaze').stale, false);
+  const gone = statsModel(world(build, {}, profile({ fetchedAt: 2e9 })), 'blaze');
+  assert.equal(gone.measured, null);
+  assert.ok(gone.known.length);
+});

@@ -87,6 +87,8 @@ export function statsModel(world, area) {
     known, other, unknown, levels: calc?.levels ?? null, assumed: !!calc && !!entry && !entry.snapshot?.calc, hasCalc: !!calc,
    
     area, name: AREA_NAME[area], missing: DATA_AREA[area] && !world.items ? 'items' : null,
+    // shortcut: any import newer than the measurement counts, not only one that applied parts; refine if it nags
+    stale: !!(calc && entry && world.profile?.fetchedAt > entry.at && ['hotm', 'attrs', 'essence'].some((p) => world.build?.[p])),
     measured: entry ? { at: entry.at, buffs: entry.snapshot?.buffs ?? {} } : null,
     changes, fields: ids.map(label), rows, listed: [...t.listed, ...(worn.listed ?? [])],
     gearLine: Object.entries(worn.gear).filter(([id, v]) => v && ids.includes(id)).slice(0, 3).map(([id, v]) => ({ ...label(id), text: signed(v) })),

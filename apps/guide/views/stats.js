@@ -75,10 +75,12 @@ function overview(world, r) {
   const figure = `<div class="panel figure-panel"><canvas data-figure class="figure" role="img" aria-label="Your player"></canvas>${float}<div class="tags">${tag('Pet', pet, ' data-goto-pet=""', 'pets')}${tag('Power', stone?.power)}</div></div>`;
   const drafts = ['hotm', 'attrs', 'power', 'essence'].filter((p) => world.draft?.[p]).map((p) => ({ hotm: ['hotm', 'HOTM'], attrs: ['attributes', 'Attributes'], power: ['power', 'Power'], essence: ['essence', 'Essence'] })[p]);
   const draftNote = drafts.map(([tab, name]) => `<a class="note draft-note" href="#/stats/${tab}/${esc(r.area)}">${name} draft not saved</a>`).join('');
+  const stale = m.stale ? `<div class="panel"><small class="c-orange">This measurement is older than the import. Remove it or measure again, or the import values count twice.</small><div class="actions"><button type="button" data-stats-remove="${esc(r.area)}">Remove measurement</button><a class="primary-link" href="#/stats/measure/${esc(r.area)}">Measure again</a></div></div>` : '';
+  const remove = m.measured ? `<button type="button" data-stats-remove="${esc(r.area)}">Remove measurement</button>` : '';
   const note = m.missing === 'data' ? '<p class="note">Loading game data…</p>' : m.missing === 'items' ? '<p class="note">Loading item data… gear shows when it is there.</p>' : '';
   return `<div class="scroll">${tabs(r)}${areas(r)}
-    ${draftNote}${figure}${levelStrip(m.levels)}
-    <div class="panel"><small>${when}</small><small>${gear}</small>${hints}${note}<a class="primary-link" href="#/stats/measure/${esc(r.area)}">${m.measured ? 'Measure base again' : `Measure ${esc(m.name)} base`}</a></div>
+    ${draftNote}${figure}${levelStrip(m.levels)}${stale}
+    <div class="panel"><small>${when}</small><small>${gear}</small>${hints}${note}<a class="primary-link" href="#/stats/measure/${esc(r.area)}">${m.measured ? 'Measure base again' : `Measure ${esc(m.name)} base`}</a>${remove}</div>
     <div class="panel stat-table"><div class="stat-row stat-head"><span>All ${esc(m.name.toLowerCase())} stats</span><span>Base</span><span>Gear</span><span title="Changed since the measurement">Δ</span><span>Total</span></div>${rows}</div>${sources}${unknown}${moved}${listed}</div>`;
 }
 

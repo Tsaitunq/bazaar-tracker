@@ -471,6 +471,16 @@ function saveMeasure(box) {
   draw();
 }
 
+// Drops the measurement of an area; with an import the totals then add up from the known sources.
+function removeMeasure(area) {
+  if (!confirm(`Remove the ${area} measurement? The totals then come from the known sources only.`)) return;
+  const { [area]: _gone, ...rest } = base;
+  base = rest;
+  save('pg.base', base);
+  pathEpoch++;
+  draw();
+}
+
 // An editor change: the build, the measured bases (the first entry backfills them) and the draft are saved together.
 function edit(part, change) {
   ({ build, base, draft } = editPart({ build, base, draft }, part, change));
@@ -647,6 +657,8 @@ root.addEventListener('click', (e) => {
   if (el('[data-info]')) { openInfo(); return; }
   const step = el('[data-step]');
   if (step) { if (step.closest('.card')) markCard(step, step.dataset.step); else toggle(step.dataset.step); return; }
+  const rm = el('[data-stats-remove]');
+  if (rm) { removeMeasure(rm.dataset.statsRemove); return; }
   if (el('[data-stats-save]')) { saveMeasure(el('[data-stats-area]')); return; }
   const save1 = el('[data-draft-save]');
   if (save1) { draftDone(save1.dataset.draftSave, true); return; }
