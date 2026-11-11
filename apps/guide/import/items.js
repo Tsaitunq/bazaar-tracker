@@ -67,7 +67,9 @@ const TIP_STAT = { CRIT_CHANCE: 'CRITICAL_CHANCE', CRIT_DAMAGE: 'CRITICAL_DAMAGE
 export function readTip(lore) {
   const out = {};
   for (const line of Array.isArray(lore) ? lore : []) {
-    const m = /^§7([A-Za-z' ]+): §.\+?(-?[\d,.]+)/.exec(String(line));
+    // progress items (New Year Cake Bag) say "§7Current Bonus: §c+10 Health" instead of "Health: +10"
+    const bonus = /^§7Current Bonus: §.\+?(-?[\d,.]+)\S* ([A-Za-z' ]+)/.exec(String(line));
+    const m = bonus ? [null, bonus[2], bonus[1]] : /^§7([A-Za-z' ]+): §.\+?(-?[\d,.]+)/.exec(String(line));
     const v = m && Number(m[2].replace(/,/g, ''));
     if (!m || !Number.isFinite(v)) continue;
     const id = m[1].trim().toUpperCase().replace(/[' ]+/g, '_');

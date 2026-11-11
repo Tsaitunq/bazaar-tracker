@@ -110,6 +110,7 @@ test('readItem: modifier "none" is no reforge and enchant names are lower case',
 test('readTip keeps the stat numbers of a tooltip: the total, names mapped, nothing else', async () => {
   const { readTip } = await import('../../apps/guide/import/items.js');
   assert.deepEqual(readTip(['§7Strength: §c+5 §8(+2)', '§7Crit Damage: §9+1,200%', '§7Gives §c+5 Strength', '§6Ability: Foo']), { STRENGTH: 5, CRITICAL_DAMAGE: 1200 });
+  assert.deepEqual(readTip(['§7§c+1 Health§7.', '§7Current Bonus: §c+10 Health']), { HEALTH: 10 }); // the game puts an icon glyph after the number
   assert.deepEqual(readTip(undefined), {});
 });
 
