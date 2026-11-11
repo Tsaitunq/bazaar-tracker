@@ -95,3 +95,9 @@ test('a broken inventory costs only itself; nothing readable rejects', async () 
   await assert.rejects(readItems({ armor: 'bm90Z3ppcA==', inventory: '%%%' }), /No inventory could be read/);
   assert.deepEqual(await readItems({}), { items: [], skipped: 0 });
 });
+
+test('readItem: modifier "none" is no reforge and enchant names are lower case', () => {
+  const got = readItem({ tag: { ExtraAttributes: { id: 'X', modifier: 'none', enchantments: { PROSECUTE: 5, sharpness: 6 } } } }, 'Inventar');
+  assert.equal(got.reforge, null);
+  assert.deepEqual(got.enchants, { prosecute: 5, sharpness: 6 });
+});

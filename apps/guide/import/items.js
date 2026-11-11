@@ -38,8 +38,9 @@ export function readItem(raw, at) {
   const hot = whole(e.hot_potato_count);
   return {
     id: e.id,
-    reforge: text(e.modifier),
-    enchants: Object.fromEntries(Object.entries(e.enchantments ?? {}).filter(([, v]) => typeof v === 'number')),
+    // accessories carry modifier "none" when they have no reforge; an enchant can be stored in capitals (PROSECUTE)
+    reforge: text(e.modifier) === 'none' ? null : text(e.modifier),
+    enchants: Object.fromEntries(Object.entries(e.enchantments ?? {}).filter(([, v]) => typeof v === 'number').map(([k, v]) => [k.toLowerCase(), v])),
     ...readGems(e.gems),
     // rarity_upgrades is the Recombobulator; upgraded_rarity is another rise of the rarity (Safari Belt): its own field
     recomb: whole(e.rarity_upgrades) > 0,
