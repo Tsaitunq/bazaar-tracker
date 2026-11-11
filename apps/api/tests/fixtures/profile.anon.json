@@ -134,7 +134,12 @@
      "SKILL_COMBAT": 27367841.709434737,
      "SKILL_ENCHANTING": 31234194.15782062,
      "SKILL_FORAGING": 12618552.169999842
-    }
+    },
+    "unlocked_coll_tiers": [
+     "GLACITE_1",
+     "GLACITE_6",
+     "COAL_3"
+    ]
    },
    "pets_data": {
     "pets": [
@@ -387,6 +392,14 @@
       "type": 0,
       "data": "H4sIAAAAAAAA/RIFT_SENTINEL=="
      }
+    }
+   },
+   "bestiary": {
+    "milestone": {
+     "last_claimed_milestone": 12
+    },
+    "kills": {
+     "dummy_1": 1
     }
    },
    "leveling": {

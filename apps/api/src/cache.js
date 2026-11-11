@@ -22,6 +22,7 @@ export async function cached(env, key, ttl, produce) {
 export const keys = {
   mojang: (name) => `mojang:${name.toLowerCase()}`,
   profiles: (uuid) => `profiles:${uuid}`,
-  profile: (uuid, profileId) => `profile:${uuid}:${profileId}`,
+  // v2: an answer cached before the worker sent skyblockXp, collTiers and bestiaryMilestone must not be served after a deploy
+  profile: (uuid, profileId) => `profile:v2:${uuid}:${profileId}`,
   skin: (uuid) => `skin:${uuid}`,
 };

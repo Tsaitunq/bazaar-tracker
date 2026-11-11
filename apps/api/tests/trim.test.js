@@ -138,3 +138,16 @@ test('trim: skyblockXp is leveling.experience, a missing or odd value is listed 
     assert.ok(!('skyblockXp' in t) && t.missing.includes('skyblockXp'));
   }
 });
+
+test('trim: collection tiers as a list and the bestiary milestone only, no kills', () => {
+  const t = trimProfile(profile, UUID);
+  assert.deepEqual(t.collTiers, ['GLACITE_1', 'GLACITE_6', 'COAL_3']);
+  assert.equal(t.bestiaryMilestone, 12);
+  assert.ok(!JSON.stringify(t).includes('dummy_1'));
+  const p = clone(profile);
+  delete p.members[UUID].bestiary;
+  p.members[UUID].player_data.unlocked_coll_tiers = 'x';
+  const m = trimProfile(p, UUID);
+  assert.ok(!('collTiers' in m) && !('bestiaryMilestone' in m));
+  assert.ok(m.missing.includes('collTiers') && m.missing.includes('bestiaryMilestone'));
+});

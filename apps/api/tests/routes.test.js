@@ -50,8 +50,8 @@ test('cache: keys, TTLs, second call hits and skips upstream', async () => {
   assert.equal(res.headers.get('X-Cache'), 'HIT');
   assert.equal(f.calls.length, n);
   await call(`/v1/profile/Some_Name/${PID}`, { env: { CACHE: kv }, fetch: f });
-  assert.ok(kv.m.has(`profile:${UUID}:${PID.replace(/-/g, '')}`));
-  assert.equal(kv.m.ttl[`profile:${UUID}:${PID.replace(/-/g, '')}`], 3600);
+  assert.ok(kv.m.has(`profile:v2:${UUID}:${PID.replace(/-/g, '')}`));
+  assert.equal(kv.m.ttl[`profile:v2:${UUID}:${PID.replace(/-/g, '')}`], 3600);
 });
 
 test('KV failure: still answers, without cache', async () => {
