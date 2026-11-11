@@ -37,3 +37,30 @@ test('the sum of the known sources does not exceed /stats beyond the unsafe valu
   assert.ok(compared >= 10, `only ${compared} stats compared`);
   assert.deepEqual(over, [], 'these stats are summed higher than /stats allows: a table or a rule is wrong');
 });
+
+// Per source against the figures the player read in the game (personal/fixtures/source-parts.json: stat -> part -> value). Failures name stat.part only.
+// Not covered: the Rotten Pickaxe (gear of a guide step).
+test('each source adds up to what the game shows', { skip: (!have || !fs.existsSync(file('fixtures/source-parts.json'))) && 'no private fixtures' }, async () => {
+  const { statsOf } = await import('../../apps/guide/totals.js');
+  const { trimProfile } = await import('../../apps/api/src/trim.js');
+  const api = read('fixtures/api-profile.json');
+  // a worker answer from before the worker sent these: take them from the raw profile
+  const raw = fs.existsSync(file('fixtures/profile-fixture.json')) ? trimProfile(read('fixtures/profile-fixture.json'), 'self') : {};
+  const profile = await summarize({ ...api, ...Object.fromEntries(['skyblockXp', 'collTiers', 'bestiaryMilestone'].filter((k) => api[k] === undefined && raw?.[k] !== undefined).map((k) => [k, raw[k]])) }, gamedata);
+  const items = read('items.json').r;
+  const build = { ...emptyBuild(), hotm: profile.hotm && { tier: profile.hotm.tier, levels: profile.hotm.levels, omelette: false, disabled: profile.hotm.disabled, ability: profile.hotm.ability }, buffs: { godPotion: true, boosterCookie: false }, consumables: { ore_oats: 5 } };
+  const calc = calcFor({ guides: [], profile, gamedata, items, build });
+  const wrong = [];
+  const expected = read('fixtures/source-parts.json');
+  // _stale: parts the old fixture cannot match (the profile moved on since); they are only reported. Refresh the fixture, then empty the list.
+  const stale = new Set(expected._stale ?? []);
+  const late = [];
+  for (const [stat, parts] of Object.entries(expected).filter(([k]) => k !== '_stale')) {
+    for (const [part, want] of Object.entries(parts)) {
+      const got = part === 'hotm' ? statsOf({ ...build, buffs: {} }, gamedata, 'mining').add[stat] ?? 0 : (calc.contrib[stat] ?? []).filter((c) => c.part === part).reduce((n, c) => n + c.value, 0);
+      if (Math.abs(got - want) > 0.05) (stale.has(`${stat}.${part}`) ? late : wrong).push(`${stat}.${part}`);
+    }
+  }
+  if (late.length) console.log(`stale fixture, still differs: ${late.join(', ')}`);
+  assert.deepEqual(wrong, [], 'these sources differ from the game');
+});
