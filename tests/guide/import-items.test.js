@@ -106,3 +106,16 @@ test('readItem: modifier "none" is no reforge and enchant names are lower case',
   assert.equal(got.reforge, null);
   assert.deepEqual(got.enchants, { prosecute: 5, sharpness: 6 });
 });
+
+test('readTip keeps the stat numbers of a tooltip: the total, names mapped, nothing else', async () => {
+  const { readTip } = await import('../../apps/guide/import/items.js');
+  assert.deepEqual(readTip(['§7Strength: §c+5 §8(+2)', '§7Crit Damage: §9+1,200%', '§7Gives §c+5 Strength', '§6Ability: Foo']), { STRENGTH: 5, CRITICAL_DAMAGE: 1200 });
+  assert.deepEqual(readTip(undefined), {});
+});
+
+test('a bag accessory keeps its tip; an item elsewhere does not', async () => {
+  const { readItem } = await import('../../apps/guide/import/items.js');
+  const raw = { id: 1, tag: { ExtraAttributes: { id: 'X' }, display: { Lore: ['§7Health: §a+10'] } } };
+  assert.deepEqual(readItem(raw, 'Accessory Bag').tip, { HEALTH: 10 });
+  assert.equal('tip' in readItem(raw, 'Inventar'), false);
+});

@@ -144,3 +144,18 @@ test('consumables: the ticked uses, capped at the maximum; Ore Oats x5 give 10 M
   assert.equal(run({}, { consumables: { ore_oats: 2, unknown_item: 3 } }).add.MINING_FORTUNE, 4);
   assert.equal(run({}).add.MINING_FORTUNE, undefined);
 });
+
+test('an accessory with a tooltip gives the tooltip numbers (progress included), not the item list', () => {
+  const r = run({ items: [bag('RING_A', { tip: { STRENGTH: 20, CRITICAL_CHANCE: 1 } }), bag('CHARM')] });
+  assert.equal(r.add.STRENGTH, 20);
+  assert.equal(r.add.CRITICAL_CHANCE, 1);
+  assert.equal(r.add.HEALTH, undefined); // the list says 10, the tooltip none
+  assert.equal(r.add.SPEED, 2);
+  assert.equal(r.contrib.STRENGTH[0].unsafe, false);
+});
+
+test('tooltip accessories count without the item list; one without a tooltip then is not counted', () => {
+  const r = sourcesOf({ profile: { skills: null, slayer: null, skyblockXp: null, items: [bag('NEW_CAKE', { tip: { HEALTH: 5 } }), bag('OTHER')] }, ss, items: null });
+  assert.equal(r.add.HEALTH, 5);
+  assert.ok(r.off.some((t) => /Item data missing/.test(t)));
+});

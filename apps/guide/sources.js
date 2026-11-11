@@ -95,21 +95,24 @@ export function sourcesOf({ profile, ss, items = null, buffs = null, consumables
     if (uses) put(c.stat, 'consumables', `${c.name} x${uses}`, c.value * uses, c);
   }
 
-  // The accessory bag: one accessory per family counts, the one with the larger stats. Reforges give nothing (stat-sources accessories.reforges).
+  // The accessory bag: one accessory per family counts, the one with the larger stats. The tooltip of the item (item.tip, with its progress) is
+  // taken in place of the item list when it is there. Reforges give nothing (stat-sources accessories.reforges).
   const bag = (profile.items ?? []).filter((i) => i.at?.includes('Accessory Bag'));
-  if (!items) off.push('Item data missing: accessories are not counted.');
-  else {
-    const weight = (id) => Object.values(items[id]?.stats ?? {}).reduce((n, v) => n + Math.abs(v), 0);
+  const statsOfItem = (item) => item.tip ?? items?.[item.id]?.stats;
+  if (!items && bag.some((i) => !i.tip)) off.push('Item data missing: accessories are not counted.');
+  {
+    const weight = (item) => Object.values(statsOfItem(item) ?? {}).reduce((n, v) => n + Math.abs(v), 0);
     const best = new Map();
     for (const item of bag) {
-      const family = items[item.id]?.family ?? item.id;
-      if (!best.has(family) || weight(item.id) > weight(best.get(family).id)) best.set(family, item);
+      const family = items?.[item.id]?.family ?? item.id;
+      if (!items && !item.tip) continue;
+      if (!best.has(family) || weight(item) > weight(best.get(family))) best.set(family, item);
     }
     const missing = new Set();
     for (const item of best.values()) {
-      const stats = items[item.id]?.stats;
+      const stats = statsOfItem(item);
       if (!stats || !Object.keys(stats).length) missing.add(item.id);
-      for (const [stat, v] of Object.entries(stats ?? {})) put(upper(stat), 'accessories', 'Accessories', v, null);
+      for (const [stat, v] of Object.entries(stats ?? {})) put(upper(stat), 'accessories', 'Accessories', v, item.tip ? { confidence: 'safe' } : null);
       if (item.enrichment) {
         const stat = upper(item.enrichment);
         const e = ss.accessories.enrichments.values[stat];

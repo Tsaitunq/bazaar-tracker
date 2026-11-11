@@ -1,5 +1,5 @@
 // Turns the inventories of a worker answer into the items the app keeps: what detect.js asks for and where the item was
-// found. No uuid, no lore, no name and nothing of the raw NBT is kept. Format checked with scripts/probe-items.mjs:
+// found. No uuid, no name and nothing of the raw NBT is kept; of the lore only the stat numbers of a bag accessory (tip). Format checked with scripts/probe-items.mjs:
 // tag.ExtraAttributes holds everything; the item's `components` are ignored.
 import { decodeInventory, newBudget } from '../nbt.js';
 
@@ -56,8 +56,24 @@ export function readItem(raw, at) {
     enrichment: text(e.talisman_enrichment),
     scrolls: [...(Array.isArray(e.ability_scroll) ? e.ability_scroll : []), ...(text(e.power_ability_scroll) ? [e.power_ability_scroll] : [])].filter(text),
     at: [at],
+    // what the tooltip of a bag accessory says it gives; the app takes this in place of its own sum
+    ...(at === 'Accessory Bag' && Object.keys(readTip(raw.tag.display?.Lore)).length ? { tip: readTip(raw.tag.display.Lore) } : {}),
     uuid: text(e.uuid),
   };
+}
+
+const TIP_STAT = { CRIT_CHANCE: 'CRITICAL_CHANCE', CRIT_DAMAGE: 'CRITICAL_DAMAGE', BONUS_ATTACK_SPEED: 'ATTACK_SPEED' };
+// The stat lines of a tooltip ("§7Strength: §c+5 ..."): the first number is the total the game shows, progress included. { STAT: number }, nothing else is kept.
+export function readTip(lore) {
+  const out = {};
+  for (const line of Array.isArray(lore) ? lore : []) {
+    const m = /^§7([A-Za-z' ]+): §.\+?(-?[\d,.]+)/.exec(String(line));
+    const v = m && Number(m[2].replace(/,/g, ''));
+    if (!m || !Number.isFinite(v)) continue;
+    const id = m[1].trim().toUpperCase().replace(/[' ]+/g, '_');
+    out[TIP_STAT[id] ?? id] = v;
+  }
+  return out;
 }
 
 // Sets are numbered like the API does; if there is a set 0 (worn sets are empty in the wardrobe, so the worn one counts) the game's slot is one more.
