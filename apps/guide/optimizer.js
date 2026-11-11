@@ -5,7 +5,7 @@ import { stepCost, openStep, bookOf } from './progress.js';
 import { checkStep } from './requires.js';
 import { walkBook, ahNet } from '../../shared/prices.js';
 import { pieceExtra, pieceTotal } from './pieces.js';
-import { RARITIES, ENCHANTS, ENCHANTS_NO_STAT, GEMS, GEM_STAT, GEM_SHARED_SLOTS, REFORGES, REFORGES_NO_STAT, COLDFUSED_WISP, REFORGE_TARGETS, CATACOMBS_REFORGE, ENCHANT_EFFECTS, ACCESSORY_POWER, PARTS, POLARVOID, COATING } from './optimizer-data.js';
+import { RARITIES, ENCHANTS, ENCHANTS_NO_STAT, ENCHANTS_CONDITIONAL, GEMS, GEM_STAT, GEM_SHARED_SLOTS, REFORGES, REFORGES_NO_STAT, COLDFUSED_WISP, REFORGE_TARGETS, CATACOMBS_REFORGE, ENCHANT_EFFECTS, ACCESSORY_POWER, PARTS, POLARVOID, COATING } from './optimizer-data.js';
 
 // Spec 4.1. Gemstone Fortune applies on gemstones only (wiki Pristine), and the other fortunes are not counted, so mithril and glacite read low.
 export const PRESETS = {
@@ -256,6 +256,9 @@ function partOf(d, guide, loadout, profile, items, settings, area = 'mining', ru
 
 // What a step adds to the stats of the loadout. null: nothing known about it. {}: known to add nothing of ours.
 export function stepDelta(step, loadout, profile, items, settings, guide) {
+  // a stacking enchant is not part of the sum, whatever number the guide holds for it
+  const detects = [step.detect ?? []].flat();
+  if (detects.length && detects.every((d) => d.kind === 'enchant' && ENCHANTS_CONDITIONAL[d.enchant])) return {};
   // a fixed guide states what each step adds on top of the one before; every stat stays for the display
   if (step.calc && guide?.order === 'fixed') { // numbers the data can work out follow the rarity and the gems of that moment
     const parts = [step.detect ?? []].flat().map((d) => partOf(d, guide, loadout, profile, items, settings));

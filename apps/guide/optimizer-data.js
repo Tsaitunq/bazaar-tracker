@@ -16,6 +16,10 @@ export const ENCHANTS = {
   lapidary: { gemstonesOnly: true, stats: { GEMSTONE_FORTUNE: [10, 20, 30, 40, 50], MINING_SPEED: [20, 40, 60, 80, 100] } },
 };
 // wiki Enchantments: these give none of our stats. Flowstate is left out on purpose, its speed depends on the mining streak.
+// Enchants whose stat builds up while mining and /stats shows only the active stacks: never added to the gear, listed under the conditions. text(level) is the sentence.
+export const ENCHANTS_CONDITIONAL = {
+  ultimate_flowstate: { name: 'Flowstate', text: (level) => `+${level} Mining Speed per block mined in a row, up to 200 blocks (${200 * level} at full stacks)` },
+};
 export const ENCHANTS_NO_STAT = new Set(['experience', 'compact', 'smelting_touch', 'paleontologist', 'looting', 'vampirism', 'life_steal', 'rejuvenate', 'transylvanian', 'quantum']);
 
 // wiki Gemstone
