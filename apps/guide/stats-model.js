@@ -57,7 +57,7 @@ export function statsModel(world, area) {
   if (calc && entry?.snapshot?.calc) {
     for (const id of ids) {
       const v = (calc.add[id] ?? 0) - (entry.snapshot.calc[id] ?? 0);
-      if (Math.abs(v) > 1e-9) changes.push({ ...label(id), value: v, text: signed(v), parts: 'Skills, slayers, level, accessories' });
+      if (Math.abs(v) > 1e-9) changes.push({ ...label(id), value: v, text: signed(v), parts: 'Skills, slayers, level, accessories, collections, bestiary, consumables' });
     }
   }
   const delta = {};

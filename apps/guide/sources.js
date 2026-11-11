@@ -41,7 +41,7 @@ export function buffsOf(buffs, ss) {
 //   levels   { skills: {id: {level, max}}, slayers: {boss: {level, max}}, skyblock: {xp, level, max} | null }
 //   unknown  accessories without stats in the item list, enrichments without a value
 //   off      what could not be counted at all and why
-export function sourcesOf({ profile, ss, items = null, buffs = null }) {
+export function sourcesOf({ profile, ss, items = null, buffs = null, consumables = null }) {
   const { add, contrib, put } = collector();
   const levels = { skills: {}, slayers: {}, skyblock: null };
   const unknown = { accessories: [], enrichments: [] };
@@ -73,7 +73,27 @@ export function sourcesOf({ profile, ss, items = null, buffs = null }) {
     levels.skyblock = { xp: profile.skyblockXp, level, max: sb.maxLevel.value };
     for (const [stat, s] of Object.entries(sb.perLevel)) put(stat, 'level', `SkyBlock level ${level}`, s.value * level, [s, sb.xpPerLevel]);
     for (const [stat, s] of Object.entries(sb.perFiveLevels)) put(stat, 'level', `SkyBlock level ${level}`, s.value * Math.floor(level / 5), [s, sb.xpPerLevel]);
-  } else off.push('SkyBlock level: the worker does not send it yet (deploy the updated worker, then sync).');
+  } else off.push('SkyBlock level: not provided by the worker (deploy the updated worker, then sync again).');
+
+  // collections: the tiers reached, one reward per tier of the list
+  if (Array.isArray(profile.collTiers)) {
+    const have = new Set(profile.collTiers);
+    for (const r of ss.collections?.rewards ?? []) {
+      const n = r.tiers.filter((t) => have.has(`${r.collection}_${t}`)).length;
+      put(r.stat, 'collections', `${r.collection[0]}${r.collection.slice(1).toLowerCase()} collection`, n * r.value, ss.collections);
+    }
+  } else off.push('Collections: not provided by the worker (deploy the updated worker, then sync again).');
+
+  // Bestiary: one reward per claimed family milestone
+  if (typeof profile.bestiaryMilestone === 'number') {
+    for (const [stat, s] of Object.entries(ss.bestiary?.perMilestone ?? {})) put(stat, 'bestiary', `Bestiary milestone ${profile.bestiaryMilestone}`, s.value * profile.bestiaryMilestone, s);
+  } else off.push('Bestiary: not provided by the worker (deploy the updated worker, then sync again).');
+
+  // consumables are not in the API: the uses the player ticked in the build
+  for (const c of ss.consumables ?? []) {
+    const uses = Math.min(Math.max(Math.floor(consumables?.[c.id] ?? 0), 0), c.max);
+    if (uses) put(c.stat, 'consumables', `${c.name} x${uses}`, c.value * uses, c);
+  }
 
   // The accessory bag: one accessory per family counts, the one with the larger stats. Reforges give nothing (stat-sources accessories.reforges).
   const bag = (profile.items ?? []).filter((i) => i.at?.includes('Accessory Bag'));
@@ -114,10 +134,10 @@ export function sourcesOf({ profile, ss, items = null, buffs = null }) {
 // The sources of the import for a world (profile, gamedata, items, build), null without an import or the data. The last answer is kept while its inputs are the same.
 let last = { key: [], value: null };
 export function calcFor(world) {
-  const key = [world.profile, world.gamedata, world.items, world.build?.buffs];
+  const key = [world.profile, world.gamedata, world.items, world.build?.buffs, world.build?.consumables];
   if (last.key.length === key.length && key.every((k, i) => k === last.key[i])) return last.value;
   const ss = world.gamedata?.statSources;
-  const value = world.profile && ss ? sourcesOf({ profile: world.profile, ss, items: world.items ?? null, buffs: world.build?.buffs }) : null;
+  const value = world.profile && ss ? sourcesOf({ profile: world.profile, ss, items: world.items ?? null, buffs: world.build?.buffs, consumables: world.build?.consumables }) : null;
   last = { key, value };
   return value;
 }

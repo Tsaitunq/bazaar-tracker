@@ -3,7 +3,7 @@ import { CRIMSON_STAR, HPB, DEFAULT_GEAR } from './optimizer-data.js';
 // The current build and the measured bases (pg.build, pg.base). Pure: every function gives the new state.
 // hotm, attrs and power are null = unknown. They must never be read as level 0.
 export { DEFAULT_GEAR };
-export const emptyBuild = () => ({ hotm: null, attrs: null, power: null, essence: null, buffs: { godPotion: false, boosterCookie: false }, pet: null, gear: { ...DEFAULT_GEAR } });
+export const emptyBuild = () => ({ hotm: null, attrs: null, power: null, essence: null, buffs: { godPotion: false, boosterCookie: false }, consumables: {}, pet: null, gear: { ...DEFAULT_GEAR } });
 
 // A measurement saved before the essence shop was a part has no essence in its snapshot: that reads as unknown (null), like a part never entered.
 export const withEssence = (base) => Object.fromEntries(Object.entries(base ?? {}).map(([area, e]) => [area, e.snapshot && e.snapshot.essence === undefined ? { ...e, snapshot: { ...e.snapshot, essence: null } } : e]));

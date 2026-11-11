@@ -76,7 +76,7 @@ test('a gap names the unsafe sources behind the stat, a stat without a gap names
 
 test('what could not be counted is listed', () => {
   const m = statsModel(world(emptyBuild(), {}, profile({ items: [{ id: 'NOSTATS', at: ['Accessory Bag'] }], skyblockXp: null })), 'blaze');
-  assert.ok(m.unknown.some((t) => /SkyBlock level: the worker/.test(t)));
+  assert.ok(m.unknown.some((t) => /SkyBlock level: not provided/.test(t)));
   assert.ok(m.unknown.some((t) => /Skills API is off/.test(t)));
   assert.ok(m.unknown.some((t) => /1 accessories have no stats.*NOSTATS/.test(t)));
 });

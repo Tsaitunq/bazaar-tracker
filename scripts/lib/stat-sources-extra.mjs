@@ -22,6 +22,9 @@ export const GAME_CONFIRMED = [
   { path: ['skills', 'mining', 'stats', 'MINING_FORTUNE'], text: 'Mining 39 gives 156 Mining Fortune (4 per level)' },
   { path: ['skyblockLevel', 'perLevel', 'HEALTH'], text: 'SkyBlock level 280 gives 1,400 Health (5 per level)' },
   { path: ['skyblockLevel', 'perFiveLevels', 'STRENGTH'], text: 'SkyBlock level 280 gives 56 Strength (1 per 5 levels)' },
+  { path: ['collections'], text: 'collections give 9 Mining Fortune (Glacite 4, Umber 2, Tungsten 2, Obsidian 1)' },
+  { path: ['bestiary', 'perMilestone', 'HEALTH'], text: 'the Bestiary milestones give 179 Health at 179 claimed (1 each)' },
+  { path: ['consumables', 5], text: 'Ore Oats, 5 uses, give 10 Mining Fortune' },
 ];
 
 export function confirmByGame(data, list = GAME_CONFIRMED) {
@@ -34,3 +37,35 @@ export function confirmByGame(data, list = GAME_CONFIRMED) {
   }
   return data;
 }
+
+const wiki = (page, note = 'one source') => ({ src: [`wiki ${page}`], confidence: 'unsafe', note });
+
+// wiki Mining Fortune: +1 Mining Fortune at each of these collection tiers. The player's /stats confirms the sum (see GAME_CONFIRMED).
+export const COLLECTIONS = {
+  rewards: [
+    { collection: 'GLACITE', tiers: [1, 6, 7, 8], stat: 'MINING_FORTUNE', value: 1 },
+    { collection: 'TUNGSTEN', tiers: [1, 5, 7, 8, 9], stat: 'MINING_FORTUNE', value: 1 },
+    { collection: 'UMBER', tiers: [1, 5, 7, 8], stat: 'MINING_FORTUNE', value: 1 },
+    { collection: 'OBSIDIAN', tiers: [5, 7, 8, 10], stat: 'MINING_FORTUNE', value: 1 },
+  ],
+  ...wiki('Mining Fortune', 'one source; only the Mining Fortune rewards are listed, other collections give stats the app does not track yet'),
+};
+
+// wiki Bestiary (Milestone Rewards): each family milestone gives +1 Health. The profile gives the claimed milestone count.
+export const BESTIARY = { perMilestone: { HEALTH: { value: 1, ...wiki('Bestiary (Milestone Rewards)') } } };
+
+// wiki Consumables (Permanent): per use, up to max uses. Not in the API: the player ticks the uses in the build.
+// Ore Oats are listed as Ore Fortune on the wiki; /stats shows them under Mining Fortune, so the app counts them there.
+const use = (id, name, stat, value, max = 5, note = null) => ({ id, name, stat, value, max, ...wiki('Consumables (Permanent)', note ?? 'one source') });
+export const CONSUMABLES = [
+  use('reaper_pepper', 'Reaper Pepper', 'HEALTH', 1),
+  use('vial_of_venom', 'Vial of Venom', 'CRITICAL_DAMAGE', 1),
+  use('festering_maggot', 'Festering Maggot', 'DEFENSE', 1),
+  use('refined_bottle_of_jyrre', 'Refined Bottle of Jyrre', 'INTELLIGENCE', 1),
+  use('spotlite', 'Spotlite', 'HEALTH', 5),
+  use('ore_oats', "Dwarven O's Ore Oats", 'MINING_FORTUNE', 2, 5, 'one source; the wiki says Ore Fortune, /stats shows it as Mining Fortune'),
+  use('gemstone_grahams', "Dwarven O's Gemstone Grahams", 'GEMSTONE_FORTUNE', 2),
+  use('filled_rosewater_flask', 'Filled Rosewater Flask', 'FARMING_FORTUNE', 1),
+  use('brain_food', 'Brain Food', 'TRACKING', 1),
+  use('wriggling_larva', 'Wriggling Larva', 'BONUS_PEST_CHANCE', 2),
+];

@@ -122,3 +122,25 @@ test('the God Potion gives Haste (+200 Mining Speed) and Spelunker (+25 Mining F
   assert.equal(r.buffs.MINING_FORTUNE, 25);
   assert.equal(r.contrib.MINING_SPEED.find((c) => c.part === 'godPotion').unsafe, false);
 });
+
+test('collections: one Mining Fortune per tier reached; without the list nothing and a note', () => {
+  const r = run({ collTiers: ['GLACITE_1', 'GLACITE_6', 'GLACITE_2', 'OBSIDIAN_5', 'OBSIDIAN_3', 'COAL_9'] });
+  assert.equal(r.add.MINING_FORTUNE, 3);
+  assert.equal(r.contrib.MINING_FORTUNE.find((c) => c.part === 'collections' && /Glacite/.test(c.label)).value, 2);
+  assert.ok(!r.off.some((t) => /Collections/.test(t)));
+  const none = run({});
+  assert.equal(none.add.MINING_FORTUNE, undefined);
+  assert.ok(none.off.some((t) => /Collections: not provided/.test(t)));
+});
+
+test('bestiary: one Health per claimed milestone', () => {
+  assert.equal(run({ bestiaryMilestone: 179 }).add.HEALTH, 179);
+  assert.ok(run({}).off.some((t) => /Bestiary: not provided/.test(t)));
+});
+
+test('consumables: the ticked uses, capped at the maximum; Ore Oats x5 give 10 Mining Fortune', () => {
+  assert.equal(run({}, { consumables: { ore_oats: 5 } }).add.MINING_FORTUNE, 10);
+  assert.equal(run({}, { consumables: { ore_oats: 99 } }).add.MINING_FORTUNE, 10);
+  assert.equal(run({}, { consumables: { ore_oats: 2, unknown_item: 3 } }).add.MINING_FORTUNE, 4);
+  assert.equal(run({}).add.MINING_FORTUNE, undefined);
+});

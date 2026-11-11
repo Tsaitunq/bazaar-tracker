@@ -110,3 +110,13 @@ test('summarize keeps the SkyBlock XP as a number, null when the worker does not
   delete old.skyblockXp;
   assert.equal((await summarize(old, gamedata)).skyblockXp, null);
 });
+
+test('summarize keeps the collection tiers and the bestiary milestone, null when the worker sends none', async () => {
+  const { gamedata } = await import('../fixtures/guide-world.js');
+  const a = await summarize({ profileId: 'p', cute_name: 'x', collTiers: ['COAL_1', 5], bestiaryMilestone: 12 }, gamedata);
+  assert.deepEqual(a.collTiers, ['COAL_1']);
+  assert.equal(a.bestiaryMilestone, 12);
+  const b = await summarize({ profileId: 'p', cute_name: 'x' }, gamedata);
+  assert.equal(b.collTiers, null);
+  assert.equal(b.bestiaryMilestone, null);
+});

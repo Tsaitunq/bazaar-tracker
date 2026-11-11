@@ -4463,5 +4463,193 @@
    "confidence": "unsafe",
    "note": "one source, not on a wiki page checked"
   }
- }
+ },
+ "collections": {
+  "rewards": [
+   {
+    "collection": "GLACITE",
+    "tiers": [
+     1,
+     6,
+     7,
+     8
+    ],
+    "stat": "MINING_FORTUNE",
+    "value": 1
+   },
+   {
+    "collection": "TUNGSTEN",
+    "tiers": [
+     1,
+     5,
+     7,
+     8,
+     9
+    ],
+    "stat": "MINING_FORTUNE",
+    "value": 1
+   },
+   {
+    "collection": "UMBER",
+    "tiers": [
+     1,
+     5,
+     7,
+     8
+    ],
+    "stat": "MINING_FORTUNE",
+    "value": 1
+   },
+   {
+    "collection": "OBSIDIAN",
+    "tiers": [
+     5,
+     7,
+     8,
+     10
+    ],
+    "stat": "MINING_FORTUNE",
+    "value": 1
+   }
+  ],
+  "src": [
+   "wiki Mining Fortune",
+   "game: collections give 9 Mining Fortune (Glacite 4, Umber 2, Tungsten 2, Obsidian 1)"
+  ],
+  "confidence": "safe"
+ },
+ "bestiary": {
+  "perMilestone": {
+   "HEALTH": {
+    "value": 1,
+    "src": [
+     "wiki Bestiary (Milestone Rewards)",
+     "game: the Bestiary milestones give 179 Health at 179 claimed (1 each)"
+    ],
+    "confidence": "safe"
+   }
+  }
+ },
+ "consumables": [
+  {
+   "id": "reaper_pepper",
+   "name": "Reaper Pepper",
+   "stat": "HEALTH",
+   "value": 1,
+   "max": 5,
+   "src": [
+    "wiki Consumables (Permanent)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source"
+  },
+  {
+   "id": "vial_of_venom",
+   "name": "Vial of Venom",
+   "stat": "CRITICAL_DAMAGE",
+   "value": 1,
+   "max": 5,
+   "src": [
+    "wiki Consumables (Permanent)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source"
+  },
+  {
+   "id": "festering_maggot",
+   "name": "Festering Maggot",
+   "stat": "DEFENSE",
+   "value": 1,
+   "max": 5,
+   "src": [
+    "wiki Consumables (Permanent)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source"
+  },
+  {
+   "id": "refined_bottle_of_jyrre",
+   "name": "Refined Bottle of Jyrre",
+   "stat": "INTELLIGENCE",
+   "value": 1,
+   "max": 5,
+   "src": [
+    "wiki Consumables (Permanent)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source"
+  },
+  {
+   "id": "spotlite",
+   "name": "Spotlite",
+   "stat": "HEALTH",
+   "value": 5,
+   "max": 5,
+   "src": [
+    "wiki Consumables (Permanent)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source"
+  },
+  {
+   "id": "ore_oats",
+   "name": "Dwarven O's Ore Oats",
+   "stat": "MINING_FORTUNE",
+   "value": 2,
+   "max": 5,
+   "src": [
+    "wiki Consumables (Permanent)",
+    "game: Ore Oats, 5 uses, give 10 Mining Fortune"
+   ],
+   "confidence": "safe"
+  },
+  {
+   "id": "gemstone_grahams",
+   "name": "Dwarven O's Gemstone Grahams",
+   "stat": "GEMSTONE_FORTUNE",
+   "value": 2,
+   "max": 5,
+   "src": [
+    "wiki Consumables (Permanent)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source"
+  },
+  {
+   "id": "filled_rosewater_flask",
+   "name": "Filled Rosewater Flask",
+   "stat": "FARMING_FORTUNE",
+   "value": 1,
+   "max": 5,
+   "src": [
+    "wiki Consumables (Permanent)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source"
+  },
+  {
+   "id": "brain_food",
+   "name": "Brain Food",
+   "stat": "TRACKING",
+   "value": 1,
+   "max": 5,
+   "src": [
+    "wiki Consumables (Permanent)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source"
+  },
+  {
+   "id": "wriggling_larva",
+   "name": "Wriggling Larva",
+   "stat": "BONUS_PEST_CHANCE",
+   "value": 2,
+   "max": 5,
+   "src": [
+    "wiki Consumables (Permanent)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source"
+  }
+ ]
 }
