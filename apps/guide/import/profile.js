@@ -20,15 +20,34 @@ export function attrLevel(stacks, attr, data) {
 }
 
 // { levels: key -> level (only what is above 0), unknown: how many keys the app has no attribute for }
-export function attrLevels(stacks, data) {
+// The API still names many attributes by the shard id (Flare is "blazing", the app says infernal_ruler): the id without its
+// ATTRIBUTE_SHARD_ prefix is the second name. Checked against a live profile: all 23 keys that were unknown matched it.
+const attrOf = (data) => {
   const byKey = new Map(data.attributes.attributes.map((a) => [a.key, a]));
+  const byId = new Map(data.attributes.attributes.map((a) => [a.id.replace(/^ATTRIBUTE_SHARD_/, '').toLowerCase(), a]));
+  return (key) => byKey.get(key) ?? byId.get(key);
+};
+
+// The stacks under the app's keys, which the guides' attr steps use. A key the app does not know stays as it is.
+export function attrStacks(stacks, data) {
+  const find = attrOf(data);
+  const out = {};
+  for (const [key, n] of Object.entries(numbers(stacks))) {
+    const k = find(key)?.key ?? key;
+    out[k] = Math.max(out[k] ?? 0, n);
+  }
+  return out;
+}
+
+export function attrLevels(stacks, data) {
+  const find = attrOf(data);
   const levels = {};
   let unknown = 0;
   for (const [key, n] of Object.entries(numbers(stacks))) {
-    const attr = byKey.get(key);
+    const attr = find(key);
     if (!attr) { unknown++; continue; }
     const level = attrLevel(n, attr, data);
-    if (level > 0) levels[key] = level;
+    if (level > (levels[attr.key] ?? 0)) levels[attr.key] = level;
   }
   return { levels, unknown };
 }
@@ -87,7 +106,7 @@ export async function summarize(answer, data, fetchedAt = Date.now()) {
     items, skipped,
     pets: Array.isArray(answer.pets) ? answer.pets.map(({ type, tier, exp, heldItem, active }) => ({ type, tier, exp: exp ?? 0, heldItem: heldItem ?? null, active: !!active })) : null,
     // the guides' attr steps count shards (stacks), the build counts levels
-    attrs: answer.attributes?.stacks ? numbers(answer.attributes.stacks) : null,
+    attrs: answer.attributes?.stacks ? attrStacks(answer.attributes.stacks, data) : null,
     attrLevels: attrs?.levels ?? null, attrUnknown: attrs?.unknown ?? 0,
     huntingBox: Object.fromEntries((Array.isArray(answer.attributes?.huntingBox) ? answer.attributes.huntingBox : []).filter((s) => s?.type).map((s) => [s.type, s.amount_owned ?? 0])),
     perks, essence: perks ? Object.fromEntries(Object.entries(perks).filter(([id]) => perkIds.has(id))) : null,

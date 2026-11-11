@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { summarize, attrLevel, attrLevels } from '../../apps/guide/import/profile.js';
+import { summarize, attrLevel, attrLevels, attrStacks } from '../../apps/guide/import/profile.js';
 import { trimProfile } from '../../apps/api/src/trim.js';
 import { encodeInventory } from '../fixtures/guide/nbt-encode.js';
 import { gamedata } from '../fixtures/guide-world.js';
@@ -38,7 +38,8 @@ test('summarize: the answer becomes the profile detect reads, with levels for th
   assert.equal(p.pets[0].type, 'BEE');
   assert.equal(p.attrs.forest_strength, 5); // shards, what the guides' attr steps count
   assert.ok(p.attrLevels.forest_strength >= 1 && p.attrLevels.forest_strength <= 10);
-  assert.equal(p.attrUnknown, 1); // visitor_bait is not in gamedata/attributes.json
+  assert.equal(p.attrUnknown, 0); // visitor_bait is the API name of visitor_speed (the shard id)
+  assert.ok(p.attrLevels.visitor_speed >= 1);
   assert.equal(p.hotm.levels.mining_speed, 39);
   assert.equal(p.hotm.levels.toggle_mining_speed, undefined);
   assert.ok(p.hotm.tier >= 1 && p.hotm.tier <= 10);
@@ -95,4 +96,10 @@ test('a field the profile lacks gives no answer, and an inventory API that is of
   assert.equal(p.perks, null);
   assert.deepEqual(p.items, []);
   assert.deepEqual(p.missing, { inventory: true, list: ['hotm', 'pets', 'inventories.armor'] });
+});
+
+test('the API names many attributes by the shard id: Flare is "blazing" and counts as infernal_ruler (maxed at 32 Epic shards)', () => {
+  const got = attrLevels({ blazing: 32, hunters_grasp: 48 }, gamedata);
+  assert.deepEqual(got, { levels: { infernal_ruler: 10, hunter_s_grasp: 10 }, unknown: 0 });
+  assert.deepEqual(attrStacks({ blazing: 32, rotten_pickaxe: 8, not_an_attribute: 5 }, gamedata), { infernal_ruler: 32, rotten_pickaxe: 8, not_an_attribute: 5 });
 });
