@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.17.1",
+      "date": "2026-11-11",
+      "entries": [
+        { "title": "Ranking without a measurement", "text": "After an import the guides rank their steps from the figures the app adds up itself, so you no longer have to type your /stats first." }
+      ]
+    },
+    {
       "version": "0.17.0",
       "date": "2026-11-11",
       "entries": [
