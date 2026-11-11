@@ -40,6 +40,7 @@ test('the sum of the known sources does not exceed /stats beyond the unsafe valu
 
 // Per source against the figures the player read in the game (personal/fixtures/source-parts.json: stat -> part -> value). Failures name stat.part only.
 // Not covered: the Rotten Pickaxe (gear of a guide step).
+// Health from accessories is 32.0 here: Beastmaster Crest gives +0.2 in the game, the stored tooltip says 0 (live kill counter, fixture 0/25).
 test('each source adds up to what the game shows', { skip: (!have || !fs.existsSync(file('fixtures/source-parts.json'))) && 'no private fixtures' }, async () => {
   const { statsOf } = await import('../../apps/guide/totals.js');
   const { trimProfile } = await import('../../apps/api/src/trim.js');
