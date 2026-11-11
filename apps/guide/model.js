@@ -438,7 +438,7 @@ export function guideModel(guide, world) {
 const GUIDE_TABS = ['path', 'methods'];
 export const STATS_TABS = ['overview', 'hotm', 'attributes', 'power', 'essence', 'pets'];
 export const STATS_AREAS = ['mining', 'blaze', 'farming'];
-// #/stats, #/stats/<overview|hotm|attributes|power|essence>, #/stats/overview/<area> and #/stats/measure/<area>
+// #/stats/detail/<area>/<STAT> is the breakdown of one stat. #/stats, #/stats/<overview|hotm|attributes|power|essence>, #/stats/overview/<area> and #/stats/measure/<area>
 export function parseRoute(hash, guides) {
   const [, page, id, tab, method] = String(hash).split('/');
   if (page === 'settings') return { page };
@@ -446,6 +446,7 @@ export function parseRoute(hash, guides) {
   if (page === 'stats') {
     const area = STATS_AREAS.includes(tab) ? tab : 'mining';
     if (id === 'measure') return { page, tab: 'measure', area };
+    if (id === 'detail' && /^[A-Z_]+$/.test(method ?? '')) return { page, tab: 'detail', area, stat: method };
     return { page, tab: STATS_TABS.includes(id) ? id : 'overview', area };
   }
   if (page === 'guide' && (id === 'farming' || guides.some((g) => g.id === id))) {

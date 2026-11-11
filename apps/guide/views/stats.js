@@ -1,6 +1,6 @@
 // The Stats screens: overview (base, gear, total), measure, and the three editors (HOTM, attributes, power).
 import { esc, number } from '../../../shared/format.js';
-import { statsModel, AREA_NAME, ago } from '../stats-model.js';
+import { statsModel, statDetail, AREA_NAME, ago } from '../stats-model.js';
 import { STATS_TABS } from '../model.js';
 import { bottomBar } from './parts.js';
 import { HOME_TABS } from './home.js';
@@ -50,7 +50,7 @@ function overview(world, r) {
   const buffs = [m.measured?.buffs.godPotion && 'God Potion', m.measured?.buffs.boosterCookie && 'Cookie'].filter(Boolean).join(' + ');
   const when = m.measured ? `Base measured <b>${esc(ago(m.measured.at, world.now))}</b>, no gear${buffs ? `, ${esc(buffs)} on` : ''}.` : 'No base measured yet.';
   const gear = m.guides.length ? `Gear: <b class="c-green">${m.steps} ${m.steps === 1 ? 'step' : 'steps'}</b> ticked in ${esc(m.guides.map((g) => g.title).join(' + '))}.` : 'No guide for this area yet, so no gear.';
-  const rows = m.rows.map((x) => `<div class="stat-row"><span class="c-${x.color}">${esc(x.icon)} ${esc(x.label)}</span><span>${esc(x.base)}</span><span class="c-green">${esc(x.gear)}</span><span class="c-orange">${esc(x.delta)}</span><b class="c-${x.color}"${x.unsafe ? ' title="Adds up values from one source only"' : ''}>${x.unsafe ? '≈ ' : ''}${esc(x.total)}</b></div>`).join('');
+  const rows = m.rows.map((x) => `<div class="stat-row"><span class="c-${x.color}"><a href="#/stats/detail/${esc(r.area)}/${esc(x.id)}" title="Click for details">${esc(x.icon)} ${esc(x.label)}</a></span><span>${esc(x.base)}</span><span class="c-green">${esc(x.gear)}</span><span class="c-orange">${esc(x.delta)}</span><b class="c-${x.color}"${x.unsafe ? ' title="Adds up values from one source only"' : ''}>${x.unsafe ? '≈ ' : ''}${esc(x.total)}</b></div>`).join('');
   const mark = (o) => (o.unsafe ? '≈ ' : '');
   const suspects = (o) => (o.suspects?.length ? `<small class="note">Unsafe sources behind it (one source, not checked in game): ${esc(o.suspects.join('; '))}.</small>` : o.value && m.hasCalc ? '<small class="note">No unsafe source adds to this: it comes from something the app does not count.</small>' : '');
   const otherLine = (o) => `<small><b class="c-${o.color}">${esc(o.text)} ${esc(o.label)}</b></small>${suspects(o)}`;
@@ -99,10 +99,21 @@ function measure(world, r) {
   return body;
 }
 
+// The breakdown of one stat: a panel per category, uncertain values with a ≈, conditional effects grey.
+function detail(world, r) {
+  const d = statDetail(world, r.area, r.stat);
+  if (!d) return '<div class="scroll"><div class="panel"><small>No such stat for this area.</small></div></div>';
+  const lines = (g) => g.lines.map((l) => `<div class="stat-row detail-row"><span>${l.unsafe ? '≈ ' : ''}${esc(l.label)}${l.note ? ` <small>(${esc(l.note)})</small>` : ''}</span><b class="c-${d.color}">${esc(l.text)}</b></div>`).join('');
+  const panels = d.groups.map((g) => `<section class="panel"><h2>${esc(g.title)}</h2>${lines(g)}</section>`).join('');
+  const cond = d.conditional.length ? `<section class="panel muted"><h2>Only when the condition holds</h2>${d.conditional.map((t) => `<small>${esc(t)}</small>`).join('')}</section>` : '';
+  const mult = d.mult ? `<small>Multiplied by ${esc(String(Math.round(d.mult * 1000) / 1000))} at the end.</small>` : '';
+  return `<div class="scroll"><div class="panel"><h2 class="c-${d.color}">${esc(d.icon)} ${esc(d.name)}: ${esc(d.total)}</h2>${mult}<small>${d.measured ? 'With your measured base.' : 'Added up from what the app knows.'} A ≈ marks values from one source only.</small></div>${panels || '<section class="panel"><small>Nothing adds to this stat yet.</small></section>'}${cond}</div>`;
+}
+
 const EDITORS = { hotm: hotmView, attributes: attrsView, power: powerView, essence: essenceView, pets: petsView };
 
 export function statsView(world, r) {
-  const inner = r.tab === 'measure' ? measure(world, r) : r.tab === 'overview' ? overview(world, r) : EDITORS[r.tab](world, r, tabs(r));
-  const title = r.tab === 'measure' ? { name: 'Measure base', back: 'Stats' } : { name: 'Your stats', back: 'Home' };
-  return frame(inner, title, r.tab === 'measure' ? `#/stats/overview/${r.area}` : '#/');
+  const inner = r.tab === 'detail' ? detail(world, r) : r.tab === 'measure' ? measure(world, r) : r.tab === 'overview' ? overview(world, r) : EDITORS[r.tab](world, r, tabs(r));
+  const title = r.tab === 'detail' ? { name: 'Stat details', back: 'Stats' } : r.tab === 'measure' ? { name: 'Measure base', back: 'Stats' } : { name: 'Your stats', back: 'Home' };
+  return frame(inner, title, r.tab === 'measure' || r.tab === 'detail' ? `#/stats/overview/${r.area}` : '#/');
 }

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { totalFor, statsOf } from '../../apps/guide/totals.js';
 import { measure } from '../../apps/guide/build.js';
-import { statsModel } from '../../apps/guide/stats-model.js';
+import { statsModel, statDetail } from '../../apps/guide/stats-model.js';
 import { calcFor } from '../../apps/guide/sources.js';
 import { statsView } from '../../apps/guide/views/stats.js';
 import { gamedata, emptyBuild } from '../fixtures/guide-world.js';
@@ -147,4 +147,28 @@ test('the power tab lists the consumables with the uses entered', () => {
   const html = statsView(w, { page: 'stats', tab: 'power', area: 'mining' });
   assert.match(html, /data-consumable="ore_oats"[^>]*value="3"/);
   assert.match(html, /Not provided by the API/);
+});
+
+test('the stat detail lists the single sources per category, ≈ for unsafe, conditional apart', () => {
+  const w = world(emptyBuild(), {});
+  const d = statDetail(w, 'blaze', 'HEALTH');
+  assert.equal(d.groups.find((g) => g.title === 'Game base').lines[0].value, 100);
+  const level = d.groups.find((g) => g.title === 'SkyBlock level').lines[0];
+  assert.equal(level.value, 615);
+  assert.equal(level.unsafe, true);
+  assert.equal(d.groups.find((g) => g.title === 'Accessories').lines[0].value, 10);
+  const html = statsView(w, { page: 'stats', tab: 'detail', area: 'blaze', stat: 'HEALTH' });
+  assert.match(html, /≈ SkyBlock level 123/);
+  assert.match(html, /Game base/);
+  assert.match(statsView(w, { page: 'stats', tab: 'overview', area: 'blaze' }), /href="#\/stats\/detail\/blaze\/HEALTH"/);
+  assert.equal(statDetail(w, 'blaze', 'NOT_A_STAT'), null);
+});
+
+test('with a measurement the detail shows the typed base, the other sources and the changes', () => {
+  const build = emptyBuild();
+  const base = measure({}, 'blaze', { values: { HEALTH: 1000 }, calc: calcFor(world(build, {})).add }, build, 1e9);
+  const d = statDetail(world(build, base, profile({ skyblockXp: 12545 })), 'blaze', 'HEALTH');
+  assert.equal(d.groups[0].title, 'Measured base');
+  assert.equal(d.groups[0].lines[0].value, 1000);
+  assert.ok(d.groups.some((g) => g.title.startsWith('Changes')));
 });

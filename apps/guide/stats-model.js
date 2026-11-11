@@ -6,7 +6,7 @@ import { priceItem } from './progress.js';
 import { miningScore } from './stats.js';
 import { SCORES } from './optimizer.js';
 import { gearOf, buildPet } from './gear.js';
-import { totalFor, statsFor, DATA_AREA, PART_NAME } from './totals.js';
+import { totalFor, statsFor, statsOf, DATA_AREA, PART_NAME } from './totals.js';
 import { autoOf } from './model.js';
 import { calcFor, contribAt, unsafeLines } from './sources.js';
 
@@ -35,6 +35,9 @@ function tickedSteps(world, area) {
   });
 }
 
+// The gear of an area from the ticked steps and the owned pieces.
+const wornOf = (world, area, entry, calc) => (world.items ? gearOf({ guides: world.guides, checks: world.checks ?? {}, owned: world.owned ?? [], items: world.items, area, build: world.build, settings: miningSettings(world.settings), values: entry?.values ?? {}, mp: world.build?.power?.mp ?? entry?.mp ?? null, pets: world.gamedata?.pets?.pets ?? null, petItems: world.gamedata?.pets?.items ?? null, dates: world.dates ?? {}, measuredAt: entry?.at ?? null, bagCounted: !!calc }) : { gear: {} });
+
 // area: mining | blaze | farming. world needs gamedata, base, build, guides, checks, owned, items.
 export function statsModel(world, area) {
   const data = world.gamedata;
@@ -42,7 +45,7 @@ export function statsModel(world, area) {
   if (!data) return { area, name: AREA_NAME[area], missing: 'data', fields: [], rows: [], listed: [], known: [], other: [], changes: [], pet: { chosen: null, step: null }, steps: 0, measured: null, gearLine: [], guides: [], buffs: world.build?.buffs ?? {} };
   const ids = statsFor(area, data);
   const calc = calcFor(world); // null without an import
-  const worn = world.items ? gearOf({ guides: world.guides, checks: world.checks ?? {}, owned: world.owned ?? [], items: world.items, area, build: world.build, settings: miningSettings(world.settings), values: entry?.values ?? {}, mp: world.build?.power?.mp ?? entry?.mp ?? null, pets: world.gamedata?.pets?.pets ?? null, petItems: world.gamedata?.pets?.items ?? null, dates: world.dates ?? {}, measuredAt: entry?.at ?? null, bagCounted: !!calc }) : { gear: {} };
+  const worn = wornOf(world, area, entry, calc);
   const t = totalFor({ area, entry, build: world.build, gear: worn.gear, data, stats: ids, pet: worn.pet, calc });
   const label = (id) => {
     const m = meta(data, id);
@@ -95,6 +98,49 @@ export function statsModel(world, area) {
     pet: { chosen: buildPet(world.build, data.pets?.pets), step: worn.stepPet ? `${worn.stepPet.type} ${worn.stepPet.tier}` : null },
     guides, steps: guides.reduce((n, g) => n + g.n, 0), buffs: world.build?.buffs ?? {}, hints: worn.hints ?? [],
   };
+}
+
+// The breakdown of one stat, like "Click for details!" in the game: per category the single sources, uncertain ones marked, the conditional
+// effects apart, and with a measurement the base you typed and what is left over as "Other sources". null for a stat the area does not show.
+// groups: [{ title, lines: [{ label, value, text, unsafe }] }]; conditional: [text]; mult: factor; total: text.
+const PART_TITLE = { skills: 'Skills', slayer: 'Slayers', level: 'SkyBlock level', accessories: 'Accessories', collections: 'Collections', bestiary: 'Bestiary', consumables: 'Consumables', base: 'Game base', godPotion: 'Buffs', cookie: 'Buffs' };
+export function statDetail(world, area, stat) {
+  const data = world.gamedata;
+  const model = statsModel(world, area);
+  const row = model.rows.find((r) => r.id === stat);
+  if (!data || !row) return null;
+  const entry = world.base?.[area] ?? null;
+  const calc = calcFor(world);
+  const worn = wornOf(world, area, entry, calc);
+  const t = totalFor({ area, entry, build: world.build, gear: worn.gear, data, stats: statsFor(area, data), pet: worn.pet, calc });
+  const line = (label, value, unsafe = false, note = null) => ({ label, value, text: signed(value), unsafe, note });
+  const groups = [];
+  const group = (title, lines) => { if (lines.length) groups.push({ title, lines }); };
+  const r = t.rows.find((x) => x.stat === stat);
+  const build = world.build ?? {};
+  // what each editor of the build gives on its own
+  const parts = Object.keys(PART_NAME).filter((p) => p !== 'buffs' && build[p]).map((p) => [PART_NAME[p], statsOf({ [p]: build[p] }, data, area, null, null).add[stat] ?? 0]);
+  const buildLines = parts.filter(([, v]) => Math.abs(v) > 1e-9).map(([label, v]) => line(label, v));
+  if (entry) {
+    group('Measured base', [line('Typed from /stats', r.base ?? 0), ...(Math.abs(r.other ?? 0) > 1e-9 ? [line('Other sources', r.other)] : [])]);
+    group('Changes since the measurement', model.changes.filter((c) => c.id === stat).map((c) => line(c.parts, c.value)));
+  } else {
+    const contrib = calc?.contrib[stat] ?? [];
+    const byPart = new Map();
+    for (const c of contrib) byPart.set(c.part, [...(byPart.get(c.part) ?? []), c]);
+    group('Game base', (byPart.get('base') ?? []).map((c) => line(c.label, c.value, c.unsafe, c.note)));
+    group('Build', buildLines);
+    for (const [part, title] of Object.entries(PART_TITLE)) {
+      if (part === 'base' || part === 'godPotion' || part === 'cookie') continue;
+      group(title, (byPart.get(part) ?? []).map((c) => line(c.label, c.value, c.unsafe, c.note)));
+    }
+    group('Buffs', [...(byPart.get('godPotion') ?? []), ...(byPart.get('cookie') ?? [])].map((c) => line(c.label, c.value, c.unsafe, c.note)));
+    if (!calc) { const v = statsOf({ buffs: build.buffs }, data, area).add[stat] ?? 0; if (Math.abs(v) > 1e-9) group('Buffs', [line('Buffs', v)]); }
+  }
+  group('Gear', worn.gear[stat] ? [line('Ticked steps and owned pieces', worn.gear[stat])] : []);
+  const conditional = [...t.listed, ...(worn.listed ?? [])].filter((l) => l.stat === stat).map((l) => l.text);
+  const mult = t.known.mult[stat] ?? 1;
+  return { area, stat, name: row.label, icon: row.icon, color: row.color, groups, conditional, mult: mult === 1 ? null : mult, total: row.total, measured: !!entry };
 }
 
 // The Essence tab: per perk its level, what it gives now and at the next level, what the next level and the rest cost

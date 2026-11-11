@@ -175,3 +175,8 @@ test('a swipe on a category page goes back to the overview and nowhere else', ()
   assert.deepEqual(swipeTarget(r, 40, ['g', 'h'], true), { hash: '#/guide/g/path', back: true });
   assert.equal(swipeTarget(r, -40, ['g', 'h'], true), null);
 });
+
+test('route: the stat detail', () => {
+  assert.deepEqual(parseRoute('#/stats/detail/mining/MINING_SPEED', []), { page: 'stats', tab: 'detail', area: 'mining', stat: 'MINING_SPEED' });
+  assert.equal(parseRoute('#/stats/detail/mining/bad%20x', []).tab, 'overview');
+});
