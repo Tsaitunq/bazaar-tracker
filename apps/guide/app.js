@@ -21,6 +21,7 @@ import { listProfiles, fetchProfile, fetchSkin, defaultProfile, validName, Impor
 import { summarize } from './import/profile.js';
 import { proposals, applyRows, undoImport, hasUndo, isPickable, isSuggestion } from './import/propose.js';
 import { paintFigures, setSkin } from './skin.js';
+import { calcFor } from './sources.js';
 import { decide, finishTour, STEPS, tourHtml, newsHtml } from './intro.js';
 
 const BAZAAR = 'https://api.hypixel.net/v2/skyblock/bazaar';
@@ -114,7 +115,7 @@ const targetOf = (dx) => {
 const world = () => {
   pending = new Set();
   return {
-    guides: guides(), checks: live(), owned, dates, base, build, draft, ui, gamedata, products, now: Date.now(),
+    guides: guides(), checks: live(), owned, dates, base, build, draft, ui, gamedata, products, now: Date.now(), profile,
     prices: { forge, ah, cofl: freshBins(bins), wants: pending, items, tax: (settings.tax ?? DEFAULT_TAX) / 100, derpy: election?.mayor?.name === 'Derpy' },
     settings: miningSettings(settings.mining), keepOldGear: settings.keepOldGear === true, brake: settings.brake > 0 ? settings.brake : 5, pathEpoch, opened, items,
     name: (id) => names[id] ?? fallbackName(id), tax: settings.tax ?? DEFAULT_TAX, importedIds: imported.map((g) => g.id),
@@ -463,7 +464,7 @@ async function runExport() {
 function saveMeasure(box) {
   const area = box.dataset.statsArea;
   const values = Object.fromEntries([...box.querySelectorAll('[data-stats-stat]')].map((input) => [input.dataset.statsStat, input.value]));
-  base = measure(base, area, { values, mp: box.querySelector('[data-stats-mp]')?.value }, build, Date.now());
+  base = measure(base, area, { values, mp: box.querySelector('[data-stats-mp]')?.value, calc: calcFor({ profile, gamedata, items, build })?.add }, build, Date.now());
   save('pg.base', base);
   pathEpoch++;
   location.hash = `#/stats/overview/${area}`;

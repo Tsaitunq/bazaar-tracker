@@ -111,6 +111,24 @@ export function sourcesOf({ profile, ss, items = null, buffs = null }) {
   return { add, base, buffs: b.add, contrib, levels, unknown, off };
 }
 
+// The sources of the import for a world (profile, gamedata, items, build), null without an import or the data. The last answer is kept while its inputs are the same.
+let last = { key: [], value: null };
+export function calcFor(world) {
+  const key = [world.profile, world.gamedata, world.items, world.build?.buffs];
+  if (last.key.length === key.length && key.every((k, i) => k === last.key[i])) return last.value;
+  const ss = world.gamedata?.statSources;
+  const value = world.profile && ss ? sourcesOf({ profile: world.profile, ss, items: world.items ?? null, buffs: world.build?.buffs }) : null;
+  last = { key, value };
+  return value;
+}
+
+// The contributions with the buffs of another moment (the measurement) in place of the current ones.
+export const contribAt = (contrib, ss, buffs) => {
+  const out = Object.fromEntries(Object.entries(contrib).map(([stat, list]) => [stat, list.filter((c) => c.part !== 'godPotion' && c.part !== 'cookie')]));
+  for (const [stat, list] of Object.entries(buffsOf(buffs, ss).contrib)) (out[stat] ??= []).push(...list);
+  return out;
+};
+
 // The unsafe contributions behind a stat, as text lines, for a stat that still shows a gap after the measurement.
 export function unsafeLines(contrib, stat) {
   return (contrib[stat] ?? []).filter((c) => c.unsafe).map((c) => ({ ...c, text: `${c.label} ${c.value > 0 ? '+' : ''}${Math.round(c.value * 100) / 100}${c.note ? ` (${c.note})` : ''}` }));

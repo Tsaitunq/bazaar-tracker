@@ -8,6 +8,7 @@ import { SCORES } from './optimizer.js';
 import { gearOf, buildPet } from './gear.js';
 import { totalFor, statsFor, DATA_AREA, PART_NAME } from './totals.js';
 import { autoOf } from './model.js';
+import { calcFor, contribAt, unsafeLines } from './sources.js';
 
 export const AREA_NAME = { mining: 'Mining', blaze: 'Blaze', farming: 'Farming' };
 // colours of gamedata/stats.json as the class of the token they are
@@ -40,8 +41,9 @@ export function statsModel(world, area) {
   const entry = world.base?.[area] ?? null;
   if (!data) return { area, name: AREA_NAME[area], missing: 'data', fields: [], rows: [], listed: [], known: [], other: [], changes: [], pet: { chosen: null, step: null }, steps: 0, measured: null, gearLine: [], guides: [], buffs: world.build?.buffs ?? {} };
   const ids = statsFor(area, data);
-  const worn = world.items ? gearOf({ guides: world.guides, checks: world.checks ?? {}, owned: world.owned ?? [], items: world.items, area, build: world.build, settings: miningSettings(world.settings), values: entry?.values ?? {}, mp: world.build?.power?.mp ?? entry?.mp ?? null, pets: world.gamedata?.pets?.pets ?? null, petItems: world.gamedata?.pets?.items ?? null, dates: world.dates ?? {}, measuredAt: entry?.at ?? null }) : { gear: {} };
-  const t = totalFor({ area, entry, build: world.build, gear: worn.gear, data, stats: ids, pet: worn.pet });
+  const calc = calcFor(world); // null without an import
+  const worn = world.items ? gearOf({ guides: world.guides, checks: world.checks ?? {}, owned: world.owned ?? [], items: world.items, area, build: world.build, settings: miningSettings(world.settings), values: entry?.values ?? {}, mp: world.build?.power?.mp ?? entry?.mp ?? null, pets: world.gamedata?.pets?.pets ?? null, petItems: world.gamedata?.pets?.items ?? null, dates: world.dates ?? {}, measuredAt: entry?.at ?? null, bagCounted: !!calc }) : { gear: {} };
+  const t = totalFor({ area, entry, build: world.build, gear: worn.gear, data, stats: ids, pet: worn.pet, calc });
   const label = (id) => {
     const m = meta(data, id);
     return { id, icon: m.icon ?? '▚', label: m.name, color: CLASS[m.color] ?? 'white' };
@@ -51,25 +53,39 @@ export function statsModel(world, area) {
     ...label(id), value: parts.reduce((n, p) => n + p.value, 0), text: signed(parts.reduce((n, p) => n + p.value, 0)), parts: parts.map((p) => `${PART_NAME[p.part]} ${signed(p.value)}`).join(', '),
   }));
   for (const [id, v] of Object.entries(worn.accessories ?? {})) if (ids.includes(id)) changes.push({ ...label(id), value: v, text: signed(v), parts: 'Accessories' });
+  // what the import sources grew by since the measurement (a skill level, a new accessory)
+  if (calc && entry?.snapshot?.calc) {
+    for (const id of ids) {
+      const v = (calc.add[id] ?? 0) - (entry.snapshot.calc[id] ?? 0);
+      if (Math.abs(v) > 1e-9) changes.push({ ...label(id), value: v, text: signed(v), parts: 'Skills, slayers, level, accessories' });
+    }
+  }
   const delta = {};
   for (const c of changes) delta[c.id] = (delta[c.id] ?? 0) + c.value;
+  const unsafeOf = (stat) => (calc?.contrib[stat] ?? []).some((c) => c.unsafe);
   const rows = t.rows.map((r) => ({
     ...label(r.stat),
     base: r.base === undefined ? '–' : number(Math.round(r.base * 100) / 100),
     gear: r.gear ? signed(r.gear) : '–',
     delta: delta[r.stat] ? signed(delta[r.stat]) : '–',
     total: r.total === undefined ? (r.gear ? number(Math.round(r.gear * 100) / 100) : '–') : number(Math.round(r.total * 100) / 100),
+    unsafe: !!r.calculated && unsafeOf(r.stat),
   }));
   // what the app knows by itself (the build and the ticked gear), and, with a measurement, what the base holds beyond that
   const knownText = (id) => {
     const v = (t.known.add[id] ?? 0) * (t.known.mult[id] ?? 1) + (worn.gear[id] ?? 0);
     return Math.abs(v) > 1e-9 ? { ...label(id), value: v, text: signed(v) } : null;
   };
-  const known = entry ? [] : ids.map(knownText).filter(Boolean);
-  const other = t.rows.filter((r) => r.other !== undefined && Math.abs(r.other) > 1e-9).map((r) => ({ ...label(r.stat), value: r.other, text: signed(r.other) }));
+  const knownCalc = (r) => ({ ...label(r.stat), value: r.total, text: signed(r.total), unsafe: unsafeOf(r.stat) });
+  const known = entry ? [] : calc ? t.rows.filter((r) => r.total !== undefined && Math.abs(r.total) > 1e-9).map(knownCalc) : ids.map(knownText).filter(Boolean);
+  // a gap that stays after the measurement: the unsafe sources that contribute to the stat are named
+  const was = contribAt(calc?.contrib ?? {}, data.statSources, entry?.snapshot?.buffs ?? world.build?.buffs);
+  const other = t.rows.filter((r) => r.other !== undefined && Math.abs(r.other) > 1e-9).map((r) => ({ ...label(r.stat), value: r.other, text: signed(r.other), suspects: calc && Math.abs(r.other) > 0.01 ? unsafeLines(was, r.stat).map((l) => l.text) : [] }));
+  const unknown = calc ? [...calc.off, ...(calc.unknown.accessories.length ? [`${calc.unknown.accessories.length} accessories have no stats in the item list: ${calc.unknown.accessories.join(', ')}.`] : []), ...(calc.unknown.enrichments.length ? [`Enrichments without a value: ${calc.unknown.enrichments.join(', ')}.`] : [])] : [];
   const guides = tickedSteps(world, area);
   return {
-    known, other,
+    known, other, unknown, levels: calc?.levels ?? null, assumed: !!calc && !!entry && !entry.snapshot?.calc, hasCalc: !!calc,
+   
     area, name: AREA_NAME[area], missing: DATA_AREA[area] && !world.items ? 'items' : null,
     measured: entry ? { at: entry.at, buffs: entry.snapshot?.buffs ?? {} } : null,
     changes, fields: ids.map(label), rows, listed: [...t.listed, ...(worn.listed ?? [])],
@@ -90,8 +106,8 @@ export function essenceModel(world, area) {
   let total = null;
   if (area === 'mining' && Object.keys(entry?.values ?? {}).length) {
     const ids = statsFor(area, data);
-    const worn = world.items ? gearOf({ guides: world.guides, checks: world.checks ?? {}, owned: world.owned ?? [], items: world.items, area, build: world.build, settings: miningSettings(world.settings), values: entry.values, mp: world.build?.power?.mp ?? entry.mp ?? null, pets: data.pets?.pets ?? null, petItems: data.pets?.items ?? null, dates: world.dates ?? {}, measuredAt: entry.at ?? null }) : { gear: {} };
-    total = totalFor({ area, entry, build: world.build, gear: worn.gear, data, stats: ids, pet: worn.pet }).total;
+    const worn = world.items ? gearOf({ guides: world.guides, checks: world.checks ?? {}, owned: world.owned ?? [], items: world.items, area, build: world.build, settings: miningSettings(world.settings), values: entry.values, mp: world.build?.power?.mp ?? entry.mp ?? null, pets: data.pets?.pets ?? null, petItems: data.pets?.items ?? null, dates: world.dates ?? {}, measuredAt: entry.at ?? null, bagCounted: !!calcFor(world) }) : { gear: {} };
+    total = totalFor({ area, entry, build: world.build, gear: worn.gear, data, stats: ids, pet: worn.pet, calc: calcFor(world) }).total;
   }
   const price = (perk, qty) => {
     const p = qty > 0 ? priceItem({ id: perk.bazaar, qty }, { products: world.products }) : { source: 'none', coins: 0 };

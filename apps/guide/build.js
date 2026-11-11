@@ -9,9 +9,11 @@ export const emptyBuild = () => ({ hotm: null, attrs: null, power: null, essence
 export const withEssence = (base) => Object.fromEntries(Object.entries(base ?? {}).map(([area, e]) => [area, e.snapshot && e.snapshot.essence === undefined ? { ...e, snapshot: { ...e.snapshot, essence: null } } : e]));
 
 // One measurement per area: the typed values (an empty field is unknown), the date and a snapshot of the build.
-export function measure(base, area, { values, mp }, build, now) {
+// calc: the flat stats of the import sources (sourcesOf().add) at this moment, kept in the snapshot so later growth counts as a change.
+export function measure(base, area, { values, mp, calc }, build, now) {
   const kept = Object.entries(values ?? {}).filter(([, v]) => v !== '' && v !== null && v !== undefined && Number.isFinite(Number(v)));
   const entry = { at: now, values: Object.fromEntries(kept.map(([k, v]) => [k, Number(v)])), snapshot: structuredClone(build) };
+  if (calc) entry.snapshot.calc = { ...calc };
   if (mp !== '' && mp !== null && mp !== undefined && Number(mp) >= 0) entry.mp = Number(mp);
   return { ...base, [area]: entry };
 }

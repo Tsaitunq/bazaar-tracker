@@ -1,10 +1,12 @@
 // Total per stat = base (typed in) + changes since the measurement + gear. Pure functions, no DOM.
+// With an import (calc, from sources.js) the skills, slayers, level, accessories and game base are added too: see docs/plan-stat-sources-use.md.
 // The multipliers come last: the base was measured with the multipliers of its snapshot inside, so they are divided out first.
 import { valueAt } from './gamedata.js';
 import { perStatAt } from './attrs-model.js';
 import { GOD_POTION } from './stats.js';
 import { lockOf } from './hotm-model.js';
 import { buildPet } from './gear.js';
+import { buffsOf } from './sources.js';
 
 // The guide areas and the area names of gamedata/stats.json.
 export const DATA_AREA = { mining: 'mining', blaze: 'combat', farming: 'farming' };
@@ -90,16 +92,19 @@ function powerStats(power, data, out) {
 
 // What a build gives: add (flat per stat), mult (factor per stat), listed (conditional effects, shown but never summed).
 // A part that is null is unknown and gives nothing.
-// pet: the pets.json entry that is active; by default the one of the build.
-export function statsOf(build, data, area, pet = buildPet(build, data.pets?.pets)) {
+// pet: the pets.json entry that is active; by default the one of the build. calc: with an import the buff values come from stat-sources.json.
+export function statsOf(build, data, area, pet = buildPet(build, data.pets?.pets), calc = null) {
   const out = { add: {}, mult: {}, listed: [] };
   if (build?.hotm) hotmStats(build.hotm, data, out, area);
   if (build?.attrs) attrStats(build.attrs, data, out, area);
   petStats(pet, data, out, area);
   if (build?.power) powerStats(build.power, data, out);
   if (build?.essence) essenceStats(build.essence, data, out);
-  if (build?.buffs?.godPotion) for (const [stat, v] of Object.entries(GOD_POTION)) addTo(out.add, stat, v);
-  if (build?.buffs?.boosterCookie) for (const e of data.power.boosterCookie.effects) addTo(out.add, e.stat, e.value);
+  if (calc) for (const [stat, v] of Object.entries(buffsOf(build?.buffs, data.statSources).add)) addTo(out.add, stat, v);
+  else {
+    if (build?.buffs?.godPotion) for (const [stat, v] of Object.entries(GOD_POTION)) addTo(out.add, stat, v);
+    if (build?.buffs?.boosterCookie) for (const e of data.power.boosterCookie.effects) addTo(out.add, e.stat, e.value);
+  }
   return out;
 }
 
@@ -107,12 +112,12 @@ export const PART_NAME = { hotm: 'HOTM', attrs: 'Attributes', power: 'Power', es
 
 // Per stat, what each editor moved since the measurement: the build as it is now against the same build with that one part as it was.
 // A part that was unknown at the measurement moved nothing. Flat stats only.
-function movedBy(build, snapshot, data, area) {
-  const now = statsOf(build, data, area);
+function movedBy(build, snapshot, data, area, calc) {
+  const now = statsOf(build, data, area, undefined, calc);
   const out = {};
   for (const part of Object.keys(PART_NAME)) {
     if (!entrySnapshot(snapshot, part)) continue;
-    const was = statsOf({ ...build, [part]: snapshot[part] }, data, area);
+    const was = statsOf({ ...build, [part]: snapshot[part] }, data, area, undefined, calc);
     for (const stat of new Set([...Object.keys(now.add), ...Object.keys(was.add)])) {
       const d = (now.add[stat] ?? 0) - (was.add[stat] ?? 0);
       if (Math.abs(d) > 1e-9) (out[stat] ??= []).push({ part, value: d });
@@ -122,24 +127,38 @@ function movedBy(build, snapshot, data, area) {
 }
 const entrySnapshot = (snapshot, part) => snapshot?.[part] !== undefined && snapshot[part] !== null;
 
-// gear: flat stats of the ticked steps. entry: pg.base[area]. Gives one row per stat of the area plus the conditional list.
-export function totalFor({ area, entry, build, gear = {}, data, stats, pet }) {
-  const now = statsOf(build, data, area, pet);
+// gear: flat stats of the ticked steps. entry: pg.base[area]. calc: sourcesOf of the import, null without one. Gives one row per stat of the area plus the conditional list.
+// Three cases per stat (K = what the build gives, C = skills, slayers, level and accessories, B = the game's base):
+//   no calc            as before: the typed base, the build's change since, the gear. Without a measurement nothing.
+//   calc, typed        (typed / was.mult + (K now - K was) + (C now - C was) + gear) * now.mult. C was is what the measurement was taken with (snapshot.calc);
+//                      a measurement from before the import has none and counts as the import is now (nothing changed since).
+//   calc, not typed    (B + K now + C now + gear) * now.mult
+export function totalFor({ area, entry, build, gear = {}, data, stats, pet, calc = null }) {
+  const now = statsOf(build, data, area, pet, calc);
   // a part unknown at the measurement was not changed since: it counts as the build has it now
   // the pet is gear: none at the measurement means none, not unknown
   const snapshot = { ...build, ...Object.fromEntries(Object.entries(entry?.snapshot ?? {}).filter(([, v]) => v !== null)), pet: entry?.snapshot?.pet ?? null };
-  const was = statsOf(snapshot, data, area);
+  const was = statsOf(snapshot, data, area, undefined, calc);
+  const calcWas = entry?.snapshot?.calc ?? calc?.add ?? {};
   const total = {};
   const rows = stats.map((stat) => {
     const typed = entry?.values?.[stat];
     const g = gear[stat] ?? 0;
-    if (typed === undefined) return { stat, base: undefined, gear: g, total: undefined, other: undefined };
-    const sum = typed / (was.mult[stat] ?? 1) + ((now.add[stat] ?? 0) - (was.add[stat] ?? 0)) + g;
+    const c = calc?.add?.[stat] ?? 0;
+    if (typed === undefined) {
+      if (!calc) return { stat, base: undefined, gear: g, total: undefined, other: undefined };
+      const known = (calc.base[stat] ?? 0) + (now.add[stat] ?? 0) + c;
+      if (Math.abs(known) < 1e-9 && !g) return { stat, base: undefined, gear: g, total: undefined, other: undefined };
+      total[stat] = (known + g) * (now.mult[stat] ?? 1);
+      return { stat, base: known, gear: g, total: total[stat], other: undefined, calculated: true };
+    }
+    const sum = typed / (was.mult[stat] ?? 1) + ((now.add[stat] ?? 0) - (was.add[stat] ?? 0)) + (c - (calcWas[stat] ?? 0)) + g;
     total[stat] = sum * (now.mult[stat] ?? 1);
-    // the measurement as a reconciliation: what you typed minus what the app knew then (HOTM, attributes, essence, power, buffs) is the rest
-    return { stat, base: typed, gear: g, total: total[stat], other: typed / (was.mult[stat] ?? 1) - (was.add[stat] ?? 0) };
+    // the measurement as a reconciliation: what you typed minus what the app knew then (the build, and with an import the sources and the base) is the rest
+    const other = typed / (was.mult[stat] ?? 1) - (was.add[stat] ?? 0) - (calc ? (calcWas[stat] ?? 0) + (calc.base[stat] ?? 0) : 0);
+    return { stat, base: typed, gear: g, total: total[stat], other };
   });
-  return { rows, total, known: now, listed: now.listed, moved: entry?.snapshot ? movedBy(build, entry.snapshot, data, area) : {} };
+  return { rows, total, known: now, listed: now.listed, moved: entry?.snapshot ? movedBy(build, entry.snapshot, data, area, calc) : {} };
 }
 
 // Blaze shows the Combat menu without Health Regen, Vitality and the weapon's Damage, and the two Misc stats gear gives (Speed, Magic Find).

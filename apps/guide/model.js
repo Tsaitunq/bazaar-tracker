@@ -7,6 +7,7 @@ import { blazeState } from './blaze.js';
 import { checkStep, lockProfile } from './requires.js';
 import { gearOf } from './gear.js';
 import { totalFor, statsFor } from './totals.js';
+import { calcFor } from './sources.js';
 import { coins, number } from '../../shared/format.js';
 
 const DAY = 24 * 3600e3;
@@ -218,8 +219,8 @@ function planOf(guide, world, ctx, checked, scores) {
   const entry = world.base?.[area] ?? null;
   if (!Object.keys(entry?.values ?? {}).length) return { missing: 'stats' };
   const settings = guide.preset ? miningSettings({ preset: guide.preset }) : world.settings;
-  const worn = gearOf({ guides: world.guides ?? [guide], checks: world.checks ?? { [guide.id]: [...world.marks] }, owned: world.owned ?? [], items: ctx.items, area, build: world.build, settings, values: entry.values, mp: world.build?.power?.mp ?? entry.mp ?? null, pets: world.gamedata?.pets?.pets ?? null, petItems: world.gamedata?.pets?.items ?? null, dates: world.dates ?? {}, measuredAt: entry.at ?? null });
-  const base = totalFor({ area, entry, build: world.build, gear: worn.gear, data: world.gamedata, stats: statsFor(area, world.gamedata), pet: worn.pet }).total;
+  const worn = gearOf({ guides: world.guides ?? [guide], checks: world.checks ?? { [guide.id]: [...world.marks] }, owned: world.owned ?? [], items: ctx.items, area, build: world.build, settings, values: entry.values, mp: world.build?.power?.mp ?? entry.mp ?? null, pets: world.gamedata?.pets?.pets ?? null, petItems: world.gamedata?.pets?.items ?? null, dates: world.dates ?? {}, measuredAt: entry.at ?? null, bagCounted: !!calcFor(world) });
+  const base = totalFor({ area, entry, build: world.build, gear: worn.gear, data: world.gamedata, stats: statsFor(area, world.gamedata), pet: worn.pet, calc: calcFor(world) }).total;
   const daggers = area === 'blaze' ? worn.loadout.daggers : null; // with the potato books in their lore
   const loadout = worn.loadout;
   const state = daggers ? blazeState(base, loadout, daggers) : null;
