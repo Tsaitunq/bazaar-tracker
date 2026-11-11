@@ -27,7 +27,7 @@ Erzeugt und nicht in git (`npm run clean` löscht sie): `apps/bazaar/www/`, `app
 ## Guide-Module (`apps/guide/`)
 
 - `app.js` (Zustand, Routen, Gesten), `model.js` (was die Screens zeigen), `views/` (Markup), `intro.js` (Tour und Neuigkeiten), `migrate.js` (einmaliger Umstieg von der API-Version).
-- `progress.js` – Guides laden, prüfen, Schrittkosten, Import/Export. `owned.js` – geteilter Besitz. `keys.js` – gemeinsame Schritt-Schlüssel (`step.key`): Haken solcher Schritte liegen in `pg.keys` und gelten in allen Guides mit demselben Schlüssel, `guide.legacy` führt alte Haken (Abschnitt|Text) bei der Migration auf Schema 3 darauf zurück. `detect.js`, `requires.js` – wann ein Schritt erfüllt ist, HOTM-Sperren.
+- `progress.js` – Guides laden, prüfen, Schrittkosten, Import/Export. `owned.js` – geteilter Besitz. `keys.js` – gemeinsame Schritt-Schlüssel (`step.key`): Haken solcher Schritte liegen in `pg.keys` und gelten in allen Guides mit demselben Schlüssel, `guide.legacy` führt alte Haken (Abschnitt|Text) bei der Migration auf Schema 3 darauf zurück. `detect.js`, `requires.js` – wann ein Schritt erfüllt ist, HOTM-Sperren. `nbt.js`, `import/` (`api.js`, `items.js`, `profile.js`, `propose.js`), `views/import.js` – Profil-Import, siehe `docs/api-import.md`.
 - `optimizer.js`, `optimizer-data.js`, `path.js`, `pieces.js` – Wert je Schritt, Wiki-Werte, Reihenfolge, Gear-Teile.
 - `stats.js`, `virtual.js`, `blaze.js` – Item-, Pet- und Power-Werte, Profil aus Häkchen, Blaze-Schadensmodell.
 - `totals.js`, `build.js`, `gear.js`, `stats-model.js`, `hotm-model.js`, `attrs-model.js`, `skin.js`, `gamedata.js` – Summe je Stat, Build und Messungen, Gear aus Häkchen, Daten der Stats-Seiten, Spielerfigur, Prüfung von `gamedata/`.

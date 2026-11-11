@@ -1,5 +1,5 @@
 // KV is only a cache. A KV error (read, or write limit reached) never fails the request: answer without cache.
-export const TTL = { profile: 3600, mojang: 86400 };
+export const TTL = { profile: 3600, mojang: 86400, skin: 86400 };
 
 export async function cached(env, key, ttl, produce) {
   let hit = null;
@@ -23,4 +23,5 @@ export const keys = {
   mojang: (name) => `mojang:${name.toLowerCase()}`,
   profiles: (uuid) => `profiles:${uuid}`,
   profile: (uuid, profileId) => `profile:${uuid}:${profileId}`,
+  skin: (uuid) => `skin:${uuid}`,
 };

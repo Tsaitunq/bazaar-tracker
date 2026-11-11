@@ -51,8 +51,25 @@ export function validGroups(g) {
   return entries.length ? Object.fromEntries(entries) : null;
 }
 
+// Forging carries enchants, books, parts, reforge and gems to the next piece of a line, so a trait on a higher piece of the same line
+// settles a step set on a lower one. The line: items.json parent (lower to upper), and what it lacks: the Kuudra tiers by name, Mithril to Titanium.
+const KUUDRA = /^(?:(HOT|BURNING|FIERY|INFERNAL)_)?((?:CRIMSON|TERROR|AURORA|FERVOR|HOLLOW)_\w+)$/;
+const TIERS = ['', 'HOT_', 'BURNING_', 'FIERY_', 'INFERNAL_'];
+const GAPS = { MITHRIL_DRILL_2: 'TITANIUM_DRILL_1' };
+function upperOf(id, items) {
+  const k = KUUDRA.exec(id);
+  if (k) { const next = TIERS[TIERS.indexOf(k[1] ? k[1] + '_' : '') + 1]; return next ? next + k[2] : null; }
+  return Object.values(items?.[id]?.parent ?? {})[0] ?? GAPS[id] ?? null;
+}
+// The id and every higher piece of its line.
+export function lineOf(id, items) {
+  const out = [id];
+  for (let c = upperOf(id, items); c && !out.includes(c) && out.length < 30; c = upperOf(c, items)) out.push(c);
+  return out;
+}
+
 // Each group is one slot: its best item counts, so a spare piece never stands in for another slot.
-function itemPart(d, profile, groups) {
+function itemPart(d, profile, groups, items) {
   // Inventory API off and nothing kept from before: that says nothing about what is owned.
   if (profile.missing?.inventory && !profile.items.length) return null;
   const slots = typeof d.on === 'string' ? groups?.[d.on] : d.on;
@@ -60,7 +77,8 @@ function itemPart(d, profile, groups) {
   const value = VALUE[d.kind];
   let have = 0;
   for (const ids of slots) {
-    const found = profile.items.filter((i) => ids.includes(i.id)).map((i) => value(i, d));
+    const reach = d.kind === 'owned' ? ids : ids.flatMap((id) => lineOf(id, items));
+    const found = profile.items.filter((i) => reach.includes(i.id)).map((i) => value(i, d));
     have += found.length ? Math.max(...found) : 0;
   }
   if (d.kind === 'part' && profile.items.some((i) => d.ids.includes(i.id))) have = 1;
@@ -85,21 +103,21 @@ function dataPart(d, profile) {
 }
 
 // One step: { have, need }, or null when there is nothing to say about it.
-export function detectStep(step, profile, groups) {
+export function detectStep(step, profile, groups, items) {
   if (!step.detect || !profile) return null;
-  const parts = [step.detect].flat().map((d) => (VALUE[d.kind] ? itemPart(d, profile, groups) : dataPart(d, profile)));
+  const parts = [step.detect].flat().map((d) => (VALUE[d.kind] ? itemPart(d, profile, groups, items) : dataPart(d, profile)));
   if (!parts.length || parts.includes(null)) return null;
   return { have: parts.reduce((n, p) => n + p.have, 0), need: parts.reduce((n, p) => n + p.need, 0) };
 }
 
 // All steps of a guide by key. Anything found of a later step in a slot settles the earlier steps of that slot, also
 // across lines: nobody goes back to worse gear once better is on hand.
-export function detectGuide(guide, profile, keyOf) {
+export function detectGuide(guide, profile, keyOf, items) {
   const out = new Map();
   const reached = new Set();
   for (const section of [...guide.sections].reverse()) {
     for (const step of [...section.steps].reverse()) {
-      const found = detectStep(step, profile, guide.groups);
+      const found = detectStep(step, profile, guide.groups, items);
       if (!found) continue;
       const slot = [step.detect].flat().find((d) => d.slot)?.slot;
       if (slot && reached.has(slot)) found.have = found.need;

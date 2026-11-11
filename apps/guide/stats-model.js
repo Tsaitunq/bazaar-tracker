@@ -38,7 +38,7 @@ function tickedSteps(world, area) {
 export function statsModel(world, area) {
   const data = world.gamedata;
   const entry = world.base?.[area] ?? null;
-  if (!data) return { area, name: AREA_NAME[area], missing: 'data', fields: [], rows: [], listed: [], changes: [], pet: { chosen: null, step: null }, steps: 0, measured: null, gearLine: [], guides: [], buffs: world.build?.buffs ?? {} };
+  if (!data) return { area, name: AREA_NAME[area], missing: 'data', fields: [], rows: [], listed: [], known: [], other: [], changes: [], pet: { chosen: null, step: null }, steps: 0, measured: null, gearLine: [], guides: [], buffs: world.build?.buffs ?? {} };
   const ids = statsFor(area, data);
   const worn = world.items ? gearOf({ guides: world.guides, checks: world.checks ?? {}, owned: world.owned ?? [], items: world.items, area, build: world.build, settings: miningSettings(world.settings), values: entry?.values ?? {}, mp: world.build?.power?.mp ?? entry?.mp ?? null, pets: world.gamedata?.pets?.pets ?? null, petItems: world.gamedata?.pets?.items ?? null, dates: world.dates ?? {}, measuredAt: entry?.at ?? null }) : { gear: {} };
   const t = totalFor({ area, entry, build: world.build, gear: worn.gear, data, stats: ids, pet: worn.pet });
@@ -60,8 +60,16 @@ export function statsModel(world, area) {
     delta: delta[r.stat] ? signed(delta[r.stat]) : '–',
     total: r.total === undefined ? (r.gear ? number(Math.round(r.gear * 100) / 100) : '–') : number(Math.round(r.total * 100) / 100),
   }));
+  // what the app knows by itself (the build and the ticked gear), and, with a measurement, what the base holds beyond that
+  const knownText = (id) => {
+    const v = (t.known.add[id] ?? 0) * (t.known.mult[id] ?? 1) + (worn.gear[id] ?? 0);
+    return Math.abs(v) > 1e-9 ? { ...label(id), value: v, text: signed(v) } : null;
+  };
+  const known = entry ? [] : ids.map(knownText).filter(Boolean);
+  const other = t.rows.filter((r) => r.other !== undefined && Math.abs(r.other) > 1e-9).map((r) => ({ ...label(r.stat), value: r.other, text: signed(r.other) }));
   const guides = tickedSteps(world, area);
   return {
+    known, other,
     area, name: AREA_NAME[area], missing: DATA_AREA[area] && !world.items ? 'items' : null,
     measured: entry ? { at: entry.at, buffs: entry.snapshot?.buffs ?? {} } : null,
     changes, fields: ids.map(label), rows, listed: [...t.listed, ...(worn.listed ?? [])],

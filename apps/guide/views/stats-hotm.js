@@ -55,7 +55,7 @@ export function hotmView(world, r, head) {
     return `<button type="button" class="${cls}" style="left:${place(p).x + 6}px;top:${place(p).y + 6}px" data-perk="${esc(p.id)}" aria-label="${esc(p.name)}, level ${level} of ${p.maxLevel}${why}">${text}</button>`;
   }).join('');
   const used = spent(data, hotm);
-  const chips = `<div class="chips"><span class="chip">Tier <b>${hotm.tier ?? '?'}</b>/10</span>${Object.keys(POWDER).map((p) => `<span class="chip chip-${p}">${POWDER[p]} ${short(used[p])}</span>`).join('')}</div>`;
+  const chips = `<div class="chips"><span class="chip">Tier <b>${hotm.tier ?? '?'}</b>/10</span>${Object.keys(POWDER).map((p) => `<span class="chip chip-${p}">${POWDER[p]} ${short(used[p])}</span>`).join('')}${Object.keys(POWDER).filter((p) => Number.isFinite(hotm.powder?.[p])).map((p) => `<span class="chip chip-${p}">${POWDER[p]} left ${short(hotm.powder[p])}</span>`).join('')}</div>`;
   const tiers = ['<option value="">unknown</option>', ...Array.from({ length: 10 }, (_, i) => `<option value="${i + 1}"${hotm.tier === i + 1 ? ' selected' : ''}>${i + 1}</option>`)].join('');
   const open = byId.get(world.ui?.perk);
   return `<div class="scroll">${head}${draftBar(world, 'hotm', 'HOTM')}

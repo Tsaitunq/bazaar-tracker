@@ -11,15 +11,16 @@ const data = await loadGameData(read);
 const perk = (id) => data.hotm.perks.find((p) => p.id === id);
 const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, `${a} != ${b}`);
 
-test('cost: formula, one-level perks cost a token, only mining_speed is unknown', () => {
+test('cost: formula, one-level perks cost a token, no perk is unknown', () => {
   const mf = perk('mining_fortune');
   assert.deepEqual(costOf(mf, 3), { powder: 'mithril', amount: Math.floor(4 ** 3.05) });
   assert.deepEqual(costOf(perk('sky_mall'), 1), { tokens: 1 });
   assert.deepEqual(costOf(perk('pickobulus'), 1), { tokens: 1 });
-  assert.equal(costOf(perk('mining_speed'), 2), null);
-  assert.equal(costBetween(perk('mining_speed'), 0, 5).unknown, true);
+  // mining_speed: (N+1)^3, read from a live profile
+  assert.deepEqual(costOf(perk('mining_speed'), 2), { powder: 'mithril', amount: 27 });
+  assert.equal(costBetween(perk('mining_speed'), 0, 5).unknown, false);
   const unknown = data.hotm.perks.filter((p) => costBetween(p, 0, p.maxLevel).unknown).map((p) => p.id);
-  assert.deepEqual(unknown, ['mining_speed']);
+  assert.deepEqual(unknown, []);
   const toMax = costBetween(mf, 10, 50).mithril;
   assert.equal(toMax, Array.from({ length: 40 }, (_, i) => Math.floor((i + 11 + 1) ** 3.05)).reduce((a, b) => a + b, 0));
 });

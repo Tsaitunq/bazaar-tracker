@@ -12,6 +12,7 @@ GET only, JSON.
 |---|---|
 | `/v1/profiles/<name>` | `{ uuid, profiles: [{ id, cute_name, game_mode, selected }], notAffiliated }` |
 | `/v1/profile/<name>/<profileId>` | Trimmed data of that player only: `hotm`, `essencePerks`, `pets`, `skills`, `slayer`, `fairySouls`, `accessoryBag`, `attributes`, `inventories`, `missing` |
+| `/v1/skin/<uuid>` | The player's skin as `image/png` (not JSON). Mojang session server, then PlayerDB; only `https://textures.minecraft.net` urls are fetched, at most 64 KB, PNG signature checked. KV cache 1 day, same rate limit. `404` no custom skin |
 
 - `<name>`: 3 to 16 characters, `A-Z a-z 0-9 _`. `<profileId>`: a UUID, with or without dashes.
 - A field Hypixel does not send (usually: API settings off in game) is left out and listed in `missing`, e.g. `"inventories.wardrobe"`.
@@ -93,6 +94,7 @@ In `apps/api/`, key from the git-ignored `.dev.vars`. They print no values, name
 
 - `node scripts/probe-inventory.mjs <name> [profile-id]`: key names under `inventory`.
 - `node scripts/probe-nbt.mjs <name> [profile-id]`: every path in the member that holds item data, plus key paths containing ward, loadout, preset, equip, armor or set.
+- `node scripts/probe-items.mjs <name> [profile-id]`: decodes `inv_armor`, `equipment_contents` and one armor and one equipment wardrobe set, and prints the NBT key paths with value types for the 4 richest items of each. Also up to 2 drills (id contains DRILL) from the inventory, ender chest and backpacks. The only value printed is the item id. Imports `apps/guide/nbt.js`.
 
 ## What is stored
 

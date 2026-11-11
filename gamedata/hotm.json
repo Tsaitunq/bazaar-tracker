@@ -73,9 +73,12 @@
      "cond": "always"
     }
    ],
-   "cost": null,
-   "unknown": true,
-   "note": "cost exponent not read yet",
+   "cost": {
+    "powder": "mithril",
+    "exp": 3,
+    "offset": 1
+   },
+   "note": "cost (N+1)^3: matches powder_spent of a live profile exactly (not read from the wiki)",
    "omeletteBonus": true,
    "neighbors": [
     "mining_fortune"

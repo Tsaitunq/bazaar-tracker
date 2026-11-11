@@ -32,6 +32,7 @@ function overview(world, r) {
   const when = m.measured ? `Base measured <b>${esc(ago(m.measured.at, world.now))}</b>, no gear${buffs ? `, ${esc(buffs)} on` : ''}.` : 'No base measured yet.';
   const gear = m.guides.length ? `Gear: <b class="c-green">${m.steps} ${m.steps === 1 ? 'step' : 'steps'}</b> ticked in ${esc(m.guides.map((g) => g.title).join(' + '))}.` : 'No guide for this area yet, so no gear.';
   const rows = m.rows.map((x) => `<div class="stat-row"><span class="c-${x.color}">${esc(x.icon)} ${esc(x.label)}</span><span>${esc(x.base)}</span><span class="c-green">${esc(x.gear)}</span><span class="c-orange">${esc(x.delta)}</span><b class="c-${x.color}">${esc(x.total)}</b></div>`).join('');
+  const sources = m.other.length ? `<section class="panel"><h2>Other sources</h2><small>What your measured base holds beyond what the app knows (HOTM, attributes, essence, power, buffs): your /stats value minus the app's figure at the time.</small>${m.other.map((o) => `<small><b class="c-${o.color}">${esc(o.text)} ${esc(o.label)}</b></small>`).join('')}</section>` : m.known.length ? `<section class="panel"><h2>From known sources</h2><small>No base measured yet, so this is only what the app knows: HOTM, attributes, essence, power and ticked gear. Everything else (skills, levels, other bonuses) is missing until you reconcile with /stats.</small>${m.known.map((o) => `<small><b class="c-${o.color}">${esc(o.text)} ${esc(o.label)}</b></small>`).join('')}</section>` : '';
   const moved = m.changes.length ? `<section class="panel changes"><h2>Changes since measurement</h2>${m.changes.map((c) => `<small><b class="c-${c.color}">${esc(c.text)} ${esc(c.label)}</b> (${esc(c.parts)})</small>`).join('')}</section>` : '';
   const hints = m.hints?.length ? m.hints.map((h) => `<small class="note">${esc(h)}</small>`).join('') : '';
   const listed = m.listed.length ? `<section class="panel"><h2>Only when the condition holds</h2>${m.listed.map((l) => `<small>${esc(l.text)}</small>`).join('')}</section>` : '';
@@ -49,7 +50,7 @@ function overview(world, r) {
   return `<div class="scroll">${tabs(r)}${areas(r)}
     ${draftNote}${figure}
     <div class="panel"><small>${when}</small><small>${gear}</small>${hints}${note}<a class="primary-link" href="#/stats/measure/${esc(r.area)}">${m.measured ? 'Measure base again' : `Measure ${esc(m.name)} base`}</a></div>
-    <div class="panel stat-table"><div class="stat-row stat-head"><span>All ${esc(m.name.toLowerCase())} stats</span><span>Base</span><span>Gear</span><span title="Changed since the measurement">Δ</span><span>Total</span></div>${rows}</div>${moved}${listed}</div>`;
+    <div class="panel stat-table"><div class="stat-row stat-head"><span>All ${esc(m.name.toLowerCase())} stats</span><span>Base</span><span>Gear</span><span title="Changed since the measurement">Δ</span><span>Total</span></div>${rows}</div>${sources}${moved}${listed}</div>`;
 }
 
 function measure(world, r) {
@@ -59,6 +60,7 @@ function measure(world, r) {
   const gear = m.gearLine.length ? `<small>Gear from your guides adds ${m.gearLine.map((g) => `<span class="c-${g.color}">${esc(g.icon)} ${esc(g.text)}</span>`).join(' · ')}</small>` : '';
   const buff = (key, label) => `<label class="check"><input type="checkbox" data-buff="${key}"${m.buffs[key] ? ' checked' : ''}> ${label}</label>`;
   const body = `<div class="scroll"><div class="panel" data-stats-area="${esc(r.area)}"><h2>Measure ${esc(m.name)} base</h2>
+    <small>Optional. Without it the stats show only what the app knows. Typing your /stats here adds everything else as "other sources": your value minus what the app knows from your HOTM, attributes, essence and power.</small>
     <small>Take off armor, equipment, tool or weapon and pet${r.area === 'blaze' ? '; keep your accessories on, they are part of the base' : ''}. Then open /stats and type what it shows. A field left empty stays unknown.</small>
     ${buff('godPotion', 'God Potion active')}${buff('boosterCookie', 'Booster Cookie active')}
     ${fields}${mp}${gear}

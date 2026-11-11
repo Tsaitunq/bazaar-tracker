@@ -25,27 +25,53 @@ export function isSlim(alpha) {
   return true;
 }
 
-let skin; // undefined = not asked yet, 'loading', an Image, or null = no file
+let skin; // undefined = not asked yet, 'loading', a drawable (canvas), or null = no file
 let slim = false;
+let source = null; // a data url of the imported player's skin; null = the bundled one
+
+// The skin of the imported player, or null for the bundled one. The next paint loads it.
+export function setSkin(dataUrl) {
+  source = typeof dataUrl === 'string' && dataUrl.startsWith('data:image/png;base64,') ? dataUrl : null;
+  skin = undefined;
+  slim = false;
+}
+
+// A skin from before 1.8 is 64x32: the left arm and leg are the right ones mirrored. Gives a 64x64 canvas either way.
+export function normalize(img) {
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d');
+  g.drawImage(img, 0, 0);
+  if (img.height === 32) {
+    for (const [sx, sy, dx, dy] of [[0, 16, 16, 48], [40, 16, 32, 48]]) {
+      g.save();
+      g.translate(dx + 16, dy);
+      g.scale(-1, 1);
+      g.drawImage(c, sx, sy, 16, 16, 0, 0, 16, 16);
+      g.restore();
+    }
+  }
+  return c;
+}
 
 function load(repaint) {
   if (skin !== undefined) return;
   skin = 'loading';
+  const wanted = source;
   const img = new Image();
   img.onload = () => {
+    if (wanted !== source) return; // the skin was changed while this one loaded
     try {
-      const c = document.createElement('canvas');
-      c.width = c.height = 64;
-      const g = c.getContext('2d');
-      g.drawImage(img, 0, 0);
-      const px = g.getImageData(0, 0, 64, 64).data;
+      const c = normalize(img);
+      const px = c.getContext('2d').getImageData(0, 0, 64, 64).data;
       slim = isSlim((x, y) => px[(y * 64 + x) * 4 + 3]);
-    } catch { slim = false; }
-    skin = img;
+      skin = c;
+    } catch { slim = false; skin = img; }
     repaint();
   };
-  img.onerror = () => { skin = null; repaint(); };
-  img.src = 'img/skin.png';
+  // a stored skin that does not load: the bundled one
+  img.onerror = () => { if (wanted !== source) return; if (source) { source = null; skin = undefined; } else skin = null; repaint(); };
+  img.src = source ?? 'img/skin.png';
 }
 
 // Paints every canvas[data-figure] under root: the skin, or a flat silhouette while there is none.
@@ -55,7 +81,7 @@ export function paintFigures(root) {
   if (!canvases.length && !heads.length) return;
   load(() => paintFigures(root));
   for (const canvas of heads) {
-    if (!(skin instanceof Image)) continue; // until the skin is there the button keeps its icon
+    if (!skin || skin === 'loading') continue; // until the skin is there the button keeps its icon
     canvas.width = canvas.height = HEAD_PX;
     const g = canvas.getContext('2d');
     g.imageSmoothingEnabled = false;
@@ -67,7 +93,7 @@ export function paintFigures(root) {
     canvas.height = FIGURE.h * SCALE;
     const g = canvas.getContext('2d');
     g.imageSmoothingEnabled = false;
-    if (skin instanceof Image) {
+    if (skin && skin !== 'loading') {
       for (const r of figureRects(slim)) g.drawImage(skin, r.sx, r.sy, r.w, r.h, r.dx * SCALE, r.dy * SCALE, r.w * SCALE, r.h * SCALE);
     } else if (skin === null) {
       g.fillStyle = getComputedStyle(canvas).color;

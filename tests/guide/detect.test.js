@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { detectStep, detectGuide, validDetect } from '../../apps/guide/detect.js';
+import { detectStep, detectGuide, validDetect, lineOf } from '../../apps/guide/detect.js';
 import { stepKey } from '../../apps/guide/progress.js';
 
 const item = (id, extra = {}) => ({ id, enchants: {}, gems: [], parts: {}, ...extra });
@@ -118,4 +118,28 @@ test('essence reads the perk level, pet item the item on a pet of the type; with
   assert.equal(has({ kind: 'petItem', types: ['MOLE'], item: 'TIN' }, profile([], { pets: undefined })), null);
   assert.equal(validDetect({ kind: 'petItem', item: 'TIN' }), null);
   assert.equal(validDetect({ kind: 'essence', perk: 'x' }), null);
+});
+
+// Forging carries the books, parts and gems to the next drill: a step on DR-X355 holds when DR-X655 has them.
+const LADDER = { TITANIUM_DRILL_1: { parent: { TITANIUM_DRILL_1: 'TITANIUM_DRILL_2' } }, TITANIUM_DRILL_2: { parent: { TITANIUM_DRILL_2: 'TITANIUM_DRILL_3' } }, TITANIUM_DRILL_3: { parent: { TITANIUM_DRILL_3: 'TITANIUM_DRILL_4' } }, TITANIUM_DRILL_4: { parent: { TITANIUM_DRILL_4: 'DIVAN_DRILL' } } };
+
+test('a trait on a higher drill settles the step on a lower one (Polarvoid on DR-X655)', () => {
+  const step = { detect: { kind: 'polarvoid', on: [['TITANIUM_DRILL_1']], need: 5 } };
+  const p = profile([item('TITANIUM_DRILL_4', { polarvoid: 5 })]);
+  assert.deepEqual(detectStep(step, p, {}, LADDER), { have: 5, need: 5 });
+  assert.equal(detectStep(step, p, {}, {}).have, 0);
+  // the other way round does not count: a lower piece never settles a higher step
+  assert.equal(detectStep({ detect: { kind: 'polarvoid', on: [['TITANIUM_DRILL_4']], need: 5 } }, profile([item('TITANIUM_DRILL_1', { polarvoid: 5 })]), {}, LADDER).have, 0);
+});
+
+test('lines: Crimson tiers by name, Mithril to Titanium, and no loop', () => {
+  assert.deepEqual(lineOf('CRIMSON_HELMET', {}), ['CRIMSON_HELMET', 'HOT_CRIMSON_HELMET', 'BURNING_CRIMSON_HELMET', 'FIERY_CRIMSON_HELMET', 'INFERNAL_CRIMSON_HELMET']);
+  assert.deepEqual(lineOf('FIERY_TERROR_BOOTS', {}), ['FIERY_TERROR_BOOTS', 'INFERNAL_TERROR_BOOTS']);
+  assert.deepEqual(lineOf('MITHRIL_DRILL_2', LADDER), ['MITHRIL_DRILL_2', 'TITANIUM_DRILL_1', 'TITANIUM_DRILL_2', 'TITANIUM_DRILL_3', 'TITANIUM_DRILL_4', 'DIVAN_DRILL']);
+  assert.deepEqual(lineOf('A', { A: { parent: { A: 'B' } }, B: { parent: { B: 'A' } } }), ['A', 'B']);
+});
+
+test('an owned step does not move up the line', () => {
+  const step = { detect: { kind: 'owned', on: [['TITANIUM_DRILL_1']] } };
+  assert.equal(detectStep(step, profile([item('TITANIUM_DRILL_4')]), {}, LADDER).have, 0);
 });
