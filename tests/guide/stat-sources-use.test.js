@@ -4,6 +4,7 @@ import { totalFor, statsOf } from '../../apps/guide/totals.js';
 import { measure } from '../../apps/guide/build.js';
 import { statsModel } from '../../apps/guide/stats-model.js';
 import { calcFor } from '../../apps/guide/sources.js';
+import { statsView } from '../../apps/guide/views/stats.js';
 import { gamedata, emptyBuild } from '../fixtures/guide-world.js';
 
 const ss = gamedata.statSources;
@@ -90,4 +91,40 @@ test('totalFor without calc is untouched by the new argument', () => {
   const entry = measure({}, 'blaze', { values: { HEALTH: 700 } }, build, 5).blaze;
   const r = totalFor({ area: 'blaze', entry, build, data: gamedata, stats: ids });
   assert.equal(r.total.HEALTH, 700);
+});
+
+const page = (w) => statsView(w, { page: 'stats', tab: 'overview', area: 'blaze' });
+const withSkills = profile({ skills: { SKILL_MINING: 3022425, SKILL_COMBAT: 3022425, SKILL_CARPENTRY: 50 }, slayer: { zombie: 1000, blaze: 400000 } });
+
+test('stats page: the level strip shows skills, slayer and SkyBlock level, only with an import', () => {
+  const html = page(world(emptyBuild(), {}, withSkills));
+  assert.match(html, /class="level-strip"/);
+  assert.match(html, /Skills<\/span><b>⌀ 25<\/b>/); // mining 25 and combat 25; carpentry is not in the average
+  assert.match(html, /Slayer<\/span><b>top 8<\/b>/);
+  assert.match(html, /SkyBlock<\/span><b>Lv 123<\/b>/);
+  assert.match(html, /Carpentry <b>1 \/ 50<\/b>/);
+  assert.doesNotMatch(page({ ...world(emptyBuild(), {}), profile: null }), /level-strip/);
+});
+
+test('stats page: without the worker field the SkyBlock chip says what is missing', () => {
+  const html = page(world(emptyBuild(), {}, profile({ skyblockXp: null })));
+  assert.match(html, /SkyBlock<\/span><b>–<\/b>/);
+  assert.match(html, /deploy the updated worker/);
+});
+
+test('stats page: not measured shows the sources text, the unsafe mark and what is not counted', () => {
+  const html = page(world(emptyBuild(), {}));
+  assert.match(html, /From known sources/);
+  assert.match(html, /adds up what the import gives/);
+  assert.match(html, /≈ [\d,]+<\/b>/);
+  assert.match(html, /<h2>Not counted<\/h2>/);
+});
+
+test('stats page: after a measurement the gap lists the unsafe sources behind it', () => {
+  const build = emptyBuild();
+  const base = measure({}, 'blaze', { values: { HEALTH: 2000 }, calc: calcFor(world(build, {})).add }, build, 5);
+  const html = page(world(build, base));
+  assert.match(html, /<h2>Other sources<\/h2>/);
+  assert.match(html, /Unsafe sources behind it[^<]*SkyBlock level 123/);
+  assert.doesNotMatch(html, /From known sources/);
 });
