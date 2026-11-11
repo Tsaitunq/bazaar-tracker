@@ -7,6 +7,7 @@ import { blazeState } from './blaze.js';
 import { checkStep, lockProfile } from './requires.js';
 import { gearOf } from './gear.js';
 import { totalFor, statsFor } from './totals.js';
+import { calcFor } from './sources.js';
 import { coins, number } from '../../shared/format.js';
 
 const DAY = 24 * 3600e3;
@@ -216,10 +217,14 @@ function planOf(guide, world, ctx, checked, scores) {
   if (!scores[guide.area]) return { missing: 'score' };
   const area = guide.area;
   const entry = world.base?.[area] ?? null;
-  if (!Object.keys(entry?.values ?? {}).length) return { missing: 'stats' };
+  const calc = calcFor(world);
+  // no typed /stats: with an import the summed sources (base, build, import) are the start values, without one there is nothing to rank from
+  if (!Object.keys(entry?.values ?? {}).length && !calc) return { missing: 'stats' };
   const settings = guide.preset ? miningSettings({ preset: guide.preset }) : world.settings;
-  const worn = gearOf({ guides: world.guides ?? [guide], checks: world.checks ?? { [guide.id]: [...world.marks] }, owned: world.owned ?? [], items: ctx.items, area, build: world.build, settings, values: entry.values, mp: world.build?.power?.mp ?? entry.mp ?? null, pets: world.gamedata?.pets?.pets ?? null, petItems: world.gamedata?.pets?.items ?? null, dates: world.dates ?? {}, measuredAt: entry.at ?? null });
-  const base = totalFor({ area, entry, build: world.build, gear: worn.gear, data: world.gamedata, stats: statsFor(area, world.gamedata), pet: worn.pet }).total;
+  const typed = Object.keys(entry?.values ?? {}).length > 0;
+  const values = typed ? entry.values : totalFor({ area, entry: null, build: world.build, gear: {}, data: world.gamedata, stats: statsFor(area, world.gamedata), calc }).total;
+  const worn = gearOf({ guides: world.guides ?? [guide], checks: world.checks ?? { [guide.id]: [...world.marks] }, owned: world.owned ?? [], items: ctx.items, area, build: world.build, settings, values: values, mp: world.build?.power?.mp ?? entry?.mp ?? null, pets: world.gamedata?.pets?.pets ?? null, petItems: world.gamedata?.pets?.items ?? null, dates: world.dates ?? {}, measuredAt: entry?.at ?? null, bagCounted: !!calc });
+  const base = totalFor({ area, entry, build: world.build, gear: worn.gear, data: world.gamedata, stats: statsFor(area, world.gamedata), pet: worn.pet, calc }).total;
   const daggers = area === 'blaze' ? worn.loadout.daggers : null; // with the potato books in their lore
   const loadout = worn.loadout;
   const state = daggers ? blazeState(base, loadout, daggers) : null;
@@ -237,7 +242,7 @@ function planOf(guide, world, ctx, checked, scores) {
 const plans = new Map();
 function planCached(guide, world, ctx, checked, scores) {
   if (world.pathEpoch === undefined) return planOf(guide, world, ctx, checked, scores);
-  const key = `${guide.id}|${world.pathEpoch}|${world.opened?.[guide.id] ?? 0}|${world.base?.[guide.area]?.at}`;
+  const key = `${guide.id}|${world.pathEpoch}|${world.opened?.[guide.id] ?? 0}|${world.base?.[guide.area]?.at}|${world.profile?.fetchedAt}`;
   if (plans.get(guide.id)?.key !== key) plans.set(guide.id, { key, plan: planOf(guide, world, ctx, checked, scores) });
   return plans.get(guide.id).plan;
 }
@@ -433,7 +438,7 @@ export function guideModel(guide, world) {
 const GUIDE_TABS = ['path', 'methods'];
 export const STATS_TABS = ['overview', 'hotm', 'attributes', 'power', 'essence', 'pets'];
 export const STATS_AREAS = ['mining', 'blaze', 'farming'];
-// #/stats, #/stats/<overview|hotm|attributes|power|essence>, #/stats/overview/<area> and #/stats/measure/<area>
+// #/stats/detail/<area>/<STAT> is the breakdown of one stat. #/stats, #/stats/<overview|hotm|attributes|power|essence>, #/stats/overview/<area> and #/stats/measure/<area>
 export function parseRoute(hash, guides) {
   const [, page, id, tab, method] = String(hash).split('/');
   if (page === 'settings') return { page };
@@ -441,6 +446,7 @@ export function parseRoute(hash, guides) {
   if (page === 'stats') {
     const area = STATS_AREAS.includes(tab) ? tab : 'mining';
     if (id === 'measure') return { page, tab: 'measure', area };
+    if (id === 'detail' && /^[A-Z_]+$/.test(method ?? '')) return { page, tab: 'detail', area, stat: method };
     return { page, tab: STATS_TABS.includes(id) ? id : 'overview', area };
   }
   if (page === 'guide' && (id === 'farming' || guides.some((g) => g.id === id))) {

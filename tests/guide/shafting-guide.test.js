@@ -49,7 +49,7 @@ test('the private shafting guide holds together', { skip: !present }, () => {
   console.log('steps without a price source', ranked.filter((s) => !s.items?.length).length, 'with auto tick', ranked.filter((s) => s.detect).length);
 });
 
-test('group g1 lists six parts; the drill line is 700 MS / 25 MF, the total 1230 / 55 / 10 GF / 1 P', { skip: !present }, async () => {
+test('group g1 lists six parts; the drill line is 700 MS / 25 MF, the total 830 (Flowstate is conditional) / 55 / 10 GF / 1 P', { skip: !present }, async () => {
   const { guideModel } = await import('../../apps/guide/model.js');
   const { gamedata, baseOf, emptyBuild } = await import('../fixtures/guide-world.js');
   const { miningSettings } = await import('../../apps/guide/optimizer.js');
@@ -60,7 +60,7 @@ test('group g1 lists six parts; the drill line is 700 MS / 25 MF, the total 1230
   assert.equal(card.name, 'DR-X355 + 5 Enchants');
   assert.equal(card.parts.length, 6);
   assert.deepEqual(card.parts[0].stats.map((s) => s.text), ['+700 ⸕ Mining Speed', '+25 ☘ Mining Fortune']);
-  assert.deepEqual(card.stats.map((s) => s.text), ['+1,230 ⸕ Mining Speed', '+55 ☘ Mining Fortune', '+10 ☘ Gemstone Fortune', '+1 ✧ Pristine']);
+  assert.deepEqual(card.stats.map((s) => s.text), ['+830 ⸕ Mining Speed', '+55 ☘ Mining Fortune', '+10 ☘ Gemstone Fortune', '+1 ✧ Pristine']);
 });
 
 test('enchant levels in the Upgrades section: lower levels first, gain is the difference', { skip: !present }, async () => {

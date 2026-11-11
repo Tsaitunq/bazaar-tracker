@@ -181,7 +181,7 @@ function checkValue(w, v) {
 const increasing = (w, values) => values.forEach((v, i) => { if (!(v > 0) || (i && !(v >= values[i - 1]))) fail(w, `xp not rising at level ${i + 1}`); });
 
 export function checkStatSources(d, stats) {
-  for (const key of ['skills', 'slayers', 'fairySouls', 'skyblockLevel', 'boosterCookie', 'godPotion', 'accessories']) need('stat-sources', d, [key]);
+  for (const key of ['skills', 'slayers', 'fairySouls', 'skyblockLevel', 'boosterCookie', 'godPotion', 'accessories', 'baseStats']) need('stat-sources', d, [key]);
   const group = (kind, list, cumulativeXp) => {
     for (const [id, e] of Object.entries(list)) {
       const w = `stat-sources.${kind}.${id}`;
@@ -216,6 +216,13 @@ export function checkStatSources(d, stats) {
   }
   for (const [stat, v] of Object.entries(d.boosterCookie.stats)) { if (!stats.has(stat)) fail('stat-sources.boosterCookie', `unknown stat ${stat}`); checkValue(`stat-sources.boosterCookie.${stat}`, v); }
   for (const [stat, v] of Object.entries(d.godPotion.stats)) { if (!stats.has(stat)) fail('stat-sources.godPotion', `unknown stat ${stat}`); checkValue(`stat-sources.godPotion.${stat}`, v); }
+  for (const [stat, v] of Object.entries(d.baseStats)) { if (!stats.has(stat)) fail('stat-sources.baseStats', `unknown stat ${stat}`); checkValue(`stat-sources.baseStats.${stat}`, v); }
+  checkConfidence('stat-sources.accessories.reforges', d.accessories.reforges);
+  checkConfidence('stat-sources.collections', d.collections);
+  for (const r of d.collections.rewards) { if (!stats.has(r.stat)) fail('stat-sources.collections', `unknown stat ${r.stat}`); if (!r.tiers.length || !isNum(r.value)) fail('stat-sources.collections', `${r.collection} needs tiers and a value`); }
+  for (const [stat, v] of Object.entries(d.bestiary.perMilestone)) { if (!stats.has(stat)) fail('stat-sources.bestiary', `unknown stat ${stat}`); checkValue(`stat-sources.bestiary.${stat}`, v); }
+  unique('stat-sources.consumables', d.consumables.map((c) => c.id));
+  for (const c of d.consumables) { if (!stats.has(c.stat)) fail(`stat-sources.consumables.${c.id}`, `unknown stat ${c.stat}`); if (!isNum(c.value) || !(c.max > 0)) fail(`stat-sources.consumables.${c.id}`, 'needs a value and a max'); checkConfidence(`stat-sources.consumables.${c.id}`, c); }
   for (const [stat, v] of Object.entries(d.accessories.enrichments?.values ?? {})) { if (!stats.has(stat)) fail('stat-sources.accessories', `unknown stat ${stat}`); checkValue(`stat-sources.accessories.enrichments.${stat}`, v); }
 }
 

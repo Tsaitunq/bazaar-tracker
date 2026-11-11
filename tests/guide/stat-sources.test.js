@@ -28,7 +28,7 @@ test('a broken file is named with its path', () => {
   bad((d) => { d.skills.mining.xp.values[3] = -1; }, /xp not rising at level 4/);
   bad((d) => { d.skills.mining.xpTotal[10] += 1; }, /xpTotal: level 11/);
   bad((d) => { d.skills.mining.stats.DEFENSE.values.pop(); }, /needs 60 values, has 59/);
-  bad((d) => { d.skills.mining.stats.MINING_FORTUNE.diff = [99]; }, /diff must list levels/);
+  bad((d) => { d.skills.mining.stats.MINING_FORTUNE.confidence = 'unsafe'; d.skills.mining.stats.MINING_FORTUNE.diff = [99]; }, /diff must list levels/);
   bad((d) => { d.slayers.zombie.xp.values[2] = 1; }, /xp not rising at level 3/);
   bad((d) => { d.godPotion.stats.STRENGTH.value = 'x'; }, /value must be a number/);
   bad((d) => { delete d.fairySouls; }, /missing "fairySouls"/);
@@ -58,7 +58,7 @@ test('skill rewards: what the wiki and NEU agree on is safe, what only one sourc
   assert.equal(m.stats.DEFENSE.confidence, 'safe');
   assert.deepEqual(m.stats.DEFENSE.values.slice(0, 2), [1, 1]);
   assert.equal(m.stats.DEFENSE.values[59], 2);
-  assert.equal(m.stats.MINING_FORTUNE.confidence, 'unsafe'); // NEU has no Mining Fortune per level
+  assert.equal(m.stats.MINING_FORTUNE.confidence, 'safe'); // wiki and the game (Mining 39 = 156)
   assert.ok(m.stats.MINING_FORTUNE.values.every((v) => v === 4));
   assert.equal(data.skills.farming.stats.HEALTH.values[0], 2);
   assert.equal(data.skills.farming.stats.HEALTH.values[59], 5);
@@ -100,13 +100,14 @@ test('fairy souls: no permanent stats, the exchange gives SkyBlock XP', () => {
   assert.equal(data.fairySouls.statsNote.confidence, 'unsafe'); // the wiki alone: check in the game
 });
 
-test('SkyBlock level: health per level, strength per 5 levels, 100 XP a level; one source', () => {
+test('SkyBlock level: health per level, strength per 5 levels, 100 XP a level; the per-level stats are confirmed in the game', () => {
   const l = data.skyblockLevel;
   assert.equal(l.perLevel.HEALTH.value, 5);
   assert.equal(l.perFiveLevels.STRENGTH.value, 1);
   assert.equal(l.xpPerLevel.value, 100);
   assert.equal(l.maxLevel.value, 500);
-  for (const v of [l.perLevel.HEALTH, l.perFiveLevels.STRENGTH, l.xpPerLevel, l.maxLevel]) assert.equal(v.confidence, 'unsafe');
+  for (const v of [l.perLevel.HEALTH, l.perFiveLevels.STRENGTH]) assert.equal(v.confidence, 'safe');
+  for (const v of [l.xpPerLevel, l.maxLevel]) assert.equal(v.confidence, 'unsafe');
 });
 
 test('cookie and god potion against what the app already has', () => {
@@ -132,4 +133,12 @@ test('accessories: the gaps are counted, enrichments are flat and one source', (
   assert.equal(a.enrichments.values.HEALTH.value, 3);
   assert.equal(a.enrichments.values.SPEED.value, 1);
   assert.ok(Object.values(a.enrichments.values).every((v) => v.confidence === 'unsafe'));
+});
+
+test('base stats: the three the app had are safe, the rest are given by the player and not safe', () => {
+  const b = data.baseStats;
+  assert.deepEqual(Object.fromEntries(Object.entries(b).map(([k, v]) => [k, v.value])), { HEALTH: 100, CRITICAL_CHANCE: 30, CRITICAL_DAMAGE: 50, SPEED: 100, SEA_CREATURE_CHANCE: 20, HEALTH_REGEN: 100, VITALITY: 100, MENDING: 100, SWING_RANGE: 3 });
+  for (const id of ['HEALTH', 'CRITICAL_CHANCE', 'CRITICAL_DAMAGE']) assert.equal(b[id].confidence, 'safe', id);
+  for (const id of ['SPEED', 'SEA_CREATURE_CHANCE', 'HEALTH_REGEN', 'VITALITY', 'MENDING', 'SWING_RANGE']) assert.equal(b[id].confidence, 'unsafe', id);
+  assert.equal(data.accessories.reforges.stats, 'none');
 });

@@ -1,6 +1,6 @@
 // The Stats screens: overview (base, gear, total), measure, and the three editors (HOTM, attributes, power).
-import { esc } from '../../../shared/format.js';
-import { statsModel, AREA_NAME, ago } from '../stats-model.js';
+import { esc, number } from '../../../shared/format.js';
+import { statsModel, statDetail, AREA_NAME, ago } from '../stats-model.js';
 import { STATS_TABS } from '../model.js';
 import { bottomBar } from './parts.js';
 import { HOME_TABS } from './home.js';
@@ -10,6 +10,7 @@ import { powerView } from './stats-power.js';
 import { essenceView } from './stats-essence.js';
 import { petLabel, petKey, petsView } from './stats-pet.js';
 import { pic } from './editors.js';
+import { AVERAGE_SKILLS } from '../sources.js';
 
 const TAB_NAME = { overview: 'Overview', hotm: 'HOTM', attributes: 'Attributes', power: 'Power', essence: 'Essence', pets: 'Pets' };
 const AREAS = Object.keys(AREA_NAME);
@@ -26,13 +27,41 @@ const areas = (r) => switcher(AREAS.map((a) => ({ id: a, name: AREA_NAME[a], hre
 
 const frame = (inner, title, back) => `<div class="screen screen-home" data-theme="stats" data-page="stats"><div class="top"><a class="back" href="${esc(back)}">← ${esc(title.back)}</a><h1 class="stats-title">${esc(title.name)}</h1><span class="top-fill"></span></div>${inner}${bottomBar(HOME_TABS, null)}</div>`;
 
+// Skill, slayer and SkyBlock level of the imported player: three compact chips, each opens its list. Nothing without an import.
+const PRETTY = (id) => `${id[0].toUpperCase()}${id.slice(1)}`;
+function levelStrip(levels) {
+  if (!levels) return '';
+  const skills = Object.entries(levels.skills);
+  const avg = AVERAGE_SKILLS.map((id) => levels.skills[id]?.level).filter((l) => l !== undefined);
+  const slayers = Object.entries(levels.slayers);
+  const sb = levels.skyblock;
+  const chip = (name, value, body) => `<details class="level-chip"><summary><span>${name}</span><b>${esc(value)}</b></summary><div class="level-list">${body}</div></details>`;
+  const list = (rows) => rows.map(([n, v]) => `<small>${esc(n)} <b>${esc(v)}</b></small>`).join('') || '<small>Not in the import.</small>';
+  const skillValue = avg.length ? (Math.round((avg.reduce((n, l) => n + l, 0) / avg.length) * 10) / 10).toString() : '–';
+  return `<div class="level-strip" aria-label="Levels of the imported player">${[
+    chip('Skills', skillValue === '–' ? skillValue : `⌀ ${skillValue}`, list(skills.map(([id, s]) => [PRETTY(id), `${s.level} / ${s.max}`]))),
+    chip('Slayer', slayers.length ? `top ${Math.max(...slayers.map(([, s]) => s.level))}` : '–', list(slayers.map(([id, s]) => [PRETTY(id), `${s.level} / ${s.max}`]))),
+    chip('SkyBlock', sb ? `Lv ${sb.level}` : '–', sb ? list([['Level', `${sb.level} / ${sb.max}`], ['XP', number(Math.round(sb.xp))]]) : '<small>The worker does not send your SkyBlock level yet: deploy the updated worker and sync again.</small>'),
+  ].join('')}</div>`;
+}
+
 function overview(world, r) {
   const m = statsModel(world, r.area);
   const buffs = [m.measured?.buffs.godPotion && 'God Potion', m.measured?.buffs.boosterCookie && 'Cookie'].filter(Boolean).join(' + ');
   const when = m.measured ? `Base measured <b>${esc(ago(m.measured.at, world.now))}</b>, no gear${buffs ? `, ${esc(buffs)} on` : ''}.` : 'No base measured yet.';
   const gear = m.guides.length ? `Gear: <b class="c-green">${m.steps} ${m.steps === 1 ? 'step' : 'steps'}</b> ticked in ${esc(m.guides.map((g) => g.title).join(' + '))}.` : 'No guide for this area yet, so no gear.';
-  const rows = m.rows.map((x) => `<div class="stat-row"><span class="c-${x.color}">${esc(x.icon)} ${esc(x.label)}</span><span>${esc(x.base)}</span><span class="c-green">${esc(x.gear)}</span><span class="c-orange">${esc(x.delta)}</span><b class="c-${x.color}">${esc(x.total)}</b></div>`).join('');
-  const sources = m.other.length ? `<section class="panel"><h2>Other sources</h2><small>What your measured base holds beyond what the app knows (HOTM, attributes, essence, power, buffs): your /stats value minus the app's figure at the time.</small>${m.other.map((o) => `<small><b class="c-${o.color}">${esc(o.text)} ${esc(o.label)}</b></small>`).join('')}</section>` : m.known.length ? `<section class="panel"><h2>From known sources</h2><small>No base measured yet, so this is only what the app knows: HOTM, attributes, essence, power and ticked gear. Everything else (skills, levels, other bonuses) is missing until you reconcile with /stats.</small>${m.known.map((o) => `<small><b class="c-${o.color}">${esc(o.text)} ${esc(o.label)}</b></small>`).join('')}</section>` : '';
+  const rows = m.rows.map((x) => `<div class="stat-row"><span class="c-${x.color}"><a href="#/stats/detail/${esc(r.area)}/${esc(x.id)}" title="Click for details">${esc(x.icon)} ${esc(x.label)}</a></span><span>${esc(x.base)}</span><span class="c-green">${esc(x.gear)}</span><span class="c-orange">${esc(x.delta)}</span><b class="c-${x.color}"${x.unsafe ? ' title="Adds up values from one source only"' : ''}>${x.unsafe ? '≈ ' : ''}${esc(x.total)}</b></div>`).join('');
+  const mark = (o) => (o.unsafe ? '≈ ' : '');
+  const suspects = (o) => (o.suspects?.length ? `<small class="note">Unsafe sources behind it (one source, not checked in game): ${esc(o.suspects.join('; '))}.</small>` : o.value && m.hasCalc ? '<small class="note">No unsafe source adds to this: it comes from something the app does not count.</small>' : '');
+  const otherLine = (o) => `<small><b class="c-${o.color}">${esc(o.text)} ${esc(o.label)}</b></small>${suspects(o)}`;
+  const known = m.hasCalc
+    ? 'No base measured, so this adds up what the import gives: build, skills, slayers, SkyBlock level, accessories, buffs and the game base. A ≈ marks values from one source only. Not counted: mayor, cake, museum, other potions and conditional perks. Measure to see what is left over.'
+    : 'No base measured yet, so this is only what the app knows: HOTM, attributes, essence, power and ticked gear. Everything else (skills, levels, other bonuses) is missing until you reconcile with /stats, or import your profile.';
+  const otherText = m.hasCalc
+    ? `What your measured base holds beyond what the app adds up (build, skills, slayers, level, accessories, game base): your /stats value minus that figure.${m.assumed ? ' This measurement is older than the import sources, so they are taken as they are today.' : ''}`
+    : "What your measured base holds beyond what the app knows (HOTM, attributes, essence, power, buffs): your /stats value minus the app's figure at the time.";
+  const sources = m.other.length ? `<section class="panel"><h2>Other sources</h2><small>${esc(otherText)}</small>${m.other.map(otherLine).join('')}</section>` : m.known.length ? `<section class="panel"><h2>From known sources</h2><small>${esc(known)}</small>${m.known.map((o) => `<small><b class="c-${o.color}">${mark(o)}${esc(o.text)} ${esc(o.label)}</b></small>`).join('')}</section>` : '';
+  const unknown = m.unknown?.length ? `<section class="panel"><h2>Not counted</h2>${m.unknown.map((t) => `<small>${esc(t)}</small>`).join('')}</section>` : '';
   const moved = m.changes.length ? `<section class="panel changes"><h2>Changes since measurement</h2>${m.changes.map((c) => `<small><b class="c-${c.color}">${esc(c.text)} ${esc(c.label)}</b> (${esc(c.parts)})</small>`).join('')}</section>` : '';
   const hints = m.hints?.length ? m.hints.map((h) => `<small class="note">${esc(h)}</small>`).join('') : '';
   const listed = m.listed.length ? `<section class="panel"><h2>Only when the condition holds</h2>${m.listed.map((l) => `<small>${esc(l.text)}</small>`).join('')}</section>` : '';
@@ -46,11 +75,13 @@ function overview(world, r) {
   const figure = `<div class="panel figure-panel"><canvas data-figure class="figure" role="img" aria-label="Your player"></canvas>${float}<div class="tags">${tag('Pet', pet, ' data-goto-pet=""', 'pets')}${tag('Power', stone?.power)}</div></div>`;
   const drafts = ['hotm', 'attrs', 'power', 'essence'].filter((p) => world.draft?.[p]).map((p) => ({ hotm: ['hotm', 'HOTM'], attrs: ['attributes', 'Attributes'], power: ['power', 'Power'], essence: ['essence', 'Essence'] })[p]);
   const draftNote = drafts.map(([tab, name]) => `<a class="note draft-note" href="#/stats/${tab}/${esc(r.area)}">${name} draft not saved</a>`).join('');
+  const stale = m.stale ? `<div class="panel"><small class="c-orange">This measurement is older than the import. Remove it or measure again, or the import values count twice.</small><div class="actions"><button type="button" data-stats-remove="${esc(r.area)}">Remove measurement</button><a class="primary-link" href="#/stats/measure/${esc(r.area)}">Measure again</a></div></div>` : '';
+  const remove = m.measured ? `<button type="button" data-stats-remove="${esc(r.area)}">Remove measurement</button>` : '';
   const note = m.missing === 'data' ? '<p class="note">Loading game data…</p>' : m.missing === 'items' ? '<p class="note">Loading item data… gear shows when it is there.</p>' : '';
   return `<div class="scroll">${tabs(r)}${areas(r)}
-    ${draftNote}${figure}
-    <div class="panel"><small>${when}</small><small>${gear}</small>${hints}${note}<a class="primary-link" href="#/stats/measure/${esc(r.area)}">${m.measured ? 'Measure base again' : `Measure ${esc(m.name)} base`}</a></div>
-    <div class="panel stat-table"><div class="stat-row stat-head"><span>All ${esc(m.name.toLowerCase())} stats</span><span>Base</span><span>Gear</span><span title="Changed since the measurement">Δ</span><span>Total</span></div>${rows}</div>${sources}${moved}${listed}</div>`;
+    ${draftNote}${figure}${levelStrip(m.levels)}${stale}
+    <div class="panel"><small>${when}</small><small>${gear}</small>${hints}${note}<a class="primary-link" href="#/stats/measure/${esc(r.area)}">${m.measured ? 'Measure base again' : `Measure ${esc(m.name)} base`}</a>${remove}</div>
+    <div class="panel stat-table"><div class="stat-row stat-head"><span>All ${esc(m.name.toLowerCase())} stats</span><span>Base</span><span>Gear</span><span title="Changed since the measurement">Δ</span><span>Total</span></div>${rows}</div>${sources}${unknown}${moved}${listed}</div>`;
 }
 
 function measure(world, r) {
@@ -68,10 +99,21 @@ function measure(world, r) {
   return body;
 }
 
+// The breakdown of one stat: a panel per category, uncertain values with a ≈, conditional effects grey.
+function detail(world, r) {
+  const d = statDetail(world, r.area, r.stat);
+  if (!d) return '<div class="scroll"><div class="panel"><small>No such stat for this area.</small></div></div>';
+  const lines = (g) => g.lines.map((l) => `<div class="stat-row detail-row"><span>${l.unsafe ? '≈ ' : ''}${esc(l.label)}${l.note ? ` <small>(${esc(l.note)})</small>` : ''}</span><b class="c-${d.color}">${esc(l.text)}</b></div>`).join('');
+  const panels = d.groups.map((g) => `<section class="panel"><h2>${esc(g.title)}</h2>${lines(g)}</section>`).join('');
+  const cond = d.conditional.length ? `<section class="panel muted"><h2>Only when the condition holds</h2>${d.conditional.map((t) => `<small>${esc(t)}</small>`).join('')}</section>` : '';
+  const mult = d.mult ? `<small>Multiplied by ${esc(String(Math.round(d.mult * 1000) / 1000))} at the end.</small>` : '';
+  return `<div class="scroll"><div class="panel"><h2 class="c-${d.color}">${esc(d.icon)} ${esc(d.name)}: ${esc(d.total)}</h2>${mult}<small>${d.measured ? 'With your measured base.' : 'Added up from what the app knows.'} A ≈ marks values from one source only.</small></div>${panels || '<section class="panel"><small>Nothing adds to this stat yet.</small></section>'}${cond}</div>`;
+}
+
 const EDITORS = { hotm: hotmView, attributes: attrsView, power: powerView, essence: essenceView, pets: petsView };
 
 export function statsView(world, r) {
-  const inner = r.tab === 'measure' ? measure(world, r) : r.tab === 'overview' ? overview(world, r) : EDITORS[r.tab](world, r, tabs(r));
-  const title = r.tab === 'measure' ? { name: 'Measure base', back: 'Stats' } : { name: 'Your stats', back: 'Home' };
-  return frame(inner, title, r.tab === 'measure' ? `#/stats/overview/${r.area}` : '#/');
+  const inner = r.tab === 'detail' ? detail(world, r) : r.tab === 'measure' ? measure(world, r) : r.tab === 'overview' ? overview(world, r) : EDITORS[r.tab](world, r, tabs(r));
+  const title = r.tab === 'detail' ? { name: 'Stat details', back: 'Stats' } : r.tab === 'measure' ? { name: 'Measure base', back: 'Stats' } : { name: 'Your stats', back: 'Home' };
+  return frame(inner, title, r.tab === 'measure' || r.tab === 'detail' ? `#/stats/overview/${r.area}` : '#/');
 }

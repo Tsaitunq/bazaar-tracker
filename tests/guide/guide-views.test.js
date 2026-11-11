@@ -91,7 +91,7 @@ test('the overview shows base, gear and total per stat, with the date of the mea
   const html = statsView(world({ owned: [DRILL] }), { page: 'stats', tab: 'overview', area: 'mining' });
   assert.match(html, /data-theme="stats"/);
   assert.match(html, /class="stat-row stat-head"/);
-  assert.match(html, /Mining Speed<\/span><span>1,000<\/span><span class="c-green">\+1,600<\/span><span class="c-orange">–<\/span><b class="c-orange">2,600<\/b>/);
+  assert.match(html, /Mining Speed<\/a><\/span><span>1,000<\/span><span class="c-green">\+1,600<\/span><span class="c-orange">–<\/span><b class="c-orange">2,600<\/b>/);
   assert.match(html, /Base measured <b>[^<]* ago<\/b>, no gear/);
   assert.match(html, /href="#\/stats\/measure\/mining"/);
   assert.doesNotMatch(html, /data-tab="stats"/);

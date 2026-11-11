@@ -117,7 +117,13 @@ export async function summarize(answer, data, fetchedAt = Date.now()) {
     powers: null, selectedPower: bag?.selectedPower ?? null, stone: stone?.id ?? null,
     tuning: bag ? tuningOf(bag.tuning) : null,
     skills: answer.skills ? numbers(answer.skills) : null,
-    collTiers: null,
+    // xp per slayer boss
+    slayer: answer.slayer ? numbers(answer.slayer) : null,
+    // SkyBlock XP (leveling.experience); null until the worker sends it
+    skyblockXp: Number.isFinite(answer.skyblockXp) ? answer.skyblockXp : null,
+    // the collection tiers reached ("ITEM_N") and the Bestiary milestones claimed; null until the worker sends them
+    collTiers: Array.isArray(answer.collTiers) ? answer.collTiers.filter((t) => typeof t === 'string') : null,
+    bestiaryMilestone: Number.isFinite(answer.bestiaryMilestone) ? answer.bestiaryMilestone : null,
     missing: { inventory: noInventory, list: missing },
   };
 }

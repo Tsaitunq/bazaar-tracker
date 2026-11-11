@@ -126,7 +126,13 @@ export function trimProfile(profile, uuid) {
   take('pets', pets(m));
   take('skills', m.player_data && m.player_data.experience);
   take('slayer', slayer(m));
+  take('skyblockXp', m.leveling && typeof m.leveling.experience === 'number' ? m.leveling.experience : undefined);
   take('fairySouls', fairySouls(m));
+  // the collection tiers already reached, as "ITEM_N" (not the amounts); only the milestone count of the Bestiary, not the kills
+  const tiers = m.player_data && m.player_data.unlocked_coll_tiers;
+  take('collTiers', Array.isArray(tiers) && tiers.every((t) => typeof t === 'string') ? tiers : undefined);
+  const milestone = m.bestiary && m.bestiary.milestone && m.bestiary.milestone.last_claimed_milestone;
+  take('bestiaryMilestone', typeof milestone === 'number' ? milestone : undefined);
   take('accessoryBag', accessoryBag(m));
   take('attributes', attributes(m));
   take('loadouts', loadouts(m));

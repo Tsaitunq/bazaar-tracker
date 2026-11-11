@@ -49,8 +49,8 @@ test('an enchant without a stat of ours gives {}', () => {
   for (const name of ['experience', 'compact', 'smelting_touch', 'paleontologist']) assert.deepEqual(delta(enchant(name, 1)), {});
 });
 
-test('flowstate has no fixed value and gives null', () => {
-  assert.equal(delta(enchant('ultimate_flowstate', 3)), null);
+test('flowstate is conditional and gives nothing', () => {
+  assert.deepEqual(delta(enchant('ultimate_flowstate', 3)), {});
 });
 
 test('a level past the table gives null', () => {
@@ -830,4 +830,8 @@ test('a calc step in a fixed guide follows the rarity: after the Recombobulator 
   const after = calc({ ...flawless, recomb: true }).MINING_SPEED;
   assert.ok(before > 1 && after > before);
   assert.deepEqual(stepDelta({ text: 's', gain: { MINING_SPEED: 1 }, detect }, setup({ held: flawless }), profile([flawless]), items, GEMSTONE, fixed), { MINING_SPEED: 1 });
+});
+
+test('a stacking enchant adds nothing, not even the number a fixed guide holds', () => {
+  assert.deepEqual(delta(enchant('ultimate_flowstate', 2), { gain: { MINING_SPEED: 400 } }), {});
 });

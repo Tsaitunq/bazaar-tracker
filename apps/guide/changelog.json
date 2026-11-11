@@ -1,6 +1,32 @@
 {
   "versions": [
     {
+      "version": "0.18.0",
+      "date": "2026-11-11",
+      "entries": [
+        { "title": "Tap a stat for details", "text": "On the Stats page tap a stat to see where every point comes from, with unsure values marked and conditional effects kept apart." },
+        { "title": "More sources counted", "text": "Collections, Bestiary milestones, the tooltip values of your accessories and the consumables you ticked now add to your stats." },
+        { "title": "Measurement help", "text": "After an import the app tells you when your measurement is older, and you can remove a measurement for any area." },
+        { "title": "Fixes", "text": "Flowstate no longer inflates your Mining Speed, and the God Potion, Mining skill and SkyBlock level values are confirmed." }
+      ]
+    },
+    {
+      "version": "0.17.1",
+      "date": "2026-11-11",
+      "entries": [
+        { "title": "Ranking without a measurement", "text": "After an import the guides rank their steps from the figures the app adds up itself, so you no longer have to type your /stats first." }
+      ]
+    },
+    {
+      "version": "0.17.0",
+      "date": "2026-11-11",
+      "entries": [
+        { "title": "Stats add up by themselves", "text": "After an import the Stats page adds up your skills, slayers, SkyBlock level, accessories, buffs and the game base, so measuring is optional and Other sources gets small." },
+        { "title": "Unsure values are marked", "text": "Values that rest on one source only carry a ≈, and a stat that still differs from /stats names the unsure sources that may explain it." },
+        { "title": "Your levels at a glance", "text": "Below your figure, tap Skills, Slayer or SkyBlock to see your levels from the import." }
+      ]
+    },
+    {
       "version": "0.16.0",
       "date": "2026-11-11",
       "entries": [

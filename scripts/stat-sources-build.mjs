@@ -3,6 +3,7 @@
 // Primary source is hypixelskyblock.minecraft.wiki, the second is the NEU repo (constants/) or, where there is none, data the app already has.
 // A value is "safe" when two sources agree, otherwise "unsafe" with the sources and the levels that differ. Nothing is guessed.
 import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
+import { BASE_STATS, ACCESSORY_REFORGES, COLLECTIONS, BESTIARY, CONSUMABLES, confirmByGame } from './lib/stat-sources-extra.mjs';
 import {
   statId, parseRewardTable, parseSlayerLevels, parseSlayerOverview, parseCookie, parseGodPotionEffects, parseEnrichments, expandNeu, series, cumulative,
 } from './lib/stat-sources.mjs';
@@ -203,6 +204,7 @@ const accessories = {
   gaps: 'Items with no stats in the item list: the wiki infobox of each item is the only source found (not collected: ~270 pages).',
   guideGaps,
   statKeys: 'The item list mixes UPPER_SNAKE and lower_snake stat keys (for example MINING_FORTUNE and wheat_fortune); a reader must normalise them.',
+  reforges: ACCESSORY_REFORGES,
   enrichments: {
     minRarity: 'LEGENDARY', perAccessory: 1, maxEnrichmentKinds: 68,
     values: Object.fromEntries(Object.entries(enrich).map(([id, value]) => [id, { value, src: ['wiki Enrichments'], confidence: 'unsafe', note: 'one source' }])),
@@ -215,8 +217,9 @@ const accessories = {
 
 const data = {
   src: `hypixelskyblock.minecraft.wiki and NotEnoughUpdates-REPO constants/ (collected ${DATE}). Every series is { values, src, confidence }: safe = two sources agree, unsafe = one source or they differ (diff lists the levels). values[i] is the value of level i + 1.`,
-  skills, slayers, fairySouls, skyblockLevel, boosterCookie, godPotion, accessories,
+  skills, slayers, fairySouls, skyblockLevel, boosterCookie, godPotion, accessories, baseStats: BASE_STATS, collections: COLLECTIONS, bestiary: BESTIARY, consumables: CONSUMABLES,
 };
+confirmByGame(data);
 writeFileSync(new URL('../gamedata/stat-sources.json', import.meta.url), `${JSON.stringify(data, null, 1)}\n`);
 
 // the report: everything that is not safe, and what was not found

@@ -7,7 +7,7 @@ import { blazeState } from './blaze.js';
 import { gearStats, petStats, petStatsAt } from './stats.js';
 import { setBonusOf } from './blaze.js';
 import { rulesOf, pieceExtra, dressDaggers } from './pieces.js';
-import { enchantLine } from './optimizer-data.js';
+import { enchantLine, ENCHANTS_CONDITIONAL } from './optimizer-data.js';
 import { GEAR_STATS } from './stats.js';
 
 // Steps about the build or the pet are not gear: HOTM, shards and power are in the base, the pet is counted once at the end.
@@ -74,7 +74,7 @@ export function accessoryGain({ guides, area, dates, measuredAt, owned, items })
 // Gear = item stats of the pieces owned + what each ticked step of the guides adds, in guide order.
 // values: the typed base, only as the state the Blaze maths of a step starts from.
 // Gives the flat gear stats, the profile and loadout the ranking works from.
-export function gearOf({ guides, checks, owned, items, area, build, settings, values = {}, mp = null, pets = null, petItems = null, dates = {}, measuredAt = null }) {
+export function gearOf({ guides, checks, owned, items, area, build, settings, values = {}, mp = null, pets = null, petItems = null, dates = {}, measuredAt = null, bagCounted = false }) {
   let profile = virtualProfile({ sections: [] }, new Set(), owned, items, mp);
   let loadout = virtualLoadout(profile, items, area);
   const gear = sum({}, gearStats([...loadout.armor, ...loadout.equipment, ...(loadout.held ? [loadout.held] : [])]));
@@ -111,11 +111,12 @@ export function gearOf({ guides, checks, owned, items, area, build, settings, va
   for (const piece of loadout.armor) sum(gear, pieceExtra(piece.id, items, rules));
   if (area === 'blaze') sum(gear, setBonusOf(loadout.armor.map((i) => i.id)).add);
   if (rules) loadout.daggers = dressDaggers(loadout.daggers, items, rules);
-  // accessories ticked after the measurement
-  const accessories = area === 'blaze' ? accessoryGain({ guides, area, dates, measuredAt, owned, items }) : { gain: {}, after: 0 };
+  // accessories ticked after the measurement; with an import the bag itself is counted (sources.js), so none are added here
+  const accessories = area === 'blaze' && !bagCounted ? accessoryGain({ guides, area, dates, measuredAt, owned, items }) : { gain: {}, after: 0 };
   sum(gear, accessories.gain);
   // conditional effects of the ticked enchants: shown, never added
   const listed = Object.entries(enchants).map(([name, level]) => enchantLine(name, level)).filter(Boolean).map((text) => ({ text }));
+  const stacking = Object.entries(enchants).filter(([name]) => ENCHANTS_CONDITIONAL[name]).map(([name, level]) => ({ stat: ENCHANTS_CONDITIONAL[name].stat, text: `${ENCHANTS_CONDITIONAL[name].name} ${level}: ${ENCHANTS_CONDITIONAL[name].text(level)}` }));
   if (area === 'blaze' && catacombsNeeded && rules.gear.catacombs === null) listed.push({ text: 'Withered and Ancient: +1 per Catacombs level, set your level under Power → Gear' });
-  return { gear, profile, loadout, stepPet: loadout.pet ?? null, pet, rules, listed: area === 'blaze' ? listed : [], accessories: accessories.gain, hints: accessories.after ? ['An accessory changes your Magical Power: adjust it under Power.'] : [] };
+  return { gear, profile, loadout, stepPet: loadout.pet ?? null, pet, rules, listed: area === 'blaze' ? listed : stacking, accessories: accessories.gain, hints: accessories.after ? ['An accessory changes your Magical Power: adjust it under Power.'] : [] };
 }

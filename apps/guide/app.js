@@ -21,6 +21,7 @@ import { listProfiles, fetchProfile, fetchSkin, defaultProfile, validName, Impor
 import { summarize } from './import/profile.js';
 import { proposals, applyRows, undoImport, hasUndo, isPickable, isSuggestion } from './import/propose.js';
 import { paintFigures, setSkin } from './skin.js';
+import { calcFor } from './sources.js';
 import { decide, finishTour, STEPS, tourHtml, newsHtml } from './intro.js';
 
 const BAZAAR = 'https://api.hypixel.net/v2/skyblock/bazaar';
@@ -114,7 +115,7 @@ const targetOf = (dx) => {
 const world = () => {
   pending = new Set();
   return {
-    guides: guides(), checks: live(), owned, dates, base, build, draft, ui, gamedata, products, now: Date.now(),
+    guides: guides(), checks: live(), owned, dates, base, build, draft, ui, gamedata, products, now: Date.now(), profile,
     prices: { forge, ah, cofl: freshBins(bins), wants: pending, items, tax: (settings.tax ?? DEFAULT_TAX) / 100, derpy: election?.mayor?.name === 'Derpy' },
     settings: miningSettings(settings.mining), keepOldGear: settings.keepOldGear === true, brake: settings.brake > 0 ? settings.brake : 5, pathEpoch, opened, items,
     name: (id) => names[id] ?? fallbackName(id), tax: settings.tax ?? DEFAULT_TAX, importedIds: imported.map((g) => g.id),
@@ -463,10 +464,20 @@ async function runExport() {
 function saveMeasure(box) {
   const area = box.dataset.statsArea;
   const values = Object.fromEntries([...box.querySelectorAll('[data-stats-stat]')].map((input) => [input.dataset.statsStat, input.value]));
-  base = measure(base, area, { values, mp: box.querySelector('[data-stats-mp]')?.value }, build, Date.now());
+  base = measure(base, area, { values, mp: box.querySelector('[data-stats-mp]')?.value, calc: calcFor({ profile, gamedata, items, build })?.add }, build, Date.now());
   save('pg.base', base);
   pathEpoch++;
   location.hash = `#/stats/overview/${area}`;
+  draw();
+}
+
+// Drops the measurement of an area; with an import the totals then add up from the known sources.
+function removeMeasure(area) {
+  if (!confirm(`Remove the ${area} measurement? The totals then come from the known sources only.`)) return;
+  const { [area]: _gone, ...rest } = base;
+  base = rest;
+  save('pg.base', base);
+  pathEpoch++;
   draw();
 }
 
@@ -646,6 +657,8 @@ root.addEventListener('click', (e) => {
   if (el('[data-info]')) { openInfo(); return; }
   const step = el('[data-step]');
   if (step) { if (step.closest('.card')) markCard(step, step.dataset.step); else toggle(step.dataset.step); return; }
+  const rm = el('[data-stats-remove]');
+  if (rm) { removeMeasure(rm.dataset.statsRemove); return; }
   if (el('[data-stats-save]')) { saveMeasure(el('[data-stats-area]')); return; }
   const save1 = el('[data-draft-save]');
   if (save1) { draftDone(save1.dataset.draftSave, true); return; }
@@ -747,6 +760,7 @@ root.addEventListener('change', async (e) => {
   if (e.target.matches('[data-attr-level]')) { settled(e.target); return setLevel('attr', e.target.value); }
   if (e.target.matches('[data-power-mp]')) { settled(e.target); return edit('power', powerMp(e.target.value)); }
   if (dataset.gear) { settled(e.target); build = setGear(build, { [dataset.gear]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }); return saveBuild(); }
+  if (dataset.consumable) { settled(e.target); const max = gamedata?.statSources.consumables.find((c) => c.id === dataset.consumable)?.max ?? 0; build = { ...build, consumables: { ...build.consumables, [dataset.consumable]: Math.min(Math.max(Math.floor(Number(e.target.value)) || 0, 0), max) } }; return saveBuild(); }
   if (dataset.buff) { settled(e.target); build = { ...build, buffs: { ...build.buffs, [dataset.buff]: e.target.checked } }; return saveBuild(); }
   if (e.target.matches('[data-tax], [data-flag], [data-brake]')) settled(e.target);
   if (e.target.matches('[data-brake]')) { settings.brake = Number(e.target.value) > 0 ? Number(e.target.value) : 5; return saveSettings(); }

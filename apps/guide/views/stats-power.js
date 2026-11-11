@@ -40,5 +40,14 @@ export function powerView(world, r, head) {
     <div class="panel"><h2>Power stone</h2><div class="chips"><button type="button" class="chip-btn${power.stone ? '' : ' on'}" data-power-stone="" aria-pressed="${!power.stone}">None</button>${stones.map(chip).join('')}</div></div>${gives}
     <div class="panel"><h2>Tuning</h2>${points}</div>
     ${r.area === 'blaze' ? gearPanel(world) : ''}
-    <div class="panel"><h2>Buffs</h2><small>Counted as always on.</small>${buff('godPotion', 'God Potion')}${buff('boosterCookie', 'Booster Cookie')}</div></div>`;
+    <div class="panel"><h2>Buffs</h2><small>Counted as always on.</small>${buff('godPotion', 'God Potion')}${buff('boosterCookie', 'Booster Cookie')}</div>
+    ${consumables(world)}</div>`;
+}
+
+// Permanent consumables: the API does not send them, so the player enters the uses. Counted with an import (stat-sources.json consumables).
+function consumables(world) {
+  const list = world.gamedata?.statSources?.consumables ?? [];
+  if (!list.length) return '';
+  const rows = list.map((c) => `<label class="field">${esc(c.name)} (${esc(c.stat.toLowerCase().replace(/_/g, ' '))} +${c.value} per use)<input type="number" min="0" max="${c.max}" step="1" inputmode="numeric" data-consumable="${esc(c.id)}" value="${world.build.consumables?.[c.id] ?? 0}"></label>`).join('');
+  return `<div class="panel"><h2>Consumables</h2><small>Not provided by the API: enter how often you ate each one. Counted with an imported profile.</small>${rows}</div>`;
 }

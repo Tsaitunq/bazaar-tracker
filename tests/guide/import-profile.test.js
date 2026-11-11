@@ -103,3 +103,20 @@ test('the API names many attributes by the shard id: Flare is "blazing" and coun
   assert.deepEqual(got, { levels: { infernal_ruler: 10, hunter_s_grasp: 10 }, unknown: 0 });
   assert.deepEqual(attrStacks({ blazing: 32, rotten_pickaxe: 8, not_an_attribute: 5 }, gamedata), { infernal_ruler: 32, rotten_pickaxe: 8, not_an_attribute: 5 });
 });
+
+test('summarize keeps the SkyBlock XP as a number, null when the worker does not send it', async () => {
+  assert.equal((await summarize(worker({}), gamedata)).skyblockXp, 34567.5);
+  const old = worker({});
+  delete old.skyblockXp;
+  assert.equal((await summarize(old, gamedata)).skyblockXp, null);
+});
+
+test('summarize keeps the collection tiers and the bestiary milestone, null when the worker sends none', async () => {
+  const { gamedata } = await import('../fixtures/guide-world.js');
+  const a = await summarize({ profileId: 'p', cute_name: 'x', collTiers: ['COAL_1', 5], bestiaryMilestone: 12 }, gamedata);
+  assert.deepEqual(a.collTiers, ['COAL_1']);
+  assert.equal(a.bestiaryMilestone, 12);
+  const b = await summarize({ profileId: 'p', cute_name: 'x' }, gamedata);
+  assert.equal(b.collTiers, null);
+  assert.equal(b.bestiaryMilestone, null);
+});

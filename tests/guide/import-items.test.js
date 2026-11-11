@@ -26,7 +26,7 @@ test('readItem takes the fields detect asks for and nothing else', () => {
   }), 'Inventar');
   assert.deepEqual(got, {
     id: 'DIVAN_DRILL', reforge: 'jaded', enchants: { fortune: 4 }, gems: [], unlocked: [], recomb: true, upgradedRarity: null,
-    hpb: 10, fuming: 3, stars: 4, parts: {}, polarvoid: 5, coating: true, scrolls: ['IMPLOSION_SCROLL', 'X'], at: ['Inventar'], uuid: 'u-DIVAN_DRILL',
+    hpb: 10, fuming: 3, stars: 4, parts: {}, polarvoid: 5, coating: true, enrichment: null, scrolls: ['IMPLOSION_SCROLL', 'X'], at: ['Inventar'], uuid: 'u-DIVAN_DRILL',
   });
   assert.equal(JSON.stringify(got).includes('Lore'), false);
 });
@@ -36,6 +36,11 @@ test('upgraded_rarity is its own field and not a recombobulator', () => {
   assert.equal(belt.upgradedRarity, 'MYTHIC');
   assert.equal(belt.recomb, false);
   assert.equal(readItem(item({ rarity_upgrades: 0 }), 'x').recomb, false);
+});
+
+test('an accessory enrichment is kept as the stat name', () => {
+  assert.equal(readItem(item({ talisman_enrichment: 'sea_creature_chance' }, 'ARTIFACT_X'), 'Accessory Bag').enrichment, 'sea_creature_chance');
+  assert.equal(readItem(item({}, 'ARTIFACT_X'), 'Accessory Bag').enrichment, null);
 });
 
 test('drill parts: the text form and the compound form', () => {
@@ -100,4 +105,18 @@ test('readItem: modifier "none" is no reforge and enchant names are lower case',
   const got = readItem({ tag: { ExtraAttributes: { id: 'X', modifier: 'none', enchantments: { PROSECUTE: 5, sharpness: 6 } } } }, 'Inventar');
   assert.equal(got.reforge, null);
   assert.deepEqual(got.enchants, { prosecute: 5, sharpness: 6 });
+});
+
+test('readTip keeps the stat numbers of a tooltip: the total, names mapped, nothing else', async () => {
+  const { readTip } = await import('../../apps/guide/import/items.js');
+  assert.deepEqual(readTip(['§7Strength: §c+5 §8(+2)', '§7Crit Damage: §9+1,200%', '§7Gives §c+5 Strength', '§6Ability: Foo']), { STRENGTH: 5, CRITICAL_DAMAGE: 1200 });
+  assert.deepEqual(readTip(['§7§c+1 Health§7.', '§7Current Bonus: §c+10 Health']), { HEALTH: 10 }); // the game puts an icon glyph after the number
+  assert.deepEqual(readTip(undefined), {});
+});
+
+test('a bag accessory keeps its tip; an item elsewhere does not', async () => {
+  const { readItem } = await import('../../apps/guide/import/items.js');
+  const raw = { id: 1, tag: { ExtraAttributes: { id: 'X' }, display: { Lore: ['§7Health: §a+10'] } } };
+  assert.deepEqual(readItem(raw, 'Accessory Bag').tip, { HEALTH: 10 });
+  assert.equal('tip' in readItem(raw, 'Inventar'), false);
 });

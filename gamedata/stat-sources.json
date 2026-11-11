@@ -206,10 +206,10 @@
       4
      ],
      "src": [
-      "wiki Mining/Leveling Rewards"
+      "wiki Mining/Leveling Rewards",
+      "game: Mining 39 gives 156 Mining Fortune (4 per level)"
      ],
-     "confidence": "unsafe",
-     "note": "one source"
+     "confidence": "safe"
     }
    },
    "other": {},
@@ -3899,20 +3899,20 @@
    "HEALTH": {
     "value": 5,
     "src": [
-     "wiki SkyBlock Levels"
+     "wiki SkyBlock Levels",
+     "game: SkyBlock level 280 gives 1,400 Health (5 per level)"
     ],
-    "confidence": "unsafe",
-    "note": "one source"
+    "confidence": "safe"
    }
   },
   "perFiveLevels": {
    "STRENGTH": {
     "value": 1,
     "src": [
-     "wiki SkyBlock Levels"
+     "wiki SkyBlock Levels",
+     "game: SkyBlock level 280 gives 56 Strength (1 per 5 levels)"
     ],
-    "confidence": "unsafe",
-    "note": "one source; \"for every 5 levels\" is read as at levels 5, 10, 15 and so on"
+    "confidence": "safe"
    }
   }
  },
@@ -4380,6 +4380,276 @@
    },
    "perRarity": null,
    "note": "The wiki gives one flat value per enrichment and no value per rarity; \"Legendary or higher\" is only the requirement. No value per rarity was found in either source."
+  },
+  "reforges": {
+   "stats": "none",
+   "src": [
+    "wiki Reforging/Accessory (removal notice)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source; NEU has no accessory reforge either. A reforge name on a bag accessory is read as no stat."
   }
- }
+ },
+ "baseStats": {
+  "HEALTH": {
+   "value": 100,
+   "src": [
+    "wiki Stats",
+    "apps/guide/stats.js BASE"
+   ],
+   "confidence": "safe"
+  },
+  "CRITICAL_CHANCE": {
+   "value": 30,
+   "src": [
+    "wiki Stats",
+    "apps/guide/stats.js BASE"
+   ],
+   "confidence": "safe"
+  },
+  "CRITICAL_DAMAGE": {
+   "value": 50,
+   "src": [
+    "wiki Stats",
+    "apps/guide/stats.js BASE"
+   ],
+   "confidence": "safe"
+  },
+  "SPEED": {
+   "value": 100,
+   "src": [
+    "/stats in the game, given by the player (Swing Range 3 matches the player's /stats)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source, not on a wiki page checked"
+  },
+  "SEA_CREATURE_CHANCE": {
+   "value": 20,
+   "src": [
+    "/stats in the game, given by the player (Swing Range 3 matches the player's /stats)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source, not on a wiki page checked"
+  },
+  "HEALTH_REGEN": {
+   "value": 100,
+   "src": [
+    "/stats in the game, given by the player (Swing Range 3 matches the player's /stats)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source, not on a wiki page checked"
+  },
+  "VITALITY": {
+   "value": 100,
+   "src": [
+    "/stats in the game, given by the player (Swing Range 3 matches the player's /stats)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source, not on a wiki page checked"
+  },
+  "MENDING": {
+   "value": 100,
+   "src": [
+    "/stats in the game, given by the player (Swing Range 3 matches the player's /stats)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source, not on a wiki page checked"
+  },
+  "SWING_RANGE": {
+   "value": 3,
+   "src": [
+    "/stats in the game, given by the player (Swing Range 3 matches the player's /stats)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source, not on a wiki page checked"
+  }
+ },
+ "collections": {
+  "rewards": [
+   {
+    "collection": "GLACITE",
+    "tiers": [
+     1,
+     6,
+     7,
+     8
+    ],
+    "stat": "MINING_FORTUNE",
+    "value": 1
+   },
+   {
+    "collection": "TUNGSTEN",
+    "tiers": [
+     1,
+     5,
+     7,
+     8,
+     9
+    ],
+    "stat": "MINING_FORTUNE",
+    "value": 1
+   },
+   {
+    "collection": "UMBER",
+    "tiers": [
+     1,
+     5,
+     7,
+     8
+    ],
+    "stat": "MINING_FORTUNE",
+    "value": 1
+   },
+   {
+    "collection": "OBSIDIAN",
+    "tiers": [
+     5,
+     7,
+     8,
+     10
+    ],
+    "stat": "MINING_FORTUNE",
+    "value": 1
+   }
+  ],
+  "src": [
+   "wiki Mining Fortune",
+   "game: collections give 9 Mining Fortune (Glacite 4, Umber 2, Tungsten 2, Obsidian 1)"
+  ],
+  "confidence": "safe"
+ },
+ "bestiary": {
+  "perMilestone": {
+   "HEALTH": {
+    "value": 1,
+    "src": [
+     "wiki Bestiary (Milestone Rewards)",
+     "game: the Bestiary milestones give 179 Health at 179 claimed (1 each)"
+    ],
+    "confidence": "safe"
+   }
+  }
+ },
+ "consumables": [
+  {
+   "id": "reaper_pepper",
+   "name": "Reaper Pepper",
+   "stat": "HEALTH",
+   "value": 1,
+   "max": 5,
+   "src": [
+    "wiki Consumables (Permanent)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source"
+  },
+  {
+   "id": "vial_of_venom",
+   "name": "Vial of Venom",
+   "stat": "CRITICAL_DAMAGE",
+   "value": 1,
+   "max": 5,
+   "src": [
+    "wiki Consumables (Permanent)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source"
+  },
+  {
+   "id": "festering_maggot",
+   "name": "Festering Maggot",
+   "stat": "DEFENSE",
+   "value": 1,
+   "max": 5,
+   "src": [
+    "wiki Consumables (Permanent)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source"
+  },
+  {
+   "id": "refined_bottle_of_jyrre",
+   "name": "Refined Bottle of Jyrre",
+   "stat": "INTELLIGENCE",
+   "value": 1,
+   "max": 5,
+   "src": [
+    "wiki Consumables (Permanent)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source"
+  },
+  {
+   "id": "spotlite",
+   "name": "Spotlite",
+   "stat": "HEALTH",
+   "value": 5,
+   "max": 5,
+   "src": [
+    "wiki Consumables (Permanent)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source"
+  },
+  {
+   "id": "ore_oats",
+   "name": "Dwarven O's Ore Oats",
+   "stat": "MINING_FORTUNE",
+   "value": 2,
+   "max": 5,
+   "src": [
+    "wiki Consumables (Permanent)",
+    "game: Ore Oats, 5 uses, give 10 Mining Fortune"
+   ],
+   "confidence": "safe"
+  },
+  {
+   "id": "gemstone_grahams",
+   "name": "Dwarven O's Gemstone Grahams",
+   "stat": "GEMSTONE_FORTUNE",
+   "value": 2,
+   "max": 5,
+   "src": [
+    "wiki Consumables (Permanent)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source"
+  },
+  {
+   "id": "filled_rosewater_flask",
+   "name": "Filled Rosewater Flask",
+   "stat": "FARMING_FORTUNE",
+   "value": 1,
+   "max": 5,
+   "src": [
+    "wiki Consumables (Permanent)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source"
+  },
+  {
+   "id": "brain_food",
+   "name": "Brain Food",
+   "stat": "TRACKING",
+   "value": 1,
+   "max": 5,
+   "src": [
+    "wiki Consumables (Permanent)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source"
+  },
+  {
+   "id": "wriggling_larva",
+   "name": "Wriggling Larva",
+   "stat": "BONUS_PEST_CHANCE",
+   "value": 2,
+   "max": 5,
+   "src": [
+    "wiki Consumables (Permanent)"
+   ],
+   "confidence": "unsafe",
+   "note": "one source"
+  }
+ ]
 }
