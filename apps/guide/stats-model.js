@@ -6,7 +6,9 @@ import { priceItem } from './progress.js';
 import { miningScore } from './stats.js';
 import { SCORES } from './optimizer.js';
 import { gearOf, buildPet } from './gear.js';
-import { totalFor, statsFor, statsOf, DATA_AREA, PART_NAME } from './totals.js';
+import { totalFor, statsFor, statsOf, condHolds, CONDITIONS, DATA_AREA, PART_NAME } from './totals.js';
+import { valueAt } from './gamedata.js';
+import { lockOf } from './hotm-model.js';
 import { autoOf } from './model.js';
 import { calcFor, contribAt, unsafeLines } from './sources.js';
 
@@ -42,7 +44,7 @@ const wornOf = (world, area, entry, calc) => (world.items ? gearOf({ guides: wor
 export function statsModel(world, area) {
   const data = world.gamedata;
   const entry = world.base?.[area] ?? null;
-  if (!data) return { area, name: AREA_NAME[area], missing: 'data', fields: [], rows: [], listed: [], known: [], other: [], changes: [], pet: { chosen: null, step: null }, steps: 0, measured: null, gearLine: [], guides: [], buffs: world.build?.buffs ?? {} };
+  if (!data) return { area, name: AREA_NAME[area], missing: 'data', fields: [], rows: [], listed: [], known: [], other: [], changes: [], pet: { chosen: null, step: null }, steps: 0, measured: null, gearLine: [], guides: [], buffsOn: [], buffs: world.build?.buffs ?? {} };
   const ids = statsFor(area, data);
   const calc = calcFor(world); // null without an import
   const worn = wornOf(world, area, entry, calc);
@@ -85,9 +87,15 @@ export function statsModel(world, area) {
   const was = contribAt(calc?.contrib ?? {}, data.statSources, entry?.snapshot?.buffs ?? world.build?.buffs);
   const other = t.rows.filter((r) => r.other !== undefined && Math.abs(r.other) > 1e-9).map((r) => ({ ...label(r.stat), value: r.other, text: signed(r.other), suspects: calc && Math.abs(r.other) > 0.01 ? unsafeLines(was, r.stat).map((l) => l.text) : [] }));
   const unknown = calc ? [...calc.off, ...(calc.unknown.accessories.length ? [`${calc.unknown.accessories.length} accessories have no stats in the item list: ${calc.unknown.accessories.join(', ')}.`] : []), ...(calc.unknown.enrichments.length ? [`Enrichments without a value: ${calc.unknown.enrichments.join(', ')}.`] : [])] : [];
+  // the buffs counted as active, so an expired potion does not add its stats unnoticed
+  const named = (add) => Object.entries(add).filter(([id]) => ids.includes(id) && Math.abs(add[id]) > 1e-9).map(([id, v]) => `${signed(v)} ${meta(data, id).name}`).join(', ');
+  const buffsOn = [['godPotion', 'God Potion'], ['boosterCookie', 'Booster Cookie']].filter(([key]) => world.build?.buffs?.[key])
+    .map(([key, name]) => ({ name, text: named(statsOf({ buffs: { [key]: true } }, data, area, null, calc).add) }));
+  const eaten = Object.values(calc?.contrib ?? {}).flat().filter((c) => c.part === 'consumables');
+  if (eaten.length) buffsOn.push({ name: 'Consumables', text: [...new Set(eaten.map((c) => c.label))].join(', ') });
   const guides = tickedSteps(world, area);
   return {
-    known, other, unknown, levels: calc?.levels ?? null, assumed: !!calc && !!entry && !entry.snapshot?.calc, hasCalc: !!calc,
+    buffsOn, known, other, unknown, levels: calc?.levels ?? null, assumed: !!calc && !!entry && !entry.snapshot?.calc, hasCalc: !!calc,
    
     area, name: AREA_NAME[area], missing: DATA_AREA[area] && !world.items ? 'items' : null,
     // shortcut: any import newer than the measurement counts, not only one that applied parts; refine if it nags
@@ -100,10 +108,35 @@ export function statsModel(world, area) {
   };
 }
 
-// The breakdown of one stat, like "Click for details!" in the game: per category the single sources, uncertain ones marked, the conditional
-// effects apart, and with a measurement the base you typed and what is left over as "Other sources". null for a stat the area does not show.
-// groups: [{ title, lines: [{ label, value, text, unsafe }] }]; conditional: [text]; mult: factor; total: text.
-const PART_TITLE = { skills: 'Skills', slayer: 'Slayers', level: 'SkyBlock level', accessories: 'Accessories', collections: 'Collections', bestiary: 'Bestiary', consumables: 'Consumables', base: 'Game base', godPotion: 'Buffs', cookie: 'Buffs' };
+// The breakdown of one stat, grouped like /stats → "Click for details!" in the game: Armor, Held Item, Equipment, Pet, Accessory Bag, HOTM, Skills,
+// Potion Effects and so on, so it can be compared line by line. A gear line opens into its parts (base, gems per slot, reforge, enchants, drill parts,
+// Polarvoid, potato books, Recombobulator). Multipliers are their own rows with their condition and whether it holds now. null for a stat the area does not show.
+// groups: [{ title, sum, lines: [{ label, value, text, unsafe, note, source?, parts? }] }]; conditional: [text]; multipliers: [{ label, text, condition, holds, key }].
+const GAME_ORDER = ['Measured base', 'Changes since the measurement', 'Armor', 'Held Item', 'Equipment', 'Pet', 'Other gear', 'Accessory Bag', 'HOTM', 'Attributes', 'Power', 'Essence', 'Skills', 'Slayers', 'SkyBlock level', 'Collections', 'Bestiary', 'Consumables', 'Potion Effects', 'Game base'];
+const PART_TITLE = { skills: 'Skills', slayer: 'Slayers', level: 'SkyBlock level', accessories: 'Accessory Bag', collections: 'Collections', bestiary: 'Bestiary', consumables: 'Consumables', base: 'Game base', godPotion: 'Potion Effects', cookie: 'Potion Effects' };
+const BUILD_TITLE = { hotm: 'HOTM', attrs: 'Attributes', power: 'Power', essence: 'Essence' };
+const CAT_TITLE = { armor: 'Armor', tool: 'Held Item', equipment: 'Equipment' };
+const COND_TEXT = { ...CONDITIONS, always: 'always', mining_gemstones: 'only on gemstones', in_mineshaft: 'only in a mineshaft' };
+
+// The multipliers that act on a stat, each with its condition: HOTM perks, the pet's category multipliers. Shown whether or not they hold now.
+function multipliersOf(world, area, stat, worn, data) {
+  const build = world.build ?? {};
+  const out = [];
+  const row = (label, percent, cond, key) => out.push({ label, percent, text: `${percent > 0 ? '+' : ''}${Math.round(percent * 100) / 100} %`, condition: COND_TEXT[cond] ?? cond, holds: condHolds(build, area, cond), key });
+  const hotm = build.hotm;
+  for (const perk of hotm ? data.hotm.perks : []) {
+    const base = hotm.levels?.[perk.id] ?? 0;
+    if (!(base > 0) || lockOf(perk, hotm) || (perk.type === 'ability' ? hotm.ability !== perk.id : (hotm.disabled ?? []).includes(perk.id))) continue;
+    for (const e of perk.effects) if (e.kind === 'percent_multiplier' && e.stat === stat && !e.hidden) row(perk.name, valueAt(e, base + (hotm.omelette && perk.omeletteBonus ? 1 : 0)), e.cond, e.cond in CONDITIONS ? e.cond : null);
+  }
+  const category = data.stats.stats.find((s) => s.id === stat)?.category;
+  for (const perk of worn.pet?.perks ?? []) {
+    const e = perk.effect;
+    if (e?.kind === 'category_multiplier' && e.categories.includes(category)) row(perk.name, e.percent, e.where, e.where in CONDITIONS ? e.where : null);
+  }
+  return out;
+}
+
 export function statDetail(world, area, stat) {
   const data = world.gamedata;
   const model = statsModel(world, area);
@@ -113,34 +146,55 @@ export function statDetail(world, area, stat) {
   const calc = calcFor(world);
   const worn = wornOf(world, area, entry, calc);
   const t = totalFor({ area, entry, build: world.build, gear: worn.gear, data, stats: statsFor(area, data), pet: worn.pet, calc });
-  const line = (label, value, unsafe = false, note = null) => ({ label, value, text: signed(value), unsafe, note });
-  const groups = [];
-  const group = (title, lines) => { if (lines.length) groups.push({ title, lines }); };
+  const line = (label, value, unsafe = false, note = null, extra = {}) => ({ label, value, text: signed(value), unsafe, note, ...extra });
+  const groups = new Map();
+  const add = (title, l) => groups.set(title, [...(groups.get(title) ?? []), l]);
   const r = t.rows.find((x) => x.stat === stat);
   const build = world.build ?? {};
-  // what each editor of the build gives on its own
-  const parts = Object.keys(PART_NAME).filter((p) => p !== 'buffs' && build[p]).map((p) => [PART_NAME[p], statsOf({ [p]: build[p] }, data, area, null, null).add[stat] ?? 0]);
-  const buildLines = parts.filter(([, v]) => Math.abs(v) > 1e-9).map(([label, v]) => line(label, v));
-  if (entry) {
-    group('Measured base', [line('Typed from /stats', r.base ?? 0), ...(Math.abs(r.other ?? 0) > 1e-9 ? [line('Other sources', r.other)] : [])]);
-    group('Changes since the measurement', model.changes.filter((c) => c.id === stat).map((c) => line(c.parts, c.value)));
-  } else {
-    const contrib = calc?.contrib[stat] ?? [];
-    const byPart = new Map();
-    for (const c of contrib) byPart.set(c.part, [...(byPart.get(c.part) ?? []), c]);
-    group('Game base', (byPart.get('base') ?? []).map((c) => line(c.label, c.value, c.unsafe, c.note)));
-    group('Build', buildLines);
-    for (const [part, title] of Object.entries(PART_TITLE)) {
-      if (part === 'base' || part === 'godPotion' || part === 'cookie') continue;
-      group(title, (byPart.get(part) ?? []).map((c) => line(c.label, c.value, c.unsafe, c.note)));
-    }
-    group('Buffs', [...(byPart.get('godPotion') ?? []), ...(byPart.get('cookie') ?? [])].map((c) => line(c.label, c.value, c.unsafe, c.note)));
-    if (!calc) { const v = statsOf({ buffs: build.buffs }, data, area).add[stat] ?? 0; if (Math.abs(v) > 1e-9) group('Buffs', [line('Buffs', v)]); }
-  }
-  group('Gear', worn.gear[stat] ? [line('Ticked steps and owned pieces', worn.gear[stat])] : []);
   const conditional = [...t.listed, ...(worn.listed ?? [])].filter((l) => l.stat === stat).map((l) => l.text);
-  const mult = t.known.mult[stat] ?? 1;
-  return { area, stat, name: row.label, icon: row.icon, color: row.color, groups, conditional, mult: mult === 1 ? null : mult, total: row.total, measured: !!entry };
+
+  if (entry) {
+    add('Measured base', line('Typed from /stats', r.base ?? 0));
+    if (Math.abs(r.other ?? 0) > 1e-9) add('Measured base', line('Other sources', r.other));
+    for (const c of model.changes.filter((x) => x.id === stat)) add('Changes since the measurement', line(c.parts, c.value));
+  } else {
+    for (const c of calc?.contrib[stat] ?? []) add(PART_TITLE[c.part] ?? c.part, line(c.label, c.value, c.unsafe, c.note));
+    for (const [part, title] of Object.entries(BUILD_TITLE)) {
+      const v = build[part] ? statsOf({ [part]: build[part] }, data, area, null, null).add[stat] ?? 0 : 0;
+      if (Math.abs(v) > 1e-9) add(title, line(PART_NAME[part], v));
+    }
+    if (!calc) { const v = statsOf({ buffs: build.buffs }, data, area).add[stat] ?? 0; if (Math.abs(v) > 1e-9) add('Potion Effects', line('Buffs', v)); }
+  }
+
+  // gear: per piece the tooltip of the real item when there is one, otherwise the own sum; both figures when they differ
+  let shown = 0;
+  for (const p of worn.pieces ?? []) {
+    const own = p.calc[stat] ?? 0;
+    const tip = p.tip?.[stat] ?? 0;
+    const value = p.source === 'game' ? tip : own;
+    if (!value && !own) continue;
+    shown += value;
+    const differs = p.source === 'game' && Math.abs(tip - own) > 0.051;
+    const note = p.source === 'game' ? (differs ? `game (tooltip) ≠ calculated ${signed(own)}` : 'game (tooltip)') : 'calculated';
+    const parts = (p.lines[stat] ?? []).map((l) => line(l.label, l.value));
+    add(CAT_TITLE[p.cat], line(world.items?.[p.id]?.name ?? p.id, value, false, note, { source: p.source, differs, parts }));
+    conditional.push(...p.conditional.filter((c) => !c.stat || c.stat === stat).map((c) => `${world.items?.[p.id]?.name ?? p.id}: ${c.text}`));
+  }
+  const pet = worn.petPart;
+  if (pet) {
+    const v = (pet.stats[stat] ?? 0) + (pet.item[stat] ?? 0);
+    if (Math.abs(v) > 1e-9) {
+      shown += v;
+      add('Pet', line(`${pet.name}${pet.rarity ? ` ${pet.rarity.toLowerCase()}` : ''}${pet.level ? ` lvl ${pet.level}` : ''}`, v, false, 'calculated', { parts: [line('Pet stats at the level', pet.stats[stat] ?? 0), line('Pet item', pet.item[stat] ?? 0)].filter((l) => l.value) }));
+    }
+    conditional.push(...pet.conditional.filter((c) => c.stat === stat).map((c) => `${pet.name}: ${c.text}`));
+  }
+  const other = (worn.gear[stat] ?? 0) - shown;
+  if (Math.abs(other) > 1e-9) add('Other gear', line('Lantern, ticked steps, set bonus', other));
+
+  const ordered = [...GAME_ORDER, ...[...groups.keys()].filter((k) => !GAME_ORDER.includes(k))].filter((k) => groups.has(k));
+  const out = ordered.map((title) => ({ title, lines: groups.get(title), sum: Math.round(groups.get(title).reduce((n, l) => n + l.value, 0) * 100) / 100 }));
+  return { area, stat, name: row.label, icon: row.icon, color: row.color, groups: out, conditional, multipliers: multipliersOf(world, area, stat, worn, data), total: row.total, measured: !!entry };
 }
 
 // The Essence tab: per perk its level, what it gives now and at the next level, what the next level and the rest cost

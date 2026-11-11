@@ -156,7 +156,7 @@ test('the stat detail lists the single sources per category, ≈ for unsafe, con
   const level = d.groups.find((g) => g.title === 'SkyBlock level').lines[0];
   assert.equal(level.value, 615);
   assert.equal(level.unsafe, true);
-  assert.equal(d.groups.find((g) => g.title === 'Accessories').lines[0].value, 10);
+  assert.equal(d.groups.find((g) => g.title === 'Accessory Bag').lines[0].value, 10);
   const html = statsView(w, { page: 'stats', tab: 'detail', area: 'blaze', stat: 'HEALTH' });
   assert.match(html, /≈ SkyBlock level 123/);
   assert.match(html, /Game base/);

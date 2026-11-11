@@ -23,6 +23,8 @@ const addTo = (sum, stat, v) => { sum[stat] = (sum[stat] ?? 0) + v; };
 export const CONDITIONS = { on_mining_islands: 'Mining islands (Dwarven Mines, Crystal Hollows, Glacite)', crimson_isle: 'Crimson Isle' };
 const holdsDefault = (key, area) => (key === 'crimson_isle' ? PLACES[area].has(key) : HOLDS[area].has(key));
 export const holds = (build, area, key) => build?.conditions?.[key] ?? holdsDefault(key, area);
+// Whether the condition of an effect holds now: a switchable one by the build, 'always' always, the others by the area.
+export const condHolds = (build, area, cond) => (cond === 'always' ? true : cond === 'on_mining_islands' || cond === 'crimson_isle' ? holds(build, area, cond) : HOLDS[area].has(cond));
 
 function hotmStats(hotm, data, out, area, build) {
   const omelette = hotm.omelette === true;

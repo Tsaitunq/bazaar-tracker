@@ -45,6 +45,10 @@ function levelStrip(levels) {
   ].join('')}</div>`;
 }
 
+// Which buffs count as active, with what they add: a potion that has run out would otherwise add its stats unnoticed.
+const buffsNote = (m, r) => (m.buffsOn.length
+  ? `<div class="panel buffs-note"><small><b>Counted as active:</b> ${m.buffsOn.map((b) => `${esc(b.name)}${b.text ? ` (${esc(b.text)})` : ''}`).join(' · ')}. Run out? <a href="#/stats/power/${esc(r.area)}">Switch it off</a>.</small></div>` : '');
+
 function overview(world, r) {
   const m = statsModel(world, r.area);
   const buffs = [m.measured?.buffs.godPotion && 'God Potion', m.measured?.buffs.boosterCookie && 'Cookie'].filter(Boolean).join(' + ');
@@ -79,7 +83,7 @@ function overview(world, r) {
   const remove = m.measured ? `<button type="button" data-stats-remove="${esc(r.area)}">Remove measurement</button>` : '';
   const note = m.missing === 'data' ? '<p class="note">Loading game data…</p>' : m.missing === 'items' ? '<p class="note">Loading item data… gear shows when it is there.</p>' : '';
   return `<div class="scroll">${tabs(r)}${areas(r)}
-    ${draftNote}${figure}${levelStrip(m.levels)}${stale}
+    ${buffsNote(m, r)}${draftNote}${figure}${levelStrip(m.levels)}${stale}
     <div class="panel"><small>${when}</small><small>${gear}</small>${hints}${note}<a class="primary-link" href="#/stats/measure/${esc(r.area)}">${m.measured ? 'Measure base again' : `Measure ${esc(m.name)} base`}</a>${remove}</div>
     <div class="panel stat-table"><div class="stat-row stat-head"><span>All ${esc(m.name.toLowerCase())} stats</span><span>Base</span><span>Gear</span><span title="Changed since the measurement">Δ</span><span>Total</span></div>${rows}</div>${sources}${unknown}${moved}${listed}</div>`;
 }
@@ -99,15 +103,23 @@ function measure(world, r) {
   return body;
 }
 
+const signedText = (v) => `${v > 0 ? '+' : ''}${number(Math.round(v * 100) / 100)}`;
+
 // The breakdown of one stat: a panel per category, uncertain values with a ≈, conditional effects grey.
 function detail(world, r) {
   const d = statDetail(world, r.area, r.stat);
   if (!d) return '<div class="scroll"><div class="panel"><small>No such stat for this area.</small></div></div>';
-  const lines = (g) => g.lines.map((l) => `<div class="stat-row detail-row"><span>${l.unsafe ? '≈ ' : ''}${esc(l.label)}${l.note ? ` <small>(${esc(l.note)})</small>` : ''}</span><b class="c-${d.color}">${esc(l.text)}</b></div>`).join('');
-  const panels = d.groups.map((g) => `<section class="panel"><h2>${esc(g.title)}</h2>${lines(g)}</section>`).join('');
+  const mark = (l) => `${l.unsafe ? '≈ ' : ''}${esc(l.label)}${l.differs ? ' ≠' : ''}${l.note ? ` <small>(${esc(l.note)})</small>` : ''}`;
+  const value = (l) => `<b class="c-${d.color}">${esc(l.text)}</b>`;
+  // a line with parts opens into them; a line without is a plain row
+  const lines = (g) => g.lines.map((l) => (l.parts?.length
+    ? `<details class="detail-part"><summary class="stat-row detail-row"><span>${mark(l)}</span>${value(l)}</summary>${l.parts.map((p) => `<div class="stat-row detail-row detail-sub"><span>${esc(p.label)}</span><b>${esc(p.text)}</b></div>`).join('')}</details>`
+    : `<div class="stat-row detail-row"><span>${mark(l)}</span>${value(l)}</div>`)).join('');
+  const panels = d.groups.map((g) => `<section class="panel"><h2>${esc(g.title)} <small>${esc(signedText(g.sum))}</small></h2>${lines(g)}</section>`).join('');
   const cond = d.conditional.length ? `<section class="panel muted"><h2>Only when the condition holds</h2>${d.conditional.map((t) => `<small>${esc(t)}</small>`).join('')}</section>` : '';
-  const mult = d.mult ? `<small>Multiplied by ${esc(String(Math.round(d.mult * 1000) / 1000))} at the end.</small>` : '';
-  return `<div class="scroll"><div class="panel"><h2 class="c-${d.color}">${esc(d.icon)} ${esc(d.name)}: ${esc(d.total)}</h2>${mult}<small>${d.measured ? 'With your measured base.' : 'Added up from what the app knows.'} A ≈ marks values from one source only.</small></div>${panels || '<section class="panel"><small>Nothing adds to this stat yet.</small></section>'}${cond}</div>`;
+  // a multiplier is its own row with its condition; a switchable condition has a checkbox for whether it holds now
+  const mults = d.multipliers.length ? `<section class="panel"><h2>Multipliers</h2><small>Applied last, on the sum above.</small>${d.multipliers.map((m) => `<div class="stat-row detail-row${m.holds ? '' : ' muted'}"><span>${esc(m.label)} <small>(${esc(m.condition)}${m.holds ? '' : ', not counted'})</small>${m.key ? `<label class="check"><input type="checkbox" data-condition="${esc(m.key)}"${m.holds ? ' checked' : ''}> holds now</label>` : ''}</span><b>${esc(m.text)}</b></div>`).join('')}</section>` : '';
+  return `<div class="scroll"><div class="panel"><h2 class="c-${d.color}">${esc(d.icon)} ${esc(d.name)}: ${esc(d.total)}</h2><small>${d.measured ? 'With your measured base.' : 'Added up from what the app knows.'} A ≈ marks values from one source only. ≠ means the game tooltip and the own calculation differ.</small></div>${panels || '<section class="panel"><small>Nothing adds to this stat yet.</small></section>'}${mults}${cond}</div>`;
 }
 
 const EDITORS = { hotm: hotmView, attributes: attrsView, power: powerView, essence: essenceView, pets: petsView };

@@ -5,7 +5,7 @@ import { RARITIES, REFORGES, GEMS, GEM_STAT, ENCHANTS, PARTS, POLARVOID, COATING
 const round = (v) => Math.round(v * 100) / 100;
 
 // piece: a piece of the virtual loadout (id, gems, enchants, parts, reforge, recomb, polarvoid, coating, hpb?, fuming?). items: items.json.
-// Gives { lines: { STAT: [{ part, label, value }] }, total: { STAT: n }, conditional: [text] }. A rarity the item list does not know
+// Gives { lines: { STAT: [{ part, label, value }] }, total: { STAT: n }, conditional: [{ stat, text }] }. A rarity the item list does not know
 // leaves reforge and gems out (they scale with it) and says so in conditional.
 export function pieceParts(piece, items) {
   const item = items?.[piece.id];
@@ -29,7 +29,7 @@ export function pieceParts(piece, items) {
     return out;
   };
   if (tier < 0) {
-    if (reforge || piece.gems?.length) conditional.push('Rarity unknown: reforge and gems are not counted.');
+    if (reforge || piece.gems?.length) conditional.push({ stat: null, text: 'Rarity unknown: reforge and gems are not counted.' });
   } else {
     const r0 = tier;
     const r1 = Math.min(tier + (piece.recomb ? 1 : 0), top);
@@ -46,7 +46,7 @@ export function pieceParts(piece, items) {
     if (!table) continue;
     for (const [stat, list] of Object.entries(table.stats)) {
       // Lapidary works on gemstones only: the tooltip total does not hold it
-      if (table.gemstonesOnly) conditional.push(`${name} ${level}: +${list[level - 1]} ${stat.toLowerCase().replace(/_/g, ' ')} (only on gemstones)`);
+      if (table.gemstonesOnly) conditional.push({ stat, text: `${name} ${level}: +${list[level - 1]} ${stat.toLowerCase().replace(/_/g, ' ')} (only on gemstones)` });
       else put(stat, 'enchants', `${name} ${level}`, list[level - 1]);
     }
   }

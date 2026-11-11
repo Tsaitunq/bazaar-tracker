@@ -467,3 +467,6 @@ a { color: var(--area); }
 .stat-row a { color: inherit; text-decoration: none; }
 .detail-row { grid-template-columns: 1fr auto; font-size: 13px; }
 .panel.muted small { color: var(--muted); }
+.detail-part > summary { cursor: pointer; }
+.detail-sub { padding-left: 14px; color: var(--muted); font-size: 12px; }
+.detail-row.muted { color: var(--muted); }

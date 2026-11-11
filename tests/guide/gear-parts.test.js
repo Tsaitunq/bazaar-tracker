@@ -17,7 +17,7 @@ test('a piece is split into base, reforge, gems per slot, enchants, parts, Polar
   assert.deepEqual(p.lines.MINING_SPEED.map((l) => l.part), ['base', 'reforge', 'gems', 'enchants', 'parts', 'polarvoid', 'coating']);
   assert.equal(p.total.MINING_SPEED, 1000 + 45 + 80 + 110 + 150 + 50 + 500);
   assert.equal(p.total.MINING_FORTUNE, 10 + 25 + 15 + 5);
-  assert.ok(p.conditional.some((t) => /lapidary 5/.test(t) && /only on gemstones/.test(t)));
+  assert.ok(p.conditional.some((c) => /lapidary 5/.test(c.text) && /only on gemstones/.test(c.text) && c.stat));
 });
 
 test('the Recombobulator is its own line: the rise of reforge and gems, which are shown at the lower rarity', () => {

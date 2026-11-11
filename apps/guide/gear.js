@@ -130,5 +130,11 @@ export function gearOf({ guides, checks, owned, items, area, build, settings, va
   const listed = Object.entries(enchants).map(([name, level]) => enchantLine(name, level)).filter(Boolean).map((text) => ({ text }));
   const stacking = Object.entries(enchants).filter(([name]) => ENCHANTS_CONDITIONAL[name]).map(([name, level]) => ({ stat: ENCHANTS_CONDITIONAL[name].stat, text: `${ENCHANTS_CONDITIONAL[name].name} ${level}: ${ENCHANTS_CONDITIONAL[name].text(level)}` }));
   if (area === 'blaze' && catacombsNeeded && rules.gear.catacombs === null) listed.push({ text: 'Withered and Ancient: +1 per Catacombs level, set your level under Power → Gear' });
-  return { pieces, gear, profile, loadout, stepPet: loadout.pet ?? null, pet, rules, listed: area === 'blaze' ? listed : stacking, accessories: accessories.gain, hints: accessories.after ? ['An accessory changes your Magical Power: adjust it under Power.'] : [] };
+  // the pet as a part: its stats at the level, the pet item, and the perks that need a condition (listed, never added)
+  const petPart = pet || loadout.pet || build?.pet ? {
+    name: pet?.name ?? loadout.pet?.type ?? build.pet.id, rarity: pet?.rarity ?? loadout.pet?.tier ?? build?.pet?.rarity ?? null, level: pet?.level ?? build?.pet?.level ?? null,
+    stats: petGear(loadout, build, pets), item: petItemStats(loadout, build, petItems),
+    conditional: (pet?.perks ?? []).filter((k) => k.condition).map((k) => ({ stat: k.stat ?? null, text: `${k.name}: ${k.text} (${k.condition})` })),
+  } : null;
+  return { pieces, petPart, gear, profile, loadout, stepPet: loadout.pet ?? null, pet, rules, listed: area === 'blaze' ? listed : stacking, accessories: accessories.gain, hints: accessories.after ? ['An accessory changes your Magical Power: adjust it under Power.'] : [] };
 }
