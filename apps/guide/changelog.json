@@ -1,6 +1,14 @@
 {
   "versions": [
     {
+      "version": "0.15.2",
+      "date": "2026-11-11",
+      "entries": [
+        { "title": "Mining Speed cost known", "text": "The powder spent in the HOTM now includes Mining Speed, so the totals match what the game shows." },
+        { "title": "Reforge and enchant names", "text": "Items with no reforge or with enchants stored in capital letters are now read correctly by the import." }
+      ]
+    },
+    {
       "version": "0.15.1",
       "date": "2026-11-11",
       "entries": [
