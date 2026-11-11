@@ -4,514 +4,258 @@
       "version": "0.18.0",
       "date": "2026-11-11",
       "entries": [
-        {
-          "title": "Tap a stat for details",
-          "text": "On the Stats page tap a stat to see where every point comes from, with unsure values marked and conditional effects kept apart."
-        },
-        {
-          "title": "More sources counted",
-          "text": "Collections, Bestiary milestones, the tooltip values of your accessories and the consumables you ticked now add to your stats."
-        },
-        {
-          "title": "Measurement help",
-          "text": "After an import the app tells you when your measurement is older, and you can remove a measurement for any area."
-        },
-        {
-          "title": "Fixes",
-          "text": "Flowstate no longer inflates your Mining Speed, and the God Potion, Mining skill and SkyBlock level values are confirmed."
-        }
+        { "title": "Tap a stat for details", "text": "On the Stats page tap a stat to see where every point comes from, with unsure values marked and conditional effects kept apart." },
+        { "title": "More sources counted", "text": "Collections, Bestiary milestones, the tooltip values of your accessories and the consumables you ticked now add to your stats." },
+        { "title": "Measurement help", "text": "After an import the app tells you when your measurement is older, and you can remove a measurement for any area." },
+        { "title": "Fixes", "text": "Flowstate no longer inflates your Mining Speed, and the God Potion, Mining skill and SkyBlock level values are confirmed." }
       ]
     },
     {
       "version": "0.17.1",
       "date": "2026-11-11",
       "entries": [
-        {
-          "title": "Ranking without a measurement",
-          "text": "After an import the guides rank their steps from the figures the app adds up itself, so you no longer have to type your /stats first."
-        }
+        { "title": "Ranking without a measurement", "text": "After an import the guides rank their steps from the figures the app adds up itself, so you no longer have to type your /stats first." }
       ]
     },
     {
       "version": "0.17.0",
       "date": "2026-11-11",
       "entries": [
-        {
-          "title": "Stats add up by themselves",
-          "text": "After an import the Stats page adds up your skills, slayers, SkyBlock level, accessories, buffs and the game base, so measuring is optional and Other sources gets small."
-        },
-        {
-          "title": "Unsure values are marked",
-          "text": "Values that rest on one source only carry a ≈, and a stat that still differs from /stats names the unsure sources that may explain it."
-        },
-        {
-          "title": "Your levels at a glance",
-          "text": "Below your figure, tap Skills, Slayer or SkyBlock to see your levels from the import."
-        }
+        { "title": "Stats add up by themselves", "text": "After an import the Stats page adds up your skills, slayers, SkyBlock level, accessories, buffs and the game base, so measuring is optional and Other sources gets small." },
+        { "title": "Unsure values are marked", "text": "Values that rest on one source only carry a ≈, and a stat that still differs from /stats names the unsure sources that may explain it." },
+        { "title": "Your levels at a glance", "text": "Below your figure, tap Skills, Slayer or SkyBlock to see your levels from the import." }
       ]
     },
     {
       "version": "0.16.0",
       "date": "2026-11-11",
       "entries": [
-        {
-          "title": "Your own skin",
-          "text": "After an import the head icon and the figure on the stats page show your Minecraft skin, including slim arms; deleting the profile data removes it again."
-        }
+        { "title": "Your own skin", "text": "After an import the head icon and the figure on the stats page show your Minecraft skin, including slim arms; deleting the profile data removes it again." }
       ]
     },
     {
       "version": "0.15.2",
       "date": "2026-11-11",
       "entries": [
-        {
-          "title": "Mining Speed cost known",
-          "text": "The powder spent in the HOTM now includes Mining Speed, so the totals match what the game shows."
-        },
-        {
-          "title": "Reforge and enchant names",
-          "text": "Items with no reforge or with enchants stored in capital letters are now read correctly by the import."
-        }
+        { "title": "Mining Speed cost known", "text": "The powder spent in the HOTM now includes Mining Speed, so the totals match what the game shows." },
+        { "title": "Reforge and enchant names", "text": "Items with no reforge or with enchants stored in capital letters are now read correctly by the import." }
       ]
     },
     {
       "version": "0.15.1",
       "date": "2026-11-11",
       "entries": [
-        {
-          "title": "Upgrades count on the next piece",
-          "text": "A step on an item you have since forged up, such as books on a Titanium Drill, is now found on the higher piece, and the import says which one."
-        },
-        {
-          "title": "All attributes recognised",
-          "text": "Attributes the game still stores under an older name, such as Flare, are now read, so their levels and steps match your profile."
-        }
+        { "title": "Upgrades count on the next piece", "text": "A step on an item you have since forged up, such as books on a Titanium Drill, is now found on the higher piece, and the import says which one." },
+        { "title": "All attributes recognised", "text": "Attributes the game still stores under an older name, such as Flare, are now read, so their levels and steps match your profile." }
       ]
     },
     {
       "version": "0.15.0",
       "date": "2026-11-10",
       "entries": [
-        {
-          "title": "Import your profile",
-          "text": "In Settings you can load your SkyBlock profile (Android app only) and see what you already own; nothing is ticked until you confirm it.",
-          "target": "[data-imp]",
-          "route": "#/settings"
-        },
-        {
-          "title": "Review the suggestions",
-          "text": "The import screen lists what is new, different or in conflict by area, lets you take them one by one or all at once, and can undo the last import.",
-          "target": "[data-page=\"import\"]",
-          "route": "#/import"
-        },
-        {
-          "title": "Pets and powder",
-          "text": "The Pets tab lists every pet of your profile with its level, and the HOTM tab shows the powder you have left."
-        },
-        {
-          "title": "Base is optional",
-          "text": "The Stats now show what the app knows by itself; typing your /stats adds everything else as other sources."
-        }
+        { "title": "Import your profile", "text": "In Settings you can load your SkyBlock profile (Android app only) and see what you already own; nothing is ticked until you confirm it.", "target": "[data-imp]", "route": "#/settings" },
+        { "title": "Review the suggestions", "text": "The import screen lists what is new, different or in conflict by area, lets you take them one by one or all at once, and can undo the last import.", "target": "[data-page=\"import\"]", "route": "#/import" },
+        { "title": "Pets and powder", "text": "The Pets tab lists every pet of your profile with its level, and the HOTM tab shows the powder you have left." },
+        { "title": "Base is optional", "text": "The Stats now show what the app knows by itself; typing your /stats adds everything else as other sources." }
       ]
     },
     {
       "version": "0.14.1",
       "date": "2026-11-10",
       "entries": [
-        {
-          "title": "Start here chips",
-          "text": "The Shafting guide now lists HOTM 7 and Glacite Tunnels with the Mithril set; HOTM 7 ticks itself once your Heart of the Mountain is on tier 7."
-        },
-        {
-          "title": "Accessories tile",
-          "text": "Shafting has its own Accessories category, so accessories no longer sit among the cloak, belt and gloves."
-        }
+        { "title": "Start here chips", "text": "The Shafting guide now lists HOTM 7 and Glacite Tunnels with the Mithril set; HOTM 7 ticks itself once your Heart of the Mountain is on tier 7." },
+        { "title": "Accessories tile", "text": "Shafting has its own Accessories category, so accessories no longer sit among the cloak, belt and gloves." }
       ]
     },
     {
       "version": "0.14.0",
       "date": "2026-11-10",
       "entries": [
-        {
-          "title": "Guide overview",
-          "text": "A guide opens on an overview with its best next step, the prerequisites you tick off, your attributes and one tile per category such as Armor or Pets."
-        },
-        {
-          "title": "Category pages",
-          "text": "Tap a tile to see the steps of that category in order of value, with a note from the guide on top; swipe right or tap the arrow to go back."
-        },
-        {
-          "title": "Steps that wait",
-          "text": "A step can now wait for another one, so a Legendary Blaze Pet comes before the armor that needs it."
-        }
+        { "title": "Guide overview", "text": "A guide opens on an overview with its best next step, the prerequisites you tick off, your attributes and one tile per category such as Armor or Pets." },
+        { "title": "Category pages", "text": "Tap a tile to see the steps of that category in order of value, with a note from the guide on top; swipe right or tap the arrow to go back." },
+        { "title": "Steps that wait", "text": "A step can now wait for another one, so a Legendary Blaze Pet comes before the armor that needs it." }
       ]
     },
     {
       "version": "0.13.0",
       "date": "2026-11-06",
       "entries": [
-        {
-          "title": "Methods tab",
-          "text": "The Mining guide has two tabs, Gear and Methods, and you can swipe between them; the \"So läuft's\" card is gone."
-        },
-        {
-          "title": "Method pages",
-          "text": "A method page shows which option fits the current Fine Peridot price, the run as numbered steps, loadouts, auto-pet, gear in short and tips."
-        },
-        {
-          "title": "Your drill in step names",
-          "text": "Enchants, gems, reforge and other drill parts are named after the drill you own now, such as DR-X555, or just Drill if you have none; your ticks stay."
-        }
+        { "title": "Methods tab", "text": "The Mining guide has two tabs, Gear and Methods, and you can swipe between them; the \"So läuft's\" card is gone." },
+        { "title": "Method pages", "text": "A method page shows which option fits the current Fine Peridot price, the run as numbered steps, loadouts, auto-pet, gear in short and tips." },
+        { "title": "Your drill in step names", "text": "Enchants, gems, reforge and other drill parts are named after the drill you own now, such as DR-X555, or just Drill if you have none; your ticks stay." }
       ]
     },
     {
       "version": "0.12.0",
       "date": "2026-11-06",
       "entries": [
-        {
-          "title": "Attributes by category",
-          "text": "Attributes are sorted like in the game, with category chips on top that remember your choice, and the search no longer jumps while you type."
-        },
-        {
-          "title": "Δ column and Pets tab",
-          "text": "The stats table shows what changed since your measurement, so Total adds up, and pets have their own tab after Essence."
-        },
-        {
-          "title": "Your head on the profile button",
-          "text": "The profile button shows the head of your skin instead of a placeholder."
-        },
-        {
-          "title": "How it works card",
-          "text": "A guide can open with a short \"So läuft's\" card that you can open again with the ⓘ button; the Shafting guide has its full explanation with a contents list."
-        }
+        { "title": "Attributes by category", "text": "Attributes are sorted like in the game, with category chips on top that remember your choice, and the search no longer jumps while you type." },
+        { "title": "Δ column and Pets tab", "text": "The stats table shows what changed since your measurement, so Total adds up, and pets have their own tab after Essence." },
+        { "title": "Your head on the profile button", "text": "The profile button shows the head of your skin instead of a placeholder." },
+        { "title": "How it works card", "text": "A guide can open with a short \"So läuft's\" card that you can open again with the ⓘ button; the Shafting guide has its full explanation with a contents list." }
       ]
     },
     {
       "version": "0.11.3",
       "date": "2026-11-05",
       "entries": [
-        {
-          "title": "Groups show every part",
-          "text": "A group card is named after its first step (\"DR-X355 + 5 Enchants\"), lists each part with its own stats and cost, then the total."
-        },
-        {
-          "title": "Enchants up to the maximum",
-          "text": "Every enchant on your drill now has a step for each higher level, such as Efficiency VI to X, Fortune IV and Lapidary V, ranked by coins per 1 %."
-        },
-        {
-          "title": "Essence tab",
-          "text": "The essence shop moved from the guide to Stats: set each perk level, see the essence and coins to the next level and to max, and what the next level costs per 1 %."
-        },
-        {
-          "title": "Your ticked essence levels",
-          "text": "Essence levels you had ticked became your essence levels and count as part of your base, so nothing is counted twice."
-        }
+        { "title": "Groups show every part", "text": "A group card is named after its first step (\"DR-X355 + 5 Enchants\"), lists each part with its own stats and cost, then the total." },
+        { "title": "Enchants up to the maximum", "text": "Every enchant on your drill now has a step for each higher level, such as Efficiency VI to X, Fortune IV and Lapidary V, ranked by coins per 1 %." },
+        { "title": "Essence tab", "text": "The essence shop moved from the guide to Stats: set each perk level, see the essence and coins to the next level and to max, and what the next level costs per 1 %." },
+        { "title": "Your ticked essence levels", "text": "Essence levels you had ticked became your essence levels and count as part of your base, so nothing is counted twice." }
       ]
     },
     {
       "version": "0.11.2",
       "date": "2026-11-05",
       "entries": [
-        {
-          "title": "Clean gear steps",
-          "text": "Divan armor steps are the plain piece again; every gemstone is its own step, so a Topaz is never counted twice. Ticks you made on the old steps carry over."
-        },
-        {
-          "title": "Tour on the phone",
-          "text": "The tour spotlight now sits on the right button and list, also on phones with a status bar and a scrolled page."
-        }
+        { "title": "Clean gear steps", "text": "Divan armor steps are the plain piece again; every gemstone is its own step, so a Topaz is never counted twice. Ticks you made on the old steps carry over." },
+        { "title": "Tour on the phone", "text": "The tour spotlight now sits on the right button and list, also on phones with a status bar and a scrolled page." }
       ]
     },
     {
       "version": "0.11.1",
       "date": "2026-11-05",
       "entries": [
-        {
-          "title": "Essence shop in your base",
-          "text": "Essence shop levels you ticked before your last measurement are already in your stats; only levels ticked after it show up as a change."
-        }
+        { "title": "Essence shop in your base", "text": "Essence shop levels you ticked before your last measurement are already in your stats; only levels ticked after it show up as a change." }
       ]
     },
     {
       "version": "0.11.0",
       "date": "2026-11-05",
       "entries": [
-        {
-          "title": "One tick for every guide",
-          "text": "A gem, reforge, enchant or essence perk you tick once now counts in every guide that holds the same step."
-        },
-        {
-          "title": "Shafting is the mining guide",
-          "text": "It replaces the old mining guide, splits every gemstone into Flawless first and then one Flawless to Perfect step per stone and place, and adds a Recombobulator step per piece."
-        },
-        {
-          "title": "Essence shop and attributes",
-          "text": "Every level of the essence shop perks is its own step with its cost, and every attribute now shows what it does, including Freezing Spread with its current value."
-        },
-        {
-          "title": "Icons",
-          "text": "Every pet and attribute shard has its picture, and the build loads the ones that are missing."
-        }
+        { "title": "One tick for every guide", "text": "A gem, reforge, enchant or essence perk you tick once now counts in every guide that holds the same step." },
+        { "title": "Shafting is the mining guide", "text": "It replaces the old mining guide, splits every gemstone into Flawless first and then one Flawless to Perfect step per stone and place, and adds a Recombobulator step per piece." },
+        { "title": "Essence shop and attributes", "text": "Every level of the essence shop perks is its own step with its cost, and every attribute now shows what it does, including Freezing Spread with its current value." },
+        { "title": "Icons", "text": "Every pet and attribute shard has its picture, and the build loads the ones that are missing." }
       ]
     },
     {
       "version": "0.10.0",
       "date": "2026-11-05",
       "entries": [
-        {
-          "title": "A short tour",
-          "text": "On the first start, and once for everyone after this update, a six-step tour shows the guides, how ticking works and how to measure and read your stats."
-        },
-        {
-          "title": "What's new",
-          "text": "After an update a sheet lists everything that changed since the version you saw last."
-        },
-        {
-          "title": "Help in Settings",
-          "text": "Settings can start the tour again and show the full list of changes."
-        }
+        { "title": "A short tour", "text": "On the first start, and once for everyone after this update, a six-step tour shows the guides, how ticking works and how to measure and read your stats." },
+        { "title": "What's new", "text": "After an update a sheet lists everything that changed since the version you saw last." },
+        { "title": "Help in Settings", "text": "Settings can start the tour again and show the full list of changes." }
       ]
     },
     {
       "version": "0.9.0",
       "date": "2026-11-05",
       "entries": [
-        {
-          "title": "Blaze stats in full",
-          "text": "Measure the whole Combat menu for Blaze, including Ferocity, Speed and Magic Find, and every ticked step now adds its item, reforge, enchant and set bonus stats."
-        },
-        {
-          "title": "Gear options",
-          "text": "On the Power page you can set your Catacombs level, Crimson stars, potato books and the pet item; the Blaze pet doubles the books and lifts Blaze Armor."
-        },
-        {
-          "title": "Nether Embodiment and Dominus",
-          "text": "The Blaze pet adds 10 % to the sum of your Combat and Misc stats, and the Crimson set gives its Ferocity and Swing Range from two pieces of one tier."
-        },
-        {
-          "title": "Accessories and icons",
-          "text": "Accessories ticked after you measured count as a change since then, and the seven attribute shards without a head now show a Minecraft picture."
-        }
+        { "title": "Blaze stats in full", "text": "Measure the whole Combat menu for Blaze, including Ferocity, Speed and Magic Find, and every ticked step now adds its item, reforge, enchant and set bonus stats." },
+        { "title": "Gear options", "text": "On the Power page you can set your Catacombs level, Crimson stars, potato books and the pet item; the Blaze pet doubles the books and lifts Blaze Armor." },
+        { "title": "Nether Embodiment and Dominus", "text": "The Blaze pet adds 10 % to the sum of your Combat and Misc stats, and the Crimson set gives its Ferocity and Swing Range from two pieces of one tier." },
+        { "title": "Accessories and icons", "text": "Accessories ticked after you measured count as a change since then, and the seven attribute shards without a head now show a Minecraft picture." }
       ]
     },
     {
       "version": "0.8.2",
       "date": "2026-11-04",
       "entries": [
-        {
-          "title": "Your pet floats next to you",
-          "text": "On the Overview your pet hovers beside your player; tap it to open the pet picker on that pet."
-        },
-        {
-          "title": "Attributes in a sheet",
-          "text": "Tap an attribute to open a sheet with its icon, level buttons, effect now and next level, and the shards you still need."
-        },
-        {
-          "title": "Attribute list with icons",
-          "text": "Every row shows the shard icon, level and a short effect line, and attributes you have not set are greyed out."
-        }
+        { "title": "Your pet floats next to you", "text": "On the Overview your pet hovers beside your player; tap it to open the pet picker on that pet." },
+        { "title": "Attributes in a sheet", "text": "Tap an attribute to open a sheet with its icon, level buttons, effect now and next level, and the shards you still need." },
+        { "title": "Attribute list with icons", "text": "Every row shows the shard icon, level and a short effect line, and attributes you have not set are greyed out." }
       ]
     },
     {
       "version": "0.8.1",
       "date": "2026-11-04",
       "entries": [
-        {
-          "title": "Swipe works on every Stats page",
-          "text": "Swiping now also works on the HOTM page and goes on to Attributes and Power, or back, on every phone width."
-        },
-        {
-          "title": "HOTM looks like the game",
-          "text": "Perks show coal, emerald and diamond, the Core and pickaxe abilities show blocks, and you can switch a perk off or select one ability."
-        },
-        {
-          "title": "Pets with heads and perks",
-          "text": "The pet picker lists every pet with its head, stats and perks, and the Pet tag under your player jumps straight to it."
-        }
+        { "title": "Swipe works on every Stats page", "text": "Swiping now also works on the HOTM page and goes on to Attributes and Power, or back, on every phone width." },
+        { "title": "HOTM looks like the game", "text": "Perks show coal, emerald and diamond, the Core and pickaxe abilities show blocks, and you can switch a perk off or select one ability." },
+        { "title": "Pets with heads and perks", "text": "The pet picker lists every pet with its head, stats and perks, and the Pet tag under your player jumps straight to it." }
       ]
     },
     {
       "version": "0.8.0",
       "date": "2026-11-04",
       "entries": [
-        {
-          "title": "HOTM, attributes and power",
-          "text": "Three new Stats pages let you enter your HOTM perks, attribute levels, power stone, Magical Power and tuning points; steps above your HOTM level are locked."
-        },
-        {
-          "title": "Pick your pet",
-          "text": "Choose Bal, Glacite Golem, Goblin, Scatha, Snail or Mammoth; its stats count in your total, and perks that need a place or a mob are only listed."
-        },
-        {
-          "title": "Changes since measurement",
-          "text": "The overview shows what each page moved since you measured your base, and your player appears with tags for pet and power."
-        },
-        {
-          "title": "Swipe between Stats pages",
-          "text": "Swipe sideways to go from Overview to HOTM, Attributes and Power."
-        }
+        { "title": "HOTM, attributes and power", "text": "Three new Stats pages let you enter your HOTM perks, attribute levels, power stone, Magical Power and tuning points; steps above your HOTM level are locked." },
+        { "title": "Pick your pet", "text": "Choose Bal, Glacite Golem, Goblin, Scatha, Snail or Mammoth; its stats count in your total, and perks that need a place or a mob are only listed." },
+        { "title": "Changes since measurement", "text": "The overview shows what each page moved since you measured your base, and your player appears with tags for pet and power." },
+        { "title": "Swipe between Stats pages", "text": "Swipe sideways to go from Overview to HOTM, Attributes and Power." }
       ]
     },
     {
       "version": "0.7.0",
       "date": "2026-11-04",
       "entries": [
-        {
-          "title": "No API key needed",
-          "text": "The guide app no longer asks for a Hypixel key or a profile; steps you ticked or that were recognised before stay ticked."
-        },
-        {
-          "title": "Measure your base",
-          "text": "Type in your /stats once per area without armor, equipment, tool and pet, and the app adds the gear of your ticked steps."
-        },
-        {
-          "title": "Stats overview",
-          "text": "A new purple Stats page shows base, gear and total per stat, and lists the effects that only count under a condition."
-        }
+        { "title": "No API key needed", "text": "The guide app no longer asks for a Hypixel key or a profile; steps you ticked or that were recognised before stay ticked." },
+        { "title": "Measure your base", "text": "Type in your /stats once per area without armor, equipment, tool and pet, and the app adds the gear of your ticked steps." },
+        { "title": "Stats overview", "text": "A new purple Stats page shows base, gear and total per stat, and lists the effects that only count under a condition." }
       ]
     },
     {
       "version": "0.6.2",
       "date": "2026-11-03",
       "entries": [
-        {
-          "title": "Steady switch",
-          "text": "The Mining switch stays in place while you swipe or tap; only its marker slides along."
-        },
-        {
-          "title": "No jump after a swipe",
-          "text": "The next guide already shows its open step while it slides in."
-        },
-        {
-          "title": "Room for Mark done",
-          "text": "The step card is shorter: tap the cost line to see what the price is made of."
-        },
-        {
-          "title": "Calmer start",
-          "text": "The start screen no longer flashes \"No guide yet\" while the guides load."
-        }
+        { "title": "Steady switch", "text": "The Mining switch stays in place while you swipe or tap; only its marker slides along." },
+        { "title": "No jump after a swipe", "text": "The next guide already shows its open step while it slides in." },
+        { "title": "Room for Mark done", "text": "The step card is shorter: tap the cost line to see what the price is made of." },
+        { "title": "Calmer start", "text": "The start screen no longer flashes \"No guide yet\" while the guides load." }
       ]
     },
     {
       "version": "0.6.1",
       "date": "2026-11-03",
       "entries": [
-        {
-          "title": "Mark done animates and scrolls to the next step",
-          "text": "Ticking a step closes its card with a short animation and brings the next step fully into view."
-        }
+        { "title": "Mark done animates and scrolls to the next step", "text": "Ticking a step closes its card with a short animation and brings the next step fully into view." }
       ]
     },
     {
       "version": "0.6.0",
       "date": "2026-11-03",
       "entries": [
-        {
-          "title": "Swipe between Mining guides",
-          "text": "Swipe left and right to move between Gear progression and Shafting gear, and right from the first one to go home."
-        },
-        {
-          "title": "A lighter swipe",
-          "text": "The screen now follows your finger exactly, keeps the speed of your flick and settles quickly, and guides open at once."
-        },
-        {
-          "title": "Why a step is ticked",
-          "text": "Tap API on a step to see what the sync found for it; Settings list it for every guide under Detection report."
-        },
-        {
-          "title": "Price source moved",
-          "text": "Where the prices come from is now in the notes behind the ⓘ and in Settings."
-        }
+        { "title": "Swipe between Mining guides", "text": "Swipe left and right to move between Gear progression and Shafting gear, and right from the first one to go home." },
+        { "title": "A lighter swipe", "text": "The screen now follows your finger exactly, keeps the speed of your flick and settles quickly, and guides open at once." },
+        { "title": "Why a step is ticked", "text": "Tap API on a step to see what the sync found for it; Settings list it for every guide under Detection report." },
+        { "title": "Price source moved", "text": "Where the prices come from is now in the notes behind the ⓘ and in Settings." }
       ]
     },
     {
       "version": "0.5.0",
       "date": "2026-11-03",
       "entries": [
-        {
-          "title": "Your step fits on screen",
-          "text": "A smaller header that folds to one line when you scroll keeps the Mark done card in view, and the notes now sit behind the ⓘ button."
-        },
-        {
-          "title": "Blaze path is back",
-          "text": "The Blaze guide shows its path again; the notes above it had squeezed it out of view."
-        },
-        {
-          "title": "Mining in one place",
-          "text": "Shafting gear is now part of the Mining guide, with a switch at the top and one card on the start page."
-        },
-        {
-          "title": "Milestones",
-          "text": "Ranked guides show your progress on one ring with milestone marks, and how many steps and coins the next milestone still needs."
-        }
+        { "title": "Your step fits on screen", "text": "A smaller header that folds to one line when you scroll keeps the Mark done card in view, and the notes now sit behind the ⓘ button." },
+        { "title": "Blaze path is back", "text": "The Blaze guide shows its path again; the notes above it had squeezed it out of view." },
+        { "title": "Mining in one place", "text": "Shafting gear is now part of the Mining guide, with a switch at the top and one card on the start page." },
+        { "title": "Milestones", "text": "Ranked guides show your progress on one ring with milestone marks, and how many steps and coins the next milestone still needs." }
       ]
     },
     {
       "version": "0.4.0",
       "date": "2026-11-02",
       "entries": [
-        {
-          "title": "The path is the ranking",
-          "text": "Each guide now sorts its open steps by what they bring per coin, also without a sync, and a step that costs far more than you have spent so far waits its turn."
-        },
-        {
-          "title": "Shafting gear",
-          "text": "A new mining guide with a fixed order of gear for Mineshafts, with the gain of every step added up."
-        },
-        {
-          "title": "One tick for all guides",
-          "text": "Ticking an item in one guide marks it in every guide that holds it."
-        }
+        { "title": "The path is the ranking", "text": "Each guide now sorts its open steps by what they bring per coin, also without a sync, and a step that costs far more than you have spent so far waits its turn." },
+        { "title": "Shafting gear", "text": "A new mining guide with a fixed order of gear for Mineshafts, with the gain of every step added up." },
+        { "title": "One tick for all guides", "text": "Ticking an item in one guide marks it in every guide that holds it." }
       ]
     },
     {
       "version": "0.3.0",
       "date": "2026-11-02",
       "entries": [
-        {
-          "title": "Swipes follow your finger",
-          "text": "The screen now moves with your finger, snaps into place when you let go, and springs back on a short swipe."
-        },
-        {
-          "title": "Guides open on your step",
-          "text": "Opening a guide takes you straight to the step you are on, just below the header."
-        },
-        {
-          "title": "Type in your stats",
-          "text": "Enter your /stats by hand under Stats, no API key needed; syncing with your own key is now an option in Settings."
-        }
+        { "title": "Swipes follow your finger", "text": "The screen now moves with your finger, snaps into place when you let go, and springs back on a short swipe." },
+        { "title": "Guides open on your step", "text": "Opening a guide takes you straight to the step you are on, just below the header." },
+        { "title": "Type in your stats", "text": "Enter your /stats by hand under Stats, no API key needed; syncing with your own key is now an option in Settings." }
       ]
     },
     {
       "version": "0.2.0",
       "date": "2026-11-02",
       "entries": [
-        {
-          "title": "Swipe through a guide",
-          "text": "Swipe sideways to change tabs, and from the first tab back to your guides."
-        },
-        {
-          "title": "Stats behind the profile button",
-          "text": "Your stats now open from the profile button at the top of the start page and of every guide."
-        },
-        {
-          "title": "Limits in the chips",
-          "text": "A missed True Defense or Magical Power limit now shows as a red value in its chip."
-        },
-        {
-          "title": "Source and coins left",
-          "text": "Each guide links its source again and shows the coins left to the end of the chapter and section."
-        }
+        { "title": "Swipe through a guide", "text": "Swipe sideways to change tabs, and from the first tab back to your guides." },
+        { "title": "Stats behind the profile button", "text": "Your stats now open from the profile button at the top of the start page and of every guide." },
+        { "title": "Limits in the chips", "text": "A missed True Defense or Magical Power limit now shows as a red value in its chip." },
+        { "title": "Source and coins left", "text": "Each guide links its source again and shows the coins left to the end of the chapter and section." }
       ]
     },
     {
       "version": "0.1.0",
       "date": "2026-11-02",
       "entries": [
-        {
-          "title": "Your guides in their own app",
-          "text": "Follow your guides step by step, see the best value and compare your stats, each guide in its own colours."
-        }
+        { "title": "Your guides in their own app", "text": "Follow your guides step by step, see the best value and compare your stats, each guide in its own colours." }
       ]
     }
   ]
