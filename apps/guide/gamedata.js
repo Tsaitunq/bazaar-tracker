@@ -1,5 +1,5 @@
 // Loads and checks the game data in gamedata/*.json (stats, HOTM, attributes, power, pets). A broken file throws with a path to the fault.
-export const FILES = ['stats', 'hotm', 'attributes', 'power', 'pets', 'essence-perks'];
+export const FILES = ['stats', 'hotm', 'attributes', 'power', 'pets', 'essence-perks', 'stat-sources'];
 const AREAS = new Set(['mining', 'combat', 'farming', 'general']);
 // the /stats menu category of a stat (scripts/gamedata-categories.mjs); Nether Embodiment multiplies combat and misc
 const CATEGORIES = new Set(['combat', 'misc', 'wisdom', 'mining', 'farming', 'foraging', 'fishing', 'hunting']);
@@ -154,6 +154,71 @@ export function petLevel(exp, rarity, type, leveling) {
   return { level, max, toNext: level >= max ? null : Math.ceil(steps[level - 1] - left) };
 }
 
+// gamedata/stat-sources.json: skills, slayers, fairy souls, SkyBlock level, cookie, god potion, accessories. A series is { values, src, confidence }:
+// values[i] is level i + 1; safe needs two sources that agree, unsafe may carry the levels that differ.
+const CONFIDENCE = new Set(['safe', 'unsafe']);
+const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
+
+function checkConfidence(w, s) {
+  if (!Array.isArray(s.src) || !s.src.length || !s.src.every((x) => typeof x === 'string' && x)) fail(w, 'src must be a list of texts');
+  if (!CONFIDENCE.has(s.confidence)) fail(w, `bad confidence ${s.confidence}`);
+  if (s.confidence === 'safe' && s.src.length < 2) fail(w, 'safe needs two sources');
+  if (s.confidence === 'safe' && s.diff !== undefined) fail(w, 'safe has no diff');
+}
+
+function checkSeries(w, s, levels) {
+  if (!Array.isArray(s?.values) || !s.values.every(isNum)) fail(w, 'values must be numbers');
+  if (levels !== undefined && s.values.length !== levels) fail(w, `needs ${levels} values, has ${s.values.length}`);
+  checkConfidence(w, s);
+  if (s.diff !== undefined && (!Array.isArray(s.diff) || !s.diff.every((l) => Number.isInteger(l) && l >= 1 && l <= s.values.length))) fail(w, 'diff must list levels');
+}
+
+function checkValue(w, v) {
+  if (!isNum(v?.value)) fail(w, 'value must be a number');
+  checkConfidence(w, v);
+}
+
+const increasing = (w, values) => values.forEach((v, i) => { if (!(v > 0) || (i && !(v >= values[i - 1]))) fail(w, `xp not rising at level ${i + 1}`); });
+
+export function checkStatSources(d, stats) {
+  for (const key of ['skills', 'slayers', 'fairySouls', 'skyblockLevel', 'boosterCookie', 'godPotion', 'accessories']) need('stat-sources', d, [key]);
+  const group = (kind, list, cumulativeXp) => {
+    for (const [id, e] of Object.entries(list)) {
+      const w = `stat-sources.${kind}.${id}`;
+      need(w, e, ['maxLevel', 'xp', 'stats', 'other']);
+      if (!Number.isInteger(e.maxLevel) || e.maxLevel < 1) fail(w, 'bad maxLevel');
+      checkSeries(`${w}.xp`, e.xp, e.maxLevel);
+      if (!cumulativeXp) increasing(`${w}.xp`, e.xp.values);
+      for (const [stat, s] of Object.entries(e.stats)) {
+        if (!stats.has(stat)) fail(w, `unknown stat ${stat}`);
+        checkSeries(`${w}.stats.${stat}`, s, e.maxLevel);
+      }
+      for (const [name, s] of Object.entries(e.other)) checkSeries(`${w}.other.${name}`, s, e.maxLevel);
+      if (e.sbXp !== undefined) checkSeries(`${w}.sbXp`, e.sbXp, e.maxLevel);
+      if (e.xpTotal !== undefined) {
+        let sum = 0;
+        e.xp.values.forEach((v, i) => { sum += v; if (e.xpTotal[i] !== sum) fail(`${w}.xpTotal`, `level ${i + 1} is ${e.xpTotal[i]}, the sum is ${sum}`); });
+        if (e.xpTotal.length !== e.maxLevel) fail(`${w}.xpTotal`, 'wrong length');
+      }
+    }
+  };
+  group('skills', d.skills, false);
+  group('slayers', d.slayers, true); // a slayer's xp are the totals needed, already cumulative
+  for (const [id, e] of Object.entries(d.slayers)) increasing(`stat-sources.slayers.${id}.xp`, e.xp.values);
+  checkValue('stat-sources.fairySouls.total', d.fairySouls.total);
+  if (!isNum(d.fairySouls.perExchange?.sbXp)) fail('stat-sources.fairySouls', 'perExchange.sbXp must be a number');
+  checkConfidence('stat-sources.fairySouls.perExchange', d.fairySouls.perExchange);
+  for (const [stat, v] of Object.entries(d.fairySouls.statsPerExchange ?? {})) { if (!stats.has(stat)) fail('stat-sources.fairySouls', `unknown stat ${stat}`); checkValue(`stat-sources.fairySouls.statsPerExchange.${stat}`, v); }
+  checkValue('stat-sources.skyblockLevel.xpPerLevel', d.skyblockLevel.xpPerLevel);
+  checkValue('stat-sources.skyblockLevel.maxLevel', d.skyblockLevel.maxLevel);
+  for (const part of ['perLevel', 'perFiveLevels']) {
+    for (const [stat, v] of Object.entries(d.skyblockLevel[part])) { if (!stats.has(stat)) fail(`stat-sources.skyblockLevel.${part}`, `unknown stat ${stat}`); checkValue(`stat-sources.skyblockLevel.${part}.${stat}`, v); }
+  }
+  for (const [stat, v] of Object.entries(d.boosterCookie.stats)) { if (!stats.has(stat)) fail('stat-sources.boosterCookie', `unknown stat ${stat}`); checkValue(`stat-sources.boosterCookie.${stat}`, v); }
+  for (const [stat, v] of Object.entries(d.godPotion.stats)) { if (!stats.has(stat)) fail('stat-sources.godPotion', `unknown stat ${stat}`); checkValue(`stat-sources.godPotion.${stat}`, v); }
+  for (const [stat, v] of Object.entries(d.accessories.enrichments?.values ?? {})) { if (!stats.has(stat)) fail('stat-sources.accessories', `unknown stat ${stat}`); checkValue(`stat-sources.accessories.enrichments.${stat}`, v); }
+}
+
 // The essence shop: every perk has a cost per level; an effect adds a stat, a conditional is only described.
 export function checkEssence(d, stats) {
   need('essence', d, ['perks']);
@@ -193,12 +258,13 @@ export function valueAt(e, level) {
 
 // read: (name) -> parsed JSON (or a promise of it).
 export async function loadGameData(read) {
-  const [stats, hotm, attributes, power, pets, essence] = await Promise.all(FILES.map((f) => read(f)));
+  const [stats, hotm, attributes, power, pets, essence, statSources] = await Promise.all(FILES.map((f) => read(f)));
   const ids = checkStats(stats);
   checkHotm(hotm, ids);
   checkAttributes(attributes, ids);
   checkPower(power, ids);
   checkPets(pets, ids);
   checkEssence(essence, ids);
-  return { stats, hotm, attributes, power, pets, essence };
+  checkStatSources(statSources, ids);
+  return { stats, hotm, attributes, power, pets, essence, statSources };
 }
