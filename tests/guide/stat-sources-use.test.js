@@ -141,3 +141,10 @@ test('a measurement older than the import, with a build part, is stale; removing
   assert.equal(gone.measured, null);
   assert.ok(gone.known.length);
 });
+
+test('the power tab lists the consumables with the uses entered', () => {
+  const w = world({ ...emptyBuild(), consumables: { ore_oats: 3 } }, {});
+  const html = statsView(w, { page: 'stats', tab: 'power', area: 'mining' });
+  assert.match(html, /data-consumable="ore_oats"[^>]*value="3"/);
+  assert.match(html, /Not provided by the API/);
+});

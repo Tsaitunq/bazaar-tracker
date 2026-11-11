@@ -760,6 +760,7 @@ root.addEventListener('change', async (e) => {
   if (e.target.matches('[data-attr-level]')) { settled(e.target); return setLevel('attr', e.target.value); }
   if (e.target.matches('[data-power-mp]')) { settled(e.target); return edit('power', powerMp(e.target.value)); }
   if (dataset.gear) { settled(e.target); build = setGear(build, { [dataset.gear]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }); return saveBuild(); }
+  if (dataset.consumable) { settled(e.target); const max = gamedata?.statSources.consumables.find((c) => c.id === dataset.consumable)?.max ?? 0; build = { ...build, consumables: { ...build.consumables, [dataset.consumable]: Math.min(Math.max(Math.floor(Number(e.target.value)) || 0, 0), max) } }; return saveBuild(); }
   if (dataset.buff) { settled(e.target); build = { ...build, buffs: { ...build.buffs, [dataset.buff]: e.target.checked } }; return saveBuild(); }
   if (e.target.matches('[data-tax], [data-flag], [data-brake]')) settled(e.target);
   if (e.target.matches('[data-brake]')) { settings.brake = Number(e.target.value) > 0 ? Number(e.target.value) : 5; return saveSettings(); }
