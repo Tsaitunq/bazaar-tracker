@@ -206,10 +206,10 @@
       4
      ],
      "src": [
-      "wiki Mining/Leveling Rewards"
+      "wiki Mining/Leveling Rewards",
+      "game: Mining 39 gives 156 Mining Fortune (4 per level)"
      ],
-     "confidence": "unsafe",
-     "note": "one source"
+     "confidence": "safe"
     }
    },
    "other": {},
@@ -3899,20 +3899,20 @@
    "HEALTH": {
     "value": 5,
     "src": [
-     "wiki SkyBlock Levels"
+     "wiki SkyBlock Levels",
+     "game: SkyBlock level 280 gives 1,400 Health (5 per level)"
     ],
-    "confidence": "unsafe",
-    "note": "one source"
+    "confidence": "safe"
    }
   },
   "perFiveLevels": {
    "STRENGTH": {
     "value": 1,
     "src": [
-     "wiki SkyBlock Levels"
+     "wiki SkyBlock Levels",
+     "game: SkyBlock level 280 gives 56 Strength (1 per 5 levels)"
     ],
-    "confidence": "unsafe",
-    "note": "one source; \"for every 5 levels\" is read as at levels 5, 10, 15 and so on"
+    "confidence": "safe"
    }
   }
  },

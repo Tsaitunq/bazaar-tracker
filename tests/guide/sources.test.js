@@ -108,9 +108,17 @@ test('buffs: values of stat-sources, only what is switched on, unsafe marked', (
 });
 
 test('a series that is unsafe makes the level-based contribution unsafe, a safe one does not', () => {
-  const r = run({ skills: { SKILL_MINING: 3022425 } });
+  const r = run({ skills: { SKILL_MINING: 3022425, SKILL_FARMING: 3022425 } });
   const defense = r.contrib.DEFENSE.find((c) => c.part === 'skills');
   assert.equal(defense.unsafe, false);
   const fortune = r.contrib.MINING_FORTUNE.find((c) => c.part === 'skills');
-  assert.equal(fortune.unsafe, true);
+  assert.equal(fortune.unsafe, false); // confirmed in the game
+  assert.equal(r.contrib.FARMING_FORTUNE.find((c) => c.part === 'skills').unsafe, true);
+});
+
+test('the God Potion gives Haste (+200 Mining Speed) and Spelunker (+25 Mining Fortune), both safe', () => {
+  const r = run({}, { buffs: { godPotion: true, boosterCookie: false } });
+  assert.equal(r.buffs.MINING_SPEED, 200);
+  assert.equal(r.buffs.MINING_FORTUNE, 25);
+  assert.equal(r.contrib.MINING_SPEED.find((c) => c.part === 'godPotion').unsafe, false);
 });

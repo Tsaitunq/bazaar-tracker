@@ -3,7 +3,7 @@
 // Primary source is hypixelskyblock.minecraft.wiki, the second is the NEU repo (constants/) or, where there is none, data the app already has.
 // A value is "safe" when two sources agree, otherwise "unsafe" with the sources and the levels that differ. Nothing is guessed.
 import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
-import { BASE_STATS, ACCESSORY_REFORGES } from './lib/stat-sources-extra.mjs';
+import { BASE_STATS, ACCESSORY_REFORGES, confirmByGame } from './lib/stat-sources-extra.mjs';
 import {
   statId, parseRewardTable, parseSlayerLevels, parseSlayerOverview, parseCookie, parseGodPotionEffects, parseEnrichments, expandNeu, series, cumulative,
 } from './lib/stat-sources.mjs';
@@ -219,6 +219,7 @@ const data = {
   src: `hypixelskyblock.minecraft.wiki and NotEnoughUpdates-REPO constants/ (collected ${DATE}). Every series is { values, src, confidence }: safe = two sources agree, unsafe = one source or they differ (diff lists the levels). values[i] is the value of level i + 1.`,
   skills, slayers, fairySouls, skyblockLevel, boosterCookie, godPotion, accessories, baseStats: BASE_STATS,
 };
+confirmByGame(data);
 writeFileSync(new URL('../gamedata/stat-sources.json', import.meta.url), `${JSON.stringify(data, null, 1)}\n`);
 
 // the report: everything that is not safe, and what was not found
