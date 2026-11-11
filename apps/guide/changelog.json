@@ -1,6 +1,14 @@
 {
   "versions": [
     {
+      "version": "0.15.1",
+      "date": "2026-11-11",
+      "entries": [
+        { "title": "Upgrades count on the next piece", "text": "A step on an item you have since forged up, such as books on a Titanium Drill, is now found on the higher piece, and the import says which one." },
+        { "title": "All attributes recognised", "text": "Attributes the game still stores under an older name, such as Flare, are now read, so their levels and steps match your profile." }
+      ]
+    },
+    {
       "version": "0.15.0",
       "date": "2026-11-10",
       "entries": [
