@@ -12,6 +12,7 @@ GET only, JSON.
 |---|---|
 | `/v1/profiles/<name>` | `{ uuid, profiles: [{ id, cute_name, game_mode, selected }], notAffiliated }` |
 | `/v1/profile/<name>/<profileId>` | Trimmed data of that player only: `hotm`, `essencePerks`, `pets`, `skills`, `slayer`, `fairySouls`, `accessoryBag`, `attributes`, `inventories`, `missing` |
+| `/v1/skin/<uuid>` | The player's skin as `image/png` (not JSON). Mojang session server, then PlayerDB; only `https://textures.minecraft.net` urls are fetched, at most 64 KB, PNG signature checked. KV cache 1 day, same rate limit. `404` no custom skin |
 
 - `<name>`: 3 to 16 characters, `A-Z a-z 0-9 _`. `<profileId>`: a UUID, with or without dashes.
 - A field Hypixel does not send (usually: API settings off in game) is left out and listed in `missing`, e.g. `"inventories.wardrobe"`.

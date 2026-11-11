@@ -3,5 +3,6 @@ const PROFILE_ID = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f
 
 export const validName = (s) => NAME.test(s);
 export const validProfileId = (s) => PROFILE_ID.test(s);
+export const validUuid = (s) => /^[0-9a-f]{32}$/i.test(String(s).replace(/-/g, ''));
 export const plainId = (s) => s.replace(/-/g, '').toLowerCase();
 export const dashedId = (s) => plainId(s).replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, '$1-$2-$3-$4-$5');

@@ -1,11 +1,14 @@
 import { corsHeaders } from './cors.js';
-import { validName, validProfileId, plainId, dashedId } from './validate.js';
+import { validName, validProfileId, validUuid, plainId, dashedId } from './validate.js';
 import { allowed } from './limit.js';
 import { cached, keys, TTL } from './cache.js';
-import { HttpError, mojangUuid, hypixelProfiles, hypixelProfile } from './upstream.js';
+import { HttpError, mojangUuid, hypixelProfiles, hypixelProfile, skinPng } from './upstream.js';
 import { trimList, trimProfile } from './trim.js';
 
 const NOTICE = 'Not affiliated with or endorsed by Hypixel';
+
+const toBase64 = (bytes) => btoa(Array.from(bytes, (b) => String.fromCharCode(b)).join(''));
+const fromBase64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
 
 export async function handle(request, env, deps = { fetch: (...a) => fetch(...a) }) {
   const base = { ...corsHeaders(request.headers.get('Origin')), 'X-Content-Type-Options': 'nosniff' };
@@ -26,11 +29,29 @@ export async function handle(request, env, deps = { fetch: (...a) => fetch(...a)
     return error(400, 'bad path');
   }
   const [v, kind, name, pid, ...rest] = parts;
+  if (v === 'v1' && kind === 'skin' && name && pid === undefined && !rest.length) return skin(name);
   const isList = kind === 'profiles' && name && pid === undefined;
   const isOne = kind === 'profile' && name && pid !== undefined;
   if (v !== 'v1' || rest.length || !(isList || isOne)) return error(404, 'not found');
   if (!validName(name)) return error(400, 'invalid player name');
   if (isOne && !validProfileId(pid)) return error(400, 'invalid profile id');
+
+  async function skin(raw) {
+    if (!validUuid(raw)) return error(400, 'invalid uuid');
+    if (!(await allowed(env, request))) return error(429, 'too many requests', { 'Retry-After': '60' });
+    try {
+      // KV holds text, so the PNG is kept as base64
+      const r = await cached(env, keys.skin(plainId(raw)), TTL.skin, async () => toBase64(await skinPng(plainId(raw), deps)));
+      return new Response(fromBase64(r.value), {
+        status: 200,
+        headers: { 'Content-Type': 'image/png', ...base, 'Cache-Control': 'private, max-age=86400', 'X-Cache': r.hit ? 'HIT' : 'MISS' },
+      });
+    } catch (e) {
+      if (e instanceof HttpError) return error(e.status, e.message, e.retryAfter ? { 'Retry-After': String(e.retryAfter) } : {});
+      console.error('unexpected error');
+      return error(500, 'internal error');
+    }
+  }
 
   if (!(await allowed(env, request))) return error(429, 'too many requests', { 'Retry-After': '60' });
 
