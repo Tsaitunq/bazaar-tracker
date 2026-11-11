@@ -71,3 +71,23 @@ export async function fetchProfile(name, profileId, deps) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) throw new ImportError('server');
   return body;
 }
+
+// The skin of the player as a data url, or null: the skin is a nicety, so every failure is just "no skin". Only a PNG of at most
+// 64 KB is taken (the same limit as the worker's).
+const MAX_SKIN = 64 * 1024;
+const PNG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+export async function fetchSkin(uuid, { fetch = globalThis.fetch, timeout = TIMEOUT_MS } = {}) {
+  const id = String(uuid ?? '').replace(/-/g, '');
+  if (!/^[0-9a-f]{32}$/i.test(id)) return null;
+  try {
+    const res = await fetch(`${API}/v1/skin/${id}`, { signal: AbortSignal.timeout(timeout), cache: 'no-store' });
+    if (!res.ok) return null;
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    if (bytes.length > MAX_SKIN || !PNG.every((b, i) => bytes[i] === b)) return null;
+    let text = '';
+    for (const b of bytes) text += String.fromCharCode(b);
+    return `data:image/png;base64,${btoa(text)}`;
+  } catch {
+    return null;
+  }
+}

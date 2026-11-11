@@ -32,7 +32,7 @@ Not affiliated with or endorsed by Hypixel. The text is on the settings block an
 
 ## Stored on the device
 
-`pg.api` (`{ name, profileId, own }`), `pg.profile` (the summary: numbers and ids), `pg.undo`. One profile at a time; a new name asks before it replaces the stored state, and applying for a name that is not the saved one asks once more. "Delete profile data" removes `pg.api` and `pg.profile`; ticks, build and measurements stay. Nothing of this is part of an export.
+`pg.api` (`{ name, profileId, own }`), `pg.profile` (the summary: numbers and ids), `pg.undo`. One profile at a time; a new name asks before it replaces the stored state, and applying for a name that is not the saved one asks once more. After a successful load the app also fetches the player's skin (`GET /v1/skin/<uuid>`, a PNG of at most 64 KB) and keeps it as a data url in `pg.skin`; the head icon, the profile menu and the figure draw it (slim arms are detected from the pixels; a 64x32 skin is mirrored to 64x64). No skin or an error leaves `img/skin.png`. "Delete profile data" removes `pg.api`, `pg.profile` and `pg.skin`; ticks, build and measurements stay. Nothing of this is part of an export.
 
 ## Not confirmed
 

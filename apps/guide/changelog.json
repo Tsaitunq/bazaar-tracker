@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.16.0",
+      "date": "2026-11-11",
+      "entries": [
+        { "title": "Your own skin", "text": "After an import the head icon and the figure on the stats page show your Minecraft skin, including slim arms; deleting the profile data removes it again." }
+      ]
+    },
+    {
       "version": "0.15.2",
       "date": "2026-11-11",
       "entries": [

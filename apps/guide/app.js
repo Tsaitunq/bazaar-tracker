@@ -17,10 +17,10 @@ import { statsView } from './views/stats.js';
 import { attrResults } from './views/stats-attrs.js';
 import { settingsView } from './views/settings.js';
 import { importView } from './views/import.js';
-import { listProfiles, fetchProfile, defaultProfile, validName, ImportError } from './import/api.js';
+import { listProfiles, fetchProfile, fetchSkin, defaultProfile, validName, ImportError } from './import/api.js';
 import { summarize } from './import/profile.js';
 import { proposals, applyRows, undoImport, hasUndo, isPickable, isSuggestion } from './import/propose.js';
-import { paintFigures } from './skin.js';
+import { paintFigures, setSkin } from './skin.js';
 import { decide, finishTour, STEPS, tourHtml, newsHtml } from './intro.js';
 
 const BAZAAR = 'https://api.hypixel.net/v2/skyblock/bazaar';
@@ -63,6 +63,7 @@ let gamedata = null;
 // The profile import. All of it stays on this device: the name and chosen profile, the summary (numbers and ids only) and one step of undo.
 let api = load('pg.api', null); // { name, profileId, own }
 let profile = load('pg.profile', null);
+setSkin(load('pg.skin', null)); // the skin of the imported player, if there is one
 let undo = load('pg.undo', null);
 let imp = { profiles: null, profileId: null, nameDraft: null, busy: false, message: '', offline: false, retryUntil: 0, confirm: null, picked: new Set(), since: false };
 const bins = load('pg.bins', {});
@@ -546,10 +547,13 @@ async function impLoad(confirmed = false) {
   try {
     const answer = await fetchProfile(name, id);
     const next = await summarize(answer, gamedata, Date.now());
+    // the skin is a nicety: no skin, or a failure, leaves the one there is
+    const skin = await fetchSkin(answer.uuid);
     profile = next;
     api = { name, profileId: id, own: api?.own ?? null };
     save('pg.profile', profile);
     save('pg.api', api);
+    if (skin) { save('pg.skin', skin); setSkin(skin); }
     imp = { ...imp, nameDraft: null, picked: new Set(), offline: false };
     impSet({ busy: false, message: next.missing.list.length ? `Loaded. In the game the API is off for: ${next.missing.list.join(', ')}.` : 'Loaded.' });
   } catch (e) { impFail(e); }
@@ -596,6 +600,8 @@ function impClear() {
   api = null;
   drop('pg.profile');
   drop('pg.api');
+  drop('pg.skin');
+  setSkin(null);
   imp = { ...imp, profiles: null, profileId: null, nameDraft: null, picked: new Set(), confirm: null, offline: false };
   impSet({ message: 'Profile data deleted from this device.' });
 }

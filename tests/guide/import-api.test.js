@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { listProfiles, fetchProfile, defaultProfile, validName, ImportError, API } from '../../apps/guide/import/api.js';
+import { listProfiles, fetchProfile, fetchSkin, defaultProfile, validName, ImportError, API } from '../../apps/guide/import/api.js';
 
 const ID = '11111111-1111-4111-8111-111111111111';
 const reply = (status, body, headers = {}) => async () => ({
@@ -60,4 +60,21 @@ test('no message names the player', async () => {
     const e = await fetchProfile('SecretName', ID, { fetch: reply(status, {}) }).catch((x) => x);
     assert.equal(e.message.includes('SecretName'), false, String(status));
   }
+});
+
+test('skin: a png comes back as a data url, anything else is just no skin', async () => {
+  const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 7, 7]);
+  const bin = (status, bytes) => async () => ({ status, ok: status < 300, arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.length) });
+  const uuid = '00000000000040008000000000000001';
+  const seen = [];
+  const url = await fetchSkin(uuid.replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, '$1-$2-$3-$4-$5'), { fetch: async (u, o) => { seen.push(u); return bin(200, png)(u, o); } });
+  assert.equal(url, `data:image/png;base64,${Buffer.from(png).toString('base64')}`);
+  assert.equal(seen[0], `${API}/v1/skin/${uuid}`);
+  assert.equal(await fetchSkin(uuid, { fetch: bin(404, png) }), null);
+  assert.equal(await fetchSkin(uuid, { fetch: bin(200, new Uint8Array([1, 2, 3])) }), null); // not a png
+  assert.equal(await fetchSkin(uuid, { fetch: bin(200, new Uint8Array(70 * 1024).fill(0).map((_, i) => (i < 8 ? png[i] : 0))) }), null); // too big
+  assert.equal(await fetchSkin(uuid, { fetch: async () => { throw new Error('offline'); } }), null);
+  let calls = 0;
+  assert.equal(await fetchSkin('nope', { fetch: async () => { calls++; } }), null);
+  assert.equal(calls, 0);
 });
