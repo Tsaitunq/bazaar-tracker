@@ -139,9 +139,31 @@ test('lines: Crimson tiers by name, Mithril to Titanium, and no loop', () => {
   assert.deepEqual(lineOf('A', { A: { parent: { A: 'B' } }, B: { parent: { B: 'A' } } }), ['A', 'B']);
 });
 
-test('an owned step does not move up the line', () => {
-  const step = { detect: { kind: 'owned', on: [['TITANIUM_DRILL_1']] } };
-  assert.equal(detectStep(step, profile([item('TITANIUM_DRILL_4')]), {}, LADDER).have, 0);
+// A line whose pieces are kept side by side (no consumed flag): an owned step looks for exactly that item.
+const KEPT = { REFINED_MITHRIL_PICKAXE: { parent: { REFINED_MITHRIL_PICKAXE: 'REFINED_TITANIUM_PICKAXE' } } };
+test('an owned step does not move up a line whose pieces are kept', () => {
+  const step = { detect: { kind: 'owned', on: [['REFINED_MITHRIL_PICKAXE']] } };
+  assert.equal(detectStep(step, profile([item('REFINED_TITANIUM_PICKAXE')]), {}, KEPT).have, 0);
+  assert.equal(detectStep(step, profile([item('REFINED_MITHRIL_PICKAXE')]), {}, KEPT).have, 1);
+  // the old drill data without the flag behaves the same
+  assert.equal(detectStep({ detect: { kind: 'owned', on: [['TITANIUM_DRILL_1']] } }, profile([item('TITANIUM_DRILL_4')]), {}, LADDER).have, 0);
+});
+
+// A drill is used up by the upgrade (items.json consumed): DR-X355 becomes DR-X455, so a higher drill means the lower one was owned.
+const USED_UP = Object.fromEntries(Object.entries(LADDER).map(([id, v]) => [id, { ...v, consumed: true }]));
+test('an owned step moves up a line whose lower pieces are used up by the upgrade', () => {
+  const owned = (id, ...have) => detectStep({ detect: { kind: 'owned', on: [[id]] } }, profile(have.map((h) => item(h))), {}, USED_UP).have;
+  assert.equal(owned('TITANIUM_DRILL_1', 'TITANIUM_DRILL_4'), 1);
+  assert.equal(owned('TITANIUM_DRILL_2', 'TITANIUM_DRILL_3'), 1);
+  assert.equal(owned('TITANIUM_DRILL_4', 'DIVAN_DRILL'), 1); // Divan's Drill is made from DR-X655
+  assert.equal(owned('TITANIUM_DRILL_4', 'TITANIUM_DRILL_3'), 0); // never downwards
+  assert.equal(owned('TITANIUM_DRILL_1'), 0);
+  // the gap Mithril to Titanium (GAPS) is part of the line once the Mithril drill is marked
+  const gap = { ...USED_UP, MITHRIL_DRILL_2: { consumed: true } };
+  assert.equal(detectStep({ detect: { kind: 'owned', on: [['MITHRIL_DRILL_2']] } }, profile([item('TITANIUM_DRILL_3')]), {}, gap).have, 1);
+  // a piece that is not marked ends the walk: the chain stops at it
+  const broken = { ...USED_UP, TITANIUM_DRILL_2: { parent: LADDER.TITANIUM_DRILL_2.parent } };
+  assert.equal(detectStep({ detect: { kind: 'owned', on: [['TITANIUM_DRILL_1']] } }, profile([item('TITANIUM_DRILL_4')]), {}, broken).have, 0);
 });
 
 // A drill part is no item once it sits on a drill: the profile has it only as drill.parts.<slot>.

@@ -5,6 +5,8 @@ const FIELDS = ['name', 'category', 'sword_type', 'tier', 'gemstone_slots', 'req
 const NAME = { HEALTH_REGENERATION: 'HEALTH_REGEN', WALK_SPEED: 'SPEED' };
 const upperKeys = (o) => (o ? Object.fromEntries(Object.entries(o).map(([k, v]) => [NAME[k.toUpperCase()] ?? k.toUpperCase(), v])) : undefined);
 
+// consumed: upgrading the item uses it up (the Drill Forge takes the lower drill), so a higher piece of its line means it was owned. Set for drills only;
+// other lines (pickaxes, gauntlets, Kuudra armor) are not known to use the lower piece up, so they keep the old rule: an owned step looks for exactly that item.
 // parents: NEU constants/parents.json, the top of a family to its lower pieces. Not on the wiki, so not confirmed.
 export function compactItems(resource, parents) {
   const family = {};
@@ -14,7 +16,7 @@ export function compactItems(resource, parents) {
     const row = {};
     for (const f of FIELDS) if (item[f] !== undefined) row[f] = item[f];
     const stats = upperKeys(item.stats), tiered = upperKeys(item.tiered_stats), parent = item.museum_data?.parent;
-    out[item.id] = { ...row, ...(stats && { stats }), ...(tiered && { tiered_stats: tiered }), ...(parent && { parent }), ...(family[item.id] && { family: family[item.id] }) };
+    out[item.id] = { ...row, ...(stats && { stats }), ...(tiered && { tiered_stats: tiered }), ...(parent && { parent }), ...(family[item.id] && { family: family[item.id] }), ...(item.category === 'DRILL' && { consumed: true }) };
   }
   return out;
 }
