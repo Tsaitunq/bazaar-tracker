@@ -79,6 +79,12 @@ function itemPart(d, profile, groups, items) {
   for (const ids of slots) {
     const reach = d.kind === 'owned' ? ids : ids.flatMap((id) => lineOf(id, items));
     const found = profile.items.filter((i) => reach.includes(i.id)).map((i) => value(i, d));
+    // A drill part (engine, fuel tank, upgrade module) is no item of its own once it sits on a drill. A part of the step's line on a drill counts as owned:
+    // installing the next one uses the lower part up, so a higher one means the lower was owned. (A lower drill is different: see "an owned step does not move up the line".)
+    if (d.kind === 'owned' && !found.length) {
+      const line = ids.flatMap((id) => lineOf(id, items));
+      if (profile.items.some((i) => Object.values(i.parts ?? {}).some((p) => line.includes(String(p).toUpperCase())))) found.push(1);
+    }
     have += found.length ? Math.max(...found) : 0;
   }
   if (d.kind === 'part' && profile.items.some((i) => d.ids.includes(i.id))) have = 1;

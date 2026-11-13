@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.20.3",
+      "date": "2026-11-13",
+      "entries": [
+        { "title": "Drill parts found", "text": "Drill engines and fuel tanks that sit on your drill now count as owned, so the import no longer reports them as missing." }
+      ]
+    },
+    {
       "version": "0.20.2",
       "date": "2026-11-13",
       "entries": [

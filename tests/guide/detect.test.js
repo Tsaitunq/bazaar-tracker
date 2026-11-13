@@ -143,3 +143,29 @@ test('an owned step does not move up the line', () => {
   const step = { detect: { kind: 'owned', on: [['TITANIUM_DRILL_1']] } };
   assert.equal(detectStep(step, profile([item('TITANIUM_DRILL_4')]), {}, LADDER).have, 0);
 });
+
+// A drill part is no item once it sits on a drill: the profile has it only as drill.parts.<slot>.
+const PARTS_LINE = {
+  MITHRIL_DRILL_ENGINE: { parent: { MITHRIL_DRILL_ENGINE: 'TITANIUM_DRILL_ENGINE' } },
+  TITANIUM_DRILL_ENGINE: { parent: { TITANIUM_DRILL_ENGINE: 'RUBY_POLISHED_DRILL_ENGINE' } },
+  TITANIUM_FUEL_TANK: { parent: { TITANIUM_FUEL_TANK: 'GEMSTONE_FUEL_TANK' } },
+};
+const owns = (id, items) => detectStep({ detect: { kind: 'owned', on: [[id]] } }, profile(items), {}, PARTS_LINE).have;
+
+test('an owned drill part counts when it, or a higher part of its line, sits on a drill', () => {
+  const drill = [item('TITANIUM_DRILL_4', { parts: { engine: 'ruby_polished_drill_engine', fuel_tank: 'titanium_fuel_tank', upgrade_module: 'goblin_omelette_sunny_side' } })];
+  assert.equal(owns('RUBY_POLISHED_DRILL_ENGINE', drill), 1); // the part itself
+  assert.equal(owns('TITANIUM_DRILL_ENGINE', drill), 1); // a higher engine is installed: this one was owned and used up
+  assert.equal(owns('MITHRIL_DRILL_ENGINE', drill), 1);
+  assert.equal(owns('TITANIUM_FUEL_TANK', drill), 1);
+  // a part higher than the installed one is not owned
+  assert.equal(owns('SAPPHIRE_POLISHED_DRILL_ENGINE', drill), 0);
+  assert.equal(owns('GEMSTONE_FUEL_TANK', drill), 0);
+  // no drill, or a drill without parts: nothing
+  assert.equal(owns('TITANIUM_DRILL_ENGINE', []), 0);
+  assert.equal(owns('TITANIUM_DRILL_ENGINE', [item('TITANIUM_DRILL_4')]), 0);
+});
+
+test('a loose part in the inventory still counts as before', () => {
+  assert.equal(owns('TITANIUM_DRILL_ENGINE', [item('TITANIUM_DRILL_ENGINE')]), 1);
+});
