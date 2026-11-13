@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { statDetail, buildOf, statsModel } from '../../apps/guide/stats-model.js';
+import { statDetail, buildOf, statsModel, attrPlanned } from '../../apps/guide/stats-model.js';
+import { statsView } from '../../apps/guide/views/stats.js';
 import { attrLevel } from '../../apps/guide/import/profile.js';
 import { gamedata, emptyBuild } from '../fixtures/guide-world.js';
 
@@ -61,11 +62,62 @@ test('Rotten Pickaxe: 8 shards are level 2 and give 6 Mining Speed, 3 per level'
   assert.equal(g.lines[0].label, 'Rotten Pickaxe 2');
 });
 
-test('attributes: a level in the build that the import does not have is named on the line', () => {
-  const profile = { fetchedAt: 1, skills: null, slayer: null, skyblockXp: null, items: [], attrLevels: { rotten_pickaxe: 2 } };
-  const g = group(statDetail(world({ ...emptyBuild(), attrs: { rotten_pickaxe: 10 } }, { profile }), 'mining', 'MINING_SPEED'), 'Attributes');
-  assert.equal(g.sum, 30); // the build is what counts
-  assert.match(g.lines[0].note, /the import says level 2/);
+const importOf = (extra = {}) => ({ fetchedAt: 1, skills: null, slayer: null, skyblockXp: null, items: [], attrLevels: { rotten_pickaxe: 2 }, ...extra });
+
+test('attributes: where the build differs from the import the stats count the import, the build level stays as planned', () => {
+  const w = world({ ...emptyBuild(), attrs: { rotten_pickaxe: 10 } }, { profile: importOf() });
+  const d = statDetail(w, 'mining', 'MINING_SPEED');
+  const g = group(d, 'Attributes');
+  assert.equal(g.sum, 6); // the import's level 2, not the build's 10
+  assert.deepEqual(g.lines.filter((l) => !l.inactive).map((l) => l.label), ['Rotten Pickaxe 2']);
+  const planned = g.lines.find((l) => l.inactive);
+  assert.equal(planned.label, 'Rotten Pickaxe 10 (planned)');
+  assert.equal(planned.text, '+30');
+  assert.equal(planned.value, 0); // not in the sum
+  assert.match(planned.note, /the import has level 2/);
+  assert.deepEqual(d.attrPlanned, [{ key: 'rotten_pickaxe', name: 'Rotten Pickaxe', build: 10, import: 2 }]);
+  assert.equal(d.total.replace(/,/g, '') >= 6, true);
+});
+
+test('attributes: an attribute only the build has counts 0 and is planned; equal levels plan nothing; without an import the build counts', () => {
+  const only = statDetail(world({ ...emptyBuild(), attrs: { rotten_pickaxe: 4 } }, { profile: importOf({ attrLevels: {} }) }), 'mining', 'MINING_SPEED');
+  assert.equal(group(only, 'Attributes').sum ?? 0, 0);
+  assert.equal(only.attrPlanned[0].import, 0);
+  assert.deepEqual(statDetail(world({ ...emptyBuild(), attrs: { rotten_pickaxe: 2 } }, { profile: importOf() }), 'mining', 'MINING_SPEED').attrPlanned, []);
+  const none = statDetail(world({ ...emptyBuild(), attrs: { rotten_pickaxe: 10 } }), 'mining', 'MINING_SPEED');
+  assert.equal(group(none, 'Attributes').sum, 30);
+  assert.deepEqual(none.attrPlanned, []);
+});
+
+test('attributes: the detail view offers "Set build to import" per attribute and for all', () => {
+  const w = world({ ...emptyBuild(), attrs: { rotten_pickaxe: 10 } }, { profile: importOf() });
+  const html = statsView(w, { page: 'stats', tab: 'detail', area: 'mining', stat: 'MINING_SPEED' });
+  assert.match(html, /data-attr-sync="rotten_pickaxe">Set build to import</);
+  assert.match(html, /data-attr-sync-all>Take over all \(1\)</);
+  assert.match(html, /Rotten Pickaxe: build 10, import 2/);
+  const same = statsView(world({ ...emptyBuild(), attrs: { rotten_pickaxe: 2 } }, { profile: importOf() }), { page: 'stats', tab: 'detail', area: 'mining', stat: 'MINING_SPEED' });
+  assert.doesNotMatch(same, /data-attr-sync/);
+});
+
+test('attrPlanned is what the buttons set: the build then equals the import', () => {
+  const w = world({ ...emptyBuild(), attrs: { rotten_pickaxe: 10, fortunate_miner: 3 } }, { profile: importOf({ attrLevels: { rotten_pickaxe: 2, fortunate_miner: 3 } }) });
+  const list = attrPlanned(w);
+  assert.deepEqual(list.map((x) => x.key), ['rotten_pickaxe']);
+  const after = { ...w.build.attrs, ...Object.fromEntries(list.map((x) => [x.key, x.import])) };
+  assert.deepEqual(attrPlanned({ ...w, build: { ...w.build, attrs: after } }), []);
+});
+
+// --- the Omelette: the import says it, from the drill in use
+test('omelette: the stats follow the drill in the import, the build keeps its own switch', () => {
+  const levels = { mining_speed: 43, speedy_mineman: 35 };
+  const DRILLS = { D: { name: 'Drill', category: 'DRILL', stats: {} } };
+  const drill = (parts) => ({ id: 'D', at: ['Inventar'], parts, tip: { MINING_SPEED: 1000 } });
+  const sum = (omelette, parts) => group(statDetail(world({ ...emptyBuild(), hotm: hotm(levels, { omelette }) }, { items: DRILLS, profile: importOf({ items: [drill(parts)] }) }), 'mining', 'MINING_SPEED'), 'HOTM').sum;
+  assert.equal(sum(true, { engine: 'E' }), 2260); // the build says on, the drill has no module: off
+  assert.equal(sum(false, { engine: 'E', upgrade_module: 'GOBLIN_OMELETTE' }), 2320); // the build says off, the drill has one: on
+  const noDrill = group(statDetail(world({ ...emptyBuild(), hotm: hotm(levels, { omelette: true }) }, { items: DRILLS, profile: importOf({ items: [] }) }), 'mining', 'MINING_SPEED'), 'HOTM').sum;
+  assert.equal(noDrill, 2320); // no drill in the import: the build stays
+  assert.equal(buildOf(world({ ...emptyBuild(), hotm: hotm(levels, { omelette: true }) }, { items: DRILLS, profile: importOf({ items: [drill({ engine: 'E' })] }) })).hotm.omelette, false);
 });
 
 // --- the pet: its stats at the level of the build, and the active pet of an import when the build has none

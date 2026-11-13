@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { pieceParts, realItem, compareTip, loreCompleted } from '../../apps/guide/gear-parts.js';
+import { pieceParts, realItem, compareTip } from '../../apps/guide/gear-parts.js';
 import { gearOf } from '../../apps/guide/gear.js';
 import { miningSettings } from '../../apps/guide/optimizer.js';
 
@@ -61,20 +61,4 @@ test('gear: an owned piece with a tooltip counts the tooltip, one without keeps 
   assert.equal(d.source, 'game');
   assert.equal(d.differs, true);
   assert.equal(g.pieces.find((x) => x.id === 'HELM').source, 'calculated');
-});
-
-test('loreCompleted: a tooltip that holds everything stays; one that lacks the parts and Polarvoid gets them added, once', () => {
-  const p = pieceParts(piece('DRILL', { enchants: { efficiency: 5 }, parts: { engine: 'TITANIUM_DRILL_ENGINE' }, polarvoid: 5 }), items);
-  const stats = ['MINING_SPEED', 'MINING_FORTUNE'];
-  const whole = { MINING_SPEED: p.total.MINING_SPEED, MINING_FORTUNE: p.total.MINING_FORTUNE };
-  assert.deepEqual(loreCompleted(whole, p, stats), { tip: whole, lacks: [] });
-  const cut = { MINING_SPEED: p.total.MINING_SPEED - 150 - 50, MINING_FORTUNE: p.total.MINING_FORTUNE - 15 - 5, GEMSTONE_FORTUNE: 40 };
-  const out = loreCompleted(cut, p, stats);
-  assert.deepEqual(out.lacks, ['parts', 'polarvoid']);
-  assert.equal(out.tip.MINING_SPEED, p.total.MINING_SPEED);
-  assert.equal(out.tip.GEMSTONE_FORTUNE, 40);
-  const onlyPolar = { MINING_SPEED: p.total.MINING_SPEED - 50, MINING_FORTUNE: p.total.MINING_FORTUNE - 5 };
-  assert.deepEqual(loreCompleted(onlyPolar, p, stats).lacks, ['polarvoid']);
-  const odd = { MINING_SPEED: 7, MINING_FORTUNE: 7 }; // no known set explains it: stays as it is
-  assert.deepEqual(loreCompleted(odd, p, stats), { tip: odd, lacks: [] });
 });

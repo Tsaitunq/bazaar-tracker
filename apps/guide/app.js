@@ -23,6 +23,7 @@ import { proposals, applyRows, undoImport, hasUndo, isPickable, isSuggestion } f
 import { paintFigures, setSkin } from './skin.js';
 import { calcFor } from './sources.js';
 import { setAudit, deviations, exportText } from './audit.js';
+import { attrPlanned } from './stats-model.js';
 import { decide, finishTour, STEPS, tourHtml, newsHtml } from './intro.js';
 
 const BAZAAR = 'https://api.hypixel.net/v2/skyblock/bazaar';
@@ -496,6 +497,12 @@ function auditClear() {
   draw();
 }
 
+// The build's attribute levels set to what the import has: one attribute, or all that differ.
+function attrSync(key) {
+  const pick = attrPlanned(world()).filter((x) => key === null || x.key === key);
+  if (pick.length) edit('attrs', (a) => ({ ...a, ...Object.fromEntries(pick.map((x) => [x.key, x.import])) }));
+}
+
 // Drops the measurement of an area; with an import the totals then add up from the known sources.
 function removeMeasure(area) {
   if (!confirm(`Remove the ${area} measurement? The totals then come from the known sources only.`)) return;
@@ -682,6 +689,9 @@ root.addEventListener('click', (e) => {
   if (el('[data-info]')) { openInfo(); return; }
   const step = el('[data-step]');
   if (step) { if (step.closest('.card')) markCard(step, step.dataset.step); else toggle(step.dataset.step); return; }
+  const sync = el('[data-attr-sync]');
+  if (sync) { attrSync(sync.dataset.attrSync); return; }
+  if (el('[data-attr-sync-all]')) { attrSync(null); return; }
   if (el('[data-audit-export]')) { auditExport(); return; }
   if (el('[data-audit-clear]')) { auditClear(); return; }
   const rm = el('[data-stats-remove]');

@@ -71,20 +71,3 @@ export function compareTip(tip, calc, stats) {
   const keys = stats.filter((s) => tip[s] !== undefined || calc[s] !== undefined);
   return { delta: Object.fromEntries(keys.map((s) => [s, round((tip[s] ?? 0) - (calc[s] ?? 0))]).filter(([, v]) => v)), differs: keys.some((s) => Math.abs((tip[s] ?? 0) - (calc[s] ?? 0)) > 0.051) };
 }
-
-// The tooltip of an item is a snapshot: the drill parts and the Polarvoid books are missing from it when they were added after the item was last
-// looked at in the game. Which of them the tooltip lacks is read off the numbers: the first set of these kinds that makes the tooltip equal the own sum
-// without it (none = the tooltip holds everything). Stats the tooltip has and the own sum lacks (Lapidary on gemstones) do not count. Gives { tip, lacks }: tip with what it lacks added, so nothing is counted twice.
-// shortcut: only parts and polarvoid are tried, the two kinds seen missing; a third kind that goes missing needs adding here.
-const LORE_MAY_LACK = ['parts', 'polarvoid'];
-export function loreCompleted(tip, own, stats) {
-  const sums = (kinds) => Object.fromEntries(stats.map((s) => [s, round((own.lines[s] ?? []).filter((l) => kinds.includes(l.part)).reduce((n, l) => n + l.value, 0))]));
-  const fits = (kinds) => { const lacking = sums(kinds); return stats.every((s) => own.total[s] === undefined || Math.abs((tip[s] ?? 0) - (own.total[s] - lacking[s])) <= 0.51); };
-  const candidates = [[], ...LORE_MAY_LACK.map((k) => [k]), LORE_MAY_LACK];
-  const lacks = candidates.find(fits);
-  if (!lacks?.length) return { tip, lacks: [] };
-  const lacking = sums(lacks);
-  const out = { ...tip };
-  for (const s of stats) if (lacking[s]) out[s] = round((tip[s] ?? 0) + lacking[s]);
-  return { tip: out, lacks };
-}

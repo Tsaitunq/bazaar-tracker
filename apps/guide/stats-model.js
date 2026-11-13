@@ -8,6 +8,7 @@ import { SCORES } from './optimizer.js';
 import { gearOf, buildPet } from './gear.js';
 import { totalFor, statsFor, statsOf, condHolds, hotmParts, attrParts, CONDITIONS, DATA_AREA, PART_NAME } from './totals.js';
 import { valueAt, petLevel } from './gamedata.js';
+import { drillOmelette } from './import/profile.js';
 import { lockOf } from './hotm-model.js';
 import { autoOf } from './model.js';
 import { calcFor, contribAt, unsafeLines } from './sources.js';
@@ -37,14 +38,30 @@ function tickedSteps(world, area) {
   });
 }
 
-// The build with the imported active pet when the build has none: a pet in use gives its stats whether or not it was picked in the Pets tab.
+// Attribute levels where the build differs from the import: [{ key, name, build, import }]. Empty without an import of the shards.
+export function attrPlanned(world) {
+  const got = world.profile?.attrLevels;
+  const have = world.build?.attrs;
+  if (!got || !have) return [];
+  const name = (key) => world.gamedata?.attributes.attributes.find((x) => x.key === key)?.name ?? key;
+  return [...new Set([...Object.keys(have), ...Object.keys(got)])].filter((k) => (have[k] ?? 0) !== (got[k] ?? 0)).sort().map((key) => ({ key, name: name(key), build: have[key] ?? 0, import: got[key] ?? 0 }));
+}
+
+// The build the stats are worked out with. The import is what the player has now: its attribute levels and the Omelette of its drill replace the build's, and
+// its active pet counts when the build has none. What the build says instead stays visible as planned (attrPlanned) and can be set to the import.
 export function buildOf(world) {
-  const b = world.build;
-  if (b?.pet || !world.gamedata?.pets) return b;
-  const active = world.profile?.pets?.find((p) => p.active);
-  const known = active && world.gamedata.pets.pets.find((p) => p.id === active.type && p.rarity === active.tier);
-  if (!known) return b;
-  return { ...b, pet: { id: known.id, rarity: known.rarity, level: petLevel(active.exp, active.tier, active.type, world.gamedata.pets.leveling)?.level ?? 100, item: active.heldItem ?? null, fromImport: true } };
+  let b = world.build;
+  const p = world.profile;
+  if (!b || !p) return b;
+  if (b.attrs && p.attrLevels) b = { ...b, attrs: { ...p.attrLevels } };
+  const omelette = b.hotm ? drillOmelette(p.items, world.items) : null;
+  if (omelette !== null && b.hotm.omelette !== omelette) b = { ...b, hotm: { ...b.hotm, omelette } };
+  if (!b.pet && world.gamedata?.pets) {
+    const active = p.pets?.find((x) => x.active);
+    const known = active && world.gamedata.pets.pets.find((x) => x.id === active.type && x.rarity === active.tier);
+    if (known) b = { ...b, pet: { id: known.id, rarity: known.rarity, level: petLevel(active.exp, active.tier, active.type, world.gamedata.pets.leveling)?.level ?? 100, item: active.heldItem ?? null, fromImport: true } };
+  }
+  return b;
 }
 
 // The gear of an area from the ticked steps and the owned pieces.
@@ -58,7 +75,7 @@ export function statsModel(world, area) {
   const ids = statsFor(area, data);
   const calc = calcFor(world); // null without an import
   const worn = wornOf(world, area, entry, calc);
-  const t = totalFor({ area, entry, build: world.build, gear: worn.gear, data, stats: ids, pet: worn.pet, calc });
+  const t = totalFor({ area, entry, build: buildOf(world), gear: worn.gear, data, stats: ids, pet: worn.pet, calc });
   const label = (id) => {
     const m = meta(data, id);
     return { id, icon: m.icon ?? '▚', label: m.name, color: CLASS[m.color] ?? 'white' };
@@ -130,7 +147,7 @@ const COND_TEXT = { ...CONDITIONS, always: 'always', mining_gemstones: 'only on 
 
 // The multipliers that act on a stat, each with its condition: HOTM perks, the pet's category multipliers. Shown whether or not they hold now.
 function multipliersOf(world, area, stat, worn, data) {
-  const build = world.build ?? {};
+  const build = buildOf(world) ?? {};
   const out = [];
   const row = (label, percent, cond, key) => out.push({ label, percent, text: `${percent > 0 ? '+' : ''}${Math.round(percent * 100) / 100} %`, condition: COND_TEXT[cond] ?? cond, holds: condHolds(build, area, cond), key });
   const hotm = build.hotm;
@@ -160,19 +177,16 @@ function hotmLines(hotm, data, stat, line) {
     if (bonus) out.push(line(`Goblin Omelette: ${perk.name} +1 level`, value - plain, false, 'counted: switched on in your build'));
     else if (perk.omeletteBonus) {
       const more = valueAt(e, base + 1) - plain;
-      if (Math.abs(more) > 1e-9) out.push(inactive(`Goblin Omelette: ${perk.name} +1 level`, more, 'conditional (not active): the Goblin Omelette is switched off in your build'));
+      if (Math.abs(more) > 1e-9) out.push(inactive(`Goblin Omelette: ${perk.name} +1 level`, more, 'conditional (not active): no Goblin Omelette on your drill'));
     }
   }
   return out;
 }
 
-// The attribute lines of a stat, one per attribute. imported: the levels the import worked out from the shards; a different level in the build is named.
-function attrLines(attrs, data, area, stat, line, imported) {
+// The attribute lines of a stat, one per attribute, at the levels the stats are worked out with (the import's where there is one).
+function attrLines(attrs, data, area, stat, line) {
   if (!attrs) return [];
-  return attrParts(attrs, data, area).filter((p) => p.e.stat === stat && p.counts).map((p) => {
-    const there = imported?.[p.attr.key];
-    return line(`${p.attr.name} ${p.level}`, p.value, false, imported && there !== p.level ? `the import says level ${there ?? 0}` : null);
-  });
+  return attrParts(attrs, data, area).filter((p) => p.e.stat === stat && p.counts).map((p) => line(`${p.attr.name} ${p.level}`, p.value));
 }
 
 export function statDetail(world, area, stat) {
@@ -183,7 +197,7 @@ export function statDetail(world, area, stat) {
   const entry = world.base?.[area] ?? null;
   const calc = calcFor(world);
   const worn = wornOf(world, area, entry, calc);
-  const t = totalFor({ area, entry, build: world.build, gear: worn.gear, data, stats: statsFor(area, data), pet: worn.pet, calc });
+  const t = totalFor({ area, entry, build: buildOf(world), gear: worn.gear, data, stats: statsFor(area, data), pet: worn.pet, calc });
   const line = (label, value, unsafe = false, note = null, extra = {}) => ({ label, value, text: signed(value), unsafe, note, ...extra });
   // two blocks: base (everything that is not from ticked guide steps) and gear (from ticked steps: guide, category, item, step)
   const groups = new Map(); // base categories
@@ -197,7 +211,7 @@ export function statDetail(world, area, stat) {
     tree.set(guide, cats);
   };
   const r = t.rows.find((x) => x.stat === stat);
-  const build = world.build ?? {};
+  const build = buildOf(world) ?? {};
   const conditional = [...t.listed, ...(worn.listed ?? [])].filter((l) => l.stat === stat).map((l) => l.text);
 
   if (entry) {
@@ -212,7 +226,12 @@ export function statDetail(world, area, stat) {
       if (Math.abs(v) > 1e-9) add(title, line(PART_NAME[part], v));
     }
     for (const l of hotmLines(build.hotm, data, stat, line)) add('HOTM', l);
-    for (const l of attrLines(build.attrs, data, area, stat, line, world.profile?.attrLevels)) add('Attributes', l);
+    for (const l of attrLines(build.attrs, data, area, stat, line)) add('Attributes', l);
+    // what the build says instead of the import: listed grey, not counted
+    for (const x of attrPlanned(world).filter((y) => y.build > 0)) {
+      const v = attrParts({ [x.key]: x.build }, data, area).filter((p) => p.e.stat === stat && p.counts).reduce((n, p) => n + p.value, 0);
+      if (Math.abs(v) > 1e-9) add('Attributes', line(`${x.name} ${x.build} (planned)`, 0, false, `planned (build), not counted: the import has level ${x.import}`, { text: signed(v), inactive: true }));
+    }
     if (!calc) { const v = statsOf({ buffs: build.buffs }, data, area).add[stat] ?? 0; if (Math.abs(v) > 1e-9) add('Potion Effects', line('Buffs', v)); }
   }
 
@@ -225,7 +244,7 @@ export function statDetail(world, area, stat) {
     if (!value && !own) continue;
     shown += value;
     const differs = p.source === 'game' && Math.abs(tip - own) > 0.051;
-    const note = p.source === 'game' ? (differs ? `game (tooltip) ≠ calculated ${signed(own)}` : p.lacks?.length ? `game (tooltip) plus ${p.lacks.join(' and ')} it lacks` : 'game (tooltip)') : 'calculated';
+    const note = p.source === 'game' ? (differs ? `game (tooltip) ≠ calculated ${signed(own)}` : 'game (tooltip)') : 'calculated';
     // the item under the guide whose step owns it; below it the base, each step's share, and the rest
     const guide = worn.ownedBy?.[p.id]?.guide ?? 'Owned items';
     const own0 = (p.lines[stat] ?? []).filter((l) => l.part === 'base').reduce((n, l) => n + l.value, 0);
@@ -266,7 +285,7 @@ export function statDetail(world, area, stat) {
   const gearSum = rounded(cats.reduce((n, g) => n + g.sum, 0));
   return {
     area, stat, name: row.label, icon: row.icon, color: row.color, groups: [...base, ...cats], base: { sum: baseSum, groups: base }, gear: { sum: gearSum, cats, guides },
-    conditional, multipliers: multipliersOf(world, area, stat, worn, data), total: row.total, measured: !!entry,
+    conditional, multipliers: multipliersOf(world, area, stat, worn, data), total: row.total, measured: !!entry, attrPlanned: attrPlanned(world),
   };
 }
 

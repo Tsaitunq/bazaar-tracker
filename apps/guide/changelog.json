@@ -1,6 +1,15 @@
 {
   "versions": [
     {
+      "version": "0.20.2",
+      "date": "2026-11-13",
+      "entries": [
+        { "title": "Your import counts", "text": "Attribute levels and the Goblin Omelette now come from your imported profile, and what your build plans differently stays visible as planned." },
+        { "title": "Set build to import", "text": "In a stat's details you can set one attribute or all of them in your build to the imported level." },
+        { "title": "Tooltip is the truth", "text": "A gear piece with a game tooltip counts exactly its tooltip, and any difference to the calculation shows as the rest according to the game." }
+      ]
+    },
+    {
       "version": "0.20.1",
       "date": "2026-11-13",
       "entries": [
