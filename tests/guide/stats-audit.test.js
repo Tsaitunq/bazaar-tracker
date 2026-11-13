@@ -76,7 +76,7 @@ test('detail: base and gear are separate blocks; gear goes guide â†’ category â†
 });
 
 test('detail: an item with a tooltip counts the tooltip, the difference to the steps shows as the rest according to the game', () => {
-  const profile = { fetchedAt: 1, skills: null, slayer: null, skyblockXp: null, items: [{ id: 'DRILL_1', at: ['Getragen'], tip: { MINING_SPEED: 300, MINING_FORTUNE: 25 } }] };
+  const profile = { fetchedAt: 1, skills: null, slayer: null, skyblockXp: null, items: [{ id: 'DRILL_1', at: ['Getragen'], parts: { engine: 'TITANIUM_DRILL_ENGINE' }, tip: { MINING_SPEED: 300, MINING_FORTUNE: 25 } }] };
   const d = statDetail(world({ profile }), 'mining', 'MINING_SPEED');
   const item = d.gear.guides[0].cats[0].items[0];
   assert.equal(item.value, 300);

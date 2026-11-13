@@ -26,22 +26,45 @@ export const holds = (build, area, key) => build?.conditions?.[key] ?? holdsDefa
 // Whether the condition of an effect holds now: a switchable one by the build, 'always' always, the others by the area.
 export const condHolds = (build, area, cond) => (cond === 'always' ? true : cond === 'on_mining_islands' || cond === 'crimson_isle' ? holds(build, area, cond) : HOLDS[area].has(cond));
 
-function hotmStats(hotm, data, out, area, build) {
+// Every effect of the perks the HOTM has: { perk, e, level, bonus, value, plain, off }. A locked perk is left out; off: a perk switched off or an ability
+// that is not the selected one (shown, never counted). bonus: the level the Goblin Omelette adds, value: at base level plus bonus, plain: the value without it.
+export function hotmParts(hotm, data) {
   const omelette = hotm.omelette === true;
+  const out = [];
   for (const perk of data.hotm.perks) {
     const base = hotm.levels?.[perk.id] ?? 0;
     if (!(base > 0)) continue;
     if (lockOf(perk, hotm)) continue; // a locked perk is shown, never counted
-    if (perk.type === 'ability' ? hotm.ability !== perk.id : (hotm.disabled ?? []).includes(perk.id)) continue; // only the selected ability counts; a perk switched off does not
-    const level = base + (omelette && perk.omeletteBonus ? 1 : 0);
-    for (const e of perk.effects) {
-      if (e.hidden) continue;
-      const v = valueAt(e, level);
-      if (e.kind === 'percent_multiplier' && (e.cond === 'on_mining_islands' ? holds(build, area, e.cond) : HOLDS[area].has(e.cond))) out.mult[e.stat] = (out.mult[e.stat] ?? 1) * (1 + v / 100);
-      else if (!e.kind && e.cond === 'always') addTo(out.add, e.stat, v);
-      else out.listed.push({ stat: e.stat, value: v, cond: e.cond, text: `${perk.name}: ${e.stat} ${v}${e.kind === 'percent_multiplier' ? ' %' : ''} (${e.cond})` });
+    const off = perk.type === 'ability' ? hotm.ability !== perk.id : (hotm.disabled ?? []).includes(perk.id); // only the selected ability counts; a perk switched off does not
+    const bonus = omelette && perk.omeletteBonus ? 1 : 0;
+    for (const e of perk.effects) if (!e.hidden) out.push({ perk, e, level: base + bonus, bonus, value: valueAt(e, base + bonus), plain: valueAt(e, base), off });
+  }
+  return out;
+}
+
+function hotmStats(hotm, data, out, area, build) {
+  for (const { perk, e, value: v, off } of hotmParts(hotm, data)) {
+    if (off) continue;
+    if (e.kind === 'percent_multiplier' && (e.cond === 'on_mining_islands' ? holds(build, area, e.cond) : HOLDS[area].has(e.cond))) out.mult[e.stat] = (out.mult[e.stat] ?? 1) * (1 + v / 100);
+    else if (!e.kind && e.cond === 'always') addTo(out.add, e.stat, v);
+    else out.listed.push({ stat: e.stat, value: v, cond: e.cond, text: `${perk.name}: ${e.stat} ${v}${e.kind === 'percent_multiplier' ? ' %' : ''} (${e.cond})` });
+  }
+}
+
+// Every attribute with a level and its effects: { attr, level, e, value, counts }. counts: a flat effect that holds here, so it is in the sum.
+export function attrParts(attrs, data, area) {
+  const out = [];
+  for (const a of data.attributes.attributes) {
+    const level = attrs[a.key] ?? 0;
+    if (!(level > 0)) continue;
+    for (const e of a.effects) {
+      if (e.kind === 'per_stat') continue;
+      const value = e.fixed !== undefined ? e.fixed : (e.perLevel ?? 0) * level;
+      const holdsHere = e.cond === 'always' || (e.cond === 'vs_mob_family' && FAMILIES[area].has(e.family));
+      out.push({ attr: a, level, e, value, counts: holdsHere && !e.kind });
     }
   }
+  return out;
 }
 
 function attrStats(attrs, data, out, area) {

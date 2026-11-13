@@ -123,7 +123,7 @@ function detail(world, r) {
   if (!d) return '<div class="scroll"><div class="panel"><small>No such stat for this area.</small></div></div>';
   const mark = (l) => `${l.unsafe ? '≈ ' : ''}${esc(l.label)}${l.differs ? ' ≠' : ''}${l.note ? ` <small>(${esc(l.note)})</small>` : ''}`;
   const value = (l) => `<b class="c-${d.color}">${esc(l.text)}</b>`;
-  const row = (l, sub = false) => `<div class="stat-row detail-row${sub ? ' detail-sub' : ''}"><span>${mark(l)}</span>${value(l)}</div>`;
+  const row = (l, sub = false) => `<div class="stat-row detail-row${sub ? ' detail-sub' : ''}${l.inactive ? ' muted' : ''}"><span>${mark(l)}</span>${value(l)}</div>`;
   // a line with parts opens into them; a line without is a plain row
   const line = (l) => (l.parts?.length
     ? `<details class="detail-part"><summary class="stat-row detail-row"><span>${mark(l)}</span>${value(l)}</summary>${l.parts.map((p) => row(p, true)).join('')}</details>`

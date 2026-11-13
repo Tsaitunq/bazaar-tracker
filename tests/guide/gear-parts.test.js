@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { pieceParts, realItem, compareTip } from '../../apps/guide/gear-parts.js';
+import { pieceParts, realItem, compareTip, loreCompleted } from '../../apps/guide/gear-parts.js';
 import { gearOf } from '../../apps/guide/gear.js';
 import { miningSettings } from '../../apps/guide/optimizer.js';
 
@@ -20,10 +20,15 @@ test('a piece is split into base, reforge, gems per slot, enchants, parts, Polar
   assert.ok(p.conditional.some((c) => /lapidary 5/.test(c.text) && /only on gemstones/.test(c.text) && c.stat));
 });
 
-test('the Recombobulator is its own line: the rise of reforge and gems, which are shown at the lower rarity', () => {
+test('the Recombobulator lifts reforge and gems: they show at the higher rarity, like the game lists them, with no line of its own', () => {
   const p = pieceParts(piece('DRILL', { reforge: 'jaded', recomb: true }), items);
-  assert.equal(p.lines.MINING_SPEED.find((l) => l.part === 'reforge').value, 45);
-  assert.equal(p.lines.MINING_SPEED.find((l) => l.part === 'recomb').value, 15);
+  assert.equal(p.lines.MINING_SPEED.find((l) => l.part === 'reforge').value, 60); // 45 plus the 15 the rise gives
+  assert.equal(p.lines.MINING_SPEED.some((l) => l.part === 'recomb'), false);
+});
+
+test('a drill is listed as the game does: Efficiency X, the reforge and the gem by name, one Drill Parts line', () => {
+  const p = pieceParts(piece('DRILL', { reforge: 'jaded', gems: [{ slot: 'AMBER_0', type: 'AMBER', quality: 'PERFECT' }], enchants: { efficiency: 10 }, parts: { engine: 'TITANIUM_DRILL_ENGINE', fuel_tank: 'TITANIUM_FUEL_TANK' } }), items);
+  assert.deepEqual(p.lines.MINING_SPEED.map((l) => l.label), ['Base', 'Jaded', 'Amber', 'Efficiency X', 'Drill Parts']);
 });
 
 test('realItem: worn before a wardrobe set before anywhere; the fuller tooltip among equals; none without a tooltip', () => {
@@ -56,4 +61,20 @@ test('gear: an owned piece with a tooltip counts the tooltip, one without keeps 
   assert.equal(d.source, 'game');
   assert.equal(d.differs, true);
   assert.equal(g.pieces.find((x) => x.id === 'HELM').source, 'calculated');
+});
+
+test('loreCompleted: a tooltip that holds everything stays; one that lacks the parts and Polarvoid gets them added, once', () => {
+  const p = pieceParts(piece('DRILL', { enchants: { efficiency: 5 }, parts: { engine: 'TITANIUM_DRILL_ENGINE' }, polarvoid: 5 }), items);
+  const stats = ['MINING_SPEED', 'MINING_FORTUNE'];
+  const whole = { MINING_SPEED: p.total.MINING_SPEED, MINING_FORTUNE: p.total.MINING_FORTUNE };
+  assert.deepEqual(loreCompleted(whole, p, stats), { tip: whole, lacks: [] });
+  const cut = { MINING_SPEED: p.total.MINING_SPEED - 150 - 50, MINING_FORTUNE: p.total.MINING_FORTUNE - 15 - 5, GEMSTONE_FORTUNE: 40 };
+  const out = loreCompleted(cut, p, stats);
+  assert.deepEqual(out.lacks, ['parts', 'polarvoid']);
+  assert.equal(out.tip.MINING_SPEED, p.total.MINING_SPEED);
+  assert.equal(out.tip.GEMSTONE_FORTUNE, 40);
+  const onlyPolar = { MINING_SPEED: p.total.MINING_SPEED - 50, MINING_FORTUNE: p.total.MINING_FORTUNE - 5 };
+  assert.deepEqual(loreCompleted(onlyPolar, p, stats).lacks, ['polarvoid']);
+  const odd = { MINING_SPEED: 7, MINING_FORTUNE: 7 }; // no known set explains it: stays as it is
+  assert.deepEqual(loreCompleted(odd, p, stats), { tip: odd, lacks: [] });
 });

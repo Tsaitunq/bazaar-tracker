@@ -113,13 +113,14 @@ export function sourcesOf({ profile, ss, items = null, buffs = null, consumables
     }
     const missing = new Set();
     for (const item of best.values()) {
+      const name = items?.[item.id]?.name ?? item.id;
       const stats = statsOfItem(item);
       if (!stats || !Object.keys(stats).length) missing.add(item.id);
-      for (const [stat, v] of Object.entries(stats ?? {})) put(upper(stat), 'accessories', 'Accessories', v, item.tip ? { confidence: 'safe' } : null);
+      for (const [stat, v] of Object.entries(stats ?? {})) put(upper(stat), 'accessories', name, v, item.tip ? { confidence: 'safe' } : null);
       if (item.enrichment) {
         const stat = upper(item.enrichment);
         const e = ss.accessories.enrichments.values[stat];
-        if (e) put(stat, 'accessories', 'Enrichments', e.value, e);
+        if (e) put(stat, 'accessories', `${name} enrichment`, e.value, e);
         else unknown.enrichments.push(item.enrichment);
       }
     }

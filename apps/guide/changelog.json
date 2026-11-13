@@ -1,6 +1,16 @@
 {
   "versions": [
     {
+      "version": "0.20.1",
+      "date": "2026-11-13",
+      "entries": [
+        { "title": "Drill split like the game", "text": "A drill, armor piece or equipment piece lists its base, reforge, gems, Efficiency, Drill Parts and Polarvoid as the game does, and adds the parts a tooltip is missing." },
+        { "title": "HOTM and attributes per line", "text": "Every HOTM perk and attribute has its own line, and perks that only work in a condition, or the Goblin Omelette bonus, are grey and not in the sum." },
+        { "title": "Pet at its level", "text": "Your pet counts at its real level, and the pet you have active in your profile counts until you pick another one." },
+        { "title": "Accessories by name", "text": "The Accessory Bag lists each accessory by its name with the stats it gives." }
+      ]
+    },
+    {
       "version": "0.20.0",
       "date": "2026-11-13",
       "entries": [
