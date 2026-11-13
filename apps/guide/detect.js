@@ -68,6 +68,19 @@ export function lineOf(id, items) {
   return out;
 }
 
+// The id and the higher pieces of its line as far as each lower piece is used up by the upgrade (items.json consumed: the Drill Forge takes the drill).
+// An item that is kept, or one the data does not mark, stands alone: an owned step then looks for exactly that item.
+function consumedLine(id, items) {
+  const out = [id];
+  for (let c = id; items?.[c]?.consumed; ) {
+    const next = upperOf(c, items);
+    if (!next || out.includes(next)) break;
+    out.push(next);
+    c = next;
+  }
+  return out;
+}
+
 // Each group is one slot: its best item counts, so a spare piece never stands in for another slot.
 function itemPart(d, profile, groups, items) {
   // Inventory API off and nothing kept from before: that says nothing about what is owned.
@@ -77,8 +90,14 @@ function itemPart(d, profile, groups, items) {
   const value = VALUE[d.kind];
   let have = 0;
   for (const ids of slots) {
-    const reach = d.kind === 'owned' ? ids : ids.flatMap((id) => lineOf(id, items));
+    const reach = ids.flatMap((id) => (d.kind === 'owned' ? consumedLine(id, items) : lineOf(id, items)));
     const found = profile.items.filter((i) => reach.includes(i.id)).map((i) => value(i, d));
+    // A drill part (engine, fuel tank, upgrade module) is no item of its own once it sits on a drill. A part of the step's line on a drill counts as owned:
+    // installing the next one uses the lower part up, so a higher one means the lower was owned. (A lower drill is different: see "an owned step does not move up the line".)
+    if (d.kind === 'owned' && !found.length) {
+      const line = ids.flatMap((id) => lineOf(id, items));
+      if (profile.items.some((i) => Object.values(i.parts ?? {}).some((p) => line.includes(String(p).toUpperCase())))) found.push(1);
+    }
     have += found.length ? Math.max(...found) : 0;
   }
   if (d.kind === 'part' && profile.items.some((i) => d.ids.includes(i.id))) have = 1;

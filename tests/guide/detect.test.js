@@ -139,7 +139,55 @@ test('lines: Crimson tiers by name, Mithril to Titanium, and no loop', () => {
   assert.deepEqual(lineOf('A', { A: { parent: { A: 'B' } }, B: { parent: { B: 'A' } } }), ['A', 'B']);
 });
 
-test('an owned step does not move up the line', () => {
-  const step = { detect: { kind: 'owned', on: [['TITANIUM_DRILL_1']] } };
-  assert.equal(detectStep(step, profile([item('TITANIUM_DRILL_4')]), {}, LADDER).have, 0);
+// A line whose pieces are kept side by side (no consumed flag): an owned step looks for exactly that item.
+const KEPT = { REFINED_MITHRIL_PICKAXE: { parent: { REFINED_MITHRIL_PICKAXE: 'REFINED_TITANIUM_PICKAXE' } } };
+test('an owned step does not move up a line whose pieces are kept', () => {
+  const step = { detect: { kind: 'owned', on: [['REFINED_MITHRIL_PICKAXE']] } };
+  assert.equal(detectStep(step, profile([item('REFINED_TITANIUM_PICKAXE')]), {}, KEPT).have, 0);
+  assert.equal(detectStep(step, profile([item('REFINED_MITHRIL_PICKAXE')]), {}, KEPT).have, 1);
+  // the old drill data without the flag behaves the same
+  assert.equal(detectStep({ detect: { kind: 'owned', on: [['TITANIUM_DRILL_1']] } }, profile([item('TITANIUM_DRILL_4')]), {}, LADDER).have, 0);
+});
+
+// A drill is used up by the upgrade (items.json consumed): DR-X355 becomes DR-X455, so a higher drill means the lower one was owned.
+const USED_UP = Object.fromEntries(Object.entries(LADDER).map(([id, v]) => [id, { ...v, consumed: true }]));
+test('an owned step moves up a line whose lower pieces are used up by the upgrade', () => {
+  const owned = (id, ...have) => detectStep({ detect: { kind: 'owned', on: [[id]] } }, profile(have.map((h) => item(h))), {}, USED_UP).have;
+  assert.equal(owned('TITANIUM_DRILL_1', 'TITANIUM_DRILL_4'), 1);
+  assert.equal(owned('TITANIUM_DRILL_2', 'TITANIUM_DRILL_3'), 1);
+  assert.equal(owned('TITANIUM_DRILL_4', 'DIVAN_DRILL'), 1); // Divan's Drill is made from DR-X655
+  assert.equal(owned('TITANIUM_DRILL_4', 'TITANIUM_DRILL_3'), 0); // never downwards
+  assert.equal(owned('TITANIUM_DRILL_1'), 0);
+  // the gap Mithril to Titanium (GAPS) is part of the line once the Mithril drill is marked
+  const gap = { ...USED_UP, MITHRIL_DRILL_2: { consumed: true } };
+  assert.equal(detectStep({ detect: { kind: 'owned', on: [['MITHRIL_DRILL_2']] } }, profile([item('TITANIUM_DRILL_3')]), {}, gap).have, 1);
+  // a piece that is not marked ends the walk: the chain stops at it
+  const broken = { ...USED_UP, TITANIUM_DRILL_2: { parent: LADDER.TITANIUM_DRILL_2.parent } };
+  assert.equal(detectStep({ detect: { kind: 'owned', on: [['TITANIUM_DRILL_1']] } }, profile([item('TITANIUM_DRILL_4')]), {}, broken).have, 0);
+});
+
+// A drill part is no item once it sits on a drill: the profile has it only as drill.parts.<slot>.
+const PARTS_LINE = {
+  MITHRIL_DRILL_ENGINE: { parent: { MITHRIL_DRILL_ENGINE: 'TITANIUM_DRILL_ENGINE' } },
+  TITANIUM_DRILL_ENGINE: { parent: { TITANIUM_DRILL_ENGINE: 'RUBY_POLISHED_DRILL_ENGINE' } },
+  TITANIUM_FUEL_TANK: { parent: { TITANIUM_FUEL_TANK: 'GEMSTONE_FUEL_TANK' } },
+};
+const owns = (id, items) => detectStep({ detect: { kind: 'owned', on: [[id]] } }, profile(items), {}, PARTS_LINE).have;
+
+test('an owned drill part counts when it, or a higher part of its line, sits on a drill', () => {
+  const drill = [item('TITANIUM_DRILL_4', { parts: { engine: 'ruby_polished_drill_engine', fuel_tank: 'titanium_fuel_tank', upgrade_module: 'goblin_omelette_sunny_side' } })];
+  assert.equal(owns('RUBY_POLISHED_DRILL_ENGINE', drill), 1); // the part itself
+  assert.equal(owns('TITANIUM_DRILL_ENGINE', drill), 1); // a higher engine is installed: this one was owned and used up
+  assert.equal(owns('MITHRIL_DRILL_ENGINE', drill), 1);
+  assert.equal(owns('TITANIUM_FUEL_TANK', drill), 1);
+  // a part higher than the installed one is not owned
+  assert.equal(owns('SAPPHIRE_POLISHED_DRILL_ENGINE', drill), 0);
+  assert.equal(owns('GEMSTONE_FUEL_TANK', drill), 0);
+  // no drill, or a drill without parts: nothing
+  assert.equal(owns('TITANIUM_DRILL_ENGINE', []), 0);
+  assert.equal(owns('TITANIUM_DRILL_ENGINE', [item('TITANIUM_DRILL_4')]), 0);
+});
+
+test('a loose part in the inventory still counts as before', () => {
+  assert.equal(owns('TITANIUM_DRILL_ENGINE', [item('TITANIUM_DRILL_ENGINE')]), 1);
 });

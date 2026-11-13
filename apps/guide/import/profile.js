@@ -19,6 +19,15 @@ export function attrLevel(stacks, attr, data) {
   return level;
 }
 
+// Whether the Goblin Omelette counts: the drill in use carries an upgrade module. The drill in use is the one with the most Mining Speed on its tooltip.
+// items: items.json (categories), null while it loads: then any item with drill parts counts as a drill. null when the profile has no drill.
+export function drillOmelette(profileItems, items) {
+  const speed = (i) => i.tip?.MINING_SPEED ?? 0;
+  const drills = (profileItems ?? []).filter((i) => (items ? ['DRILL', 'PICKAXE', 'GAUNTLET'].includes(items[i.id]?.category) : i.parts?.engine));
+  const main = drills.sort((a, b) => speed(b) - speed(a))[0];
+  return main ? !!main.parts?.upgrade_module : null;
+}
+
 // { levels: key -> level (only what is above 0), unknown: how many keys the app has no attribute for }
 // The API still names many attributes by the shard id (Flare is "blazing", the app says infernal_ruler): the id without its
 // ATTRIBUTE_SHARD_ prefix is the second name. Checked against a live profile: all 23 keys that were unknown matched it.

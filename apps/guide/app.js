@@ -22,6 +22,8 @@ import { summarize } from './import/profile.js';
 import { proposals, applyRows, undoImport, hasUndo, isPickable, isSuggestion } from './import/propose.js';
 import { paintFigures, setSkin } from './skin.js';
 import { calcFor } from './sources.js';
+import { setAudit, deviations, exportText } from './audit.js';
+import { attrPlanned } from './stats-model.js';
 import { decide, finishTour, STEPS, tourHtml, newsHtml } from './intro.js';
 
 const BAZAAR = 'https://api.hypixel.net/v2/skyblock/bazaar';
@@ -64,6 +66,8 @@ let gamedata = null;
 // The profile import. All of it stays on this device: the name and chosen profile, the summary (numbers and ids only) and one step of undo.
 let api = load('pg.api', null); // { name, profileId, own }
 let profile = load('pg.profile', null);
+let audit = load('pg.audit', {}); // the values read in the game, per area, stat and category
+let auditMessage = '';
 setSkin(load('pg.skin', null)); // the skin of the imported player, if there is one
 let undo = load('pg.undo', null);
 let imp = { profiles: null, profileId: null, nameDraft: null, busy: false, message: '', offline: false, retryUntil: 0, confirm: null, picked: new Set(), since: false };
@@ -115,7 +119,7 @@ const targetOf = (dx) => {
 const world = () => {
   pending = new Set();
   return {
-    guides: guides(), checks: live(), owned, dates, base, build, draft, ui, gamedata, products, now: Date.now(), profile,
+    guides: guides(), checks: live(), owned, dates, base, build, draft, ui, gamedata, products, now: Date.now(), profile, audit, auditMessage,
     prices: { forge, ah, cofl: freshBins(bins), wants: pending, items, tax: (settings.tax ?? DEFAULT_TAX) / 100, derpy: election?.mayor?.name === 'Derpy' },
     settings: miningSettings(settings.mining), keepOldGear: settings.keepOldGear === true, brake: settings.brake > 0 ? settings.brake : 5, pathEpoch, opened, items,
     name: (id) => names[id] ?? fallbackName(id), tax: settings.tax ?? DEFAULT_TAX, importedIds: imported.map((g) => g.id),
@@ -471,6 +475,34 @@ function saveMeasure(box) {
   draw();
 }
 
+// The reconcile mode: a typed value is kept per area, stat and category with its date.
+function setAuditValue(key, text) {
+  audit = setAudit(audit, key, text, Date.now());
+  save('pg.audit', audit);
+  auditMessage = '';
+  draw();
+}
+
+async function auditExport() {
+  const text = exportText(deviations(world(), audit));
+  try { await navigator.clipboard.writeText(text); auditMessage = 'Copied the deviations.'; } catch { auditMessage = 'Copy failed: the clipboard is blocked.'; }
+  draw();
+}
+
+function auditClear() {
+  if (!confirm('Delete all values typed from the game?')) return;
+  audit = {};
+  drop('pg.audit');
+  auditMessage = '';
+  draw();
+}
+
+// The build's attribute levels set to what the import has: one attribute, or all that differ.
+function attrSync(key) {
+  const pick = attrPlanned(world()).filter((x) => key === null || x.key === key);
+  if (pick.length) edit('attrs', (a) => ({ ...a, ...Object.fromEntries(pick.map((x) => [x.key, x.import])) }));
+}
+
 // Drops the measurement of an area; with an import the totals then add up from the known sources.
 function removeMeasure(area) {
   if (!confirm(`Remove the ${area} measurement? The totals then come from the known sources only.`)) return;
@@ -657,6 +689,11 @@ root.addEventListener('click', (e) => {
   if (el('[data-info]')) { openInfo(); return; }
   const step = el('[data-step]');
   if (step) { if (step.closest('.card')) markCard(step, step.dataset.step); else toggle(step.dataset.step); return; }
+  const sync = el('[data-attr-sync]');
+  if (sync) { attrSync(sync.dataset.attrSync); return; }
+  if (el('[data-attr-sync-all]')) { attrSync(null); return; }
+  if (el('[data-audit-export]')) { auditExport(); return; }
+  if (el('[data-audit-clear]')) { auditClear(); return; }
   const rm = el('[data-stats-remove]');
   if (rm) { removeMeasure(rm.dataset.statsRemove); return; }
   if (el('[data-stats-save]')) { saveMeasure(el('[data-stats-area]')); return; }
@@ -750,6 +787,7 @@ root.addEventListener('input', (e) => {
 
 root.addEventListener('change', async (e) => {
   const { dataset } = e.target;
+  if (e.target.matches('[data-audit]')) { settled(e.target); return setAuditValue(dataset.audit, e.target.value); }
   if (e.target.matches('[data-imp-profile]')) { settled(e.target); return impSet({ profileId: e.target.value }); }
   if (e.target.matches('[data-imp-since]')) { settled(e.target); return impSet({ since: e.target.checked }); }
   if (e.target.matches('[data-imp-name]')) { settled(e.target); imp.nameDraft = e.target.value; return undefined; }
@@ -760,6 +798,7 @@ root.addEventListener('change', async (e) => {
   if (e.target.matches('[data-attr-level]')) { settled(e.target); return setLevel('attr', e.target.value); }
   if (e.target.matches('[data-power-mp]')) { settled(e.target); return edit('power', powerMp(e.target.value)); }
   if (dataset.gear) { settled(e.target); build = setGear(build, { [dataset.gear]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }); return saveBuild(); }
+  if (dataset.condition) { settled(e.target); build = { ...build, conditions: { ...build.conditions, [dataset.condition]: e.target.checked } }; return saveBuild(); }
   if (dataset.consumable) { settled(e.target); const max = gamedata?.statSources.consumables.find((c) => c.id === dataset.consumable)?.max ?? 0; build = { ...build, consumables: { ...build.consumables, [dataset.consumable]: Math.min(Math.max(Math.floor(Number(e.target.value)) || 0, 0), max) } }; return saveBuild(); }
   if (dataset.buff) { settled(e.target); build = { ...build, buffs: { ...build.buffs, [dataset.buff]: e.target.checked } }; return saveBuild(); }
   if (e.target.matches('[data-tax], [data-flag], [data-brake]')) settled(e.target);

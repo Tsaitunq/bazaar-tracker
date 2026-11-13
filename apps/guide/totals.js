@@ -19,22 +19,52 @@ const PLACES = { mining: new Set(), blaze: new Set(['crimson_isle']), farming: n
 
 const addTo = (sum, stat, v) => { sum[stat] = (sum[stat] ?? 0) + v; };
 
-function hotmStats(hotm, data, out, area) {
+// A condition the player can switch: where it holds is a default per area, build.conditions overrides it (stats-model: Multipliers).
+export const CONDITIONS = { on_mining_islands: 'Mining islands (Dwarven Mines, Crystal Hollows, Glacite)', crimson_isle: 'Crimson Isle' };
+const holdsDefault = (key, area) => (key === 'crimson_isle' ? PLACES[area].has(key) : HOLDS[area].has(key));
+export const holds = (build, area, key) => build?.conditions?.[key] ?? holdsDefault(key, area);
+// Whether the condition of an effect holds now: a switchable one by the build, 'always' always, the others by the area.
+export const condHolds = (build, area, cond) => (cond === 'always' ? true : cond === 'on_mining_islands' || cond === 'crimson_isle' ? holds(build, area, cond) : HOLDS[area].has(cond));
+
+// Every effect of the perks the HOTM has: { perk, e, level, bonus, value, plain, off }. A locked perk is left out; off: a perk switched off or an ability
+// that is not the selected one (shown, never counted). bonus: the level the Goblin Omelette adds, value: at base level plus bonus, plain: the value without it.
+export function hotmParts(hotm, data) {
   const omelette = hotm.omelette === true;
+  const out = [];
   for (const perk of data.hotm.perks) {
     const base = hotm.levels?.[perk.id] ?? 0;
     if (!(base > 0)) continue;
     if (lockOf(perk, hotm)) continue; // a locked perk is shown, never counted
-    if (perk.type === 'ability' ? hotm.ability !== perk.id : (hotm.disabled ?? []).includes(perk.id)) continue; // only the selected ability counts; a perk switched off does not
-    const level = base + (omelette && perk.omeletteBonus ? 1 : 0);
-    for (const e of perk.effects) {
-      if (e.hidden) continue;
-      const v = valueAt(e, level);
-      if (e.kind === 'percent_multiplier' && HOLDS[area].has(e.cond)) out.mult[e.stat] = (out.mult[e.stat] ?? 1) * (1 + v / 100);
-      else if (!e.kind && e.cond === 'always') addTo(out.add, e.stat, v);
-      else out.listed.push({ stat: e.stat, value: v, cond: e.cond, text: `${perk.name}: ${e.stat} ${v}${e.kind === 'percent_multiplier' ? ' %' : ''} (${e.cond})` });
+    const off = perk.type === 'ability' ? hotm.ability !== perk.id : (hotm.disabled ?? []).includes(perk.id); // only the selected ability counts; a perk switched off does not
+    const bonus = omelette && perk.omeletteBonus ? 1 : 0;
+    for (const e of perk.effects) if (!e.hidden) out.push({ perk, e, level: base + bonus, bonus, value: valueAt(e, base + bonus), plain: valueAt(e, base), off });
+  }
+  return out;
+}
+
+function hotmStats(hotm, data, out, area, build) {
+  for (const { perk, e, value: v, off } of hotmParts(hotm, data)) {
+    if (off) continue;
+    if (e.kind === 'percent_multiplier' && (e.cond === 'on_mining_islands' ? holds(build, area, e.cond) : HOLDS[area].has(e.cond))) out.mult[e.stat] = (out.mult[e.stat] ?? 1) * (1 + v / 100);
+    else if (!e.kind && e.cond === 'always') addTo(out.add, e.stat, v);
+    else out.listed.push({ stat: e.stat, value: v, cond: e.cond, text: `${perk.name}: ${e.stat} ${v}${e.kind === 'percent_multiplier' ? ' %' : ''} (${e.cond})` });
+  }
+}
+
+// Every attribute with a level and its effects: { attr, level, e, value, counts }. counts: a flat effect that holds here, so it is in the sum.
+export function attrParts(attrs, data, area) {
+  const out = [];
+  for (const a of data.attributes.attributes) {
+    const level = attrs[a.key] ?? 0;
+    if (!(level > 0)) continue;
+    for (const e of a.effects) {
+      if (e.kind === 'per_stat') continue;
+      const value = e.fixed !== undefined ? e.fixed : (e.perLevel ?? 0) * level;
+      const holdsHere = e.cond === 'always' || (e.cond === 'vs_mob_family' && FAMILIES[area].has(e.family));
+      out.push({ attr: a, level, e, value, counts: holdsHere && !e.kind });
     }
   }
+  return out;
 }
 
 function attrStats(attrs, data, out, area) {
@@ -59,10 +89,10 @@ function attrStats(attrs, data, out, area) {
 }
 
 // A pet perk that multiplies a category of stats after everything is added (Nether Embodiment). Only where the perk works.
-function petStats(pet, data, out, area) {
+function petStats(pet, data, out, area, build) {
   for (const perk of pet?.perks ?? []) {
     const e = perk.effect;
-    if (e?.kind !== 'category_multiplier' || !PLACES[area].has(e.where)) continue;
+    if (e?.kind !== 'category_multiplier' || !holds(build, area, e.where)) continue;
     for (const s of data.stats.stats) if (e.categories.includes(s.category)) out.mult[s.id] = (out.mult[s.id] ?? 1) * (1 + e.percent / 100);
   }
 }
@@ -95,9 +125,9 @@ function powerStats(power, data, out) {
 // pet: the pets.json entry that is active; by default the one of the build. calc: with an import the buff values come from stat-sources.json.
 export function statsOf(build, data, area, pet = buildPet(build, data.pets?.pets), calc = null) {
   const out = { add: {}, mult: {}, listed: [] };
-  if (build?.hotm) hotmStats(build.hotm, data, out, area);
+  if (build?.hotm) hotmStats(build.hotm, data, out, area, build);
   if (build?.attrs) attrStats(build.attrs, data, out, area);
-  petStats(pet, data, out, area);
+  petStats(pet, data, out, area, build);
   if (build?.power) powerStats(build.power, data, out);
   if (build?.essence) essenceStats(build.essence, data, out);
   if (calc) for (const [stat, v] of Object.entries(buffsOf(build?.buffs, data.statSources).add)) addTo(out.add, stat, v);

@@ -1,6 +1,52 @@
 {
   "versions": [
     {
+      "version": "0.20.3",
+      "date": "2026-11-13",
+      "entries": [
+        { "title": "Drill parts found", "text": "Drill engines and fuel tanks that sit on your drill now count as owned, so the import no longer reports them as missing." },
+        { "title": "Upgraded drills found", "text": "A drill you upgraded, such as DR-X355 now being DR-X655, counts as owned, so the import no longer reports the lower drills as missing." }
+      ]
+    },
+    {
+      "version": "0.20.2",
+      "date": "2026-11-13",
+      "entries": [
+        { "title": "Your import counts", "text": "Attribute levels and the Goblin Omelette now come from your imported profile, and what your build plans differently stays visible as planned." },
+        { "title": "Set build to import", "text": "In a stat's details you can set one attribute or all of them in your build to the imported level." },
+        { "title": "Tooltip is the truth", "text": "A gear piece with a game tooltip counts exactly its tooltip, and any difference to the calculation shows as the rest according to the game." }
+      ]
+    },
+    {
+      "version": "0.20.1",
+      "date": "2026-11-13",
+      "entries": [
+        { "title": "Drill split like the game", "text": "A drill, armor piece or equipment piece lists its base, reforge, gems, Efficiency, Drill Parts and Polarvoid as the game does, and adds the parts a tooltip is missing." },
+        { "title": "HOTM and attributes per line", "text": "Every HOTM perk and attribute has its own line, and perks that only work in a condition, or the Goblin Omelette bonus, are grey and not in the sum." },
+        { "title": "Pet at its level", "text": "Your pet counts at its real level, and the pet you have active in your profile counts until you pick another one." },
+        { "title": "Accessories by name", "text": "The Accessory Bag lists each accessory by its name with the stats it gives." }
+      ]
+    },
+    {
+      "version": "0.20.0",
+      "date": "2026-11-13",
+      "entries": [
+        { "title": "Skills and slayers listed", "text": "The Stats page lists every slayer and skill with its level, the XP to the next level and the stats it gives." },
+        { "title": "Details in two blocks", "text": "A stat's details now split into Base and Gear from guides, with the gear sorted by guide, category, item and step, and a total of both on top." },
+        { "title": "Compare with the game", "text": "Type the value from /stats next to any category to see the difference, copy the deviations, and clear them all again." }
+      ]
+    },
+    {
+      "version": "0.19.0",
+      "date": "2026-11-11",
+      "entries": [
+        { "title": "Gear in detail", "text": "Tap a stat to see your gear piece by piece, from armor and drill to pet, and open a piece to see its base, gems, reforge and enchants." },
+        { "title": "Real values for your gear", "text": "Pieces found in your profile count the value from their game tooltip, and both numbers show when the app calculates something different." },
+        { "title": "Multipliers with a switch", "text": "Multipliers such as Nether Embodiment and Lonesome Miner get their own row with their condition and a switch for whether it holds right now." },
+        { "title": "Active buffs on top", "text": "The Stats page now names the potions and consumables it counts as active, so an expired potion does not add stats unnoticed." }
+      ]
+    },
+    {
       "version": "0.18.0",
       "date": "2026-11-11",
       "entries": [

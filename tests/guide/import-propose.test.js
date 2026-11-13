@@ -124,12 +124,12 @@ test('attributes: the Hunting Box is an info line, not a level', () => {
   assert.equal(a.rows.length, 1);
 });
 
-test('power: MP and tuning are rows; the stone, the pet and the omelette are suggestions, never part of "all"', () => {
+test('power: MP and tuning are rows; the stone and the pet are suggestions, never part of "all"', () => {
   const stone = gamedata.power.powerStones[0];
   const p = profile({
     mp: 1200, stone: stone.id, selectedPower: stone.power.toLowerCase(), tuning: { STRENGTH: 3 },
     pets: [{ type: gamedata.pets.pets[0].id, tier: gamedata.pets.pets[0].rarity, exp: 5, heldItem: null, active: true }],
-    items: [item('GEMSTONE_DRILL_4', ['Inventar'], { parts: { upgrade_module: 'GOBLIN_OMELETTE' } })],
+    items: [item('GEMSTONE_DRILL_4', ['Inventar'], { parts: { engine: 'TITANIUM_DRILL_ENGINE', upgrade_module: 'GOBLIN_OMELETTE' } })],
     hotm: hotm(),
   });
   const list = proposals(world(), p);
@@ -138,7 +138,6 @@ test('power: MP and tuning are rows; the stone, the pet and the omelette are sug
   assert.equal(power.find((r) => r.id === 'power:tuning:STRENGTH').to, 3);
   assert.equal(power.find((r) => r.id === 'power:stone').status, 'suggest');
   assert.equal(area(list, 'pets').rows[0].status, 'suggest');
-  assert.equal(area(list, 'hotm').rows.find((r) => r.id === 'hotm:omelette').status, 'suggest');
   for (const r of [...power, ...area(list, 'pets').rows, ...area(list, 'hotm').rows]) if (r.status === 'suggest') assert.equal(isPickable(r), false);
   // "apply all" of Power = the pickable rows: the stone stays as it was
   const out = applyRows(state(world()), power.filter(isPickable));
@@ -220,4 +219,29 @@ test('gear: Polarvoid Books on DR-X355 are found on DR-X655 and the place says s
   assert.equal(gear.rows.length, 1);
   assert.equal(gear.rows[0].status, 'new');
   assert.deepEqual(gear.rows[0].where, ['on DR-X655, Inventar']);
+});
+
+test('omelette: the import sets the switch from the drill in use, on with an upgrade module, off without', () => {
+  const drill = (parts, speed) => item('DRILL_X', ['Inventar'], { parts, tip: { MINING_SPEED: speed } });
+  const row = (build, items) => area(proposals(world({ build }), profile({ hotm: hotm(), items })), 'hotm').rows.find((r) => r.id === 'hotm:omelette');
+  const off = { ...emptyBuild(), hotm: { tier: 3, levels: {}, omelette: false, disabled: [], ability: null } };
+  const on = { ...off, hotm: { ...off.hotm, omelette: true } };
+  const withModule = [drill({ engine: 'E', upgrade_module: 'GOBLIN_OMELETTE' }, 500)];
+  const without = [drill({ engine: 'E' }, 500)];
+  // the build says off, the drill has the module: a row that sets it on, pickable
+  const r = row(off, withModule);
+  assert.equal(r.status, 'different');
+  assert.equal(r.to, 'on');
+  assert.equal(isPickable(r), true);
+  assert.equal(applyRows(state(world({ build: off })), [r]).state.build.hotm.omelette, true);
+  // the build says on, the drill has none: a row that sets it off
+  assert.equal(row(on, without).to, 'off');
+  assert.equal(applyRows(state(world({ build: on })), [row(on, without)]).state.build.hotm.omelette, false);
+  // the same: no row
+  assert.equal(row(on, withModule), undefined);
+  assert.equal(row(off, without), undefined);
+  // only the drill in use counts: a weaker drill with a module in the backpack does not
+  assert.equal(row(off, [drill({ engine: 'E' }, 2000), drill({ engine: 'E', upgrade_module: 'GOBLIN_OMELETTE' }, 700)]), undefined);
+  // no drill in the profile: nothing to say
+  assert.equal(row(on, []), undefined);
 });

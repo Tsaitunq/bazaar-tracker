@@ -96,19 +96,21 @@ test('totalFor without calc is untouched by the new argument', () => {
 const page = (w) => statsView(w, { page: 'stats', tab: 'overview', area: 'blaze' });
 const withSkills = profile({ skills: { SKILL_MINING: 3022425, SKILL_COMBAT: 3022425, SKILL_CARPENTRY: 50 }, slayer: { zombie: 1000, blaze: 400000 } });
 
-test('stats page: the level strip shows skills, slayer and SkyBlock level, only with an import', () => {
+test('stats page: slayers and skills are listed with level, XP to the next level and their stats, only with an import', () => {
   const html = page(world(emptyBuild(), {}, withSkills));
-  assert.match(html, /class="level-strip"/);
-  assert.match(html, /Skills<\/span><b>⌀ 25<\/b>/); // mining 25 and combat 25; carpentry is not in the average
-  assert.match(html, /Slayer<\/span><b>top 8<\/b>/);
-  assert.match(html, /SkyBlock<\/span><b>Lv 123<\/b>/);
-  assert.match(html, /Carpentry <b>1 \/ 50<\/b>/);
-  assert.doesNotMatch(page({ ...world(emptyBuild(), {}), profile: null }), /level-strip/);
+  assert.match(html, /data-levels="slayers"/);
+  assert.match(html, /<h2>Skills <small>⌀ 25<\/small>/); // mining 25 and combat 25; carpentry is not in the average
+  assert.match(html, /<span>Zombie<\/span><b>4 \/ 9<\/b><small>4,000 XP to next<\/small>/);
+  assert.match(html, /<span>Blaze<\/span><b>8 \/ 9<\/b>/);
+  assert.match(html, /<span>≈ Strength<\/span><b>\+3<\/b>/); // an unsure stat carries the ≈
+  assert.match(html, /SkyBlock level <b>123 \/ 500<\/b>/);
+  assert.match(html, /<span>Carpentry<\/span><b>1 \/ 50<\/b>/);
+  assert.doesNotMatch(page({ ...world(emptyBuild(), {}), profile: null }), /level-panel/);
 });
 
-test('stats page: without the worker field the SkyBlock chip says what is missing', () => {
+test('stats page: without the worker field the SkyBlock level says what is missing', () => {
   const html = page(world(emptyBuild(), {}, profile({ skyblockXp: null })));
-  assert.match(html, /SkyBlock<\/span><b>–<\/b>/);
+  assert.doesNotMatch(html, /SkyBlock level <b>/);
   assert.match(html, /deploy the updated worker/);
 });
 
@@ -156,7 +158,7 @@ test('the stat detail lists the single sources per category, ≈ for unsafe, con
   const level = d.groups.find((g) => g.title === 'SkyBlock level').lines[0];
   assert.equal(level.value, 615);
   assert.equal(level.unsafe, true);
-  assert.equal(d.groups.find((g) => g.title === 'Accessories').lines[0].value, 10);
+  assert.equal(d.groups.find((g) => g.title === 'Accessory Bag').lines[0].value, 10);
   const html = statsView(w, { page: 'stats', tab: 'detail', area: 'blaze', stat: 'HEALTH' });
   assert.match(html, /≈ SkyBlock level 123/);
   assert.match(html, /Game base/);

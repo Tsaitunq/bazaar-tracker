@@ -13,6 +13,9 @@ export const AVERAGE_SKILLS = ['farming', 'mining', 'combat', 'foraging', 'fishi
 // Level from the XP, the first level above each cumulative total.
 export const levelFor = count;
 
+// What a skill or slayer gives at its level, per stat: { STAT: { value, unsafe } }. xpSeries: the series the level itself rests on.
+const statLines = (stats, level, xpSeries) => Object.fromEntries(Object.entries(stats).map(([stat, s]) => [stat, { value: sum(s.values, level), unsafe: ![s, xpSeries].every(safe) }]).filter(([, v]) => Math.abs(v.value) > 1e-9));
+
 function collector() {
   const add = {};
   const contrib = {};
@@ -38,7 +41,7 @@ export function buffsOf(buffs, ss) {
 //   base     the stats every player starts with
 //   buffs    what the buffs switched on give
 //   contrib  per stat: every part with its value and whether it is unsafe
-//   levels   { skills: {id: {level, max}}, slayers: {boss: {level, max}}, skyblock: {xp, level, max} | null }
+//   levels   { skills: {id: {level, max, xp, toNext, stats}}, slayers: {boss: same}, skyblock: {xp, level, max} | null }; toNext: XP to the next level, null at the cap
 //   unknown  accessories without stats in the item list, enrichments without a value
 //   off      what could not be counted at all and why
 export function sourcesOf({ profile, ss, items = null, buffs = null, consumables = null }) {
@@ -52,7 +55,7 @@ export function sourcesOf({ profile, ss, items = null, buffs = null, consumables
       const xp = profile.skills[`SKILL_${upper(id)}`];
       if (typeof xp !== 'number') continue;
       const level = count(e.xpTotal, xp);
-      levels.skills[id] = { level, max: e.maxLevel };
+      levels.skills[id] = { level, max: e.maxLevel, xp, toNext: level >= e.maxLevel ? null : e.xpTotal[level] - xp, stats: statLines(e.stats, level, e.xp) };
       for (const [stat, s] of Object.entries(e.stats)) put(stat, 'skills', `${id[0].toUpperCase()}${id.slice(1)} ${level}`, sum(s.values, level), [s, e.xp]);
     }
   } else off.push('Skills API is off: skill stats are missing.');
@@ -62,7 +65,7 @@ export function sourcesOf({ profile, ss, items = null, buffs = null, consumables
       const xp = profile.slayer[boss];
       if (typeof xp !== 'number') continue;
       const level = count(e.xp.values, xp);
-      levels.slayers[boss] = { level, max: e.maxLevel };
+      levels.slayers[boss] = { level, max: e.maxLevel, xp, toNext: level >= e.maxLevel ? null : e.xp.values[level] - xp, stats: statLines(e.stats, level, e.xp) };
       for (const [stat, s] of Object.entries(e.stats)) put(stat, 'slayer', `${boss[0].toUpperCase()}${boss.slice(1)} slayer ${level}`, sum(s.values, level), [s, e.xp]);
     }
   } else off.push('Sync again to read your slayer levels.');
@@ -110,13 +113,14 @@ export function sourcesOf({ profile, ss, items = null, buffs = null, consumables
     }
     const missing = new Set();
     for (const item of best.values()) {
+      const name = items?.[item.id]?.name ?? item.id;
       const stats = statsOfItem(item);
       if (!stats || !Object.keys(stats).length) missing.add(item.id);
-      for (const [stat, v] of Object.entries(stats ?? {})) put(upper(stat), 'accessories', 'Accessories', v, item.tip ? { confidence: 'safe' } : null);
+      for (const [stat, v] of Object.entries(stats ?? {})) put(upper(stat), 'accessories', name, v, item.tip ? { confidence: 'safe' } : null);
       if (item.enrichment) {
         const stat = upper(item.enrichment);
         const e = ss.accessories.enrichments.values[stat];
-        if (e) put(stat, 'accessories', 'Enrichments', e.value, e);
+        if (e) put(stat, 'accessories', `${name} enrichment`, e.value, e);
         else unknown.enrichments.push(item.enrichment);
       }
     }
