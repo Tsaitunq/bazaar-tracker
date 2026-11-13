@@ -1,6 +1,14 @@
 {
   "versions": [
     {
+      "version": "0.20.4",
+      "date": "2026-11-13",
+      "entries": [
+        { "title": "Omelettes told apart", "text": "Only the Blue Cheese Goblin Omelette raises your HOTM perks; Sunny Side, Spicy, Pesto and the plain one no longer do, and the import names the one on your drill." },
+        { "title": "Drill tooltip complete", "text": "A drill's tooltip now adds the Polarvoid bonus, the engine stats and what a module grants, so its Mining Fortune matches the game." }
+      ]
+    },
+    {
       "version": "0.20.3",
       "date": "2026-11-13",
       "entries": [

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readItem, readGems, readItems, sourcesOf } from '../../apps/guide/import/items.js';
+import { readItem, readGems, readItems, sourcesOf, readTip, drillExtras } from '../../apps/guide/import/items.js';
 import { encodeInventory } from '../fixtures/guide/nbt-encode.js';
 
 const item = (extra, id = 'DIVAN_DRILL') => ({ id: 278, Count: 1, tag: { ExtraAttributes: { id, uuid: `u-${id}`, ...extra }, display: { Name: 'x', Lore: ['§7Mining Speed: §a+1'] } } });
@@ -120,4 +120,32 @@ test('an item keeps its tip wherever it was found', async () => {
   assert.deepEqual(readItem(raw, 'Accessory Bag').tip, { HEALTH: 10 });
   assert.deepEqual(readItem(raw, 'Inventar').tip, { HEALTH: 10 });
   assert.equal('tip' in readItem({ id: 1, tag: { ExtraAttributes: { id: 'X' }, display: { Lore: ['§7plain'] } } }, 'Inventar'), false);
+});
+
+// A drill's tooltip total leaves out three things, read as the game's /stats counts them: 220 + [5] + 30 + 50 = 305 Mining Fortune.
+const GLYPH = '';
+const DRILL_LORE = [
+  '§7Damage: §c+75',
+  '§7Mining Speed: §6+1,750 §9[+50] §9(+75) §d(+75)',
+  '§7Mining Fortune: §6+220 §9[+5] §9(+20) §d(+35)',
+  '', '§7§aRuby-Polished Drill Engine', `§7§6+250${GLYPH} Mining Speed`, `§7§6+30${GLYPH} Mining Fortune`,
+  '', '§7§aSunny Side Goblin Egg Part', `§7Grants §6+50${GLYPH} Mining Fortune§7, but this Drill`, '§7consumes quadruple the §2Fuel§7.',
+  '§7Grants §6+1% §6 Mining Fortune§7.', // another bonus, not the module
+  '§7§6+3 Mining Speed§7. Stops after §a10s', '§7§6+800 Mining Speed §7when mining', // abilities with text after the number
+];
+
+test('drillExtras: the Polarvoid bracket, the engine line and the module grant; abilities and percentages are not added', () => {
+  assert.deepEqual(drillExtras(DRILL_LORE), { MINING_SPEED: 50 + 250, MINING_FORTUNE: 5 + 30 + 50 });
+});
+
+test('readTip: a drill tooltip carries what its total leaves out, so Mining Fortune is 305', () => {
+  const tip = readTip(DRILL_LORE);
+  assert.equal(tip.MINING_FORTUNE, 305);
+  assert.equal(tip.MINING_SPEED, 2050);
+  assert.equal(tip.DAMAGE, 75);
+});
+
+test('readTip: a tooltip without those lines is read as before', () => {
+  assert.deepEqual(readTip(['§7Strength: §c+5 §e(+2)', '§7Mining Speed: §6+615 §9(+15)']), { STRENGTH: 5, MINING_SPEED: 615 });
+  assert.deepEqual(drillExtras(['§7Mining Speed: §6+615 §9(+15)']), {});
 });

@@ -54,6 +54,11 @@ test('Mining Speed: the total and every category match the game, except the stal
     }
   }
   check('total', num(d.total), want.total);
+  // Mining Fortune: the drill's 305 is its tooltip total plus the Polarvoid bracket, the engine line and the Sunny Side grant
+  if (want.fortune) {
+    const df = statDetail(world, want.area, want.fortune.stat);
+    for (const [category, expected] of Object.entries(want.fortune.categories)) check(`fortune/${category}`, df.groups.find((g) => g.title === category)?.sum ?? 0, expected);
+  }
   if (late.length) console.log(`stale fixture, still differs: ${late.join(', ')}`);
   assert.deepEqual(wrong, [], 'these categories differ from the game');
 });

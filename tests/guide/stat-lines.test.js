@@ -108,16 +108,19 @@ test('attrPlanned is what the buttons set: the build then equals the import', ()
 });
 
 // --- the Omelette: the import says it, from the drill in use
-test('omelette: the stats follow the drill in the import, the build keeps its own switch', () => {
+test('omelette: the stats follow the drill in the import: Blue Cheese gives the +60, any other module does not', () => {
   const levels = { mining_speed: 43, speedy_mineman: 35 };
   const DRILLS = { D: { name: 'Drill', category: 'DRILL', stats: {} } };
   const drill = (parts) => ({ id: 'D', at: ['Inventar'], parts, tip: { MINING_SPEED: 1000 } });
-  const sum = (omelette, parts) => group(statDetail(world({ ...emptyBuild(), hotm: hotm(levels, { omelette }) }, { items: DRILLS, profile: importOf({ items: [drill(parts)] }) }), 'mining', 'MINING_SPEED'), 'HOTM').sum;
-  assert.equal(sum(true, { engine: 'E' }), 2260); // the build says on, the drill has no module: off
-  assert.equal(sum(false, { engine: 'E', upgrade_module: 'GOBLIN_OMELETTE' }), 2320); // the build says off, the drill has one: on
-  const noDrill = group(statDetail(world({ ...emptyBuild(), hotm: hotm(levels, { omelette: true }) }, { items: DRILLS, profile: importOf({ items: [] }) }), 'mining', 'MINING_SPEED'), 'HOTM').sum;
-  assert.equal(noDrill, 2320); // no drill in the import: the build stays
-  assert.equal(buildOf(world({ ...emptyBuild(), hotm: hotm(levels, { omelette: true }) }, { items: DRILLS, profile: importOf({ items: [drill({ engine: 'E' })] }) })).hotm.omelette, false);
+  const sum = (omelette, parts, drills = [drill(parts)]) => group(statDetail(world({ ...emptyBuild(), hotm: hotm(levels, { omelette }) }, { items: DRILLS, profile: importOf({ items: drills }) }), 'mining', 'MINING_SPEED'), 'HOTM').sum;
+  assert.equal(sum(true, { engine: 'E', upgrade_module: 'goblin_omelette_sunny_side' }), 2260); // the build says on, Sunny Side gives no levels: off
+  assert.equal(sum(true, { engine: 'E', upgrade_module: 'goblin_omelette_spicy' }), 2260);
+  assert.equal(sum(true, { engine: 'E' }), 2260);
+  assert.equal(sum(false, { engine: 'E', upgrade_module: 'goblin_omelette_blue_cheese' }), 2320); // the build says off, Blue Cheese gives +1 level: on
+  assert.equal(sum(true, {}, []), 2320); // no drill in the import: the build stays
+  const hotmOf = (parts) => buildOf(world({ ...emptyBuild(), hotm: hotm(levels, { omelette: true }) }, { items: DRILLS, profile: importOf({ items: [drill(parts)] }) })).hotm.omelette;
+  assert.equal(hotmOf({ engine: 'E', upgrade_module: 'goblin_omelette_sunny_side' }), false);
+  assert.equal(hotmOf({ engine: 'E', upgrade_module: 'GOBLIN_OMELETTE_BLUE_CHEESE' }), true); // the id's case does not matter
 });
 
 // --- the pet: its stats at the level of the build, and the active pet of an import when the build has none

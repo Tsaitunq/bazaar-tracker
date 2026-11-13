@@ -62,6 +62,24 @@ export function readItem(raw, at) {
   };
 }
 
+// What the tooltip total of a drill leaves out, per stat (Mining Speed and Mining Fortune only): the bracket of the Polarvoid books on the stat line
+// ("+1,750 [+50] (+75)"), the stats of the engine on a line of their own ("+250 Mining Speed"), and what an upgrade module grants ("Grants +50 Mining Fortune,
+// but this Drill ..." of the Sunny Side Goblin Omelette). A line with text after the number is an ability, not an addition. The parenthesis parts are inside the total.
+const DRILL_STAT = { 'Mining Speed': 'MINING_SPEED', 'Mining Fortune': 'MINING_FORTUNE' };
+export function drillExtras(lore) {
+  const out = {};
+  const add = (name, v) => { out[DRILL_STAT[name]] = (out[DRILL_STAT[name]] ?? 0) + Number(String(v).replace(/,/g, '')); };
+  for (const raw of Array.isArray(lore) ? lore : []) {
+    const line = String(raw);
+    const stat = /^§7(Mining Speed|Mining Fortune): §.\+?-?[\d,.]+(.*)$/.exec(line);
+    if (stat) { for (const b of stat[2].matchAll(/\[\+?(-?[\d,.]+)\]/g)) add(stat[1], b[1]); continue; }
+    // the game puts a symbol glyph (a private-use character) between the number and the name
+    const part = /^§7§6\+([\d,]+)[^\s\w§%]? (Mining Speed|Mining Fortune)$/.exec(line) ?? /^§7Grants §6\+([\d,]+)[^\s\w§%]? (Mining Speed|Mining Fortune)§7, but this Drill/.exec(line);
+    if (part) add(part[2], part[1]);
+  }
+  return out;
+}
+
 const TIP_STAT = { CRIT_CHANCE: 'CRITICAL_CHANCE', CRIT_DAMAGE: 'CRITICAL_DAMAGE', BONUS_ATTACK_SPEED: 'ATTACK_SPEED' };
 // The stat lines of a tooltip ("§7Strength: §c+5 ..."): the first number is the total the game shows, progress included. { STAT: number }, nothing else is kept.
 export function readTip(lore) {
@@ -75,6 +93,7 @@ export function readTip(lore) {
     const id = m[1].trim().toUpperCase().replace(/[' ]+/g, '_');
     out[TIP_STAT[id] ?? id] = v;
   }
+  for (const [stat, extra] of Object.entries(drillExtras(lore))) if (out[stat] !== undefined) out[stat] += extra;
   return out;
 }
 

@@ -221,27 +221,32 @@ test('gear: Polarvoid Books on DR-X355 are found on DR-X655 and the place says s
   assert.deepEqual(gear.rows[0].where, ['on DR-X655, Inventar']);
 });
 
-test('omelette: the import sets the switch from the drill in use, on with an upgrade module, off without', () => {
+test('omelette: only the Blue Cheese Goblin Omelette switches the HOTM levels on; the row names the real module', () => {
   const drill = (parts, speed) => item('DRILL_X', ['Inventar'], { parts, tip: { MINING_SPEED: speed } });
   const row = (build, items) => area(proposals(world({ build }), profile({ hotm: hotm(), items })), 'hotm').rows.find((r) => r.id === 'hotm:omelette');
   const off = { ...emptyBuild(), hotm: { tier: 3, levels: {}, omelette: false, disabled: [], ability: null } };
   const on = { ...off, hotm: { ...off.hotm, omelette: true } };
-  const withModule = [drill({ engine: 'E', upgrade_module: 'GOBLIN_OMELETTE' }, 500)];
-  const without = [drill({ engine: 'E' }, 500)];
-  // the build says off, the drill has the module: a row that sets it on, pickable
-  const r = row(off, withModule);
-  assert.equal(r.status, 'different');
-  assert.equal(r.to, 'on');
-  assert.equal(isPickable(r), true);
-  assert.equal(applyRows(state(world({ build: off })), [r]).state.build.hotm.omelette, true);
-  // the build says on, the drill has none: a row that sets it off
-  assert.equal(row(on, without).to, 'off');
-  assert.equal(applyRows(state(world({ build: on })), [row(on, without)]).state.build.hotm.omelette, false);
-  // the same: no row
-  assert.equal(row(on, withModule), undefined);
-  assert.equal(row(off, without), undefined);
-  // only the drill in use counts: a weaker drill with a module in the backpack does not
-  assert.equal(row(off, [drill({ engine: 'E' }, 2000), drill({ engine: 'E', upgrade_module: 'GOBLIN_OMELETTE' }, 700)]), undefined);
+  const module = (id) => [drill({ engine: 'E', upgrade_module: id }, 500)];
+  // Blue Cheese: +1 level on every perk (wiki), so the switch goes on
+  const blue = row(off, module('goblin_omelette_blue_cheese'));
+  assert.equal(blue.to, 'on');
+  assert.match(blue.label, /Blue Cheese Goblin Omelette on your drill \(\+1 level on every perk\)/);
+  assert.equal(isPickable(blue), true);
+  assert.equal(applyRows(state(world({ build: off })), [blue]).state.build.hotm.omelette, true);
+  assert.equal(row(on, module('goblin_omelette_blue_cheese')), undefined); // already on
+  // Sunny Side (+50 Mining Fortune), Spicy (+20 % powder), Pesto (saves fuel) and the plain one give no perk levels: a switch that is on goes off
+  for (const [id, name] of [['goblin_omelette_sunny_side', 'Sunny Side'], ['goblin_omelette_spicy', 'Spicy'], ['goblin_omelette_pesto', 'Pesto'], ['goblin_omelette', 'Goblin Omelette']]) {
+    const r = row(on, module(id));
+    assert.equal(r.to, 'off', id);
+    assert.ok(r.label.includes(`${name}`) && r.label.endsWith(' on your drill (no perk levels)'), id);
+    assert.equal(applyRows(state(world({ build: on })), [r]).state.build.hotm.omelette, false, id);
+    assert.equal(row(off, module(id)), undefined, id); // already off: no row
+  }
+  // no module on the drill: off as well, named as such
+  assert.match(row(on, [drill({ engine: 'E' }, 500)]).label, /No upgrade module on your drill/);
+  assert.equal(row(off, [drill({ engine: 'E' }, 500)]), undefined);
+  // only the drill in use counts: a weaker drill with Blue Cheese in the backpack does not
+  assert.equal(row(off, [drill({ engine: 'E' }, 2000), drill({ engine: 'E', upgrade_module: 'goblin_omelette_blue_cheese' }, 700)]), undefined);
   // no drill in the profile: nothing to say
   assert.equal(row(on, []), undefined);
 });

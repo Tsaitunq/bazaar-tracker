@@ -19,13 +19,23 @@ export function attrLevel(stacks, attr, data) {
   return level;
 }
 
-// Whether the Goblin Omelette counts: the drill in use carries an upgrade module. The drill in use is the one with the most Mining Speed on its tooltip.
-// items: items.json (categories), null while it loads: then any item with drill parts counts as a drill. null when the profile has no drill.
-export function drillOmelette(profileItems, items) {
+// The upgrade module of the drill in use (the one with the most Mining Speed on its tooltip): { id, name, perks } or null without a drill or a module.
+// Only the Blue Cheese Goblin Omelette raises the HOTM perks (+1 level while the drill is held, wiki); the others give something else: Sunny Side +50
+// Mining Fortune (on the tooltip), Spicy +20 % powder, Pesto and the plain Goblin Omelette save fuel. perks: whether the module raises the perks.
+const MODULE_NAME = { goblin_omelette: 'Goblin Omelette', goblin_omelette_pesto: 'Pesto Goblin Omelette', goblin_omelette_spicy: 'Spicy Goblin Omelette', goblin_omelette_sunny_side: 'Sunny Side Goblin Omelette', goblin_omelette_blue_cheese: 'Blue Cheese Goblin Omelette' };
+export function drillModule(profileItems, items) {
   const speed = (i) => i.tip?.MINING_SPEED ?? 0;
   const drills = (profileItems ?? []).filter((i) => (items ? ['DRILL', 'PICKAXE', 'GAUNTLET'].includes(items[i.id]?.category) : i.parts?.engine));
   const main = drills.sort((a, b) => speed(b) - speed(a))[0];
-  return main ? !!main.parts?.upgrade_module : null;
+  if (!main) return { id: null, name: null, perks: false, drill: false };
+  const id = main.parts?.upgrade_module ? String(main.parts.upgrade_module).toLowerCase() : null;
+  return { id, name: id ? MODULE_NAME[id] ?? id : null, perks: id === 'goblin_omelette_blue_cheese', drill: true };
+}
+
+// Whether the omelette switch of the HOTM is on: the drill in use carries the Blue Cheese Goblin Omelette. null when the profile has no drill.
+export function drillOmelette(profileItems, items) {
+  const m = drillModule(profileItems, items);
+  return m.drill ? m.perks : null;
 }
 
 // { levels: key -> level (only what is above 0), unknown: how many keys the app has no attribute for }
