@@ -1,6 +1,15 @@
 {
   "versions": [
     {
+      "version": "0.20.0",
+      "date": "2026-11-13",
+      "entries": [
+        { "title": "Skills and slayers listed", "text": "The Stats page lists every slayer and skill with its level, the XP to the next level and the stats it gives." },
+        { "title": "Details in two blocks", "text": "A stat's details now split into Base and Gear from guides, with the gear sorted by guide, category, item and step, and a total of both on top." },
+        { "title": "Compare with the game", "text": "Type the value from /stats next to any category to see the difference, copy the deviations, and clear them all again." }
+      ]
+    },
+    {
       "version": "0.19.0",
       "date": "2026-11-11",
       "entries": [
