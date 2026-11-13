@@ -11,9 +11,11 @@ import { essenceView } from './stats-essence.js';
 import { petLabel, petKey, petsView } from './stats-pet.js';
 import { pic } from './editors.js';
 import { AVERAGE_SKILLS } from '../sources.js';
+import { auditKey, compare } from '../audit.js';
 
 const TAB_NAME = { overview: 'Overview', hotm: 'HOTM', attributes: 'Attributes', power: 'Power', essence: 'Essence', pets: 'Pets' };
 const AREAS = Object.keys(AREA_NAME);
+const signedText = (v) => `${v > 0 ? '+' : ''}${number(Math.round(v * 100) / 100)}`;
 
 // A two-way or four-way switch like the one of the guides: one mark under the links.
 function switcher(items, current, label) {
@@ -27,22 +29,24 @@ const areas = (r) => switcher(AREAS.map((a) => ({ id: a, name: AREA_NAME[a], hre
 
 const frame = (inner, title, back) => `<div class="screen screen-home" data-theme="stats" data-page="stats"><div class="top"><a class="back" href="${esc(back)}">← ${esc(title.back)}</a><h1 class="stats-title">${esc(title.name)}</h1><span class="top-fill"></span></div>${inner}${bottomBar(HOME_TABS, null)}</div>`;
 
-// Skill, slayer and SkyBlock level of the imported player: three compact chips, each opens its list. Nothing without an import.
+// Skills and slayers of the imported player: per entry its level, the XP to the next level and the stats it gives (≈ where one source only). Nothing without an import.
 const PRETTY = (id) => `${id[0].toUpperCase()}${id.slice(1)}`;
-function levelStrip(levels) {
+function levelLists(levels, data) {
   if (!levels) return '';
-  const skills = Object.entries(levels.skills);
-  const avg = AVERAGE_SKILLS.map((id) => levels.skills[id]?.level).filter((l) => l !== undefined);
-  const slayers = Object.entries(levels.slayers);
+  const name = (id) => data?.stats.stats.find((s) => s.id === id)?.name ?? id;
+  const entry = ([id, e]) => {
+    const stats = Object.entries(e.stats ?? {});
+    const head = `<span>${esc(PRETTY(id))}</span><b>${e.level} / ${e.max}</b><small>${e.toNext === null ? 'max level' : `${esc(number(Math.ceil(e.toNext)))} XP to next`}</small>`;
+    const rows = stats.map(([stat, v]) => `<div class="stat-row detail-row detail-sub"><span>${v.unsafe ? '≈ ' : ''}${esc(name(stat))}</span><b>${esc(signedText(v.value))}</b></div>`).join('') || '<small>No stats at this level.</small>';
+    return `<details class="detail-part level-entry"><summary class="stat-row detail-row">${head}</summary>${rows}</details>`;
+  };
+  const panel = (title, rows, extra = '') => (rows.length ? `<section class="panel level-panel" data-levels="${title.toLowerCase()}"><h2>${title}${extra}</h2>${rows.map(entry).join('')}</section>` : '');
   const sb = levels.skyblock;
-  const chip = (name, value, body) => `<details class="level-chip"><summary><span>${name}</span><b>${esc(value)}</b></summary><div class="level-list">${body}</div></details>`;
-  const list = (rows) => rows.map(([n, v]) => `<small>${esc(n)} <b>${esc(v)}</b></small>`).join('') || '<small>Not in the import.</small>';
-  const skillValue = avg.length ? (Math.round((avg.reduce((n, l) => n + l, 0) / avg.length) * 10) / 10).toString() : '–';
-  return `<div class="level-strip" aria-label="Levels of the imported player">${[
-    chip('Skills', skillValue === '–' ? skillValue : `⌀ ${skillValue}`, list(skills.map(([id, s]) => [PRETTY(id), `${s.level} / ${s.max}`]))),
-    chip('Slayer', slayers.length ? `top ${Math.max(...slayers.map(([, s]) => s.level))}` : '–', list(slayers.map(([id, s]) => [PRETTY(id), `${s.level} / ${s.max}`]))),
-    chip('SkyBlock', sb ? `Lv ${sb.level}` : '–', sb ? list([['Level', `${sb.level} / ${sb.max}`], ['XP', number(Math.round(sb.xp))]]) : '<small>The worker does not send your SkyBlock level yet: deploy the updated worker and sync again.</small>'),
-  ].join('')}</div>`;
+  const avg = AVERAGE_SKILLS.map((id) => levels.skills[id]?.level).filter((l) => l !== undefined);
+  const skills = Object.entries(levels.skills);
+  const average = avg.length ? ` <small>⌀ ${Math.round((avg.reduce((n, l) => n + l, 0) / avg.length) * 10) / 10}</small>` : '';
+  const level = sb ? `<section class="panel"><small>SkyBlock level <b>${sb.level} / ${sb.max}</b> · ${esc(number(Math.round(sb.xp)))} XP</small></section>` : '<section class="panel"><small>The worker does not send your SkyBlock level yet: deploy the updated worker and sync again.</small></section>';
+  return `${panel('Slayers', Object.entries(levels.slayers))}${panel('Skills', skills, average)}${level}`;
 }
 
 // Which buffs count as active, with what they add: a potion that has run out would otherwise add its stats unnoticed.
@@ -83,7 +87,7 @@ function overview(world, r) {
   const remove = m.measured ? `<button type="button" data-stats-remove="${esc(r.area)}">Remove measurement</button>` : '';
   const note = m.missing === 'data' ? '<p class="note">Loading game data…</p>' : m.missing === 'items' ? '<p class="note">Loading item data… gear shows when it is there.</p>' : '';
   return `<div class="scroll">${tabs(r)}${areas(r)}
-    ${buffsNote(m, r)}${draftNote}${figure}${levelStrip(m.levels)}${stale}
+    ${buffsNote(m, r)}${draftNote}${figure}${levelLists(m.levels, world.gamedata)}${stale}
     <div class="panel"><small>${when}</small><small>${gear}</small>${hints}${note}<a class="primary-link" href="#/stats/measure/${esc(r.area)}">${m.measured ? 'Measure base again' : `Measure ${esc(m.name)} base`}</a>${remove}</div>
     <div class="panel stat-table"><div class="stat-row stat-head"><span>All ${esc(m.name.toLowerCase())} stats</span><span>Base</span><span>Gear</span><span title="Changed since the measurement">Δ</span><span>Total</span></div>${rows}</div>${sources}${unknown}${moved}${listed}</div>`;
 }
@@ -103,23 +107,40 @@ function measure(world, r) {
   return body;
 }
 
-const signedText = (v) => `${v > 0 ? '+' : ''}${number(Math.round(v * 100) / 100)}`;
+// The "in game" field of a category and what it shows: app value, game value, difference (green within 0.1, otherwise red). The same for both blocks.
+function auditRow(world, r, title, app) {
+  const key = auditKey(r.area, r.stat, title);
+  const entry = world.audit?.[key];
+  const c = entry ? compare(app, entry.value) : null;
+  const result = c ? `<small class="audit-result c-${c.ok ? 'green' : 'red'}" data-audit-result>App ${esc(number(c.app))} · Game ${esc(number(c.game))} · Diff ${esc(signedText(c.diff))}</small>` : '';
+  return `<div class="audit-row"><label class="audit">In game <input type="number" step="any" inputmode="decimal" data-audit="${esc(key)}"${entry ? ` value="${esc(entry.value)}"` : ''} aria-label="${esc(title)} in game"></label>${result}</div>`;
+}
 
-// The breakdown of one stat: a panel per category, uncertain values with a ≈, conditional effects grey.
+// The breakdown of one stat in two blocks. Base: everything that does not come from ticked guide steps, a category each, opening into its lines.
+// Gear from guides: guide → category → item → steps. The total on top is base + gear (+ multipliers).
 function detail(world, r) {
   const d = statDetail(world, r.area, r.stat);
   if (!d) return '<div class="scroll"><div class="panel"><small>No such stat for this area.</small></div></div>';
   const mark = (l) => `${l.unsafe ? '≈ ' : ''}${esc(l.label)}${l.differs ? ' ≠' : ''}${l.note ? ` <small>(${esc(l.note)})</small>` : ''}`;
   const value = (l) => `<b class="c-${d.color}">${esc(l.text)}</b>`;
+  const row = (l, sub = false) => `<div class="stat-row detail-row${sub ? ' detail-sub' : ''}"><span>${mark(l)}</span>${value(l)}</div>`;
   // a line with parts opens into them; a line without is a plain row
-  const lines = (g) => g.lines.map((l) => (l.parts?.length
-    ? `<details class="detail-part"><summary class="stat-row detail-row"><span>${mark(l)}</span>${value(l)}</summary>${l.parts.map((p) => `<div class="stat-row detail-row detail-sub"><span>${esc(p.label)}</span><b>${esc(p.text)}</b></div>`).join('')}</details>`
-    : `<div class="stat-row detail-row"><span>${mark(l)}</span>${value(l)}</div>`)).join('');
-  const panels = d.groups.map((g) => `<section class="panel"><h2>${esc(g.title)} <small>${esc(signedText(g.sum))}</small></h2>${lines(g)}</section>`).join('');
+  const line = (l) => (l.parts?.length
+    ? `<details class="detail-part"><summary class="stat-row detail-row"><span>${mark(l)}</span>${value(l)}</summary>${l.parts.map((p) => row(p, true)).join('')}</details>`
+    : row(l));
+  const sum = (v) => `<b class="c-${d.color}">${esc(signedText(v))}</b>`;
+  const baseGroups = d.base.groups.map((g) => `<details class="detail-part detail-cat" data-detail-cat="${esc(g.title)}"><summary class="stat-row detail-row"><span>${esc(g.title)}</span>${sum(g.sum)}</summary>${auditRow(world, r, g.title, g.sum)}${g.lines.map(line).join('')}</details>`).join('');
+  const guides = d.gear.guides.map((g) => `<details class="detail-part detail-cat"><summary class="stat-row detail-row"><span>${esc(g.title)}</span>${sum(g.sum)}</summary>${g.cats.map((c) => `<details class="detail-part"><summary class="stat-row detail-row detail-sub"><span>${esc(c.title)}</span>${sum(c.sum)}</summary>${c.items.map(line).join('')}</details>`).join('')}</details>`).join('');
+  const gearCats = d.gear.cats.length ? `<details class="detail-part"><summary class="stat-row detail-row"><span>Compare by game category</span><small>${d.gear.cats.length}</small></summary>${d.gear.cats.map((g) => `<div class="stat-row detail-row"><span>${esc(g.title)}</span>${sum(g.sum)}</div>${auditRow(world, r, g.title, g.sum)}`).join('')}</details>` : '';
+  const mults = d.multipliers.length ? `<details class="detail-part detail-cat"><summary class="stat-row detail-row"><span>Multipliers</span><small>${d.multipliers.length}</small></summary><small>Applied last, on the sum above.</small>${d.multipliers.map((m) => `<div class="stat-row detail-row${m.holds ? '' : ' muted'}"><span>${esc(m.label)} <small>(${esc(m.condition)}${m.holds ? '' : ', not counted'})</small>${m.key ? `<label class="check"><input type="checkbox" data-condition="${esc(m.key)}"${m.holds ? ' checked' : ''}> holds now</label>` : ''}</span><b>${esc(m.text)}</b></div>`).join('')}</details>` : '';
   const cond = d.conditional.length ? `<section class="panel muted"><h2>Only when the condition holds</h2>${d.conditional.map((t) => `<small>${esc(t)}</small>`).join('')}</section>` : '';
-  // a multiplier is its own row with its condition; a switchable condition has a checkbox for whether it holds now
-  const mults = d.multipliers.length ? `<section class="panel"><h2>Multipliers</h2><small>Applied last, on the sum above.</small>${d.multipliers.map((m) => `<div class="stat-row detail-row${m.holds ? '' : ' muted'}"><span>${esc(m.label)} <small>(${esc(m.condition)}${m.holds ? '' : ', not counted'})</small>${m.key ? `<label class="check"><input type="checkbox" data-condition="${esc(m.key)}"${m.holds ? ' checked' : ''}> holds now</label>` : ''}</span><b>${esc(m.text)}</b></div>`).join('')}</section>` : '';
-  return `<div class="scroll"><div class="panel"><h2 class="c-${d.color}">${esc(d.icon)} ${esc(d.name)}: ${esc(d.total)}</h2><small>${d.measured ? 'With your measured base.' : 'Added up from what the app knows.'} A ≈ marks values from one source only. ≠ means the game tooltip and the own calculation differ.</small></div>${panels || '<section class="panel"><small>Nothing adds to this stat yet.</small></section>'}${mults}${cond}</div>`;
+  const total = Number(String(d.total).replace(/,/g, ''));
+  const rest = Number.isFinite(total) ? Math.round((total - d.base.sum - d.gear.sum) * 100) / 100 : 0;
+  const audits = Object.keys(world.audit ?? {}).length;
+  const tools = `<section class="panel audit-tools"><small>Type the value of a category from /stats → Click for details in its "In game" field. Green: within 0.1.</small><div class="actions"><button type="button" data-audit-export>Copy deviations</button><button type="button" data-audit-clear${audits ? '' : ' disabled'}>Clear all (${audits})</button></div>${world.auditMessage ? `<small role="status">${esc(world.auditMessage)}</small>` : ''}</section>`;
+  return `<div class="scroll"><div class="panel detail-total"><h2 class="c-${d.color}">${esc(d.icon)} ${esc(d.name)}: ${esc(d.total)}</h2><small>Base ${esc(signedText(d.base.sum))} · Gear ${esc(signedText(d.gear.sum))}${Math.abs(rest) > 0.005 ? ` · Multipliers ${esc(signedText(rest))}` : ''}. ${d.measured ? 'With your measured base.' : 'Added up from what the app knows.'} A ≈ marks values from one source only. ≠ means the game tooltip and the own calculation differ.</small></div>
+    <section class="panel" data-block="base"><h2>Base <small>${esc(signedText(d.base.sum))}</small></h2><small>Everything that is not from ticked guide steps.</small>${baseGroups || '<small>Nothing adds to this stat yet.</small>'}${mults}</section>
+    <section class="panel" data-block="gear"><h2>Gear from guides <small>${esc(signedText(d.gear.sum))}</small></h2><small>Only what the ticked steps give: guide, category, item, step.</small>${guides || '<small>No ticked gear adds to this stat.</small>'}${gearCats}</section>${cond}${tools}</div>`;
 }
 
 const EDITORS = { hotm: hotmView, attributes: attrsView, power: powerView, essence: essenceView, pets: petsView };

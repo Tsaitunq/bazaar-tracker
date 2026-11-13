@@ -147,8 +147,17 @@ export function statDetail(world, area, stat) {
   const worn = wornOf(world, area, entry, calc);
   const t = totalFor({ area, entry, build: world.build, gear: worn.gear, data, stats: statsFor(area, data), pet: worn.pet, calc });
   const line = (label, value, unsafe = false, note = null, extra = {}) => ({ label, value, text: signed(value), unsafe, note, ...extra });
-  const groups = new Map();
+  // two blocks: base (everything that is not from ticked guide steps) and gear (from ticked steps: guide, category, item, step)
+  const groups = new Map(); // base categories
+  const gearCats = new Map(); // gear in the game's categories, over all guides
+  const tree = new Map(); // guide -> category -> [item line]
   const add = (title, l) => groups.set(title, [...(groups.get(title) ?? []), l]);
+  const addGear = (guide, title, l) => {
+    gearCats.set(title, [...(gearCats.get(title) ?? []), l]);
+    const cats = tree.get(guide) ?? new Map();
+    cats.set(title, [...(cats.get(title) ?? []), l]);
+    tree.set(guide, cats);
+  };
   const r = t.rows.find((x) => x.stat === stat);
   const build = world.build ?? {};
   const conditional = [...t.listed, ...(worn.listed ?? [])].filter((l) => l.stat === stat).map((l) => l.text);
@@ -176,8 +185,16 @@ export function statDetail(world, area, stat) {
     shown += value;
     const differs = p.source === 'game' && Math.abs(tip - own) > 0.051;
     const note = p.source === 'game' ? (differs ? `game (tooltip) ≠ calculated ${signed(own)}` : 'game (tooltip)') : 'calculated';
-    const parts = (p.lines[stat] ?? []).map((l) => line(l.label, l.value));
-    add(CAT_TITLE[p.cat], line(world.items?.[p.id]?.name ?? p.id, value, false, note, { source: p.source, differs, parts }));
+    // the item under the guide whose step owns it; below it the base, each step's share, and the rest
+    const guide = worn.ownedBy?.[p.id]?.guide ?? 'Owned items';
+    const own0 = (p.lines[stat] ?? []).filter((l) => l.part === 'base').reduce((n, l) => n + l.value, 0);
+    const steps = [
+      ...(own0 ? [line(worn.ownedBy?.[p.id] ? `Base (${worn.ownedBy[p.id].text})` : 'Base', own0)] : []),
+      ...(worn.stepLog ?? []).filter((e) => e.id === p.id && e.delta[stat]).map((e) => line(e.guide === guide ? e.text : `${e.text} [${e.guide}]`, e.delta[stat])),
+    ];
+    const rest = Math.round((value - steps.reduce((n, l) => n + l.value, 0)) * 100) / 100;
+    if (Math.abs(rest) > 0.051) steps.push(p.source === 'game' ? line('Rest according to the game', rest, false, 'missing or wrongly ticked steps') : line('Stars, books, other', rest));
+    addGear(guide, CAT_TITLE[p.cat], line(world.items?.[p.id]?.name ?? p.id, value, false, note, { source: p.source, differs, parts: steps }));
     conditional.push(...p.conditional.filter((c) => !c.stat || c.stat === stat).map((c) => `${world.items?.[p.id]?.name ?? p.id}: ${c.text}`));
   }
   const pet = worn.petPart;
@@ -185,16 +202,30 @@ export function statDetail(world, area, stat) {
     const v = (pet.stats[stat] ?? 0) + (pet.item[stat] ?? 0);
     if (Math.abs(v) > 1e-9) {
       shown += v;
-      add('Pet', line(`${pet.name}${pet.rarity ? ` ${pet.rarity.toLowerCase()}` : ''}${pet.level ? ` lvl ${pet.level}` : ''}`, v, false, 'calculated', { parts: [line('Pet stats at the level', pet.stats[stat] ?? 0), line('Pet item', pet.item[stat] ?? 0)].filter((l) => l.value) }));
+      (worn.petStep ? (l) => addGear(worn.petStep.guide, 'Pet', l) : (l) => add('Pet', l))(line(`${pet.name}${pet.rarity ? ` ${pet.rarity.toLowerCase()}` : ''}${pet.level ? ` lvl ${pet.level}` : ''}`, v, false, 'calculated', { parts: [line('Pet stats at the level', pet.stats[stat] ?? 0), line('Pet item', pet.item[stat] ?? 0)].filter((l) => l.value) }));
     }
     conditional.push(...pet.conditional.filter((c) => c.stat === stat).map((c) => `${pet.name}: ${c.text}`));
   }
   const other = (worn.gear[stat] ?? 0) - shown;
-  if (Math.abs(other) > 1e-9) add('Other gear', line('Lantern, ticked steps, set bonus', other));
+  if (Math.abs(other) > 1e-9) addGear('Not from guide steps', 'Other gear', line('Lantern, set bonus, other', other));
 
-  const ordered = [...GAME_ORDER, ...[...groups.keys()].filter((k) => !GAME_ORDER.includes(k))].filter((k) => groups.has(k));
-  const out = ordered.map((title) => ({ title, lines: groups.get(title), sum: Math.round(groups.get(title).reduce((n, l) => n + l.value, 0) * 100) / 100 }));
-  return { area, stat, name: row.label, icon: row.icon, color: row.color, groups: out, conditional, multipliers: multipliersOf(world, area, stat, worn, data), total: row.total, measured: !!entry };
+  const rounded = (v) => Math.round(v * 100) / 100;
+  const pack = (map) => {
+    const ordered = [...GAME_ORDER, ...[...map.keys()].filter((k) => !GAME_ORDER.includes(k))].filter((k) => map.has(k));
+    return ordered.map((title) => ({ title, lines: map.get(title), sum: rounded(map.get(title).reduce((n, l) => n + l.value, 0)) }));
+  };
+  const base = pack(groups);
+  const cats = pack(gearCats);
+  const guides = [...tree].map(([title, byCat]) => {
+    const list = [...byCat].map(([cat, items]) => ({ title: cat, items, sum: rounded(items.reduce((n, l) => n + l.value, 0)) }));
+    return { title, cats: list, sum: rounded(list.reduce((n, c) => n + c.sum, 0)) };
+  });
+  const baseSum = rounded(base.reduce((n, g) => n + g.sum, 0));
+  const gearSum = rounded(cats.reduce((n, g) => n + g.sum, 0));
+  return {
+    area, stat, name: row.label, icon: row.icon, color: row.color, groups: [...base, ...cats], base: { sum: baseSum, groups: base }, gear: { sum: gearSum, cats, guides },
+    conditional, multipliers: multipliersOf(world, area, stat, worn, data), total: row.total, measured: !!entry,
+  };
 }
 
 // The Essence tab: per perk its level, what it gives now and at the next level, what the next level and the rest cost

@@ -72,6 +72,19 @@ export function accessoryGain({ guides, area, dates, measuredAt, owned, items })
   return { gain: Object.fromEntries(Object.entries(gain).filter(([, v]) => v)), after };
 }
 
+// The pieces a step changed or added, with what it changed per stat (own calculation, before and after): [{ id, delta: { STAT: n } }].
+function itemChanges(before, after, items) {
+  const out = [];
+  after.items.forEach((now, i) => {
+    if (now === before.items[i]) return;
+    const was = before.items[i]?.id === now.id ? pieceParts(before.items[i], items).total : {};
+    const total = pieceParts(now, items).total;
+    const delta = Object.fromEntries([...new Set([...Object.keys(total), ...Object.keys(was)])].map((k) => [k, Math.round(((total[k] ?? 0) - (was[k] ?? 0)) * 100) / 100]).filter(([, v]) => v));
+    if (Object.keys(delta).length) out.push({ id: now.id, delta });
+  });
+  return out;
+}
+
 // Gear = item stats of the pieces owned + what each ticked step of the guides adds, in guide order.
 // values: the typed base, only as the state the Blaze maths of a step starts from.
 // Gives the flat gear stats, the profile and loadout the ranking works from.
@@ -82,12 +95,22 @@ export function gearOf({ guides, checks, owned, items, area, build, settings, va
   let state = baseStats(values, [gear]);
   const enchants = {}; // the highest level ticked per enchant, for the conditional lines
   let catacombsNeeded = false;
+  // where each part of the gear comes from: the ticked step an item stands on (ownedBy), what each other step did to which item (stepLog), the pet step
+  const ownedBy = {};
+  const stepLog = [];
+  let petStep = null;
   for (const guide of guides.filter((g) => g.area === area)) {
     const marks = new Set(checks[guide.id] ?? []);
     for (const section of guide.sections) {
       for (const step of section.steps) {
+        if (marks.has(stepKey(section, step)) && isItemStep(step)) {
+          for (const d of [step.detect ?? []].flat().filter((part) => part.kind === 'owned')) {
+            for (const id of ((typeof d.on === 'string' ? guide.groups?.[d.on] : d.on) ?? []).flat()) ownedBy[id] ??= { guide: guide.title, text: step.text };
+          }
+        }
         // an item step is in the owned store already
         if (!marks.has(stepKey(section, step)) || isItemStep(step) || isEssenceStep(step)) continue;
+        if ([step.detect ?? []].flat().some((d) => d.kind === 'pet')) petStep = { guide: guide.title, text: step.text };
         loadout = virtualLoadout(profile, items, area);
         for (const d of [step.detect ?? []].flat()) {
           if (d.kind === 'enchant') enchants[d.enchant] = Math.max(enchants[d.enchant] ?? 0, d.level);
@@ -99,7 +122,9 @@ export function gearOf({ guides, checks, owned, items, area, build, settings, va
         const flat = change?.common ?? change ?? {};
         sum(gear, flat);
         state = baseStats(state, [flat]);
-        profile = applyStep(profile, step, guide, items);
+        const after = applyStep(profile, step, guide, items);
+        if (!isBuildStep(step)) stepLog.push(...itemChanges(profile, after, items).map((c) => ({ guide: guide.title, text: step.text, ...c })));
+        profile = after;
       }
     }
   }
@@ -136,5 +161,5 @@ export function gearOf({ guides, checks, owned, items, area, build, settings, va
     stats: petGear(loadout, build, pets), item: petItemStats(loadout, build, petItems),
     conditional: (pet?.perks ?? []).filter((k) => k.condition).map((k) => ({ stat: k.stat ?? null, text: `${k.name}: ${k.text} (${k.condition})` })),
   } : null;
-  return { pieces, petPart, gear, profile, loadout, stepPet: loadout.pet ?? null, pet, rules, listed: area === 'blaze' ? listed : stacking, accessories: accessories.gain, hints: accessories.after ? ['An accessory changes your Magical Power: adjust it under Power.'] : [] };
+  return { pieces, petPart, ownedBy, stepLog, petStep, gear, profile, loadout, stepPet: loadout.pet ?? null, pet, rules, listed: area === 'blaze' ? listed : stacking, accessories: accessories.gain, hints: accessories.after ? ['An accessory changes your Magical Power: adjust it under Power.'] : [] };
 }
