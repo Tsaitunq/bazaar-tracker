@@ -177,7 +177,7 @@ function hotmLines(hotm, data, stat, line) {
     if (bonus) out.push(line(`Goblin Omelette: ${perk.name} +1 level`, value - plain, false, 'counted: switched on in your build'));
     else if (perk.omeletteBonus) {
       const more = valueAt(e, base + 1) - plain;
-      if (Math.abs(more) > 1e-9) out.push(inactive(`Goblin Omelette: ${perk.name} +1 level`, more, 'conditional (not active): no Goblin Omelette on your drill'));
+      if (Math.abs(more) > 1e-9) out.push(inactive(`Goblin Omelette: ${perk.name} +1 level`, more, 'conditional (not active): no Blue Cheese Goblin Omelette on your drill'));
     }
   }
   return out;

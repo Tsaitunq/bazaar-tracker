@@ -1,6 +1,6 @@
 // Local check of the import against the game's own tooltips and rules, no second site needed. Reads the private worker answer
 // (personal/fixtures/api-profile.json) and reports differences as rows. A row holds item ids, stat ids and numbers: no names, no uuids.
-import { readItem, sourcesOf } from '../../apps/guide/import/items.js';
+import { readItem, sourcesOf, drillExtras, efficiencySpeed } from '../../apps/guide/import/items.js';
 import { decodeInventory, newBudget } from '../../apps/guide/nbt.js';
 import { petLevel } from '../../apps/guide/gamedata.js';
 import { RARITIES, ENCHANTS, GEMS, GEM_STAT, REFORGES, PARTS, POLARVOID, COATING, CATACOMBS_REFORGE } from '../../apps/guide/optimizer-data.js';
@@ -73,6 +73,8 @@ function ours(item, rarity, e, items) {
   return out;
 }
 
+const withEfficiency = (extras, enchantments, lore, id) => { const v = efficiencySpeed(enchantments, lore, id); return v ? { ...extras, MINING_SPEED: (extras.MINING_SPEED ?? 0) + v } : extras; };
+
 // All items of the answer with their tooltip: { item (readItem), rarity, stats (tooltip), enchants (tooltip), name part }.
 export async function tooltips(inventories) {
   const budget = newBudget();
@@ -84,7 +86,7 @@ export async function tooltips(inventories) {
       const item = readItem(raw, at[0]);
       if (!item) continue;
       const lore = parseLore(raw.tag.display?.Lore);
-      out.push({ item, place: at[0], e: raw.tag.ExtraAttributes, rarity: lore.rarity, stats: lore.stats, loreEnchants: loreEnchants(raw.tag.display?.Lore), name: strip(raw.tag.display?.Name ?? '') });
+      out.push({ item, place: at[0], e: raw.tag.ExtraAttributes, rarity: lore.rarity, stats: lore.stats, extras: withEfficiency(drillExtras(raw.tag.display?.Lore), raw.tag.ExtraAttributes?.enchantments, raw.tag.display?.Lore, raw.tag.ExtraAttributes?.id), loreEnchants: loreEnchants(raw.tag.display?.Lore), name: strip(raw.tag.display?.Name ?? '') });
     }
   }
   return out;
@@ -125,7 +127,9 @@ export function checkItems(list, items) {
       // the total: only for a stat the app has a base for, with every part of it modelled
       if (m && m.base && restKnown && TOTALS.has(stat) && !item.stars) {
         const sum = m.base + m.reforge + m.gems + m.rest;
-        if (Math.abs(sum - tip.total) > 0.051) row(item.id, stat, 'total', tip.total, Math.round(sum * 100) / 100, t.rarity);
+        // what the total leaves out (drillExtras): the Polarvoid bracket, the engine's line, a module's grant, the Efficiency enchantment
+        const game = tip.total + (t.extras?.[stat] ?? 0);
+        if (Math.abs(sum - game) > 0.051) row(item.id, stat, 'total', game, Math.round(sum * 100) / 100, t.rarity);
       }
     }
   }

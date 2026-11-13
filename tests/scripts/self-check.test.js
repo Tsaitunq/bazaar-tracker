@@ -47,14 +47,5 @@ test('private profile: no difference to the tooltips, the HOTM powder or the pla
   const list = await tooltips(answer.inventories);
   const rows = [...checkItems(list, items), ...checkHotm(answer, data), ...checkPlausible(answer, list, data, items)];
   const text = rows.map((r) => `${r.area} ${r.id} ${r.field}: game ${r.tooltip}, app ${r.ours}`);
-  // known deviations, not fixed yet: the tooltip total of a drill leaves out Efficiency, Drill Parts and Polarvoid, which the app counts. Refresh the list when the parser changes.
-  const knownDrillLore = new Set([
-    'item TITANIUM_DRILL_4 MINING_SPEED total: game 1750, app 2260',
-    'item TITANIUM_DRILL_4 MINING_FORTUNE total: game 220, app 305',
-    'item MITHRIL_DRILL_2 MINING_SPEED total: game 615, app 725',
-    'item GEMSTONE_DRILL_4 MINING_SPEED total: game 640, app 750',
-  ]);
-  const known = text.filter((x) => knownDrillLore.has(x));
-  if (known.length) console.log(`known drill lore deviations: ${known.length}`);
-  assert.deepEqual(text.filter((x) => !knownDrillLore.has(x)), []);
+  assert.deepEqual(text, []);
 });

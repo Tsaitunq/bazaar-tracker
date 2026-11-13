@@ -36,6 +36,11 @@ export function readItem(raw, at) {
   const e = raw?.tag?.ExtraAttributes;
   if (!text(e?.id)) return null;
   const hot = whole(e.hot_potato_count);
+  const lore = raw.tag.display?.Lore;
+  const tip = readTip(lore);
+  // a drill's tooltip has no line for its Efficiency: Mining Speed 10 + 20 per level, from the enchantment
+  const efficiency = efficiencySpeed(e.enchantments, lore, e.id);
+  if (tip.MINING_SPEED !== undefined && efficiency) tip.MINING_SPEED += efficiency;
   return {
     id: e.id,
     // accessories carry modifier "none" when they have no reforge; an enchant can be stored in capitals (PROSECUTE)
@@ -57,9 +62,36 @@ export function readItem(raw, at) {
     scrolls: [...(Array.isArray(e.ability_scroll) ? e.ability_scroll : []), ...(text(e.power_ability_scroll) ? [e.power_ability_scroll] : [])].filter(text),
     at: [at],
     // what the tooltip says the item gives (stat numbers only): the app takes this in place of its own sum for accessories and worn gear
-    ...(Object.keys(readTip(raw.tag.display?.Lore)).length ? { tip: readTip(raw.tag.display.Lore) } : {}),
+    ...(Object.keys(tip).length ? { tip } : {}),
     uuid: text(e.uuid),
   };
+}
+
+// What the tooltip total of a drill leaves out, per stat (Mining Speed and Mining Fortune only): the bracket of the Polarvoid books on the stat line
+// ("+1,750 [+50] (+75)"), the stats of the engine on a line of their own ("+250 Mining Speed"), and what an upgrade module grants ("Grants +50 Mining Fortune,
+// but this Drill ..." of the Sunny Side Goblin Omelette). A line with text after the number is an ability, not an addition. The parenthesis parts are inside the total.
+const DRILL_STAT = { 'Mining Speed': 'MINING_SPEED', 'Mining Fortune': 'MINING_FORTUNE' };
+export function drillExtras(lore) {
+  const out = {};
+  const add = (name, v) => { out[DRILL_STAT[name]] = (out[DRILL_STAT[name]] ?? 0) + Number(String(v).replace(/,/g, '')); };
+  for (const raw of Array.isArray(lore) ? lore : []) {
+    const line = String(raw);
+    const stat = /^§7(Mining Speed|Mining Fortune): §.\+?-?[\d,.]+(.*)$/.exec(line);
+    if (stat) { for (const b of stat[2].matchAll(/\[\+?(-?[\d,.]+)\]/g)) add(stat[1], b[1]); continue; }
+    // the game puts a symbol glyph (a private-use character) between the number and the name
+    const part = /^§7§6\+([\d,]+)[^\s\w§%]? (Mining Speed|Mining Fortune)$/.exec(line) ?? /^§7Grants §6\+([\d,]+)[^\s\w§%]? (Mining Speed|Mining Fortune)§7, but this Drill/.exec(line);
+    if (part) add(part[2], part[1]);
+  }
+  return out;
+}
+
+// The Mining Speed of the Efficiency enchantment: 10 + 20 per level (X = 210, V = 110, checked in the game). Only for drills: their tooltip total leaves it out,
+// while the tooltip of a pickaxe holds it already (checked on the Diamond and Iron Pickaxe of the private profile; no gauntlet was available to check).
+// 0 without the enchantment, or when the tooltip has a line of its own for it (a line that names Efficiency and Mining Speed together). enchantments: ExtraAttributes.enchantments.
+export function efficiencySpeed(enchantments, lore, id) {
+  const level = whole(enchantments?.efficiency);
+  if (!level || !/_DRILL(_\d+)?$/.test(String(id)) || (Array.isArray(lore) ? lore : []).some((l) => /Efficiency/.test(l) && /Mining Speed/.test(l))) return 0;
+  return 10 + 20 * level;
 }
 
 const TIP_STAT = { CRIT_CHANCE: 'CRITICAL_CHANCE', CRIT_DAMAGE: 'CRITICAL_DAMAGE', BONUS_ATTACK_SPEED: 'ATTACK_SPEED' };
@@ -75,6 +107,7 @@ export function readTip(lore) {
     const id = m[1].trim().toUpperCase().replace(/[' ]+/g, '_');
     out[TIP_STAT[id] ?? id] = v;
   }
+  for (const [stat, extra] of Object.entries(drillExtras(lore))) if (out[stat] !== undefined) out[stat] += extra;
   return out;
 }
 

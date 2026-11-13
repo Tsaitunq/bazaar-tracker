@@ -6,7 +6,7 @@ import { doneSet, stepKey } from '../progress.js';
 import { autoOf, tickStep, stampAll } from '../model.js';
 import { commitGuide, expandChecks } from '../keys.js';
 import { EMPTY_PART, setPart, setPet, setPetItem, hotmPowder } from '../build.js';
-import { drillOmelette } from './profile.js';
+import { drillModule } from './profile.js';
 
 export const AREAS = [['hotm', 'HOTM'], ['attributes', 'Attributes'], ['essence', 'Essence'], ['pets', 'Pets'], ['power', 'Power'], ['gear', 'Gear']];
 
@@ -77,11 +77,13 @@ function hotmRows(world, profile) {
     if (same(have, h.powder)) out.equal++;
     else rows.push({ id: 'hotm:powder', area: 'hotm', label: 'Powder you have', from: have ? Object.entries(have).map(([k, v]) => `${k} ${v}`).join(', ') : '–', to: Object.entries(h.powder).map(([k, v]) => `${k} ${v}`).join(', '), status: have ? 'different' : 'new', kind: 'part', part: 'hotm', change: hotmPowder(h.powder) });
   }
-  // the Goblin Omelette sits on the drill in use as its upgrade module: the import says whether it counts, on or off
-  const want = drillOmelette(profile.items, world.items);
-  if (want !== null) {
+  // the module on the drill in use: only the Blue Cheese Goblin Omelette raises the perks, so only it switches the omelette on. The row names the real module.
+  const mod = drillModule(profile.items, world.items);
+  if (mod.drill) {
+    const want = mod.perks;
+    const what = mod.name ? `${mod.name} on your drill${want ? ' (+1 level on every perk)' : ' (no perk levels)'}` : 'No upgrade module on your drill';
     if ((now.omelette === true) === want) out.equal++;
-    else rows.push({ id: 'hotm:omelette', area: 'hotm', label: 'Goblin Omelette (upgrade module on your drill)', from: now.omelette === true ? 'on' : 'off', to: want ? 'on' : 'off', status: 'different', kind: 'part', part: 'hotm', change: (p) => ({ ...p, omelette: want }), ...guardNote(guard) });
+    else rows.push({ id: 'hotm:omelette', area: 'hotm', label: what, from: now.omelette === true ? 'on' : 'off', to: want ? 'on' : 'off', status: 'different', kind: 'part', part: 'hotm', change: (p) => ({ ...p, omelette: want }), ...guardNote(guard) });
   }
   return { rows: [...rows], equal: out.equal, notes: h.unknown ? [`${h.unknown} HOTM entries are not in the app's data.`] : [] };
 }
