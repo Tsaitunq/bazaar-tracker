@@ -36,6 +36,11 @@ export function readItem(raw, at) {
   const e = raw?.tag?.ExtraAttributes;
   if (!text(e?.id)) return null;
   const hot = whole(e.hot_potato_count);
+  const lore = raw.tag.display?.Lore;
+  const tip = readTip(lore);
+  // a drill's tooltip has no line for its Efficiency: Mining Speed 10 + 20 per level, from the enchantment
+  const efficiency = efficiencySpeed(e.enchantments, lore, e.id);
+  if (tip.MINING_SPEED !== undefined && efficiency) tip.MINING_SPEED += efficiency;
   return {
     id: e.id,
     // accessories carry modifier "none" when they have no reforge; an enchant can be stored in capitals (PROSECUTE)
@@ -57,7 +62,7 @@ export function readItem(raw, at) {
     scrolls: [...(Array.isArray(e.ability_scroll) ? e.ability_scroll : []), ...(text(e.power_ability_scroll) ? [e.power_ability_scroll] : [])].filter(text),
     at: [at],
     // what the tooltip says the item gives (stat numbers only): the app takes this in place of its own sum for accessories and worn gear
-    ...(Object.keys(readTip(raw.tag.display?.Lore)).length ? { tip: readTip(raw.tag.display.Lore) } : {}),
+    ...(Object.keys(tip).length ? { tip } : {}),
     uuid: text(e.uuid),
   };
 }
@@ -78,6 +83,15 @@ export function drillExtras(lore) {
     if (part) add(part[2], part[1]);
   }
   return out;
+}
+
+// The Mining Speed of the Efficiency enchantment: 10 + 20 per level (X = 210, V = 110, checked in the game). Only for drills: their tooltip total leaves it out,
+// while the tooltip of a pickaxe holds it already (checked on the Diamond and Iron Pickaxe of the private profile; no gauntlet was available to check).
+// 0 without the enchantment, or when the tooltip has a line of its own for it (a line that names Efficiency and Mining Speed together). enchantments: ExtraAttributes.enchantments.
+export function efficiencySpeed(enchantments, lore, id) {
+  const level = whole(enchantments?.efficiency);
+  if (!level || !/_DRILL(_\d+)?$/.test(String(id)) || (Array.isArray(lore) ? lore : []).some((l) => /Efficiency/.test(l) && /Mining Speed/.test(l))) return 0;
+  return 10 + 20 * level;
 }
 
 const TIP_STAT = { CRIT_CHANCE: 'CRITICAL_CHANCE', CRIT_DAMAGE: 'CRITICAL_DAMAGE', BONUS_ATTACK_SPEED: 'ATTACK_SPEED' };

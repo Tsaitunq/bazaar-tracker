@@ -5,7 +5,8 @@
       "date": "2026-11-13",
       "entries": [
         { "title": "Omelettes told apart", "text": "Only the Blue Cheese Goblin Omelette raises your HOTM perks; Sunny Side, Spicy, Pesto and the plain one no longer do, and the import names the one on your drill." },
-        { "title": "Drill tooltip complete", "text": "A drill's tooltip now adds the Polarvoid bonus, the engine stats and what a module grants, so its Mining Fortune matches the game." }
+        { "title": "Drill tooltip complete", "text": "A drill's tooltip now adds the Polarvoid bonus, the engine stats and what a module grants, so its Mining Fortune matches the game." },
+        { "title": "Efficiency counted on drills", "text": "A drill's Mining Speed now includes its Efficiency enchantment, which its tooltip leaves out, so Titanium, Mithril and Gemstone drills match the game." }
       ]
     },
     {
